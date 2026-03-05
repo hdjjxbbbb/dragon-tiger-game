@@ -33,7 +33,7 @@
 
 <div class="card">
   <div class="section-title">钱包连接</div>
-  <button id="connectBtn" class="btn btn-primary" onclick="connectWallet()">连接钱包</button>
+  <button id="connectBtn" class="btn btn-primary" onclick="connectWallet()">连接 TP 钱包</button>
   <div class="label">地址：<span id="address">-</span></div>
 </div>
 
@@ -148,17 +148,44 @@ function statusStr(s){
   if(s==0)return"待开奖";if(s==1)return"✅ 中奖";if(s==2)return"❌ 未中奖";return"-"
 }
 
-async function connectWallet() {
-  if (!window.ethereum) {
-    alert("请在钱包浏览器打开");
-    return;
+// 优先检测 TP 钱包 API
+async function getProvider() {
+  if (window.trustwallet && window.trustwallet.ethereum) {
+    return new ethers.BrowserProvider(window.trustwallet.ethereum);
   }
+  if (window.ethereum) {
+    return new ethers.BrowserProvider(window.ethereum);
+  }
+  throw new Error("未检测到钱包，请在 TP 钱包内置浏览器中打开");
+}
+
+async function connectWallet() {
   const btn = document.getElementById("connectBtn");
   btn.innerText = "连接中…";
   btn.disabled = true;
 
   try {
-    provider = new ethers.BrowserProvider(window.ethereum);
+    provider = await getProvider();
+
+    // 切换到 BSC 主网
+    try {
+      await provider.send("wallet_switchEthereumChain", [{ chainId: `0x${CONFIG.CHAIN_ID.toString(16)}` }]);
+    } catch (e) {
+      if (e.code === 4902) {
+        await provider.send("wallet_addEthereumChain", [
+          {
+            chainId: `0x${CONFIG.CHAIN_ID.toString(16)}`,
+            chainName: "Binance Smart Chain Mainnet",
+            nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+            rpcUrls: [CONFIG.RPC],
+            blockExplorerUrls: ["https://bscscan.com/"],
+          },
+        ]);
+      } else {
+        throw e;
+      }
+    }
+
     await provider.send("eth_requestAccounts", []);
     signer = await provider.getSigner();
     account = await signer.getAddress();
@@ -173,9 +200,9 @@ async function connectWallet() {
     loadAll();
     genRefLink();
   } catch(e){
-    btn.innerText = "连接钱包";
+    btn.innerText = "连接 TP 钱包";
     btn.disabled = false;
-    alert("失败："+e.message);
+    alert("连接失败：" + e.message);
   }
 }
 
