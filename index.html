@@ -116,7 +116,7 @@
     // 已更新为你提供的代币地址，并修复校验和问题
     // =============================================
     const CONFIG = {
-      CONTRACT: "0xace74c59d311c1ce20358cd9c8cb2a7958d3c96a",
+      CONTRACT: "0xace74c59d311c1ce20358cd9c8cb2A7958D3C96a",
       TOKEN: "0x227bbbdb9d40ccda666cfe40b419328e1ed0a480", // 你的新代币地址
       RPC: "https://bsc-dataseed1.binance.org/",
       CHAIN_ID: 56
@@ -143,6 +143,7 @@
     ];
 
     let provider, signer, account, contract, token;
+    let countdownInterval = null; // 倒计时定时器
 
     function sideStr(s){
       if(s==1)return"龙";if(s==2)return"虎";if(s==3)return"和";return"-"
@@ -211,6 +212,7 @@
 
         loadAll();
         genRefLink();
+        startTimer(); // 启动倒计时
       } catch(e){
         btn.innerText = "连接 TP 钱包";
         btn.disabled = false;
@@ -218,18 +220,20 @@
       }
     }
 
-    async function startTimer() {
-      setInterval(async ()=>{
-        if(!contract)return;
-        try{
+    // 启动倒计时（下注后自动开始）
+    function startTimer() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(async () => {
+        if (!contract) return;
+        try {
           const sec = await contract.nextDrawIn();
           const m = String(Math.floor(sec/60)).padStart(2,"0");
           const s = String(sec%60).padStart(2,"0");
           document.getElementById("timer").innerText = `${m}:${s}`;
           const can = await contract.canDraw();
           document.getElementById("drawBtn").disabled = !can;
-        }catch(e){}
-      },1000);
+        } catch(e) {}
+      }, 1000);
     }
 
     async function loadAll() {
@@ -253,6 +257,7 @@
         const tx = await contract.bet(side, val);
         await tx.wait();
         alert("下注成功！");
+        startTimer(); // 下注成功后重启倒计时
         loadAll();
       } catch(e){alert("失败："+e.message)}
     }
@@ -263,6 +268,7 @@
         const tx = await contract.draw();
         await tx.wait();
         alert("开奖成功");
+        startTimer(); // 开奖后重启倒计时
         loadAll();
       } catch(e){alert("失败："+e.message)}
     }
@@ -352,12 +358,6 @@
       await navigator.clipboard.writeText(val);
       alert("推广链接已复制！");
     }
-
-    // 页面加载完成后启动定时器
-    window.onload = function() {
-      startTimer();
-      setInterval(loadAll, 10000);
-    };
   </script>
 </body>
 </html>
