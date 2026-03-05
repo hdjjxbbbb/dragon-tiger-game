@@ -1,347 +1,352 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>龙虎斗 - 5分钟一期</title>
-<script src="https://cdn.ethers.org/lib-ethers.6.13.0.umd.min.js"></script>
-<style>
-  *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  body{background:#0F172A;color:#fff;margin:0;padding:20px;max-width:420px;margin-left:auto;margin-right:auto}
-  .card{background:#1E293B;border-radius:16px;padding:20px;margin-bottom:16px;border:1px solid #334155}
-  .title{font-size:22px;font-weight:700;text-align:center;margin-bottom:20px}
-  .btn{width:100%;padding:14px;border-radius:12px;border:none;font-weight:bold;margin-bottom:8px;cursor:pointer}
-  .btn-primary{background:linear-gradient(90deg,#059669,#10B981);color:#fff}
-  .btn-secondary{background:#334155;color:#fff}
-  .btn-dragon{background:#2563eb;color:white}
-  .btn-tiger{background:#f43f5e;color:white}
-  .btn-tie{background:#f59e0b;color:white}
-  .btn:disabled{opacity:0.5;cursor:default}
-  input{width:100%;padding:14px;background:#111827;color:#fff;border:1px solid #374151;border-radius:12px;margin-bottom:12px;outline:none;font-size:16px}
-  .countdown{font-size:26px;font-weight:bold;color:#10B981;text-align:center;margin:10px 0}
-  .bet-row{display:flex;gap:10px;margin-bottom:10px}
-  .bet-row button{flex:1}
-  .section-title{font-size:16px;margin-bottom:12px;color:#E2E8F0}
-  .item{padding:10px 12px;background:#111827;border-radius:8px;margin-bottom:8px;font-size:14px}
-  .rule{background:#1E293B;border-radius:12px;padding:16px;font-size:14px;line-height:1.6;color:#cbd5e1}
-  .rule strong{color:#10B981}
-  .label{font-size:12px;color:#94a3b8;margin-bottom:6px}
-  .badge{display:inline-block;padding:4px 8px;border-radius:6px;background:#10b98133;color:#10B981;font-size:12px;margin-right:4px}
-</style>
-
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>龙虎斗 - 5分钟一期</title>
+  <!-- 确保先加载 ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+  <style>
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+    body{background:#0F172A;color:#fff;margin:0;padding:20px;max-width:420px;margin-left:auto;margin-right:auto}
+    .card{background:#1E293B;border-radius:16px;padding:20px;margin-bottom:16px;border:1px solid #334155}
+    .title{font-size:22px;font-weight:700;text-align:center;margin-bottom:20px}
+    .btn{width:100%;padding:14px;border-radius:12px;border:none;font-weight:bold;margin-bottom:8px;cursor:pointer}
+    .btn-primary{background:linear-gradient(90deg,#059669,#10B981);color:#fff}
+    .btn-secondary{background:#334155;color:#fff}
+    .btn-dragon{background:#2563eb;color:white}
+    .btn-tiger{background:#f43f5e;color:white}
+    .btn-tie{background:#f59e0b;color:white}
+    .btn:disabled{opacity:0.5;cursor:default}
+    input{width:100%;padding:14px;background:#111827;color:#fff;border:1px solid #374151;border-radius:12px;margin-bottom:12px;outline:none;font-size:16px}
+    .countdown{font-size:26px;font-weight:bold;color:#10B981;text-align:center;margin:10px 0}
+    .bet-row{display:flex;gap:10px;margin-bottom:10px}
+    .bet-row button{flex:1}
+    .section-title{font-size:16px;margin-bottom:12px;color:#E2E8F0}
+    .item{padding:10px 12px;background:#111827;border-radius:8px;margin-bottom:8px;font-size:14px}
+    .rule{background:#1E293B;border-radius:12px;padding:16px;font-size:14px;line-height:1.6;color:#cbd5e1}
+    .rule strong{color:#10B981}
+    .label{font-size:12px;color:#94a3b8;margin-bottom:6px}
+    .badge{display:inline-block;padding:4px 8px;border-radius:6px;background:#10b98133;color:#10B981;font-size:12px;margin-right:4px}
+  </style>
+</head>
 <body>
+  <div class="title">🐉🐯 龙虎斗 · 5分钟一期</div>
 
-<div class="title">🐉🐯 龙虎斗 · 5分钟一期</div>
-
-<div class="card">
-  <div class="section-title">钱包连接</div>
-  <button id="connectBtn" class="btn btn-primary" onclick="connectWallet()">连接 TP 钱包</button>
-  <div class="label">地址：<span id="address">-</span></div>
-</div>
-
-<div class="card">
-  <div class="section-title">当期开奖</div>
-  <div>期号：#<span id="round">0</span></div>
-  <div class="countdown" id="timer">00:00</div>
-  <button class="btn btn-primary" onclick="draw()" id="drawBtn">手动开奖</button>
-</div>
-
-<div class="card">
-  <div class="section-title">下注区</div>
-  <input id="betAmt" type="number" min="1" value="1" placeholder="下注数量">
-  <div class="bet-row">
-    <button class="btn btn-dragon" onclick="placeBet(1)">龙 1:2</button>
-    <button class="btn btn-tiger" onclick="placeBet(2)">虎 1:2</button>
-    <button class="btn btn-tie" onclick="placeBet(3)">和 1:9</button>
+  <div class="card">
+    <div class="section-title">钱包连接</div>
+    <button id="connectBtn" class="btn btn-primary" onclick="connectWallet()">连接 TP 钱包</button>
+    <div class="label">地址：<span id="address">-</span></div>
   </div>
-</div>
 
-<div class="card">
-  <div class="section-title">推荐人</div>
-  <input id="inviterInput" placeholder="输入推荐人地址" type="text">
-  <button class="btn btn-secondary" onclick="setInviter()">绑定推荐人</button>
-  <div class="label" style="margin-top:10px">我的推荐人：<span id="myInviter">-</span></div>
-</div>
-
-<div class="card">
-  <div class="section-title">📢 我的推广链接</div>
-  <input id="refLink" readonly type="text" placeholder="连接钱包后生成">
-  <button class="btn btn-primary" onclick="copyRefLink()">复制链接</button>
-  <div style="margin-top:10px">
-    <span class="badge">直推 2%</span>
-    <span class="badge">伞下 0.8%</span>
+  <div class="card">
+    <div class="section-title">当期开奖</div>
+    <div>期号：#<span id="round">0</span></div>
+    <div class="countdown" id="timer">00:00</div>
+    <button class="btn btn-primary" onclick="draw()" id="drawBtn">手动开奖</button>
   </div>
-</div>
 
-<div class="card">
-  <div class="section-title">🏆 我的奖励</div>
-  <div class="item">直推奖励：<span id="refReward">0</span></div>
-  <div class="item">团队奖励：<span id="teamReward">0</span></div>
-</div>
+  <div class="card">
+    <div class="section-title">下注区</div>
+    <input id="betAmt" type="number" min="1" value="1" placeholder="下注数量">
+    <div class="bet-row">
+      <button class="btn btn-dragon" onclick="placeBet(1)">龙 1:2</button>
+      <button class="btn btn-tiger" onclick="placeBet(2)">虎 1:2</button>
+      <button class="btn btn-tie" onclick="placeBet(3)">和 1:9</button>
+    </div>
+  </div>
 
-<div class="card">
-  <div class="section-title">领奖中心</div>
-  <input id="betId" type="number" placeholder="输入下注ID">
-  <button class="btn btn-primary" onclick="claim()">领取奖励</button>
-</div>
+  <div class="card">
+    <div class="section-title">推荐人</div>
+    <input id="inviterInput" placeholder="输入推荐人地址" type="text">
+    <button class="btn btn-secondary" onclick="setInviter()">绑定推荐人</button>
+    <div class="label" style="margin-top:10px">我的推荐人：<span id="myInviter">-</span></div>
+  </div>
 
-<div class="card">
-  <div class="section-title">我的下注记录</div>
-  <div id="myBetsList">请先连接钱包</div>
-</div>
+  <div class="card">
+    <div class="section-title">📢 我的推广链接</div>
+    <input id="refLink" readonly type="text" placeholder="连接钱包后生成">
+    <button class="btn btn-primary" onclick="copyRefLink()">复制链接</button>
+    <div style="margin-top:10px">
+      <span class="badge">直推 2%</span>
+      <span class="badge">伞下 0.8%</span>
+    </div>
+  </div>
 
-<div class="card">
-  <div class="section-title">最近开奖</div>
-  <div id="historyList">加载中...</div>
-</div>
+  <div class="card">
+    <div class="section-title">🏆 我的奖励</div>
+    <div class="item">直推奖励：<span id="refReward">0</span></div>
+    <div class="item">团队奖励：<span id="teamReward">0</span></div>
+  </div>
 
-<div class="rule">
-  <strong>📜 玩法规则</strong><br>
-  • 每5分钟一期，基于区块哈希公平开奖<br>
-  • 0 ~ 49999 = 虎<br>
-  • 50001 ~ 99999 = 龙<br>
-  • 50000 = 和<br><br>
-  <strong>🎯 赔率</strong><br>
-  龙/虎 1 赔 2｜和 1 赔 9<br>
-  开和 → 通杀龙、虎注单<br><br>
-  <strong>🤝 推荐奖励</strong><br>
-  直推奖励：下注额 2%<br>
-  伞下奖励：下注额 0.8%<br>
-  下级下注，上级实时到账！
-</div>
+  <div class="card">
+    <div class="section-title">领奖中心</div>
+    <input id="betId" type="number" placeholder="输入下注ID">
+    <button class="btn btn-primary" onclick="claim()">领取奖励</button>
+  </div>
 
-<script>
-// =============================================
-// 已填入你提供的 游戏合约地址
-// =============================================
-const CONFIG = {
-  CONTRACT: "0xace74c59d311c1ce20358cd9c8cb2a7958d3c96a",
-  TOKEN: "0x2c07055B5B5f3D98019C582eE52372927773259f",
-  RPC: "https://bsc-dataseed1.binance.org/",
-  CHAIN_ID: 56
-};
+  <div class="card">
+    <div class="section-title">我的下注记录</div>
+    <div id="myBetsList">请先连接钱包</div>
+  </div>
 
-const ABI = [
-  {"inputs":[],"name":"draw","outputs":[],"stateMutability":"nonpayable","type":"function"},
-  {"inputs":[],"name":"currentRound","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
-  {"inputs":[],"name":"nextDrawIn","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
-  {"inputs":[],"name":"canDraw","outputs":[{"type":"bool"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"type":"uint8"},{"type":"uint256"}],"name":"bet","outputs":[],"stateMutability":"nonpayable","type":"function"},
-  {"inputs":[{"type":"uint256"}],"name":"claim","outputs":[],"stateMutability":"nonpayable","type":"function"},
-  {"inputs":[{"type":"address"}],"name":"getUserBetCount","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"type":"address"},{"type":"uint256"}],"name":"getUserBet","outputs":[{"type":"uint256"},{"type":"uint256"},{"type":"uint8"},{"type":"uint256"},{"type":"uint8"},{"type":"uint8"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"type":"uint256"}],"name":"getRoundResult","outputs":[{"type":"uint8"},{"type":"bool"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"type":"address"}],"name":"inviter","outputs":[{"type":"address"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"type":"address"}],"name":"setInviter","outputs":[],"stateMutability":"nonpayable","type":"function"},
-  {"inputs":[{"type":"address"}],"name":"getUserRewards","outputs":[{"type":"uint256"},{"type":"uint256"}],"stateMutability":"view","type":"function"}
-];
+  <div class="card">
+    <div class="section-title">最近开奖</div>
+    <div id="historyList">加载中...</div>
+  </div>
 
-const TOKEN_ABI = [
-  {"inputs":[{"type":"address"},{"type":"uint256"}],"name":"approve","outputs":[{"type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-  {"inputs":[{"type":"address"}],"name":"balanceOf","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}
-];
+  <div class="rule">
+    <strong>📜 玩法规则</strong><br>
+    • 每5分钟一期，基于区块哈希公平开奖<br>
+    • 0 ~ 49999 = 虎<br>
+    • 50001 ~ 99999 = 龙<br>
+    • 50000 = 和<br><br>
+    <strong>🎯 赔率</strong><br>
+    龙/虎 1 赔 2｜和 1 赔 9<br>
+    开和 → 通杀龙、虎注单<br><br>
+    <strong>🤝 推荐奖励</strong><br>
+    直推奖励：下注额 2%<br>
+    伞下奖励：下注额 0.8%<br>
+    下级下注，上级实时到账！
+  </div>
 
-let provider, signer, account, contract, token;
+  <script>
+    // =============================================
+    // 已填入你提供的 游戏合约地址
+    // =============================================
+    const CONFIG = {
+      CONTRACT: "0xace74c59d311c1ce20358cd9c8cb2a7958d3c96a",
+      TOKEN: "0x2c07055B5B5f3D98019C582eE52372927773259f",
+      RPC: "https://bsc-dataseed1.binance.org/",
+      CHAIN_ID: 56
+    };
 
-function sideStr(s){
-  if(s==1)return"龙";if(s==2)return"虎";if(s==3)return"和";return"-"
-}
-function statusStr(s){
-  if(s==0)return"待开奖";if(s==1)return"✅ 中奖";if(s==2)return"❌ 未中奖";return"-"
-}
+    const ABI = [
+      {"inputs":[],"name":"draw","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[],"name":"currentRound","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"nextDrawIn","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"canDraw","outputs":[{"type":"bool"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"type":"uint8"},{"type":"uint256"}],"name":"bet","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"type":"uint256"}],"name":"claim","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"type":"address"}],"name":"getUserBetCount","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"type":"address"},{"type":"uint256"}],"name":"getUserBet","outputs":[{"type":"uint256"},{"type":"uint256"},{"type":"uint8"},{"type":"uint256"},{"type":"uint8"},{"type":"uint8"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"type":"uint256"}],"name":"getRoundResult","outputs":[{"type":"uint8"},{"type":"bool"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"type":"address"}],"name":"inviter","outputs":[{"type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"type":"address"}],"name":"setInviter","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"type":"address"}],"name":"getUserRewards","outputs":[{"type":"uint256"},{"type":"uint256"}],"stateMutability":"view","type":"function"}
+    ];
 
-// 优先检测 TP 钱包 API
-async function getProvider() {
-  if (window.trustwallet && window.trustwallet.ethereum) {
-    return new ethers.BrowserProvider(window.trustwallet.ethereum);
-  }
-  if (window.ethereum) {
-    return new ethers.BrowserProvider(window.ethereum);
-  }
-  throw new Error("未检测到钱包，请在 TP 钱包内置浏览器中打开");
-}
+    const TOKEN_ABI = [
+      {"inputs":[{"type":"address"},{"type":"uint256"}],"name":"approve","outputs":[{"type":"bool"}],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"type":"address"}],"name":"balanceOf","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}
+    ];
 
-async function connectWallet() {
-  const btn = document.getElementById("connectBtn");
-  btn.innerText = "连接中…";
-  btn.disabled = true;
+    let provider, signer, account, contract, token;
 
-  try {
-    provider = await getProvider();
+    function sideStr(s){
+      if(s==1)return"龙";if(s==2)return"虎";if(s==3)return"和";return"-"
+    }
+    function statusStr(s){
+      if(s==0)return"待开奖";if(s==1)return"✅ 中奖";if(s==2)return"❌ 未中奖";return"-"
+    }
 
-    // 切换到 BSC 主网
-    try {
-      await provider.send("wallet_switchEthereumChain", [{ chainId: `0x${CONFIG.CHAIN_ID.toString(16)}` }]);
-    } catch (e) {
-      if (e.code === 4902) {
-        await provider.send("wallet_addEthereumChain", [
-          {
-            chainId: `0x${CONFIG.CHAIN_ID.toString(16)}`,
-            chainName: "Binance Smart Chain Mainnet",
-            nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
-            rpcUrls: [CONFIG.RPC],
-            blockExplorerUrls: ["https://bscscan.com/"],
-          },
-        ]);
-      } else {
-        throw e;
+    // 优先检测 TP 钱包 API
+    async function getProvider() {
+      if (window.trustwallet && window.trustwallet.ethereum) {
+        return new ethers.BrowserProvider(window.trustwallet.ethereum);
+      }
+      if (window.ethereum) {
+        return new ethers.BrowserProvider(window.ethereum);
+      }
+      throw new Error("未检测到钱包，请在 TP 钱包内置浏览器中打开");
+    }
+
+    async function connectWallet() {
+      const btn = document.getElementById("connectBtn");
+      btn.innerText = "连接中…";
+      btn.disabled = true;
+
+      try {
+        provider = await getProvider();
+
+        // 切换到 BSC 主网
+        try {
+          await provider.send("wallet_switchEthereumChain", [{ chainId: `0x${CONFIG.CHAIN_ID.toString(16)}` }]);
+        } catch (e) {
+          if (e.code === 4902) {
+            await provider.send("wallet_addEthereumChain", [
+              {
+                chainId: `0x${CONFIG.CHAIN_ID.toString(16)}`,
+                chainName: "Binance Smart Chain Mainnet",
+                nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+                rpcUrls: [CONFIG.RPC],
+                blockExplorerUrls: ["https://bscscan.com/"],
+              },
+            ]);
+          } else {
+            throw e;
+          }
+        }
+
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        account = await signer.getAddress();
+
+        contract = new ethers.Contract(CONFIG.CONTRACT, ABI, signer);
+        token = new ethers.Contract(CONFIG.TOKEN, TOKEN_ABI, signer);
+
+        document.getElementById("address").innerText = account.slice(0,6)+"..."+account.slice(-4);
+        btn.innerText = "✅ 已连接";
+        btn.disabled = true;
+
+        loadAll();
+        genRefLink();
+      } catch(e){
+        btn.innerText = "连接 TP 钱包";
+        btn.disabled = false;
+        alert("连接失败：" + e.message);
       }
     }
 
-    await provider.send("eth_requestAccounts", []);
-    signer = await provider.getSigner();
-    account = await signer.getAddress();
-
-    contract = new ethers.Contract(CONFIG.CONTRACT, ABI, signer);
-    token = new ethers.Contract(CONFIG.TOKEN, TOKEN_ABI, signer);
-
-    document.getElementById("address").innerText = account.slice(0,6)+"..."+account.slice(-4);
-    btn.innerText = "✅ 已连接";
-    btn.disabled = true;
-
-    loadAll();
-    genRefLink();
-  } catch(e){
-    btn.innerText = "连接 TP 钱包";
-    btn.disabled = false;
-    alert("连接失败：" + e.message);
-  }
-}
-
-async function startTimer() {
-  setInterval(async ()=>{
-    if(!contract)return;
-    try{
-      const sec = await contract.nextDrawIn();
-      const m = String(Math.floor(sec/60)).padStart(2,"0");
-      const s = String(sec%60).padStart(2,"0");
-      document.getElementById("timer").innerText = `${m}:${s}`;
-      const can = await contract.canDraw();
-      document.getElementById("drawBtn").disabled = !can;
-    }catch(e){}
-  },1000);
-}
-
-async function loadAll() {
-  if(!contract)return;
-  const r = await contract.currentRound();
-  document.getElementById("round").innerText = r.toString();
-  loadMyBets();
-  loadHistory();
-  loadInviter();
-  loadRewards();
-}
-
-async function placeBet(side) {
-  if(!account)return alert("请先连接钱包");
-  const amt = document.getElementById("betAmt").value;
-  if(!amt || amt < 1)return alert("输入有效金额");
-  try {
-    const val = ethers.parseUnits(amt, 18);
-    await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
-    const tx = await contract.bet(side, val);
-    await tx.wait();
-    alert("下注成功！");
-    loadAll();
-  } catch(e){alert("失败："+e.message)}
-}
-
-async function draw() {
-  if(!account)return alert("请先连接钱包");
-  try {
-    const tx = await contract.draw();
-    await tx.wait();
-    alert("开奖成功");
-    loadAll();
-  } catch(e){alert("失败："+e.message)}
-}
-
-async function claim() {
-  if(!account)return alert("请先连接钱包");
-  const id = document.getElementById("betId").value;
-  if(!id)return alert("输入下注ID");
-  try {
-    const tx = await contract.claim(id);
-    await tx.wait();
-    alert("领取成功");
-    loadAll();
-  } catch(e){alert("失败："+e.message)}
-}
-
-async function loadMyBets() {
-  const el = document.getElementById("myBetsList");
-  if(!account){el.innerHTML="请连接钱包";return}
-  try {
-    const cnt = await contract.getUserBetCount(account);
-    if(cnt == 0){el.innerHTML="暂无下注";return}
-    let html = "";
-    for(let i=0;i<Number(cnt);i++){
-      const [bid,rid,side,amt,st,res] = await contract.getUserBet(account,i);
-      const amount = ethers.formatUnits(amt,18);
-      html += `<div class="item">ID:${bid} | 期:${rid} | ${sideStr(side)} | ${amount} | ${statusStr(st)}</div>`;
+    async function startTimer() {
+      setInterval(async ()=>{
+        if(!contract)return;
+        try{
+          const sec = await contract.nextDrawIn();
+          const m = String(Math.floor(sec/60)).padStart(2,"0");
+          const s = String(sec%60).padStart(2,"0");
+          document.getElementById("timer").innerText = `${m}:${s}`;
+          const can = await contract.canDraw();
+          document.getElementById("drawBtn").disabled = !can;
+        }catch(e){}
+      },1000);
     }
-    el.innerHTML = html;
-  } catch(e){el.innerHTML="加载失败"}
-}
 
-async function loadHistory() {
-  const el = document.getElementById("historyList");
-  if(!contract){el.innerHTML="未连接";return}
-  try {
-    const cur = Number(await contract.currentRound());
-    let html = "";
-    for(let r=Math.max(0,cur-8);r<=cur;r++){
-      const [res,fin] = await contract.getRoundResult(r);
-      if(!fin)continue;
-      const txt = res==1?"龙":res==2?"虎":res==3?"和":"?";
-      html += `<div class="item">#${r} → ${txt}</div>`;
+    async function loadAll() {
+      if(!contract)return;
+      const r = await contract.currentRound();
+      document.getElementById("round").innerText = r.toString();
+      loadMyBets();
+      loadHistory();
+      loadInviter();
+      loadRewards();
     }
-    el.innerHTML = html || "暂无历史";
-  } catch(e){el.innerHTML="加载失败"}
-}
 
-async function setInviter() {
-  if(!account)return alert("请连接钱包");
-  const addr = document.getElementById("inviterInput").value.trim();
-  if(!addr)return alert("请输入推荐人地址");
-  try {
-    const tx = await contract.setInviter(addr);
-    await tx.wait();
-    alert("绑定成功！");
-    loadInviter();
-  } catch(e){alert("绑定失败："+e.message)}
-}
+    async function placeBet(side) {
+      if(!account)return alert("请先连接钱包");
+      const amt = document.getElementById("betAmt").value;
+      if(!amt || amt < 1)return alert("输入有效金额");
+      try {
+        const val = ethers.parseUnits(amt, 18);
+        await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
+        const tx = await contract.bet(side, val);
+        await tx.wait();
+        alert("下注成功！");
+        loadAll();
+      } catch(e){alert("失败："+e.message)}
+    }
 
-async function loadInviter() {
-  if(!account)return;
-  const ref = await contract.inviter(account);
-  if(ref == ethers.ZeroAddress){
-    document.getElementById("myInviter").innerText = "未设置";
-  } else {
-    document.getElementById("myInviter").innerText = ref.slice(0,6)+"..."+ref.slice(-4);
-  }
-}
+    async function draw() {
+      if(!account)return alert("请先连接钱包");
+      try {
+        const tx = await contract.draw();
+        await tx.wait();
+        alert("开奖成功");
+        loadAll();
+      } catch(e){alert("失败："+e.message)}
+    }
 
-async function loadRewards() {
-  if(!account)return;
-  const [r1,r2] = await contract.getUserRewards(account);
-  document.getElementById("refReward").innerText = ethers.formatUnits(r1,18);
-  document.getElementById("teamReward").innerText = ethers.formatUnits(r2,18);
-}
+    async function claim() {
+      if(!account)return alert("请先连接钱包");
+      const id = document.getElementById("betId").value;
+      if(!id)return alert("输入下注ID");
+      try {
+        const tx = await contract.claim(id);
+        await tx.wait();
+        alert("领取成功");
+        loadAll();
+      } catch(e){alert("失败："+e.message)}
+    }
 
-function genRefLink() {
-  if(!account)return;
-  const link = window.location.origin + window.location.pathname + "?ref=" + account;
-  document.getElementById("refLink").value = link;
-}
+    async function loadMyBets() {
+      const el = document.getElementById("myBetsList");
+      if(!account){el.innerHTML="请连接钱包";return}
+      try {
+        const cnt = await contract.getUserBetCount(account);
+        if(cnt == 0){el.innerHTML="暂无下注";return}
+        let html = "";
+        for(let i=0;i<Number(cnt);i++){
+          const [bid,rid,side,amt,st,res] = await contract.getUserBet(account,i);
+          const amount = ethers.formatUnits(amt,18);
+          html += `<div class="item">ID:${bid} | 期:${rid} | ${sideStr(side)} | ${amount} | ${statusStr(st)}</div>`;
+        }
+        el.innerHTML = html;
+      } catch(e){el.innerHTML="加载失败"}
+    }
 
-async function copyRefLink() {
-  const val = document.getElementById("refLink").value;
-  if(!val || val.indexOf("0x")==-1)return alert("请先连接钱包");
-  await navigator.clipboard.writeText(val);
-  alert("推广链接已复制！");
-}
+    async function loadHistory() {
+      const el = document.getElementById("historyList");
+      if(!contract){el.innerHTML="未连接";return}
+      try {
+        const cur = Number(await contract.currentRound());
+        let html = "";
+        for(let r=Math.max(0,cur-8);r<=cur;r++){
+          const [res,fin] = await contract.getRoundResult(r);
+          if(!fin)continue;
+          const txt = res==1?"龙":res==2?"虎":res==3?"和":"?";
+          html += `<div class="item">#${r} → ${txt}</div>`;
+        }
+        el.innerHTML = html || "暂无历史";
+      } catch(e){el.innerHTML="加载失败"}
+    }
 
-startTimer();
-setInterval(loadAll,10000);
-</script>
+    async function setInviter() {
+      if(!account)return alert("请连接钱包");
+      const addr = document.getElementById("inviterInput").value.trim();
+      if(!addr)return alert("请输入推荐人地址");
+      try {
+        const tx = await contract.setInviter(addr);
+        await tx.wait();
+        alert("绑定成功！");
+        loadInviter();
+      } catch(e){alert("绑定失败："+e.message)}
+    }
+
+    async function loadInviter() {
+      if(!account)return;
+      const ref = await contract.inviter(account);
+      if(ref == ethers.ZeroAddress){
+        document.getElementById("myInviter").innerText = "未设置";
+      } else {
+        document.getElementById("myInviter").innerText = ref.slice(0,6)+"..."+ref.slice(-4);
+      }
+    }
+
+    async function loadRewards() {
+      if(!account)return;
+      const [r1,r2] = await contract.getUserRewards(account);
+      document.getElementById("refReward").innerText = ethers.formatUnits(r1,18);
+      document.getElementById("teamReward").innerText = ethers.formatUnits(r2,18);
+    }
+
+    function genRefLink() {
+      if(!account)return;
+      const link = window.location.origin + window.location.pathname + "?ref=" + account;
+      document.getElementById("refLink").value = link;
+    }
+
+    async function copyRefLink() {
+      const val = document.getElementById("refLink").value;
+      if(!val || val.indexOf("0x")==-1)return alert("请先连接钱包");
+      await navigator.clipboard.writeText(val);
+      alert("推广链接已复制！");
+    }
+
+    // 页面加载完成后启动定时器
+    window.onload = function() {
+      startTimer();
+      setInterval(loadAll, 10000);
+    };
+  </script>
 </body>
 </html>
