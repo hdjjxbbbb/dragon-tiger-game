@@ -1,168 +1,278 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>龙虎斗</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
-  <style>
-    body{background:#121212;color:#fff;padding:20px;font-family:Arial}
-    .item{background:#1e1e1e;padding:15px;margin:10px 0;border-radius:12px}
-    button{width:100%;padding:14px;margin:5px 0;border-radius:10px;border:none;font-weight:bold}
-    .connect{background:#007bff;color:#fff}
-    .approve{background:#28a745;color:#fff}
-    .bet{background:#ffc107;color:#000}
-    .draw{background:#dc3545;color:#fff}
-    input{width:100%;padding:12px;margin:5px 0;background:#222;color:#fff;border:1px solid #444;border-radius:10px}
-    .time{font-size:22px;color:#ffc107;text-align:center;margin:10px 0}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>龙虎斗</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+background:#080810;
+color:#fff;
+font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+min-height:100vh;
+padding:20px;
+display:flex;
+justify-content:center;
+align-items:center;
+background-image:
+radial-gradient(circle at 10% 20%,rgba(255,60,170,.08) 0%,transparent 25%),
+radial-gradient(circle at 90% 80%,rgba(0,200,255,.08) 0%,transparent 25%);
+}
+.card{
+width:100%;
+max-width:440px;
+background:#12121a;
+border:1px solid #222;
+border-radius:22px;
+padding:28px 24px;
+box-shadow:0 0 50px rgba(0,170,255,.1);
+}
+.title{
+font-size:26px;
+font-weight:700;
+text-align:center;
+margin-bottom:26px;
+color:#f0f0f0;
+}
+.btn{
+width:100%;
+padding:16px;
+border-radius:14px;
+border:none;
+font-size:16px;
+font-weight:600;
+margin-bottom:12px;
+cursor:pointer;
+transition:all .2s;
+}
+.btn:hover{opacity:.9;transform:scale(1.02)}
+.btn-connect{background:#0099ff;color:#fff}
+.btn-appr{background:#00e07d;color:#000}
+.btn-draw{background:#ff3366;color:#fff}
+.btn-bet{background:#ffcc00;color:#000}
+.input{
+width:100%;
+padding:14px 16px;
+background:#1b1b26;
+border:1px solid #333;
+border-radius:12px;
+color:#fff;
+font-size:16px;
+margin-bottom:12px;
+outline:none;
+}
+.input:focus{border-color:#0099ff}
+.info{
+background:#1b1b26;
+padding:12px 14px;
+border-radius:10px;
+font-size:14px;
+margin-bottom:12px;
+color:#ccc;
+}
+.timer{
+font-size:34px;
+font-weight:700;
+text-align:center;
+color:#00e0ff;
+margin:16px 0;
+text-shadow:0 0 12px rgba(0,224,255,.5);
+}
+.round{
+text-align:center;
+font-size:14px;
+color:#777;
+margin-bottom:8px;
+}
+.bet-row{
+display:flex;
+gap:8px;
+}
+</style>
 </head>
 <body>
+<div class="card">
+<div class="title">🐉🐯 龙虎斗</div>
 
-  <h2>🐉🐯 龙虎斗</h2>
+<button class="btn btn-connect" onclick="connectWallet()">连接钱包</button>
+<div class="info" id="addr">未连接</div>
 
-  <div class="item">
-    <button class="connect" onclick="connectWallet()">连接钱包</button>
-    <div id="addr">未连接</div>
-  </div>
+<button class="btn btn-appr" onclick="approve()">✅ 授权代币</button>
+<div class="info">可用额度: <span id="allow">0</span></div>
 
-  <div class="item">
-    <button class="approve" onclick="approve()">✅ 手动授权代币</button>
-    <div>授权：<span id="allow">0</span></div>
-  </div>
+<div class="round">期号: <span id="round">0</span></div>
+<div class="timer" id="timer">00:00</div>
+<button class="btn btn-draw" onclick="draw()">立即开奖</button>
 
-  <div class="item">
-    <div>期号：<span id="round">0</span></div>
-    <div class="time" id="timer">00:00</div>
-    <button class="draw" onclick="draw()">开奖</button>
-  </div>
+<input class="input" type="number" id="amt" value="1" placeholder="下注数量" min="1">
+<div class="bet-row">
+<button class="btn btn-bet" onclick="goBet(1)" style="flex:1">龙</button>
+<button class="btn btn-bet" onclick="goBet(2)" style="flex:1">虎</button>
+<button class="btn btn-bet" onclick="goBet(3)" style="flex:1">和</button>
+</div>
+</div>
 
-  <div class="item">
-    <input id="amt" type="number" value="1" placeholder="下注数量">
-    <button class="bet" onclick="goBet(1)">龙</button>
-    <button class="bet" onclick="goBet(2)">虎</button>
-    <button class="bet" onclick="goBet(3)">和</button>
-  </div>
+<script>
+const CONFIG = {
+  CONTRACT: "0xace74c59d311c1ce20358cd9c8cb2A7958D3C96a",
+  TOKEN:    "0x227bbbdb9d40ccda666cfe40b419328e1ed0a480",
+  CHAIN_ID: 56
+};
 
-  <script>
-    const CONFIG = {
-      CONTRACT: ethers.getAddress("0xace74c59d311c1ce20358cd9c8cb2A7958D3C96a"),
-      TOKEN: ethers.getAddress("0x227bbbdb9d40ccda666cfe40b419328e1ed0a480"),
-      CHAIN_ID: 56
-    };
+const TOKEN_ABI = [
+  {"inputs":[{"type":"address"},{"type":"uint256"}],"name":"approve","outputs":[{"type":"bool"}],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"type":"address"},{"type":"address"}],"name":"allowance","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}
+];
 
-    const TOKEN_ABI = [
-      {"inputs":[{"type":"address"},{"type":"uint256"}],"name":"approve","outputs":[{"type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[{"type":"address"},{"type":"address"}],"name":"allowance","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}
-    ];
+const GAME_ABI = [
+  {"inputs":[],"name":"currentRound","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"nextDrawIn","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"draw","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"type":"uint8"},{"type":"uint256"}],"name":"bet","outputs":[],"stateMutability":"nonpayable","type":"function"}
+];
 
-    const GAME_ABI = [
-      {"inputs":[],"name":"currentRound","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"nextDrawIn","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"draw","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[{"type":"uint8"},{"type":"uint256"}],"name":"bet","outputs":[],"stateMutability":"nonpayable","type":"function"}
-    ];
+let provider, signer, account, token, game;
+let autoDraw = false;
 
-    let provider, signer, account, token, game;
+function isConnected() {
+  return !!account && !!provider && !!signer && !!token && !!game;
+}
 
-    async function connectWallet() {
-      try {
-        if (!window.ethereum) {
-          alert("请安装 MetaMask 或其他支持 WalletConnect 的钱包");
-          return;
-        }
-        provider = new ethers.BrowserProvider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = await provider.getSigner();
-        account = await signer.getAddress();
-        document.getElementById("addr").innerText = account.slice(0, 10) + "...";
+function addr(addr) {
+  try {
+    return ethers.getAddress(addr);
+  } catch (e) {
+    return addr;
+  }
+}
 
-        game = new ethers.Contract(CONFIG.CONTRACT, GAME_ABI, signer);
-        token = new ethers.Contract(CONFIG.TOKEN, TOKEN_ABI, signer);
+async function connectWallet() {
+  try {
+    if (!window.ethereum) {
+      alert("请安装支持 WalletConnect 的钱包");
+      return;
+    }
+    if (isConnected()) {
+      alert("已连接");
+      return;
+    }
 
-        startTimer();
-        loadAllowance();
-        alert("连接成功！");
-      } catch (e) {
-        alert("连接失败：" + e.message);
+    provider = new ethers.BrowserProvider(window.ethereum);
+
+    try {
+      await provider.send("wallet_switchEthereumChain", [{ chainId: ethers.toBeHex(CONFIG.CHAIN_ID) }]);
+    } catch (e) {
+      if (e.code === 4902) {
+        await provider.send("wallet_addEthereumChain", [{
+          chainId: ethers.toBeHex(CONFIG.CHAIN_ID),
+          chainName: "BNB Smart Chain",
+          nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+          rpcUrls: ["https://bsc-dataseed1.binance.org"],
+          blockExplorerUrls: ["https://bscscan.com"]
+        }]);
       }
     }
 
-    async function approve() {
-      if (!account || !token) {
-        alert("请先连接钱包");
-        return;
-      }
-      try {
-        const tx = await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
-        await tx.wait();
-        alert("授权成功！");
-        loadAllowance();
-      } catch (e) {
-        alert("授权失败：" + e.message);
-      }
-    }
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    account = await signer.getAddress();
+    document.getElementById("addr").innerText = account.slice(0, 10) + "...";
 
-    async function loadAllowance() {
-      if (!account || !token) return;
-      try {
-        const a = await token.allowance(account, CONFIG.CONTRACT);
-        document.getElementById("allow").innerText = ethers.formatUnits(a, 18);
-      } catch (e) {
-        console.error("加载授权失败：", e);
-      }
-    }
+    game = new ethers.Contract(addr(CONFIG.CONTRACT), GAME_ABI, signer);
+    token = new ethers.Contract(addr(CONFIG.TOKEN), TOKEN_ABI, signer);
 
-    async function goBet(side) {
-      if (!account || !game) {
-        alert("请先连接钱包");
-        return;
-      }
-      const amt = document.getElementById("amt").value;
-      try {
-        const val = ethers.parseUnits(amt, 18);
-        const a = await token.allowance(account, CONFIG.CONTRACT);
-        if (a < val) {
-          alert("请先点【手动授权代币】");
-          return;
-        }
-        const tx = await game.bet(side, val);
-        await tx.wait();
-        alert("下注成功！");
-      } catch (e) {
-        alert("下注失败：" + e.message);
-      }
-    }
+    autoDraw = false;
+    startTimer();
+    loadAllowance();
+    alert("✅ 连接成功");
+  } catch (e) {
+    alert("连接失败：" + (e.message || "未知错误"));
+  }
+}
 
-    async function draw() {
-      if (!account || !game) {
-        alert("请先连接钱包");
-        return;
-      }
-      try {
-        const tx = await game.draw();
-        await tx.wait();
-        alert("开奖成功");
-      } catch (e) {
-        alert("开奖失败：" + e.message);
-      }
-    }
+async function approve() {
+  if (!isConnected()) {
+    alert("请先连接钱包");
+    return;
+  }
+  try {
+    const tx = await token.approve(addr(CONFIG.CONTRACT), ethers.MaxUint256);
+    await tx.wait();
+    alert("✅ 授权成功");
+    loadAllowance();
+  } catch (e) {
+    alert("授权失败：" + (e.message || "未知错误"));
+  }
+}
 
-    function startTimer() {
-      setInterval(async () => {
-        if (!game) return;
-        try {
-          const sec = await game.nextDrawIn();
-          const m = String(Math.floor(sec / 60)).padStart(2, '0');
-          const s = String(sec % 60).padStart(2, '0');
-          document.getElementById("timer").innerText = m + ":" + s;
-          const r = await game.currentRound();
-          document.getElementById("round").innerText = r.toString();
-        } catch (e) {
-          console.error("定时器更新失败：", e);
-        }
-      }, 1000);
+async function loadAllowance() {
+  if (!isConnected()) return;
+  try {
+    const a = await token.allowance(account, addr(CONFIG.CONTRACT));
+    document.getElementById("allow").innerText = ethers.formatUnits(a, 18);
+  } catch (e) {}
+}
+
+async function goBet(side) {
+  if (!isConnected()) {
+    alert("请先连接钱包");
+    return;
+  }
+  const amt = document.getElementById("amt").value;
+  if (!amt || Number(amt) <= 0) {
+    alert("请输入有效金额");
+    return;
+  }
+  try {
+    const val = ethers.parseUnits(amt, 18);
+    const a = await token.allowance(account, addr(CONFIG.CONTRACT));
+    if (a < val) {
+      alert("请先授权代币");
+      return;
     }
-  </script>
+    const tx = await game.bet(side, val);
+    await tx.wait();
+    alert("✅ 下注成功！");
+  } catch (e) {
+    alert("下注失败：" + (e.message || "未知错误"));
+  }
+}
+
+async function draw() {
+  if (!isConnected()) {
+    alert("请先连接钱包");
+    return;
+  }
+  try {
+    const tx = await game.draw();
+    await tx.wait();
+    alert("✅ 开奖成功！");
+    autoDraw = false;
+  } catch (e) {
+    alert("开奖失败：" + (e.message || "未知错误"));
+  }
+}
+
+function startTimer() {
+  setInterval(async () => {
+    if (!game) return;
+    try {
+      const sec = await game.nextDrawIn();
+      const m = String(Math.floor(sec / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      document.getElementById("timer").innerText = m + ":" + s;
+      const r = await game.currentRound();
+      document.getElementById("round").innerText = r.toString();
+      if (sec <= 0 && !autoDraw) {
+        autoDraw = true;
+        alert("⏰ 自动开奖中...");
+        await draw();
+      }
+    } catch (e) {}
+  }, 1000);
+}
+</script>
 </body>
 </html>
