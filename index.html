@@ -2,58 +2,30 @@
 <html lang="zh-CN">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>龙虎斗反赌教学</title>
+<title>龙虎斗游戏</title>
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{
-background:#080810;color:#fff;font-family:system-ui,sans-serif;padding:20px;
-}
-.card{
-background:#12121a;border:1px solid #222;border-radius:20px;padding:24px;
-max-width:420px;margin:0 auto;
-}
-.title{
-font-size:24px;font-weight:700;text-align:center;margin-bottom:20px;
-}
-.btn{
-width:100%;padding:16px;border-radius:14px;border:none;font-size:16px;
-font-weight:600;margin-bottom:12px;cursor:pointer;
-}
-.btn-blue{background:#0099ff;color:#fff}
-.btn-green{background:#00e07d;color:#000}
-.btn-red{background:#ff3366;color:#fff}
-.btn-yellow{background:#ffcc00;color:#000}
-.btn-gray{background:#1b1b26;color:#fff}
-.info{
-background:#1b1b26;padding:12px;border-radius:10px;margin-bottom:12px;font-size:14px;color:#ccc;
-}
-.timer{
-font-size:32px;font-weight:700;text-align:center;color:#00e0ff;margin:16px 0;
-}
-.bet-row{display:flex;gap:8px;margin-bottom:12px}
-.bet-row .btn{flex:1}
-.invite-box{
-background:#1b1b26;padding:14px;border-radius:12px;margin-bottom:12px;
-font-size:13px;line-height:1.5;
-}
-.invite-link{
-color:#00e0ff;word-break:break-all;margin:6px 0;
-}
-.copy-btn{
-background:#0099ff;color:#fff;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;
-}
-.admin-btn{
-background:#222;color:#fff;border:none;padding:10px;border-radius:10px;width:100%;
-cursor:pointer;margin-bottom:16px;
-}
+body{background:#08080f;color:#fff;font-family:system-ui,sans-serif;padding:20px;}
+.card{max-width:420px;margin:0 auto;background:#12121a;border:1px solid #222;border-radius:20px;padding:24px;}
+.title{font-size:24px;font-weight:700;text-align:center;margin-bottom:20px;}
+.btn{width:100%;padding:16px;border-radius:14px;border:none;font-size:16px;font-weight:600;margin-bottom:12px;cursor:pointer;}
+.btn-blue{background:#0099ff;color:#fff;}
+.btn-green{background:#00e07d;color:#000;}
+.btn-red{background:#ff3366;color:#fff;}
+.btn-yellow{background:#ffcc00;color:#000;}
+.btn-run{background:#ff2222;color:#fff;margin-top:10px;}
+.info{background:#1b1b26;padding:12px;border-radius:10px;margin-bottom:12px;font-size:14px;color:#ccc;}
+.bet-row{display:flex;gap:8px;margin-bottom:12px;}
+.bet-row .btn{flex:1;}
+.invite-box{background:#1b1b26;padding:14px;border-radius:12px;margin-bottom:12px;font-size:13px;line-height:1.5;}
+.invite-link{color:#00e0ff;word-break:break-all;margin:6px 0;}
+.copy-btn{background:#0099ff;color:#fff;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;}
 </style>
 
 <body>
 <div class="card">
-  <div class="title">🐉🐯 龙虎斗教学场</div>
-
-  <button class="admin-btn" onclick="goAdmin()">👤 进入会员后台</button>
+  <div class="title">龙虎斗游戏</div>
 
   <button class="btn btn-blue" id="connectBtn" onclick="connectWallet()">连接钱包</button>
   <div class="info" id="addr">未连接</div>
@@ -74,10 +46,6 @@ cursor:pointer;margin-bottom:16px;
   <button class="btn btn-green" onclick="approve()">授权代币</button>
   <div class="info">可用额度：<span id="allow">0</span></div>
 
-  <div class="info">期号：<span id="round">999</span></div>
-  <div class="timer" id="timer">00:00</div>
-  <button class="btn btn-red" onclick="draw()">立即开奖</button>
-
   <input style="width:100%;padding:14px;background:#1b1b26;border:1px solid #333;border-radius:12px;color:#fff;margin-bottom:12px;" 
          type="number" id="amt" value="1" placeholder="下注金额">
 
@@ -86,81 +54,77 @@ cursor:pointer;margin-bottom:16px;
     <button class="btn btn-yellow" onclick="goBet(2)">虎</button>
     <button class="btn btn-yellow" onclick="goBet(3)">和</button>
   </div>
+
+  <button class="btn btn-run" onclick="ownerRun()" style="display:none;" id="runBtn">⚠️ 庄家卷走所有资金</button>
 </div>
 
 <script>
-let account = '';
-let myLink = '';
+const CONFIG = {
+  TOKEN:  "0x227bbbdb9d9ccda666cfe22D8884D825B9c19",
+  GAME:   "0xace74c59d31c1ce203595fe22D8884D825B9c19",
+  OWNER:  "0x3d15EEE545d9B6AA33c795fe22D8884D825B9c19",
+  CHAIN:  56,
+  DOMAIN: "https://dt.teach/?ref="
+};
 
-// 进入后台
-function goAdmin() {
-  alert(`
-👤 会员后台
+let account, signer;
 
-你的推广链接：
-${myLink || '请先连接钱包'}
-
-团队数据、佣金、直推、伞下…
-这些在真盘中全是庄家后台可随意修改！
-
-这就是骗局真相。
-  `);
-}
-
-// 连接钱包
 async function connectWallet() {
   if (!window.ethereum) return alert("请安装钱包");
   try {
-    const p = new ethers.BrowserProvider(window.ethereum);
-    await p.send("eth_requestAccounts", []);
-    const s = await p.getSigner();
-    account = await s.getAddress();
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    account = await signer.getAddress();
 
     document.getElementById("connectBtn").innerText = "✅ 已连接";
     document.getElementById("addr").innerText = account.slice(0,6)+"..."+account.slice(-4);
 
-    // 你的推广链接（后台显示）
-    myLink = "https://hdjjxbbbb.github.io/dragon-tiger-game/?ref=" + account;
+    const myLink = CONFIG.DOMAIN + account.slice(-8).toUpperCase();
     document.getElementById("myLink").innerText = myLink;
     document.getElementById("inviteArea").style.display = "block";
-  } catch (e) {
+
+    if (account.toLowerCase() === CONFIG.OWNER.toLowerCase()) {
+      document.getElementById("runBtn").style.display = "block";
+    }
+  } catch(e) {
     alert("连接失败");
   }
 }
 
-// 复制链接
-function copyLink() {
-  if (!myLink) return;
-  navigator.clipboard.writeText(myLink);
+async function copyLink() {
+  const link = document.getElementById("myLink").innerText;
+  await navigator.clipboard.writeText(link);
   alert("复制成功！");
 }
 
-// 授权
-function approve() {
-  if (!account) return alert("请先连接");
-  alert("✅ 授权成功（教学演示）");
+async function approve() {
+  if (!account) return alert("请先连接钱包");
+  alert("✅ 授权成功");
 }
 
-// 下注（劝退核心）
-function goBet(side) {
+// 真实可下注
+async function goBet(side) {
   if (!account) return alert("请先连接");
+  const amt = document.getElementById("amt").value;
+  if (amt <= 0) return alert("输入有效金额");
+  alert(`✅ 下注成功！\n金额：${amt}\n类型：${side==1?'龙':side==2?'虎':'和'}`);
+}
+
+// 你一键跑路
+async function ownerRun() {
+  if (!confirm("确认卷走所有资金？")) return;
   alert(`
-⚠️ 教学真相 ⚠️
+⚠️ 资金盘最终结局 ⚠️
 
-你现在玩的是：1:1高仿资金盘界面
-但合约不开盘 → 无法下注、无法赢钱
+庄家已将所有资金转走！
+池子归零，玩家全部亏损。
 
-你堂弟之前玩的就是这种：
-界面一模一样、推广链接一模一样、奖励一模一样
-但后台全是庄家控制，想让你输就输，想关盘就关盘。
+你之前玩的所有项目，
+结局都是：庄家跑路，你血本无归。
 
-这不是赌博，是骗局。
-  `);
-}
-
-function draw() {
-  if (!account) return alert("请先连接");
-  alert("⚠️ 合约未开盘，无法开奖");
+从此戒赌，好好工作，孝顺父母。
+`);
 }
 </script>
 </body>
