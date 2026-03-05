@@ -112,11 +112,11 @@
 
   <script>
     // =============================================
-    // 已填入你提供的 游戏合约地址
+    // 已更新为你提供的代币地址，并修复校验和问题
     // =============================================
     const CONFIG = {
       CONTRACT: "0xace74c59d311c1ce20358cd9c8cb2a7958d3c96a",
-      TOKEN: "0x2c07055B5B5f3D98019C582eE52372927773259f",
+      TOKEN: "0x227bbbdb9d40ccda666cfe40b419328e1ed0a480", // 你的新代币地址
       RPC: "https://bsc-dataseed1.binance.org/",
       CHAIN_ID: 56
     };
@@ -192,12 +192,16 @@
         signer = await provider.getSigner();
         account = await signer.getAddress();
 
-        contract = new ethers.Contract(CONFIG.CONTRACT, ABI, signer);
-        token = new ethers.Contract(CONFIG.TOKEN, TOKEN_ABI, signer);
+        // 使用 ethers.getAddress() 格式化地址，确保校验和正确
+        const contractAddress = ethers.getAddress(CONFIG.CONTRACT);
+        const tokenAddress = ethers.getAddress(CONFIG.TOKEN);
+
+        contract = new ethers.Contract(contractAddress, ABI, signer);
+        token = new ethers.Contract(tokenAddress, TOKEN_ABI, signer);
 
         document.getElementById("address").innerText = account.slice(0,6)+"..."+account.slice(-4);
         btn.innerText = "✅ 已连接";
-        btn.disabled = true;
+        btn.disabled = false;
 
         loadAll();
         genRefLink();
@@ -238,7 +242,8 @@
       if(!amt || amt < 1)return alert("输入有效金额");
       try {
         const val = ethers.parseUnits(amt, 18);
-        await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
+        const approveTx = await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
+        await approveTx.wait();
         const tx = await contract.bet(side, val);
         await tx.wait();
         alert("下注成功！");
