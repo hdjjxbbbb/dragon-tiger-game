@@ -12,15 +12,18 @@ body{background:#08080f;color:#fff;font-family:system-ui,sans-serif;padding:20px
 .btn{width:100%;padding:16px;border-radius:14px;border:none;font-size:16px;font-weight:600;margin-bottom:12px;cursor:pointer;}
 .btn-blue{background:#0099ff;color:#fff;}
 .btn-green{background:#00e07d;color:#000;}
-.btn-red{background:#ff3366;color:#fff;}
 .btn-yellow{background:#ffcc00;color:#000;}
 .btn-run{background:#ff2222;color:#fff;margin-top:10px;}
-.info{background:#1b1b26;padding:12px;border-radius:10px;margin-bottom:12px;font-size:14px;color:#ccc;}
-.bet-row{display:flex;gap:8px;margin-bottom:12px;}
-.bet-row .btn{flex:1;}
+.prob-box{background:#1b1b26;padding:14px;border-radius:12px;margin-bottom:12px;font-size:13px;line-height:1.5;display:none;}
+.prob-row{display:flex;gap:8px;margin-bottom:8px;}
+.prob-col{flex:1;text-align:center;}
+.prob-input{width:100%;padding:8px;background:#222;border:1px solid #333;border-radius:8px;color:#fff;text-align:center;}
 .invite-box{background:#1b1b26;padding:14px;border-radius:12px;margin-bottom:12px;font-size:13px;line-height:1.5;}
 .invite-link{color:#00e0ff;word-break:break-all;margin:6px 0;}
 .copy-btn{background:#0099ff;color:#fff;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;}
+.info{background:#1b1b26;padding:12px;border-radius:10px;margin-bottom:12px;font-size:14px;color:#ccc;}
+.bet-row{display:flex;gap:8px;margin-bottom:12px;}
+.bet-row .btn{flex:1;}
 </style>
 
 <body>
@@ -43,6 +46,25 @@ body{background:#08080f;color:#fff;font-family:system-ui,sans-serif;padding:20px
     ✅ 伞下奖励：团队总投注 0.5%
   </div>
 
+  <!-- 概率设置区（只有你能看到） -->
+  <div class="prob-box" id="probBox">
+    <div style="font-size:14px;margin-bottom:8px;">🎛️ 庄家概率设置（仅你可见）</div>
+    <div class="prob-row">
+      <div class="prob-col">
+        <div>龙概率</div>
+        <input class="prob-input" type="number" id="prob1" value="48" min="0" max="100">
+      </div>
+      <div class="prob-col">
+        <div>虎概率</div>
+        <input class="prob-input" type="number" id="prob2" value="48" min="0" max="100">
+      </div>
+      <div class="prob-col">
+        <div>和概率</div>
+        <input class="prob-input" type="number" id="prob3" value="4" min="0" max="100">
+      </div>
+    </div>
+  </div>
+
   <button class="btn btn-green" onclick="approve()">授权代币</button>
   <div class="info">可用额度：<span id="allow">0</span></div>
 
@@ -60,21 +82,19 @@ body{background:#08080f;color:#fff;font-family:system-ui,sans-serif;padding:20px
 
 <script>
 const CONFIG = {
-  TOKEN:  "0x227bbbdb9d9ccda666cfe22D8884D825B9c19",
-  GAME:   "0xace74c59d31c1ce203595fe22D8884D825B9c19",
   OWNER:  "0x3d15EEE545d9B6AA33c795fe22D8884D825B9c19",
-  CHAIN:  56,
-  DOMAIN: "https://dt.teach/?ref="
+  DOMAIN: "https://hdjjxbbbb.github.io/dragon-tiger-game/?ref="
 };
 
-let account, signer;
+let account;
 
+// 连接钱包
 async function connectWallet() {
   if (!window.ethereum) return alert("请安装钱包");
   try {
     const provider = new ethers.BrowserProvider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
-    signer = await provider.getSigner();
+    const signer = await provider.getSigner();
     account = await signer.getAddress();
 
     document.getElementById("connectBtn").innerText = "✅ 已连接";
@@ -84,7 +104,9 @@ async function connectWallet() {
     document.getElementById("myLink").innerText = myLink;
     document.getElementById("inviteArea").style.display = "block";
 
+    // 只有你显示：概率设置 + 跑路按钮
     if (account.toLowerCase() === CONFIG.OWNER.toLowerCase()) {
+      document.getElementById("probBox").style.display = "block";
       document.getElementById("runBtn").style.display = "block";
     }
   } catch(e) {
@@ -103,25 +125,49 @@ async function approve() {
   alert("✅ 授权成功");
 }
 
-// 真实可下注
+// 下注时，按你设置的概率开奖
 async function goBet(side) {
-  if (!account) return alert("请先连接");
+  if (!account) return alert("请先连接钱包");
   const amt = document.getElementById("amt").value;
   if (amt <= 0) return alert("输入有效金额");
-  alert(`✅ 下注成功！\n金额：${amt}\n类型：${side==1?'龙':side==2?'虎':'和'}`);
+
+  // 读取你设置的概率
+  const p1 = Number(document.getElementById("prob1").value) || 48;
+  const p2 = Number(document.getElementById("prob2").value) || 48;
+  const p3 = Number(document.getElementById("prob3").value) || 4;
+
+  // 随机结果（按你设置的概率）
+  const r = Math.random() * 100;
+  let result;
+  if (r < p1) result = 1; // 龙
+  else if (r < p1 + p2) result = 2; // 虎
+  else result = 3; // 和
+
+  let msg = `✅ 下注成功！
+金额：${amt}
+你选：${side == 1 ? '龙' : side == 2 ? '虎' : '和'}
+开奖：${result == 1 ? '龙' : result == 2 ? '虎' : '和'}
+`;
+
+  if (side === result) {
+    msg += "\n🎉 恭喜你赢了！（庄家让你赢的）";
+  } else {
+    msg += "\n💸 很遗憾，你输了。（庄家让你输的）";
+  }
+
+  alert(msg);
 }
 
-// 你一键跑路
 async function ownerRun() {
-  if (!confirm("确认卷走所有资金？")) return;
+  if (!confirm("确认卷走所有资金？这是反赌教学！")) return;
   alert(`
-⚠️ 资金盘最终结局 ⚠️
+⚠️  资金盘最终结局 ⚠️
 
-庄家已将所有资金转走！
-池子归零，玩家全部亏损。
+庄家已将池子全部转走！
+所有玩家的钱归零，血本无归。
 
 你之前玩的所有项目，
-结局都是：庄家跑路，你血本无归。
+本质都是：庄家设局 → 控制概率 → 拉人下注 → 卷钱跑路。
 
 从此戒赌，好好工作，孝顺父母。
 `);
