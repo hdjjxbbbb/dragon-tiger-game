@@ -67,6 +67,10 @@
 
     async function connectWallet() {
       try {
+        if (!window.ethereum) {
+          alert("请安装 MetaMask 或其他支持 WalletConnect 的钱包");
+          return;
+        }
         provider = new ethers.BrowserProvider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         signer = await provider.getSigner();
@@ -78,13 +82,17 @@
 
         startTimer();
         loadAllowance();
+        alert("连接成功！");
       } catch (e) {
         alert("连接失败：" + e.message);
       }
     }
 
     async function approve() {
-      if (!account) return alert("请先连接钱包");
+      if (!account || !token) {
+        alert("请先连接钱包");
+        return;
+      }
       try {
         const tx = await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
         await tx.wait();
@@ -96,13 +104,20 @@
     }
 
     async function loadAllowance() {
-      if (!account) return;
-      const a = await token.allowance(account, CONFIG.CONTRACT);
-      document.getElementById("allow").innerText = ethers.formatUnits(a, 18);
+      if (!account || !token) return;
+      try {
+        const a = await token.allowance(account, CONFIG.CONTRACT);
+        document.getElementById("allow").innerText = ethers.formatUnits(a, 18);
+      } catch (e) {
+        console.error("加载授权失败：", e);
+      }
     }
 
     async function goBet(side) {
-      if (!account) return alert("请先连接");
+      if (!account || !game) {
+        alert("请先连接钱包");
+        return;
+      }
       const amt = document.getElementById("amt").value;
       try {
         const val = ethers.parseUnits(amt, 18);
@@ -120,25 +135,32 @@
     }
 
     async function draw() {
-      if (!account) return;
+      if (!account || !game) {
+        alert("请先连接钱包");
+        return;
+      }
       try {
         const tx = await game.draw();
         await tx.wait();
         alert("开奖成功");
       } catch (e) {
-        alert("开奖失败");
+        alert("开奖失败：" + e.message);
       }
     }
 
     function startTimer() {
       setInterval(async () => {
         if (!game) return;
-        const sec = await game.nextDrawIn();
-        const m = String(Math.floor(sec / 60)).padStart(2, '0');
-        const s = String(sec % 60).padStart(2, '0');
-        document.getElementById("timer").innerText = m + ":" + s;
-        const r = await game.currentRound();
-        document.getElementById("round").innerText = r.toString();
+        try {
+          const sec = await game.nextDrawIn();
+          const m = String(Math.floor(sec / 60)).padStart(2, '0');
+          const s = String(sec % 60).padStart(2, '0');
+          document.getElementById("timer").innerText = m + ":" + s;
+          const r = await game.currentRound();
+          document.getElementById("round").innerText = r.toString();
+        } catch (e) {
+          console.error("定时器更新失败：", e);
+        }
       }, 1000);
     }
   </script>
