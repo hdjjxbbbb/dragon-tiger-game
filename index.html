@@ -41,6 +41,12 @@
   </div>
 
   <div class="card">
+    <div class="section-title">授权管理</div>
+    <button id="approveBtn" class="btn btn-secondary" onclick="approveToken()">手动授权代币</button>
+    <div class="label">当前授权额度：<span id="allowance">0</span></div>
+  </div>
+
+  <div class="card">
     <div class="section-title">当期开奖</div>
     <div>期号：#<span id="round">0</span></div>
     <div class="countdown" id="timer">00:00</div>
@@ -139,11 +145,12 @@
 
     const TOKEN_ABI = [
       {"inputs":[{"type":"address"},{"type":"uint256"}],"name":"approve","outputs":[{"type":"bool"}],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"type":"address"},{"type":"address"}],"name":"allowance","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[{"type":"address"}],"name":"balanceOf","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}
     ];
 
     let provider, signer, account, contract, token;
-    let countdownInterval = null; // 倒计时定时器
+    let countdownInterval = null;
 
     function sideStr(s){
       if(s==1)return"龙";if(s==2)return"虎";if(s==3)return"和";return"-"
@@ -152,7 +159,6 @@
       if(s==0)return"待开奖";if(s==1)return"✅ 中奖";if(s==2)return"❌ 未中奖";return"-"
     }
 
-    // 优先检测 TP 钱包 API
     async function getProvider() {
       if (window.trustwallet && window.trustwallet.ethereum) {
         return new ethers.BrowserProvider(window.trustwallet.ethereum);
@@ -169,14 +175,12 @@
       btn.disabled = true;
 
       try {
-        // 确保 ethers 已经加载
         if (typeof ethers === "undefined") {
           throw new Error("ethers.js 未加载，请清除缓存重试");
         }
 
         provider = await getProvider();
 
-        // 切换到 BSC 主网
         try {
           await provider.send("wallet_switchEthereumChain", [{ chainId: `0x${CONFIG.CHAIN_ID.toString(16)}` }]);
         } catch (e) {
@@ -199,7 +203,7 @@
         signer = await provider.getSigner();
         account = await signer.getAddress();
 
-        // 使用 ethers.getAddress() 格式化地址，确保校验和正确
+        // 确保地址校验和正确
         const contractAddress = ethers.getAddress(CONFIG.CONTRACT);
         const tokenAddress = ethers.getAddress(CONFIG.TOKEN);
 
@@ -212,7 +216,7 @@
 
         loadAll();
         genRefLink();
-        startTimer(); // 启动倒计时
+        startTimer();
       } catch(e){
         btn.innerText = "连接 TP 钱包";
         btn.disabled = false;
@@ -220,7 +224,24 @@
       }
     }
 
-    // 启动倒计时（下注后自动开始）
+    // 用户手动授权代币
+    async function approveToken() {
+      if(!account)return alert("请先连接钱包");
+      try {
+        const approveTx = await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
+        await approveTx.wait();
+        alert("授权成功！");
+        loadAllowance();
+      } catch(e){alert("授权失败："+e.message)}
+    }
+
+    // 加载当前授权额度
+    async function loadAllowance() {
+      if(!account)return;
+      const allowance = await token.allowance(account, CONFIG.CONTRACT);
+      document.getElementById("allowance").innerText = ethers.formatUnits(allowance, 18);
+    }
+
     function startTimer() {
       if (countdownInterval) clearInterval(countdownInterval);
       countdownInterval = setInterval(async () => {
@@ -244,6 +265,7 @@
       loadHistory();
       loadInviter();
       loadRewards();
+      loadAllowance();
     }
 
     async function placeBet(side) {
@@ -252,12 +274,16 @@
       if(!amt || amt < 1)return alert("输入有效金额");
       try {
         const val = ethers.parseUnits(amt, 18);
-        const approveTx = await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
-        await approveTx.wait();
+        // 检查授权额度，不足则提示用户手动授权
+        const currentAllowance = await token.allowance(account, CONFIG.CONTRACT);
+        if (currentAllowance < val) {
+          alert("授权额度不足，请先手动授权代币");
+          return;
+        }
         const tx = await contract.bet(side, val);
         await tx.wait();
         alert("下注成功！");
-        startTimer(); // 下注成功后重启倒计时
+        startTimer();
         loadAll();
       } catch(e){alert("失败："+e.message)}
     }
@@ -268,7 +294,7 @@
         const tx = await contract.draw();
         await tx.wait();
         alert("开奖成功");
-        startTimer(); // 开奖后重启倒计时
+        startTimer();
         loadAll();
       } catch(e){alert("失败："+e.message)}
     }
