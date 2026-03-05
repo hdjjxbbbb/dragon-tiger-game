@@ -46,8 +46,8 @@
 
   <script>
     const CONFIG = {
-      CONTRACT: "0xace74c59d311c1ce20358cd9c8cb2A7958D3C96a",
-      TOKEN: "0x227bbbdb9d40ccda666cfe40b419328e1ed0a480",
+      CONTRACT: ethers.getAddress("0xace74c59d311c1ce20358cd9c8cb2A7958D3C96a"),
+      TOKEN: ethers.getAddress("0x227bbbdb9d40ccda666cfe40b419328e1ed0a480"),
       CHAIN_ID: 56
     };
 
@@ -73,10 +73,8 @@
         account = await signer.getAddress();
         document.getElementById("addr").innerText = account.slice(0, 10) + "...";
 
-        const cAddr = ethers.getAddress(CONFIG.CONTRACT);
-        const tAddr = ethers.getAddress(CONFIG.TOKEN);
-        game = new ethers.Contract(cAddr, GAME_ABI, signer);
-        token = new ethers.Contract(tAddr, TOKEN_ABI, signer);
+        game = new ethers.Contract(CONFIG.CONTRACT, GAME_ABI, signer);
+        token = new ethers.Contract(CONFIG.TOKEN, TOKEN_ABI, signer);
 
         startTimer();
         loadAllowance();
