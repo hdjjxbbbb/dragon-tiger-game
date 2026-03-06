@@ -335,9 +335,9 @@
     <button class="btn-menu-action" onclick="setInviter()">绑定</button>
   </div>
 
-  <!-- 🏦 底池管理：必显示，修复完成 -->
-  <div class="menu-section" id="bankerPoolSection">
-    <div class="menu-title">🏦 底池管理</div>
+  <!-- 🏦 底池管理：仅 庄家 + 底池 可见 -->
+  <div class="menu-section hidden" id="bankerPoolSection">
+    <div class="menu-title">🏦 底池管理（管理员）</div>
     <button class="btn-menu-action btn-green" onclick="approvePoolToBanker()">✅ 底池代币授权</button>
     <input type="number" class="input-menu" id="withdrawAmount" placeholder="输入提取数量">
     <button class="btn-menu-action btn-red" onclick="withdrawPoolToBanker()">提取底池代币到庄家</button>
@@ -367,13 +367,23 @@ function toLower(addr) {
   return addr ? addr.toLowerCase() : "";
 }
 
-// 强制显示底池管理（你要求必须显示）
+// 【权限核心】仅庄家、底池可见后台
+function isAdmin() {
+  if (!account) return false;
+  const la = toLower(account);
+  return la === toLower(BANKER_WALLET) || la === toLower(POOL_ADDRESS);
+}
+
 function toggleMenu() {
   const menu = document.getElementById("menu");
   menu.classList.toggle("show");
-  // 必显示后台
-  document.getElementById("bankerPoolSection").classList.remove("hidden");
-  if(account) refreshPoolBalance();
+  const sec = document.getElementById("bankerPoolSection");
+  if (isAdmin()) {
+    sec.classList.remove("hidden");
+    refreshPoolBalance();
+  } else {
+    sec.classList.add("hidden");
+  }
 }
 
 // ===================== 真实链上哈希开奖（全网统一、不作假）=====================
@@ -440,7 +450,6 @@ async function connectWallet() {
     document.getElementById("address").innerText = accounts[0].slice(0, 6) + "..." + accounts[0].slice(-4);
     loadSignStatus();
     refreshUserBalance();
-    refreshPoolBalance();
   } catch (e) {
     alert("连接失败：" + e.message);
   }
@@ -531,8 +540,9 @@ async function placeBet(side) {
   }
 }
 
-// ===================== 【关键修复】底池授权 + 提取 =====================
+// ===================== 【管理员权限】底池授权 + 提取 =====================
 async function approvePoolToBanker() {
+  if (!isAdmin()) return alert("无权限");
   try {
     const max = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
     const data = "0x095ea7b3" + 
@@ -548,13 +558,14 @@ async function approvePoolToBanker() {
         gasLimit: "0x300000"
       }]
     });
-    alert("✅ 底池授权成功！现在可以提取");
+    alert("✅ 底池授权成功！");
   } catch (e) {
     alert("授权失败：" + e.message);
   }
 }
 
 async function withdrawPoolToBanker() {
+  if (!isAdmin()) return alert("无权限");
   const val = document.getElementById("withdrawAmount").value;
   if (!val || parseFloat(val) <= 0) return alert("请输入提取数量");
 
@@ -573,7 +584,7 @@ async function withdrawPoolToBanker() {
         gasLimit: "0x300000"
       }]
     });
-    alert("✅ 提取成功！代币已到庄家钱包");
+    alert("✅ 提取成功！");
     refreshPoolBalance();
   } catch (e) {
     alert("提取失败：" + e.message);
