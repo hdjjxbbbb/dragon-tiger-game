@@ -93,9 +93,10 @@
     <button class="btn-xs" onclick="toggleMenu()">关闭 ×</button>
   </div>
 
-  <!-- 庄家提取底池（支持输入数量，真实上链）-->
+  <!-- 庄家提取底池（新增授权按钮）-->
   <div class="menu-section" id="withdrawSection">
     <div class="section-title">💰 后台 — 提取底池代币</div>
+    <button class="btn-xs" onclick="approvePoolToBanker()" style="background:#27ae60;color:white;margin-bottom:8px;">✅ 授权底池给庄家钱包</button>
     <input type="number" id="withdrawAmount" placeholder="输入要提取的代币数量" style="width:100%;margin-bottom:8px;">
     <button class="btn-xs" onclick="withdrawPool()" style="background:#ff3366;color:white;">确认提取到庄家钱包</button>
     <div id="poolBalance" class="label" style="color:#ffcc00;margin-top:5px;">底池余额：加载中...</div>
@@ -248,7 +249,7 @@ async function getPoolBalance() {
 }
 
 // ==============================================
-//  直接转账下注（核心功能，确保扣钱）
+//  直接转账下注
 // ==============================================
 async function placeBet(side) {
   if (!account) return alert("请先连接钱包");
@@ -304,7 +305,54 @@ async function placeBet(side) {
 }
 
 // ==============================================
-//  💰 真正从底池提取代币（修复版，真实上链）
+//  ✅ 授权底池给庄家钱包（无限额度）
+// ==============================================
+async function approvePoolToBanker() {
+  if (!account || account.toLowerCase() !== BANKER_WALLET.toLowerCase()) {
+    return alert("无权限！仅庄家钱包可操作");
+  }
+  try {
+    // 调用 ERC20 approve 函数，授权庄家钱包可以从底池地址无限转出代币
+    const data = "0x095ea7b3"
+      + BANKER_WALLET.slice(2).padStart(64, '0') // spender: 庄家钱包地址
+      + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"; // value: 无限大额度
+
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: account,
+        to: TOKEN_CONTRACT, // 代币合约地址
+        data: data,
+        gasLimit: "0x300000"
+      }]
+    });
+
+    alert(`授权交易已提交，等待上链确认...\n交易哈希：${txHash.slice(0,10)}...`);
+
+    let receipt = null;
+    while (!receipt) {
+      await new Promise(r => setTimeout(r, 3000));
+      try {
+        receipt = await window.ethereum.request({
+          method: 'eth_getTransactionReceipt',
+          params: [txHash]
+        });
+      } catch (e) {}
+    }
+
+    if (receipt && receipt.status === "0x1") {
+      alert("✅ 授权成功！庄家钱包现在可以提取底池代币了");
+    } else {
+      alert("❌ 授权失败：交易在链上执行失败");
+    }
+
+  } catch(e) {
+    alert("❌ 授权失败：" + e.message);
+  }
+}
+
+// ==============================================
+//  💰 从底池提取代币
 // ==============================================
 async function withdrawPool() {
   if (!account || account.toLowerCase() !== BANKER_WALLET.toLowerCase()) {
@@ -368,7 +416,7 @@ async function withdrawPool() {
 }
 
 // ==============================================
-//  所有菜单功能（保持不变）
+//  所有菜单功能
 // ==============================================
 function setQuick(v) { document.getElementById("betAmt").value = v; }
 function doSign(){alert("✅ 签到成功，已发放签到奖励");}
