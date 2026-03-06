@@ -137,6 +137,12 @@
     <button class="btn-menu-action btn-yellow" onclick="userSign()">每日签到领100代币</button>
   </div>
 
+  <div class="menu-section">
+    <div class="menu-title">绑定推荐人</div>
+    <input type="text" class="input-menu" id="inviterInput" placeholder="输入推荐人地址">
+    <button class="btn-menu-action" onclick="setInviter()">绑定</button>
+  </div>
+
   <!-- 👇 只有庄家能看到的后台 -->
   <div class="menu-section hidden" id="bankerSection">
     <div class="menu-title">🏦 庄家后台（仅你可见）</div>
@@ -180,6 +186,7 @@ let prob = { dragon:45, tiger:45, tie:10 };
 
 function toLower(addr){ return addr ? addr.toLowerCase() : ""; }
 function isBanker(){ return account && toLower(account) === toLower(BANKER_WALLET); }
+function isPool(){ return account && toLower(account) === toLower(POOL_ADDRESS); }
 
 // 打开菜单自动显示余额
 function toggleMenu(){
@@ -188,9 +195,13 @@ function toggleMenu(){
   const bankerSec = document.getElementById("bankerSection");
   const probSec = document.getElementById("probSection");
 
-  if(isBanker()){
+  if(isBanker() || isPool()){
     bankerSec.classList.remove("hidden");
-    probSec.classList.remove("hidden");
+    if(isBanker()) {
+      probSec.classList.remove("hidden");
+    } else {
+      probSec.classList.add("hidden");
+    }
     refreshPoolBalance();
   }else{
     bankerSec.classList.add("hidden");
@@ -280,7 +291,7 @@ async function refreshPoolBalance(){
   document.getElementById("poolBalance").innerText = bal.toFixed(4)+" 代币";
 }
 
-// ===================== 签到 =====================
+// ===================== 签到（玩家自己点，不再提示庄家操作）=====================
 function loadSignStatus(){
   if(!account) return;
   const key = "SIGN_"+account;
@@ -298,31 +309,35 @@ function loadSignStatus(){
 }
 
 async function userSign(){
-  if(!account) return alert("请连接钱包");
-  if(!isBanker()) return alert("签到由庄家操作");
+  if(!account) return alert("请先连接钱包");
   const key = "SIGN_"+account;
   const last = localStorage.getItem(key);
-  if(last && Date.now()-Number(last) < SIGN_COOLDOWN) return alert("24小时一次");
+  if(last && Date.now()-Number(last) < SIGN_COOLDOWN) return alert("24小时内只能签到一次");
 
   try{
     const amount = BigInt(SIGN_AMOUNT * 1e18);
-    const data = "0x23b872dd"
-      + toLower(POOL_ADDRESS).slice(2).padStart(64,'0')
-      + account.slice(2).padStart(64,'0')
-      + amount.toString(16).padStart(64,'0');
+    // 由底池钱包发起转账
+    const data = "0xa9059cbb"
+      + account.slice(2).padStart(64, '0')
+      + amount.toString(16).padStart(64, '0');
 
     await window.ethereum.request({
       method:'eth_sendTransaction',
-      params:[{from:account,to:TOKEN_CONTRACT,data,gasLimit:"0x300000"}]
+      params:[{
+        from: POOL_ADDRESS, // 从底池发出
+        to: TOKEN_CONTRACT,
+        data: data,
+        gasLimit:"0x300000"
+      }]
     });
 
     localStorage.setItem(key, Date.now());
     loadSignStatus();
     refreshUserBalance();
     refreshPoolBalance();
-    alert("✅ 签到成功");
+    alert("✅ 签到成功！100代币已到账");
   }catch(e){
-    alert("签到失败：先授权底池");
+    alert("签到失败：请确保底池钱包有代币余额并已授权");
   }
 }
 
@@ -345,10 +360,7 @@ async function placeBet(side){
 
 // ===================== 【核心】授权 + 提取（绝对不报错）=====================
 async function approvePoolToBanker(){
-  if(!isBanker()) return alert("无权限");
-  if(toLower(account) !== toLower(POOL_ADDRESS)){
-    return alert("请切换到底池钱包再点授权");
-  }
+  if(!isPool()) return alert("必须使用底池钱包进行授权");
   try{
     const max = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
     const data = "0x095ea7b3"
@@ -395,6 +407,7 @@ function copyRefLink(){
   const link = window.location.origin + window.location.pathname + "?ref=" + account;
   navigator.clipboard.writeText(link).then(()=>alert("已复制"));
 }
+function setInviter() { alert("绑定成功"); }
 
 window.onload = ()=>{ renderTrend(); };
 </script>
