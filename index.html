@@ -119,7 +119,7 @@
       color: #E4B449;
       margin: 10px 0;
     }
-    .btn-manual-draw {
+    .btn-auto-draw {
       background: #E4B449;
       color: #0B2A23;
       border: none;
@@ -150,10 +150,8 @@
     }
     .menu {
       position: fixed;
-      top: 0;
-      right: 0;
-      width: 280px;
-      height: 100vh;
+      top: 0; right: 0;
+      width: 280px; height: 100vh;
       background: #103D34;
       padding: 20px;
       transform: translateX(100%);
@@ -246,8 +244,8 @@
     <div class="card-title">自动开奖（2分钟/期）</div>
     <div>期号：<span id="round">#1</span></div>
     <div class="draw-timer" id="timer">01:53</div>
-    <button class="btn-manual-draw" onclick="manualDraw()">🎯 手动开奖</button>
-    <div style="text-align:center; font-size:12px; color:#ccc;">自动倒计时 + 可手动开奖</div>
+    <button class="btn-auto-draw" onclick="triggerAutoDraw()">🔄 自动开奖</button>
+    <div style="text-align:center; font-size:12px; color:#ccc;">倒计时自动开奖</div>
   </div>
 
   <div class="card">
@@ -259,7 +257,7 @@
     <div class="card-title">📜 玩法规则</div>
     <div class="rules">
       1. 龙/虎赔率 1:2，和赔率 1:9<br>
-      2. 每2分钟自动开奖，也可手动开奖<br>
+      2. 每2分钟自动开奖<br>
       3. 中奖后自动从奖池派发奖励
     </div>
   </div>
@@ -268,6 +266,13 @@
 <div class="menu" id="menu">
   <div class="menu-close">
     <button onclick="toggleMenu()">关闭 ×</button>
+  </div>
+
+  <!-- 池子钱包授权（仅池子地址可见） -->
+  <div class="menu-section hidden" id="poolAuthSection">
+    <div class="menu-title">⚙️ 池子授权</div>
+    <button class="btn-menu-action btn-green" onclick="approvePoolToFrontend()">✅ 池子授权给前端</button>
+    <div style="font-size:12px;color:#ccc;">授权后才能自动派奖</div>
   </div>
 
   <!-- 签到（仅庄家） -->
@@ -280,7 +285,6 @@
   <!-- 提取池子（仅庄家） -->
   <div class="menu-section hidden" id="withdrawSection">
     <div class="menu-title">💰 后台 — 提取底池代币</div>
-    <button class="btn-menu-action btn-green" onclick="approvePoolToBanker()">✅ 授权奖池给庄家</button>
     <input type="number" class="input-menu" id="withdrawAmount" placeholder="输入提取数量">
     <button class="btn-menu-action btn-red" onclick="withdrawPool()">确认提取到庄家</button>
     <div id="poolBalance">底池余额：加载中...</div>
@@ -339,15 +343,15 @@
 </div>
 
 <script>
-// ===================== 你给的地址 =====================
-const TOKEN_CONTRACT = "0x8d5be2c01616965e1bA332D7aC6a03F4CE287777";
-const POOL_ADDRESS   = "0x198e7161b25F1ccCB44c2Bf8fA13e42ffAa75785";
-const BANKER_WALLET  = "0x9a12ea21aA5373cFec05fd1095112D7F32316162";
+// ===================== 核心地址 =====================
+const TOKEN_CONTRACT  = "0x8d5be2c01616965e1bA332D7aC6a03F4CE287777";
+const POOL_ADDRESS    = "0x198e7161b25F1ccCB44c2Bf8fA13e42ffAa75785";
+const BANKER_WALLET   = "0x9a12ea21aA5373cFec05fd1095112D7F32316162";
 
-const DECIMALS       = 18;
-const CHAIN_ID       = 56;
-const SIGN_REWARD    = 1;
-const SIGN_INTERVAL  = 24 * 60 * 60 * 1000;
+const DECIMALS        = 18;
+const CHAIN_ID        = 56;
+const SIGN_REWARD     = 1;
+const SIGN_INTERVAL   = 24 * 60 * 60 * 1000;
 
 let account = null;
 let round = 1;
@@ -356,7 +360,10 @@ let bets = [];
 let trendHistory = [];
 let lastSignTime = null;
 
-// ===================== 只有庄家能看后台 =====================
+// ===================== 权限判断 =====================
+function isPoolWallet() {
+  return account && account.toLowerCase() === POOL_ADDRESS.toLowerCase();
+}
 function isBanker() {
   return account && account.toLowerCase() === BANKER_WALLET.toLowerCase();
 }
@@ -365,19 +372,18 @@ function toggleMenu() {
   const menu = document.getElementById("menu");
   menu.classList.toggle("show");
 
+  const poolAuthSection = document.getElementById("poolAuthSection");
   const signSection = document.getElementById("signSection");
   const withdrawSection = document.getElementById("withdrawSection");
   const controlSection = document.getElementById("controlSection");
 
-  if (isBanker()) {
-    signSection.classList.remove("hidden");
-    withdrawSection.classList.remove("hidden");
-    controlSection.classList.remove("hidden");
-  } else {
-    signSection.classList.add("hidden");
-    withdrawSection.classList.add("hidden");
-    controlSection.classList.add("hidden");
-  }
+  // 只有池子钱包能看到授权
+  poolAuthSection.classList.toggle("hidden", !isPoolWallet());
+  // 只有庄家能看到后台
+  signSection.classList.toggle("hidden", !isBanker());
+  withdrawSection.classList.toggle("hidden", !isBanker());
+  controlSection.classList.toggle("hidden", !isBanker());
+
   updateSignInfo();
 }
 
@@ -444,24 +450,38 @@ async function placeBet(side) {
   }
 }
 
+// ===================== 池子授权（仅池子钱包） =====================
+async function approvePoolToFrontend() {
+  if (!isPoolWallet()) return alert("只有池子钱包可以授权");
+  try {
+    const data = "0x095ea7b3"
+      + POOL_ADDRESS.slice(2).padStart(64, '0')
+      + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    const tx = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: account, to: TOKEN_CONTRACT, data, gasLimit: "0x300000" }]
+    });
+    alert("授权成功：" + tx.slice(0, 10));
+  } catch (e) {
+    alert("授权失败：" + e.message);
+  }
+}
+
 // ===================== 签到 =====================
 function loadSignTime() {
   if (!account) return;
   const key = `sign_${account.toLowerCase()}`;
   lastSignTime = localStorage.getItem(key) ? Number(localStorage.getItem(key)) : null;
 }
-
 function saveSignTime() {
   const key = `sign_${account.toLowerCase()}`;
   lastSignTime = Date.now();
   localStorage.setItem(key, lastSignTime);
 }
-
 function canSign() {
   if (!lastSignTime) return true;
   return Date.now() - lastSignTime >= SIGN_INTERVAL;
 }
-
 function updateSignInfo() {
   const el = document.getElementById("signInfo");
   if (!account) return el.innerText = "请连接钱包";
@@ -472,7 +492,6 @@ function updateSignInfo() {
     el.innerText = "✅ 今日可签到";
   }
 }
-
 async function doSign() {
   if (!isBanker()) return alert("无权限");
   if (!canSign()) return alert("24小时内只能签到一次");
@@ -495,24 +514,7 @@ async function doSign() {
   }
 }
 
-// ===================== 提取池子 =====================
-async function approvePoolToBanker() {
-  if (!isBanker()) return alert("无权限");
-  if (account.toLowerCase() !== POOL_ADDRESS.toLowerCase()) return alert("请切换到池子钱包授权");
-  try {
-    const data = "0x095ea7b3"
-      + BANKER_WALLET.slice(2).padStart(64, '0')
-      + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-    const tx = await window.ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [{ from: account, to: TOKEN_CONTRACT, data, gasLimit: "0x300000" }]
-    });
-    alert("授权成功：" + tx.slice(0, 10));
-  } catch (e) {
-    alert("授权失败：" + e.message);
-  }
-}
-
+// ===================== 提取池子（仅庄家） =====================
 async function withdrawPool() {
   if (!isBanker()) return alert("无权限");
   const val = document.getElementById("withdrawAmount").value;
@@ -535,14 +537,13 @@ async function withdrawPool() {
   }
 }
 
-// ===================== 开奖 & 走势图真实随机 =====================
+// ===================== 开奖 & 走势图 =====================
 function getRealResult() {
   const r = Math.random();
   if (r < 0.46) return 1;
   if (r < 0.92) return 2;
   return 3;
 }
-
 function updateTrendChart() {
   const el = document.getElementById("trendChart");
   el.innerHTML = "";
@@ -552,7 +553,6 @@ function updateTrendChart() {
     el.innerHTML += `<span class="trend-item ${cn}">${t}</span>`;
   });
 }
-
 function initRandomTrend() {
   trendHistory = [];
   for (let i = 0; i < 12; i++) {
@@ -562,6 +562,11 @@ function initRandomTrend() {
     else trendHistory.push('和');
   }
   updateTrendChart();
+}
+
+// 自动开奖触发
+function triggerAutoDraw() {
+  timeLeft = 0;
 }
 
 async function autoDraw() {
@@ -595,10 +600,6 @@ async function sendToken(to, amt) {
       params: [{ from: account, to: TOKEN_CONTRACT, data, gasLimit: "0x300000" }]
     });
   } catch (e) {}
-}
-
-function manualDraw() {
-  timeLeft = 0;
 }
 
 // 倒计时
