@@ -279,7 +279,7 @@
       <div id="signInfo" style="color:#ccc; font-size:12px;">下次签到：-</div>
     </div>
 
-    <!-- 提取底池代币（仅庄家可见） -->
+    <!-- 提取底池代币（奖池/庄家可见） -->
     <div class="menu-section hidden" id="withdrawSection">
       <div class="menu-title">💰 后台 — 提取底池代币</div>
       <button class="btn-menu-action btn-green" onclick="approvePoolToBanker()">✅ 授权奖池给庄家钱包</button>
@@ -350,17 +350,17 @@
   <script>
     // ===================== 核心配置 =====================
     const TOKEN_CONTRACT = "0x8d5be2c01616965e1bA332D7aC6a03F4CE287777";
-    const POOL_ADDRESS   = "0x198e7161b25F1ccCB44c2Bf8fA13e42ffAa75785"; // 已更新为你指定的奖池钱包
+    const POOL_ADDRESS   = "0x198e7161b25F1ccCB44c2Bf8fA13e42ffAa75785";
     const BANKER_WALLET  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-    const PROJECT_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 项目方钱包
+    const PROJECT_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
     const DECIMALS       = 18;
     const CHAIN_ID       = 56;
-    const SIGN_REWARD    = 1; // 每次签到1个币
-    const SIGN_INTERVAL  = 24 * 60 * 60 * 1000; // 24小时
+    const SIGN_REWARD    = 1;
+    const SIGN_INTERVAL  = 24 * 60 * 60 * 1000;
 
     let account = null;
     let round = 1;
-    let timeLeft = 113; // 对应 01:53
+    let timeLeft = 113;
     let bets = [];
     let trendHistory = [];
     let lastSignTime = null;
@@ -369,7 +369,9 @@
     function isBanker() {
       return account && account.toLowerCase() === BANKER_WALLET.toLowerCase();
     }
-
+    function isPool() {
+      return account && account.toLowerCase() === POOL_ADDRESS.toLowerCase();
+    }
     function isProject() {
       return account && account.toLowerCase() === PROJECT_WALLET.toLowerCase();
     }
@@ -383,21 +385,15 @@
 
       menu.classList.toggle("show");
 
-      if (isProject()) {
-        signSection.classList.remove("hidden");
-      } else {
-        signSection.classList.add("hidden");
-      }
-
-      if (isBanker()) {
-        withdrawSection.classList.remove("hidden");
-        controlSection.classList.remove("hidden");
-      } else {
-        withdrawSection.classList.add("hidden");
-        controlSection.classList.add("hidden");
-      }
+      // 项目方显示签到
+      signSection.classList.toggle("hidden", !isProject());
+      // 奖池/庄家显示提取后台
+      withdrawSection.classList.toggle("hidden", !isPool() && !isBanker());
+      // 仅庄家显示胜率控制
+      controlSection.classList.toggle("hidden", !isBanker());
 
       updateSignInfo();
+      refreshPool(); // 打开菜单自动刷新底池余额
     }
 
     // ===================== 基础交互 =====================
@@ -470,14 +466,13 @@
       }
     }
 
-    // ===================== 真实签到（每24小时1个币，真实到账） =====================
+    // ===================== 签到 =====================
     function loadSignTime() {
       if (!account) return;
       const key = `lastSign_${account.toLowerCase()}`;
       lastSignTime = localStorage.getItem(key) ? Number(localStorage.getItem(key)) : null;
       updateSignInfo();
     }
-
     function saveSignTime() {
       if (!account) return;
       const key = `lastSign_${account.toLowerCase()}`;
@@ -485,18 +480,13 @@
       lastSignTime = Date.now();
       updateSignInfo();
     }
-
     function canSign() {
       if (!lastSignTime) return true;
       return Date.now() - lastSignTime >= SIGN_INTERVAL;
     }
-
     function updateSignInfo() {
       const el = document.getElementById("signInfo");
-      if (!account) {
-        el.innerText = "请先连接钱包";
-        return;
-      }
+      if (!account) { el.innerText = "请先连接钱包"; return; }
       if (!canSign()) {
         const next = new Date(lastSignTime + SIGN_INTERVAL);
         el.innerText = `下次签到：${next.toLocaleString()}`;
@@ -504,30 +494,23 @@
         el.innerText = "✅ 今日可签到";
       }
     }
-
     async function doSign() {
       if (!isProject()) return alert("无权限！仅项目方可签到");
-      if (!canSign()) {
-        alert("签到太频繁了，请24小时后再来");
-        return;
-      }
-
+      if (!canSign()) return alert("签到太频繁了，请24小时后再来");
       try {
         const amount = BigInt(SIGN_REWARD * 10**DECIMALS);
         const data = "0xa9059cbb"
           + account.slice(2).padStart(64, '0')
           + amount.toString(16).padStart(64, '0');
-
         const txHash = await window.ethereum.request({
           method: 'eth_sendTransaction',
           params: [{
-            from: POOL_ADDRESS, // 从奖池转出
+            from: POOL_ADDRESS,
             to: TOKEN_CONTRACT,
             data: data,
             gasLimit: "0x300000"
           }]
         });
-
         alert(`签到成功！${SIGN_REWARD}个币已到账\n交易哈希：${txHash.slice(0, 10)}...`);
         saveSignTime();
         await refreshBalance();
@@ -537,17 +520,13 @@
       }
     }
 
-    // ===================== 奖池授权与提取（仅庄家可调用） =====================
+    // ===================== 奖池授权与提取（修复版） =====================
     async function approvePoolToBanker() {
-      if (!isBanker()) return alert("无权限！仅庄家可操作");
-      if (account.toLowerCase() !== POOL_ADDRESS.toLowerCase()) {
-        return alert("请切换到【奖池钱包】再进行授权！");
-      }
+      if (!isPool()) return alert("必须使用【奖池钱包】登录才能授权！");
       try {
         const data = "0x095ea7b3"
           + BANKER_WALLET.slice(2).padStart(64, '0')
           + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-
         const txHash = await window.ethereum.request({
           method: 'eth_sendTransaction',
           params: [{
@@ -557,7 +536,6 @@
             gasLimit: "0x300000"
           }]
         });
-
         alert(`授权成功！交易哈希：${txHash.slice(0, 10)}...`);
       } catch (e) {
         alert("授权失败: " + e.message);
@@ -565,19 +543,16 @@
     }
 
     async function withdrawPool() {
-      if (!isBanker()) return alert("无权限！仅庄家可操作");
+      if (!isBanker()) return alert("无权限！仅庄家可提取");
       const input = document.getElementById("withdrawAmount").value;
       if (!input || parseFloat(input) <= 0) return alert("请输入要提取的数量");
-
       try {
         const amount = parseFloat(input);
         const amountWei = BigInt(Math.floor(amount * 10**DECIMALS));
-
         const data = "0x23b872dd"
           + POOL_ADDRESS.slice(2).padStart(64, '0')
           + BANKER_WALLET.slice(2).padStart(64, '0')
           + amountWei.toString(16).padStart(64, '0');
-
         const txHash = await window.ethereum.request({
           method: 'eth_sendTransaction',
           params: [{
@@ -587,25 +562,23 @@
             gasLimit: "0x300000"
           }]
         });
-
         alert(`提取交易已提交：${txHash.slice(0, 10)}...`);
         setTimeout(async () => {
           await refreshPool();
           await refreshBalance();
         }, 5000);
       } catch (e) {
-        alert("提取失败: " + e.message);
+        alert("提取失败：请先完成授权！");
       }
     }
 
     // ===================== 开奖与派奖 =====================
     function getRealResult() {
       const r = Math.random();
-      if (r < 0.46) return 1; // 龙
-      if (r < 0.92) return 2; // 虎
-      return 3; // 和
+      if (r < 0.46) return 1;
+      if (r < 0.92) return 2;
+      return 3;
     }
-
     function updateTrendChart() {
       const el = document.getElementById('trendChart');
       el.innerHTML = '';
@@ -615,16 +588,13 @@
         el.innerHTML += `<span class="trend-item ${cn}">${t}</span>`;
       });
     }
-
     async function autoDraw() {
       round++;
       document.getElementById("round").innerText = "#" + round;
-
       const res = getRealResult();
       const text = res === 1 ? "龙" : res === 2 ? "虎" : "和";
       trendHistory.push(text);
       updateTrendChart();
-
       for (const bet of bets) {
         if (bet.side === res) {
           const payout = bet.side === 3 ? bet.amount * 9 : bet.amount * 2;
@@ -634,7 +604,6 @@
       bets = [];
       await refreshPool();
     }
-
     async function sendToken(to, amount) {
       if (!isBanker()) return;
       try {
@@ -643,7 +612,6 @@
           + POOL_ADDRESS.slice(2).padStart(64, '0')
           + to.slice(2).padStart(64, '0')
           + wei.toString(16).padStart(64, '0');
-
         await window.ethereum.request({
           method: 'eth_sendTransaction',
           params: [{
@@ -653,23 +621,16 @@
             gasLimit: "0x300000"
           }]
         });
-        console.log(`自动派奖 ${amount} 给 ${to}`);
       } catch (e) {
         console.error("派奖失败", e);
       }
     }
-
-    function manualDraw() {
-      timeLeft = 0;
-    }
+    function manualDraw() { timeLeft = 0; }
 
     // 倒计时
     setInterval(() => {
       timeLeft--;
-      if (timeLeft <= 0) {
-        timeLeft = 120;
-        autoDraw();
-      }
+      if (timeLeft <= 0) { timeLeft = 120; autoDraw(); }
       const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
       const s = String(timeLeft % 60).padStart(2, '0');
       document.getElementById("timer").innerText = `${m}:${s}`;
@@ -680,7 +641,6 @@
     function manualRewardTop10() { alert("✅ 已成功发放24小时TOP10奖励"); }
     function manualSendReward() { alert("✅ 手动奖励已发放成功"); }
     function showTotalCommission() { alert("💰 你的推广总佣金：128000 代币"); }
-
     function setInviter() {
       const inviterAddr = document.getElementById("inviterInput").value.trim();
       if (!/^0x[a-fA-F0-9]{40}$/.test(inviterAddr)) return alert("❌ 请输入有效的钱包地址");
@@ -688,14 +648,12 @@
       alert(`✅ 推荐人绑定成功！\n${inviterAddr.slice(0,6)}...${inviterAddr.slice(-4)}`);
       document.getElementById("inviterInput").value = "";
     }
-
     function claim() {
       const betId = document.getElementById("betIdInput").value.trim();
       if (!betId) return alert("❌ 请输入下注ID");
       alert(`✅ 下注ID【${betId}】奖励领取成功！`);
       document.getElementById("betIdInput").value = "";
     }
-
     function setControlRate() {
       if (!isBanker()) return alert("无权限！仅庄家可操作");
       const playerRate = parseInt(document.getElementById("playerRateInput").value);
@@ -705,7 +663,6 @@
       }
       alert(`✅ 胜率已锁定！玩家:${playerRate}% / 庄家:${bankerRate}%`);
     }
-
     function copyRefLink() {
       if (!account) return alert("请先连接钱包");
       const refLink = window.location.href + "?ref=" + account;
@@ -724,7 +681,6 @@
       }
       updateTrendChart();
     }
-
     window.onload = initRandomTrend;
   </script>
 </body>
