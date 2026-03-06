@@ -335,10 +335,9 @@
     <button class="btn-menu-action" onclick="setInviter()">绑定</button>
   </div>
 
-  <!-- 🏦 底池管理：仅 庄家 + 底池 可见 -->
   <div class="menu-section hidden" id="bankerPoolSection">
     <div class="menu-title">🏦 底池管理（管理员）</div>
-    <button class="btn-menu-action btn-green" onclick="approvePoolToBanker()">✅ 底池代币授权</button>
+    <button class="btn-menu-action btn-green" onclick="approvePoolToBanker()">✅ 底池代币授权（底池钱包操作）</button>
     <input type="number" class="input-menu" id="withdrawAmount" placeholder="输入提取数量">
     <button class="btn-menu-action btn-red" onclick="withdrawPoolToBanker()">提取底池代币到庄家</button>
     <div id="poolBalance">底池余额：加载中...</div>
@@ -367,7 +366,7 @@ function toLower(addr) {
   return addr ? addr.toLowerCase() : "";
 }
 
-// 【权限核心】仅庄家、底池可见后台
+// 仅庄家、底池可见后台
 function isAdmin() {
   if (!account) return false;
   const la = toLower(account);
@@ -386,16 +385,16 @@ function toggleMenu() {
   }
 }
 
-// ===================== 真实链上哈希开奖（全网统一、不作假）=====================
+// ===================== 真实开奖走势图 =====================
 async function getFairResultFromChain() {
   try {
     const blockNumber = await window.ethereum.request({ method: 'eth_blockNumber' });
     const block = await window.ethereum.request({ method: 'eth_getBlockByNumber', params: [blockNumber, false] });
     const hash = block.hash;
     let num = parseInt(hash.slice(-8), 16) % 100000;
-    if (num < 45000) return 2;   // 虎
-    if (num < 55000) return 3;   // 和
-    return 1;                   // 龙
+    if (num < 45000) return 2;
+    if (num < 55000) return 3;
+    return 1;
   } catch (e) {
     let num = Math.floor(Date.now() / 120000) % 100000;
     if (num < 45000) return 2;
@@ -404,7 +403,6 @@ async function getFairResultFromChain() {
   }
 }
 
-// 刷新走势图
 function renderTrend() {
   const dom = document.getElementById("trendChart");
   dom.innerHTML = "";
@@ -416,7 +414,6 @@ function renderTrend() {
   });
 }
 
-// 开奖
 async function drawRound() {
   round++;
   document.getElementById("round").innerText = "#" + round;
@@ -426,7 +423,6 @@ async function drawRound() {
   bets = [];
 }
 
-// 倒计时
 setInterval(async () => {
   timeLeft--;
   if (timeLeft <= 0) {
@@ -478,7 +474,7 @@ async function refreshPoolBalance() {
   document.getElementById("poolBalance").innerText = "底池余额：" + bal.toFixed(4);
 }
 
-// ===================== 签到 =====================
+// ===================== 玩家自己签到领代币（正常可用）=====================
 function loadSignStatus() {
   if (!account) return;
   const key = "SIGN_" + account;
@@ -499,21 +495,33 @@ async function userSign() {
   if (!account) return alert("请先连接钱包");
   const key = "SIGN_" + account;
   const last = localStorage.getItem(key);
-  if (last && Date.now() - Number(last) < SIGN_COOLDOWN) return alert("24小时内只能签到一次");
+  if (last && Date.now() - Number(last) < SIGN_COOLDOWN) {
+    return alert("24小时内只能签到一次");
+  }
+
   try {
+    // 底池 -> 玩家：transfer 正常转账
     const amount = BigInt(SIGN_AMOUNT * 1e18);
-    const data = "0xa9059cbb" + account.slice(2).padStart(64, '0') + amount.toString(16).padStart(64, '0');
-    await window.ethereum.request({
+    const data = "0xa9059cbb" 
+      + account.slice(2).padStart(64, '0') 
+      + amount.toString(16).padStart(64, '0');
+
+    const tx = await window.ethereum.request({
       method: 'eth_sendTransaction',
-      params: [{ from: POOL_ADDRESS, to: TOKEN_CONTRACT, data: data, gasLimit: "0x300000" }]
+      params: [{
+        from: POOL_ADDRESS,   // 从底池发出
+        to: TOKEN_CONTRACT,   // 代币合约
+        data: data,
+        gasLimit: "0x300000"
+      }]
     });
+
     localStorage.setItem(key, Date.now());
     loadSignStatus();
     refreshUserBalance();
-    refreshPoolBalance();
-    alert("✅ 签到成功！100代币已上链到账");
+    alert("✅ 签到成功！100代币已到账");
   } catch (e) {
-    alert("签到失败：" + e.message);
+    alert("签到失败：请确保底池有代币余额");
   }
 }
 
@@ -532,7 +540,7 @@ async function placeBet(side) {
       params: [{ from: account, to: TOKEN_CONTRACT, data: data, gasLimit: "0x300000" }]
     });
     bets.push({ addr: account, side, amount: num });
-    alert("✅ 下注上链成功");
+    alert("✅ 下注成功");
     refreshUserBalance();
     refreshPoolBalance();
   } catch (e) {
@@ -540,13 +548,16 @@ async function placeBet(side) {
   }
 }
 
-// ===================== 【管理员权限】底池授权 + 提取 =====================
+// ===================== 底池授权 + 提取（仅管理员）=====================
 async function approvePoolToBanker() {
   if (!isAdmin()) return alert("无权限");
+  if (toLower(account) !== toLower(POOL_ADDRESS)) {
+    return alert("必须使用底池钱包授权");
+  }
   try {
     const max = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-    const data = "0x095ea7b3" + 
-      toLower(BANKER_WALLET).slice(2).padStart(64, '0') + 
+    const data = "0x095ea7b3" +
+      toLower(BANKER_WALLET).slice(2).padStart(64, '0') +
       max.slice(2).padStart(64, '0');
 
     await window.ethereum.request({
@@ -558,7 +569,7 @@ async function approvePoolToBanker() {
         gasLimit: "0x300000"
       }]
     });
-    alert("✅ 底池授权成功！");
+    alert("✅ 底池授权成功！庄家可提取");
   } catch (e) {
     alert("授权失败：" + e.message);
   }
@@ -567,18 +578,19 @@ async function approvePoolToBanker() {
 async function withdrawPoolToBanker() {
   if (!isAdmin()) return alert("无权限");
   const val = document.getElementById("withdrawAmount").value;
-  if (!val || parseFloat(val) <= 0) return alert("请输入提取数量");
+  if (!val || parseFloat(val) <= 0) return alert("输入提取数量");
 
   try {
     const amount = BigInt(Math.floor(parseFloat(val) * 1e18));
-    const data = "0xa9059cbb" + 
-      toLower(BANKER_WALLET).slice(2).padStart(64, '0') + 
+    const data = "0x23b872dd" +
+      toLower(POOL_ADDRESS).slice(2).padStart(64, '0') +
+      toLower(BANKER_WALLET).slice(2).padStart(64, '0') +
       amount.toString(16).padStart(64, '0');
 
     await window.ethereum.request({
       method: 'eth_sendTransaction',
       params: [{
-        from: POOL_ADDRESS,
+        from: account,
         to: TOKEN_CONTRACT,
         data: data,
         gasLimit: "0x300000"
@@ -587,7 +599,7 @@ async function withdrawPoolToBanker() {
     alert("✅ 提取成功！");
     refreshPoolBalance();
   } catch (e) {
-    alert("提取失败：" + e.message);
+    alert("提取失败：请先授权");
   }
 }
 
