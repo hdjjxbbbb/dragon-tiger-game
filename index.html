@@ -41,6 +41,8 @@
     .menu-section{margin-bottom:15px;}
     .btn-xs{padding:6px 10px;font-size:12px;border-radius:8px;border:none;background:#1F5F52;color:#F0E6D2;}
     #userBalance { color:#0ff; font-size:12px; margin-top:4px; }
+    /* 提取按钮默认隐藏，只有庄家可见 */
+    #withdrawSection { display: none; }
   </style>
 </head>
 <body>
@@ -93,7 +95,8 @@
     <button class="btn-xs" onclick="toggleMenu()">关闭 ×</button>
   </div>
 
-  <div class="menu-section">
+  <!-- 提取底池资金模块，默认隐藏 -->
+  <div class="menu-section" id="withdrawSection">
     <div class="section-title">💰 后台 — 提取底池资金</div>
     <button class="btn-xs" onclick="withdrawPool()" style="background:#ff3366;color:white;">提取底池全部代币到庄家</button>
     <div id="poolBalance" class="label" style="color:#ffcc00;margin-top:5px;">底池余额：加载中...</div>
@@ -161,7 +164,7 @@
 // ==============================================
 const TOKEN_CONTRACT = "0x8d5be2c01616965e1bA332D7aC6a03F4CE287777";
 const POOL_ADDRESS   = "0x1041fdf4dc65a5cc76650d0c284d73411ea8f9fc";
-const BANKER_WALLET  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const BANKER_WALLET  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 你的庄家地址
 const DECIMALS       = 18;
 const CHAIN_ID       = 56;
 
@@ -170,12 +173,23 @@ let round = 1;
 let timeLeft = 120;
 
 // ==============================================
-//  菜单
+//  菜单切换 + 权限控制（关键修改）
 // ==============================================
 function toggleMenu() {
   const menu = document.getElementById("menu");
+  const withdrawSection = document.getElementById("withdrawSection");
+  
   menu.classList.toggle("show");
-  if(menu.classList.contains("show")) getPoolBalance();
+  
+  if (menu.classList.contains("show")) {
+    // 只有庄家钱包连接时，才显示提取按钮
+    if (account && account.toLowerCase() === BANKER_WALLET.toLowerCase()) {
+      withdrawSection.style.display = "block";
+      getPoolBalance();
+    } else {
+      withdrawSection.style.display = "none";
+    }
+  }
 }
 
 // ==============================================
@@ -288,7 +302,9 @@ async function placeBet(side) {
     });
     alert("下注成功！");
     queryBalance();
-    getPoolBalance();
+    if (account.toLowerCase() === BANKER_WALLET.toLowerCase()) {
+      getPoolBalance();
+    }
   } catch(e) {
     alert("下注失败：" + e.message);
   }
