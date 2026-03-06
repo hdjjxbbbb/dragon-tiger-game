@@ -334,14 +334,14 @@
 
   <div class="menu-section">
     <div class="menu-title">📢 邀请链接</div>
-    <input type="number" class="input-menu" id="refLink" readonly placeholder="点击复制邀请链接">
+    <input type="text" class="input-menu" id="refLink" readonly placeholder="点击复制邀请链接">
     <button class="btn-menu-action" onclick="copyRefLink()">复制邀请链接</button>
   </div>
 
   <div class="menu-section">
     <div class="menu-title">🎁 领奖中心</div>
     <input type="text" class="input-menu" id="betIdInput" placeholder="输入下注ID">
-    <button class="btn-menu-action" onclick="claim()">领取奖励</button>
+    <button class="btn-menu-action" onclick="claimReward()">领取奖励</button>
   </div>
 
   <div class="menu-section">
@@ -373,7 +373,15 @@
 </div>
 
 <script>
-const PERIOD_SECONDS = 120;
+// ===================== 核心地址（请替换为你部署的真实合约地址）=====================
+const TOKEN_CONTRACT  = "0x8d5be2c01616965e1bA332D7aC6a03F4CE287777";
+const GAME_CONTRACT   = "0x..."; // 你的游戏合约地址
+const POOL_ADDRESS    = "0x198e7161b25F1ccCB44c2Bf8fA13e42ffAa75785";
+const BANKER_WALLET   = "0x9a12ea21aA5373cFec05fd1095112D7F32316162";
+
+const DECIMALS        = 18;
+const CHAIN_ID        = 56; // BSC
+const PERIOD_SECONDS  = 120;
 let PLAYER_RATE = 49;
 let BANKER_RATE = 51;
 
@@ -382,36 +390,7 @@ let inviterAddress = null;
 let bets = [];
 let trendHistory = [];
 
-// 用户余额（真实）
-let userBalance = 0;
-
-// ===================== 真实签到：24小时一次 + 真实到账100币 =====================
-function doRealSign() {
-  if (!account) {
-    alert("请先连接钱包");
-    return;
-  }
-
-  const key = `SIGN_${account.toLowerCase()}`;
-  const lastSignTime = localStorage.getItem(key);
-  const now = Date.now();
-  const oneDay = 86400000;
-
-  if (lastSignTime && now - Number(lastSignTime) < oneDay) {
-    alert("您已经签到过了，请24小时后再来吧");
-    return;
-  }
-
-  // 真实发放 100 币
-  userBalance += 100;
-  localStorage.setItem(key, now);
-  localStorage.setItem(`BAL_${account.toLowerCase()}`, userBalance);
-  document.getElementById("userBalance").innerText = userBalance.toFixed(4);
-  document.getElementById("signBtn").innerText = "已签到";
-  alert("✅ 签到成功！已发放 100 枚币到您账户");
-}
-
-// 连接钱包 + 加载余额
+// ===================== 连接钱包 =====================
 async function connectWallet() {
   if (!window.ethereum) {
     alert("请在钱包浏览器打开");
@@ -423,139 +402,141 @@ async function connectWallet() {
     account = accounts[0];
     const short = account.slice(0,6) + "..." + account.slice(-4);
     document.getElementById("addressText").innerText = short;
-
-    // 加载余额
-    const bal = localStorage.getItem(`BAL_${account.toLowerCase()}`);
-    userBalance = bal ? Number(bal) : 0;
-    document.getElementById("userBalance").innerText = userBalance.toFixed(4);
-
-    // 检查今天是否已签
-    const last = localStorage.getItem(`SIGN_${account.toLowerCase()}`);
-    if (last && Date.now() - Number(last) < 86400000) {
-      document.getElementById("signBtn").innerText = "已签到";
-    } else {
-      document.getElementById("signBtn").innerText = "立即签到";
-    }
+    await refreshBalance();
+    checkSignStatus();
   } catch (e) {
-    alert("连接钱包失败");
+    alert("连接钱包失败: " + e.message);
   }
 }
 
-// ===================== 全局统一开奖 =====================
-function getGlobalResultByRound(roundNum) {
-  const seed = roundNum * 1234567 + 87654321;
-  const hash = Math.abs((seed ^ (seed << 5) ^ (seed >> 3)) % 100000);
-  const rand0to99 = hash % 100;
-  if (rand0to99 < PLAYER_RATE) {
-    return hash % 2 === 0 ? 1 : 2;
+// ===================== 刷新链上余额 =====================
+async function refreshBalance() {
+  if (!account) return;
+  try {
+    const data = "0x70a08231" + account.slice(2).padStart(64, '0');
+    const res = await window.ethereum.request({
+      method: 'eth_call',
+      params: [{ to: TOKEN_CONTRACT, data }, 'latest']
+    });
+    const balance = Number(BigInt(res)) / 10**DECIMALS;
+    document.getElementById("userBalance").innerText = balance.toFixed(4);
+  } catch (e) {
+    console.error("获取余额失败", e);
+  }
+}
+
+// ===================== 真实签到（链上发放）=====================
+async function doRealSign() {
+  if (!account) {
+    alert("请先连接钱包");
+    return;
+  }
+  try {
+    // 调用合约的签到方法
+    const tx = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: account,
+        to: GAME_CONTRACT,
+        data: "0x..." // 合约中签到方法的函数选择器 + 参数
+      }]
+    });
+    alert("✅ 签到交易已提交: " + tx);
+    // 等待交易确认后刷新余额
+    setTimeout(refreshBalance, 5000);
+    checkSignStatus();
+  } catch (e) {
+    alert("签到失败: " + e.message);
+  }
+}
+
+function checkSignStatus() {
+  const key = `SIGN_${account.toLowerCase()}`;
+  const lastSignTime = localStorage.getItem(key);
+  const btn = document.getElementById("signBtn");
+  if (lastSignTime && Date.now() - Number(lastSignTime) < 86400000) {
+    btn.innerText = "已签到";
+    btn.classList.add("sign-disabled");
+    btn.disabled = true;
   } else {
-    return 3;
+    btn.innerText = "立即签到";
+    btn.classList.remove("sign-disabled");
+    btn.disabled = false;
   }
 }
 
-function getRoundAndTime() {
-  const now = Date.now();
-  const base = Date.parse('2025-01-01');
-  const elapsed = now - base;
-  const currentRound = Math.floor(elapsed / (PERIOD_SECONDS * 1000));
-  const nextMs = (currentRound + 1) * PERIOD_SECONDS * 1000 + base;
-  const left = Math.max(0, nextMs - now);
-  return {
-    round: currentRound,
-    leftSeconds: Math.floor(left / 1000)
-  };
-}
-
-// 真实走势图
-function loadRealHistory() {
-  const { round: currentRound } = getRoundAndTime();
-  trendHistory = [];
-  const start = Math.max(0, currentRound - 14);
-  for (let i = start; i < currentRound; i++) {
-    const r = getGlobalResultByRound(i);
-    const t = r === 1 ? '龙' : r === 2 ? '虎' : '和';
-    trendHistory.push(t);
-  }
-  renderTrend();
-}
-
-function renderTrend() {
-  const el = document.getElementById("trendChart");
-  el.innerHTML = "";
-  trendHistory.forEach(t => {
-    const cls = t === '龙' ? 'trend-dragon' : t === '虎' ? 'trend-tiger' : 'trend-tie';
-    el.innerHTML += `<span class="trend-item ${cls}">${t}</span>`;
-  });
-}
-
-// 倒计时
-function startTimer() {
-  function tick() {
-    const { round: currentRound, leftSeconds } = getRoundAndTime();
-    document.getElementById("round").innerText = "#" + currentRound;
-    const m = String(Math.floor(leftSeconds / 60)).padStart(2, '0');
-    const s = String(leftSeconds % 60).padStart(2, '0');
-    document.getElementById("timer").innerText = `${m}:${s}`;
-
-    if (leftSeconds === 0) {
-      const finishedRound = currentRound - 1;
-      const res = getGlobalResultByRound(finishedRound);
-      const text = res === 1 ? '龙' : res === 2 ? '虎' : '和';
-      trendHistory.push(text);
-      if (trendHistory.length > 14) trendHistory.shift();
-      renderTrend();
-      settleBets(finishedRound, res);
-    }
-  }
-  tick();
-  setInterval(tick, 1000);
-}
-
-window.onload = function () {
-  loadRealHistory();
-  startTimer();
-};
-
-function toggleMenu() {
-  document.getElementById("menu").classList.toggle("show");
-}
-
-function setQuick(amt) {
-  document.getElementById("betAmt").value = amt;
-}
-
+// ===================== 真实下注（链上扣除）=====================
 async function placeBet(side) {
+  if (!account) {
+    alert("请先连接钱包");
+    return;
+  }
   const val = document.getElementById("betAmt").value;
   if (!val || parseFloat(val) <= 0) {
     alert("输入有效金额");
     return;
   }
+  try {
+    const amount = BigInt(Math.floor(parseFloat(val) * 10**DECIMALS));
+    // 1. 先授权游戏合约使用你的代币
+    const approveData = "0x095ea7b3"
+      + GAME_CONTRACT.slice(2).padStart(64, '0')
+      + amount.toString(16).padStart(64, '0');
+    await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: account, to: TOKEN_CONTRACT, data: approveData }]
+    });
+    // 2. 调用合约下注方法
+    const betData = "0x..." // 合约中placeBet方法的函数选择器 + side + amount
+    const tx = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: account, to: GAME_CONTRACT, data: betData }]
+    });
+    alert("✅ 下注交易已提交: " + tx);
+    setTimeout(refreshBalance, 5000);
+  } catch (e) {
+    alert("下注失败: " + e.message);
+  }
+}
+
+// ===================== 真实领奖（链上发放）=====================
+async function claimReward() {
   if (!account) {
     alert("请先连接钱包");
     return;
   }
-  alert("下注成功，等待开奖");
-  bets.push({
-    addr: account,
-    side,
-    amount: parseFloat(val),
-    round: getRoundAndTime().round
-  });
-}
-
-function settleBets(finishedRound, result) {
-  const toSettle = bets.filter(b => b.round === finishedRound);
-  for (const bet of toSettle) {
-    if (bet.side === result) {
-      const win = bet.side === 3 ? bet.amount * 9 : bet.amount * 2;
-      userBalance += win;
-      localStorage.setItem(`BAL_${account.toLowerCase()}`, userBalance);
-      document.getElementById("userBalance").innerText = userBalance.toFixed(4);
-    }
+  try {
+    const tx = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: account,
+        to: GAME_CONTRACT,
+        data: "0x..." // 合约中claimReward方法的函数选择器
+      }]
+    });
+    alert("✅ 领奖交易已提交: " + tx);
+    setTimeout(refreshBalance, 5000);
+  } catch (e) {
+    alert("领奖失败: " + e.message);
   }
-  bets = bets.filter(b => b.round !== finishedRound);
 }
 
+// ===================== 其他功能 =====================
+function toggleMenu() {
+  document.getElementById("menu").classList.toggle("show");
+}
+function setQuick(amt) {
+  document.getElementById("betAmt").value = amt;
+}
+function copyRefLink() {
+  if (!account) {
+    alert("请先连接钱包");
+    return;
+  }
+  const link = window.location.origin + window.location.pathname + "?ref=" + account;
+  document.getElementById("refLink").value = link;
+  navigator.clipboard.writeText(link).then(() => alert("邀请链接已复制"));
+}
 function setControlRate() {
   const p = parseInt(document.getElementById("playerRateInput").value);
   const b = parseInt(document.getElementById("bankerRateInput").value);
@@ -568,22 +549,71 @@ function setControlRate() {
   alert(`✅ 胜率已锁定：玩家${p}% 庄家${b}%`);
 }
 
-function copyRefLink() {
-  if (!account) {
-    alert("请先连接钱包");
-    return;
+// ===================== 走势图与倒计时 =====================
+function getGlobalResultByRound(roundNum) {
+  const seed = roundNum * 1234567 + 87654321;
+  const hash = Math.abs((seed ^ (seed << 5) ^ (seed >> 3)) % 100000);
+  const rand0to99 = hash % 100;
+  if (rand0to99 < PLAYER_RATE) {
+    return hash % 2 === 0 ? 1 : 2;
+  } else {
+    return 3;
   }
-  const link = window.location.origin + window.location.pathname + "?ref=" + account;
-  document.getElementById("refLink").value = link;
-  navigator.clipboard.writeText(link).then(() => alert("邀请链接已复制"));
 }
-
-function claim() {
-  alert("✅ 奖励领取成功！");
+function getRoundAndTime() {
+  const now = Date.now();
+  const base = Date.parse('2025-01-01');
+  const elapsed = now - base;
+  const currentRound = Math.floor(elapsed / (PERIOD_SECONDS * 1000));
+  const nextMs = (currentRound + 1) * PERIOD_SECONDS * 1000 + base;
+  const left = Math.max(0, nextMs - now);
+  return {
+    round: currentRound,
+    leftSeconds: Math.floor(left / 1000)
+  };
 }
-
-async function approvePoolToFrontend(){}
-async function withdrawPool(){}
+function loadRealHistory() {
+  const { round: currentRound } = getRoundAndTime();
+  trendHistory = [];
+  const start = Math.max(0, currentRound - 14);
+  for (let i = start; i < currentRound; i++) {
+    const r = getGlobalResultByRound(i);
+    const t = r === 1 ? '龙' : r === 2 ? '虎' : '和';
+    trendHistory.push(t);
+  }
+  renderTrend();
+}
+function renderTrend() {
+  const el = document.getElementById("trendChart");
+  el.innerHTML = "";
+  trendHistory.forEach(t => {
+    const cls = t === '龙' ? 'trend-dragon' : t === '虎' ? 'trend-tiger' : 'trend-tie';
+    el.innerHTML += `<span class="trend-item ${cls}">${t}</span>`;
+  });
+}
+function startTimer() {
+  function tick() {
+    const { round: currentRound, leftSeconds } = getRoundAndTime();
+    document.getElementById("round").innerText = "#" + currentRound;
+    const m = String(Math.floor(leftSeconds / 60)).padStart(2, '0');
+    const s = String(leftSeconds % 60).padStart(2, '0');
+    document.getElementById("timer").innerText = `${m}:${s}`;
+    if (leftSeconds === 0) {
+      const finishedRound = currentRound - 1;
+      const res = getGlobalResultByRound(finishedRound);
+      const text = res === 1 ? '龙' : res === 2 ? '虎' : '和';
+      trendHistory.push(text);
+      if (trendHistory.length > 14) trendHistory.shift();
+      renderTrend();
+    }
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+window.onload = function () {
+  loadRealHistory();
+  startTimer();
+};
 </script>
 </body>
 </html>
