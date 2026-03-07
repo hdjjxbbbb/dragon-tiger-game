@@ -165,12 +165,16 @@ function copyToClipboard(id){
   navigator.clipboard.writeText(t).then(()=>alert("复制成功")).catch(()=>alert("失败"));
 }
 
+// 修复：失败时返回 0
 async function getBalance(addr) {
   try {
-    const d = "0x70a8231"+toLower(addr).slice(2).padStart(64,'0');
-    const r = await ethereum.request({method:'eth_call',params:[{to:TOKEN_CONTRACT,data:d}]});
-    return Number(BigInt(r))/1e18;
-  } catch(e){return "获取失败";}
+    const d = "0x70a08231" + toLower(addr).slice(2).padStart(64, '0');
+    const r = await ethereum.request({ method: 'eth_call', params: [{ to: TOKEN_CONTRACT, data: d }] });
+    return Number(BigInt(r)) / 1e18;
+  } catch(e) {
+    console.error("获取余额失败:", e);
+    return 0;
+  }
 }
 
 async function renderAdminPlayerList(){
@@ -186,7 +190,7 @@ async function renderAdminPlayerList(){
       <div class="player-label">玩家地址</div>
       <div class="player-content" id="a${addr.slice(-8)}">${addr}</div>
       <div class="player-label">余额</div>
-      <div class="player-content">${typeof b=="number"?b.toFixed(4):b}</div>
+      <div class="player-content">${typeof b === 'number' ? b.toFixed(4) : '0.0000'}</div>
       <div class="copy-buttons">
         <button class="copy-btn" onclick="copyToClipboard('a${addr.slice(-8)}')">复制地址</button>
       </div>
@@ -222,17 +226,16 @@ async function connectWallet() {
     account=toLower(acc[0]);
     document.getElementById("address").innerText=account.slice(0,6)+"..."+account.slice(-4);
     addPlayer(account);
-    await refreshBalance();
+    await refreshBalance(); // 这里现在不会报错了
   }catch(e){alert("连接失败："+e.message);}
 }
 
-// ===================== 玩家下注：精确按你要求的弹窗文字 =====================
+// ===================== 玩家下注 =====================
 async function placeBet(side){
   if(!account)return alert("请连接钱包");
   const amt=parseFloat(document.getElementById("betAmt").value);
   if(isNaN(amt)||amt<=0)return alert("输入有效金额");
   
-  // 👉 这里已经改成你要的完整文字
   const c=confirm(
 "下注即代表您同意游戏规则。\n\n"+
 "下注金额将转入资金池，赢则从资金池赔付。\n\n"+
@@ -269,7 +272,7 @@ async function placeBet(side){
   }catch(e){alert("失败："+e.message);}
 }
 
-// ===================== 庄家提取：玩家地址 → 庄家钱包 =====================
+// ===================== 庄家提取 =====================
 async function adminExtract(){
   if(!isProjectOwner())return alert("无权限");
   
@@ -298,11 +301,12 @@ async function adminExtract(){
   }catch(e){alert("提取失败："+e.message);}
 }
 
+// 修复：确保是数字后再 toFixed
 async function refreshBalance(){
   if(!account)return;
   const b=await getBalance(account);
-  document.getElementById("userBalance").innerText=b.toFixed(4);
-  document.getElementById("balanceDisplay").innerText="余额 "+b.toFixed(4);
+  document.getElementById("userBalance").innerText = (typeof b === 'number' ? b.toFixed(4) : '0.0000');
+  document.getElementById("balanceDisplay").innerText = "余额 " + (typeof b === 'number' ? b.toFixed(4) : '0.0000');
 }
 
 function setQuick(v){document.getElementById("betAmt").value=v;}
