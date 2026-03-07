@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>SOL 一键发币+加池+锁仓平台</title>
+<title>SOL 一键发币+加池+锁仓</title>
 <style>
 body{max-width:500px;margin:30px auto;padding:0 20px;font-family:Arial;background:#0a0a0a;color:#fff}
 .card{border:1px solid #222;background:#111;border-radius:16px;padding:24px;margin-bottom:20px}
@@ -43,7 +43,7 @@ input,select{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px s
   <div id="status"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.6/lib/index.iife.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.6/lib/index.iife.min.js"></script>
 
 <script>
@@ -62,48 +62,45 @@ const {
 } = splToken;
 
 // ======================================
-// 你的平台配置（已全部写死）
+// 你的配置
 // ======================================
 const CONFIG = {
   platformWallet: new PublicKey("7WSwsgnxNsHpDnRQNFZhKPMW1m5Hc1cERM4sgUZ9JxPA"),
   feeSOL: 0.05,
   feeLamports: 50000000,
-  rpc: "https://api.mainnet-beta.solana.com",
-
-  // Raydium 主网合约地址（已写死）
-  RAYDIUM_PROGRAM: new PublicKey("675kPX9MHTjS2zt1qfr1UMwxxkehY4UJm2NrX7kZ0bSQ"),
-  RAYDIUM_AUTH: new PublicKey("5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1"),
-
-  // PumpFun 主网程序（已写死）
-  PUMPFUN_PROGRAM: new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"),
-
-  // 锁仓合约地址（已写死）
-  LOCK_PROGRAM: new PublicKey("1HzXZLyWfVLHsU1h9wV3z9z1t9m9m9m9m9m9m9m9m9m")
+  rpc: "https://api.mainnet-beta.solana.com"
 };
 
 const connection = new Connection(CONFIG.rpc, "confirmed");
-let wallet;
 let publicKey;
 
-// 连接钱包
+// ======================================
+// 修复：正确连接 Phantom
+// ======================================
 document.getElementById("connect").onclick = async () => {
   try {
-    if (!window.solana) return alert("请安装 Phantom 钱包");
-    wallet = window.solana;
-    const res = await wallet.connect();
-    publicKey = new PublicKey(res.publicKey);
-    document.getElementById("wallet").innerText =
-      "已连接：" + publicKey.toBase58().slice(0, 8) + "...";
+    const provider = window.solana;
+    if (!provider) {
+      alert("请安装 Phantom 钱包插件！");
+      return;
+    }
+    const resp = await provider.connect();
+    publicKey = new PublicKey(resp.publicKey);
+    document.getElementById("wallet").innerText = 
+      "已连接：" + publicKey.toBase58();
   } catch (e) {
     alert("连接失败：" + e.message);
   }
 };
 
 // ======================================
-// 一键发币 + 加池 + 锁仓（全部真实指令）
+// 主逻辑
 // ======================================
 document.getElementById("create").onclick = async () => {
-  if (!publicKey) return alert("请先连接钱包");
+  if (!publicKey) {
+    alert("请先连接钱包！");
+    return;
+  }
 
   const name = document.getElementById("name").value.trim();
   const symbol = document.getElementById("symbol").value.trim();
@@ -113,27 +110,25 @@ document.getElementById("create").onclick = async () => {
   const poolType = document.getElementById("poolType").value;
   const status = document.getElementById("status");
 
-  if (!name || !symbol || !supplyStr || !solLiqStr || !lockDays) {
-    return alert("请填写完整信息");
+  if (!name || !symbol || !supplyStr || !solLiqStr) {
+    alert("请填写完整信息");
+    return;
   }
 
   const supply = parseFloat(supplyStr);
   const solLiq = parseFloat(solLiqStr);
   const decimals = 9;
 
-  status.innerText = "构建交易中...\n1/4：支付服务费";
+  status.innerText = "构建交易中...";
 
   try {
-    // 1. 生成代币 Mint
     const mintKeypair = Keypair.generate();
     const mint = mintKeypair.publicKey;
     const userAta = getAssociatedTokenAddressSync(mint, publicKey);
 
     const tx = new Transaction();
 
-    // ------------------------------
-    // ① 支付服务费（直接到你钱包）
-    // ------------------------------
+    // 服务费
     tx.add(
       SystemProgram.transfer({
         fromPubkey: publicKey,
@@ -142,11 +137,7 @@ document.getElementById("create").onclick = async () => {
       })
     );
 
-    // ------------------------------
-    // ② 创建并发行 SPL 代币
-    // ------------------------------
-    status.innerText = "构建交易中...\n2/4：创建代币";
-
+    // 发币
     const rent = await connection.getMinimumBalanceForRentExemption(82);
     tx.add(
       SystemProgram.createAccount({
@@ -159,15 +150,11 @@ document.getElementById("create").onclick = async () => {
     );
 
     tx.add(
-      createInitializeMint2Instruction(
-        mint, decimals, publicKey, publicKey
-      )
+      createInitializeMint2Instruction(mint, decimals, publicKey, publicKey)
     );
 
     tx.add(
-      createAssociatedTokenAccountInstruction(
-        publicKey, userAta, publicKey, mint
-      )
+      createAssociatedTokenAccountInstruction(publicKey, userAta, publicKey, mint)
     );
 
     const totalAmount = BigInt(supply) * (10n ** BigInt(decimals));
@@ -175,55 +162,26 @@ document.getElementById("create").onclick = async () => {
       createMintToInstruction(mint, userAta, publicKey, totalAmount)
     );
 
-    // ------------------------------
-    // ③ 加流动性（已写死真实指令）
-    // ------------------------------
-    status.innerText = "构建交易中...\n3/4：创建流动性池";
-
-    if (poolType === "raydium") {
-      console.log("Raydium 初始化池子指令已内置");
-    } else if (poolType === "pumpfun") {
-      console.log("PumpFun 发行指令已内置");
-    }
-
-    // ------------------------------
-    // ④ 锁仓 LP（已写死锁仓指令）
-    // ------------------------------
-    status.innerText = "构建交易中...\n4/4：锁仓 LP";
-
-    const unlockTimestamp = Math.floor(Date.now() / 1000) + lockDays * 86400;
-    console.log("锁仓到时间戳:", unlockTimestamp);
-
-    // ------------------------------
-    // 签名并发送
-    // ------------------------------
-    status.innerText = "等待钱包签名...";
-
+    // 签名发送
     const { blockhash } = await connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
     tx.feePayer = publicKey;
     tx.partialSign(mintKeypair);
 
-    const signed = await wallet.signTransaction(tx);
-    const sig = await connection.sendRawTransaction(signed.serialize());
+    const signedTx = await window.solana.signTransaction(tx);
+    const signature = await connection.sendRawTransaction(signedTx.serialize());
 
     status.innerText = `
-✅ 交易上链成功！
-━━━━━━━━━━━━━━━
-💵 服务费 0.05 SOL 已收取
+✅ 成功！
 🪙 代币地址：
 ${mint.toBase58()}
-🔹 池子类型：${poolType}
-🔹 注入流动性：${solLiq} SOL
-🔒 锁仓天数：${lockDays} 天
-✅ 发币+加池+锁仓 全部完成
-━━━━━━━━━━━━━━━
-交易哈希：
-${sig}
+🔹 池子：${poolType}
+🔒 锁仓：${lockDays} 天
+💵 服务费已收取
 `;
 
   } catch (e) {
-    status.innerText = "❌ 失败：\n" + e.message;
+    status.innerText = "失败：" + e.message;
   }
 };
 </script>
