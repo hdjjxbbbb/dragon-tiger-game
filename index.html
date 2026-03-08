@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL 发币（公共RPC）</title>
+  <title>SOL 发币（多RPC）</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
   <style>
     body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: system-ui; }
@@ -17,7 +17,7 @@
 </head>
 <body>
 
-<h2>SOL 发币（公共RPC）</h2>
+<h2>SOL 发币（多RPC）</h2>
 
 <button class="btn" onclick="connect()">连接钱包</button>
 <div id="addr"></div>
@@ -41,8 +41,32 @@ let address = "";
 let logoFile = null;
 
 const { Connection, Keypair, Transaction, SystemProgram, PublicKey } = solanaWeb3;
-// 修复：用公共 RPC 节点，避免 403
-const connection = new Connection("https://solana-mainnet.g.alchemy.com/v2/demo", "confirmed");
+
+// 多个稳定公共 RPC 节点
+const RPC_LIST = [
+  "https://solana-mainnet.rpc.extrnode.com",
+  "https://api.mainnet-beta.solana.com",
+  "https://solana-mainnet.g.alchemy.com/v2/demo",
+  "https://rpc.ankr.com/solana",
+];
+
+let connection;
+
+// 自动选择可用的 RPC 节点
+async function selectRpc() {
+  for (const rpc of RPC_LIST) {
+    try {
+      const conn = new Connection(rpc, "confirmed");
+      await conn.getLatestBlockhash(); // 测试连通性
+      connection = conn;
+      console.log("使用 RPC:", rpc);
+      return;
+    } catch (e) {
+      console.warn("RPC 不可用:", rpc, e.message);
+    }
+  }
+  throw new Error("所有 RPC 节点都不可用，请检查网络");
+}
 
 function getWallet() {
   return window.solana || window.okxwallet || window.tpWallet;
@@ -127,7 +151,7 @@ async function mintToManually(mint, to, amount) {
     programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
     data: Buffer.concat([
       Buffer.from([0x07]), // MintTo
-      Buffer.from(amount.toString(16), "hex")
+      Buffer.from(Uint8Array.from([...Array(8)].map((_, i) => (amount >> BigInt(8 * i)) & 0xffn)))
     ])
   });
 
@@ -140,11 +164,14 @@ async function mintToManually(mint, to, amount) {
   return txId;
 }
 
-// 发币
+// 发币（先选 RPC）
 async function createToken() {
   if (!address) { alert("请先连接钱包！"); return; }
 
   try {
+    // 先选一个可用的 RPC
+    await selectRpc();
+
     const name = document.getElementById("name").value;
     const symbol = document.getElementById("symbol").value;
     const decimals = parseInt(document.getElementById("decimals").value);
