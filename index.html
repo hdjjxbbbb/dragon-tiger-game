@@ -3,87 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL 一键发币</title>
+  <title>SOL发币</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
     body{max-width:420px;margin:0 auto;padding:20px;background:#fff}
-    .btn{width:100%;padding:16px;border-radius:16px;border:none;background:#0071e3;color:#fff;font-size:16px;margin:10px 0}
-    .btn:disabled{background:#ccc}
+    .btn{width:100%;padding:16px;border-radius:16px;border:none;background:#0071e3;color:white;font-size:16px;margin:10px 0}
     input{width:100%;padding:14px;border-radius:12px;border:1px solid #ddd;margin:8px 0}
     .card{background:#f9f9f9;padding:20px;border-radius:20px;margin-bottom:16px}
-    .title{font-size:24px;margin-bottom:20px}
-    .addr{padding:12px;background:#f1f1f1;border-radius:10px;margin:10px 0;display:none}
-    #result{padding:14px;background:#e6f7e6;border-radius:12px;margin-top:16px;display:none;word-break:break-all}
+    #addr{padding:12px;background:#f1f1f1;border-radius:10px;margin:10px 0}
   </style>
 </head>
 <body>
 
-<div class="title">SOL 一键发币</div>
+<h2>SOL 一键发币</h2>
 
-<button id="connect" class="btn">连接钱包</button>
-<div id="addr" class="addr">地址：加载中...</div>
+<button class="btn" onclick="connect()">连接钱包</button>
+<div id="addr"></div>
 
 <div class="card">
-  <input id="name" placeholder="代币名称" value="Test">
-  <input id="symbol" placeholder="代币符号" value="TEST">
+  <input id="name" placeholder="名称" value="Test">
+  <input id="symbol" placeholder="符号" value="TEST">
   <input id="decimals" value="9" placeholder="精度">
   <input id="supply" value="1000000000" placeholder="发行量">
 </div>
 
-<button id="create" class="btn" disabled>创建代币（签名支付Gas）</button>
-
-<div id="result"></div>
+<button class="btn" onclick="createToken()">创建代币</button>
 
 <script>
-const { Connection, Keypair } = solanaWeb3;
-const { createMint, getOrCreateAssociatedTokenAccount, mintTo } = splToken;
-
 let provider;
 let publicKey;
 let address = "";
 
-const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
+const connection = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com", "confirmed");
 
-// 自动识别钱包
-function getProvider() {
-  return window.solana || window.okxwallet || window.tpWallet || null;
+// 全局获取钱包（兼容所有）
+function getWallet() {
+  return window.solana || window.okxwallet || window.tpWallet || window.ethereum;
 }
 
-// 连接钱包
-document.getElementById("connect").onclick = async function() {
+// 连接钱包（必弹窗）
+async function connect() {
   try {
-    const p = getProvider();
-    if (!p) {
+    const wallet = getWallet();
+    if (!wallet) {
       alert("请在钱包浏览器打开！");
       return;
     }
 
-    const res = await p.connect();
-    provider = p;
+    const res = await wallet.connect();
+    provider = wallet;
     publicKey = res.publicKey;
     address = publicKey.toBase58();
-
-    document.getElementById("connect").innerText = "已连接";
-    document.getElementById("addr").innerText = "地址：" + address;
-    document.getElementById("addr").style.display = "block";
-    document.getElementById("create").disabled = false;
-
-  } catch (e) {
-    alert("连接失败：" + e.message);
+    
+    document.getElementById("addr").innerText = "已连接：" + address;
+    alert("连接成功！");
+  } catch (err) {
+    alert("连接失败：" + err.message);
   }
-};
+}
 
 // 创建代币
-document.getElementById("create").onclick = async function() {
+async function createToken() {
   if (!address) {
-    alert("请先连接钱包");
+    alert("请先连接钱包！");
     return;
   }
-
-  document.getElementById("create").disabled = true;
-  document.getElementById("create").innerText = "请签名...";
 
   try {
     const name = document.getElementById("name").value;
@@ -92,27 +77,28 @@ document.getElementById("create").onclick = async function() {
     const supply = BigInt(document.getElementById("supply").value);
     const amount = supply * (10n ** BigInt(decimals));
 
-    // 1. 创建Mint
-    const mintKP = Keypair.generate();
-    const mint = await createMint(
+    const mintKeypair = solanaWeb3.Keypair.generate();
+
+    // 创建Mint
+    const mint = await splToken.createMint(
       connection,
       provider,
       publicKey,
       publicKey,
       decimals,
-      mintKP
+      mintKeypair
     );
 
-    // 2. 创建ATA
-    const ata = await getOrCreateAssociatedTokenAccount(
+    // 创建账户
+    const ata = await splToken.getOrCreateAssociatedTokenAccount(
       connection,
       provider,
       mint,
       publicKey
     );
 
-    // 3. 铸造
-    const tx = await mintTo(
+    // 铸造
+    const tx = await splToken.mintTo(
       connection,
       provider,
       mint,
@@ -121,20 +107,12 @@ document.getElementById("create").onclick = async function() {
       amount
     );
 
-    document.getElementById("result").innerHTML = `
-      ✅ 发币成功<br>
-      合约：${mint.toBase58()}<br>
-      交易：${tx}
-    `;
-    document.getElementById("result").style.display = "block";
+    alert("发币成功！\n合约：" + mint.toBase58());
 
-  } catch (e) {
-    alert("失败：" + e.message);
-  } finally {
-    document.getElementById("create").disabled = false;
-    document.getElementById("create").innerText = "创建代币（签名支付Gas）";
+  } catch (err) {
+    alert("失败：" + err.message);
   }
-};
+}
 </script>
 
 </body>
