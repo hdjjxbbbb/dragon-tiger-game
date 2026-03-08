@@ -3,29 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL 发币</title>
+  <title>SOL 一键发币（带Logo上传）</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
   <style>
-    body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; }
-    .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; background: #0071e3; color: white; font-size: 16px; margin: 10px 0; }
+    body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: system-ui; }
+    .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; background: #0071e3; color: white; font-size: 16px; margin: 10px 0; cursor: pointer; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
     input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ddd; margin: 8px 0; }
     .card { background: #f9f9f9; padding: 20px; border-radius: 20px; margin-bottom: 16px; }
     #addr { padding: 12px; background: #f1f1f1; border-radius: 10px; margin: 10px 0; }
+    .logo-preview { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; margin-top: 8px; display: none; }
   </style>
 </head>
 <body>
 
-<h2>SOL 一键发币</h2>
+<h2>SOL 一键发币（带Logo上传）</h2>
 
 <button class="btn" onclick="connect()">连接钱包</button>
 <div id="addr"></div>
 
 <div class="card">
-  <input id="name" placeholder="名称" value="Test">
-  <input id="symbol" placeholder="符号" value="DTM">
+  <input id="name" placeholder="代币名称" value="Test">
+  <input id="symbol" placeholder="代币符号" value="DTM">
   <input id="decimals" value="9" placeholder="精度">
   <input id="supply" value="1000000000" placeholder="发行量">
+  <input type="file" id="logo" accept="image/*" style="display:none" onchange="previewLogo()">
+  <button class="btn" style="background:#34c759" onclick="document.getElementById('logo').click()">上传代币 Logo</button>
+  <img id="logoPreview" class="logo-preview">
 </div>
 
 <button class="btn" onclick="createToken()">创建代币</button>
@@ -34,40 +39,45 @@
 let provider;
 let publicKey;
 let address = "";
+let logoFile = null;
 
 const connection = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com", "confirmed");
 
-// 全局获取钱包
 function getWallet() {
   return window.solana || window.okxwallet || window.tpWallet;
 }
 
-// 连接钱包
 async function connect() {
   try {
     const wallet = getWallet();
-    if (!wallet) {
-      alert("请在钱包浏览器打开！");
-      return;
-    }
-
+    if (!wallet) { alert("请在钱包浏览器打开！"); return; }
     const res = await wallet.connect();
     provider = wallet;
     publicKey = res.publicKey;
     address = publicKey.toBase58();
-    
     document.getElementById("addr").innerText = "已连接：" + address;
   } catch (err) {
     alert("连接失败：" + err.message);
   }
 }
 
-// 创建代币（修复 splToken 调用方式）
+// 预览 Logo
+function previewLogo() {
+  const file = document.getElementById("logo").files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById("logoPreview");
+    img.src = e.target.result;
+    img.style.display = "block";
+    logoFile = file;
+  };
+  reader.readAsDataURL(file);
+}
+
+// 发币（修复版：使用正确的库导出）
 async function createToken() {
-  if (!address) {
-    alert("请先连接钱包！");
-    return;
-  }
+  if (!address) { alert("请先连接钱包！"); return; }
 
   try {
     const name = document.getElementById("name").value;
@@ -78,8 +88,13 @@ async function createToken() {
 
     const mintKeypair = solanaWeb3.Keypair.generate();
 
-    // 修复：使用 window.splToken
-    const mint = await window.splToken.createMint(
+    // 修复：使用正确的库对象
+    const splToken = window.splToken || window["@solana/spl-token"];
+    if (!splToken || !splToken.createMint) {
+      throw new Error("SPL Token 库加载失败，请刷新重试");
+    }
+
+    const mint = await splToken.createMint(
       connection,
       provider,
       publicKey,
@@ -88,14 +103,14 @@ async function createToken() {
       mintKeypair
     );
 
-    const ata = await window.splToken.getOrCreateAssociatedTokenAccount(
+    const ata = await splToken.getOrCreateAssociatedTokenAccount(
       connection,
       provider,
       mint,
       publicKey
     );
 
-    const tx = await window.splToken.mintTo(
+    const tx = await splToken.mintTo(
       connection,
       provider,
       mint,
@@ -104,7 +119,11 @@ async function createToken() {
       amount
     );
 
-    alert("发币成功！\n合约地址：" + mint.toBase58());
+    alert(`✅ 发币成功！
+名称：${name}
+符号：${symbol}
+合约：${mint.toBase58()}
+交易：${tx}`);
 
   } catch (err) {
     alert("失败：" + err.message);
