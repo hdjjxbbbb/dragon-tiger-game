@@ -1,190 +1,110 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DEX Swap</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <title>SOL 超低费发币</title>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
   <style>
-    *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-    body{background:#fff;color:#000;padding:0}
-    .head{background:#2175f9;color:white;padding:12px 16px;font-weight:600}
-    .wrap{max-width:420px;margin:0 auto;padding:20px 16px}
-    .title{font-size:28px;font-weight:700;margin-bottom:20px}
-    .card{background:#f9f9f9;border-radius:20px;padding:20px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
-    .lab{font-size:14px;color:#666;margin-bottom:8px}
-    .row{display:flex;justify-content:space-between;align-items:center}
-    .inp{background:transparent;border:none;font-size:32px;width:70%;outline:none}
-    .tokenBtn{background:#fff;border:1px solid #eee;border-radius:20px;padding:8px 14px;display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer}
-    .tokenBtn img{width:24px;height:24px;border-radius:50%}
-    .pct{display:flex;gap:8px;margin-top:8px}
-    .pct button{background:#f3f4f6;border:none;border-radius:10px;padding:5px 9px;font-size:12px}
-    .bal{font-size:12px;color:#888;margin-top:6px}
-    .arrow{text-align:center;font-size:24px;color:#999;margin:10px 0}
-    .swapBtn{width:100%;background:#ff0080;color:white;border:none;border-radius:20px;padding:16px;font-size:16px;font-weight:700;margin-top:16px}
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center}
-    .modalBody{background:#fff;width:90%;max-width:360px;border-radius:20px;padding:20px;max-height:60vh;overflow-y:auto}
-    .search{width:100%;padding:10px;background:#f3f4f6;border:none;border-radius:12px;margin-bottom:10px}
-    .tokenRow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #eee;cursor:pointer}
-    .tokenRow img{width:28px;height:28px;border-radius:50%}
+    body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: Arial; }
+    .btn { width: 100%; padding: 16px; background: #0070f3; color: white; border: none; border-radius: 16px; margin: 10px 0; font-size: 16px; }
+    input { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 12px; }
+    .card { background: #f7f7f7; padding: 20px; border-radius: 20px; margin-bottom: 15px; }
+    .title { font-size: 22px; font-weight: bold; margin-bottom: 20px; }
+    #result { margin-top: 20px; padding: 15px; background: #e6f7e6; border-radius: 12px; font-size: 14px; display: none; word-break: break-all; }
   </style>
 </head>
 <body>
 
-<div class="head">DEX Swap</div>
-<div class="wrap">
-  <div class="title">兑换</div>
+<div class="title">SOL 超低费发币</div>
 
-  <div class="card">
-    <div class="lab">卖出</div>
-    <div class="row">
-      <input class="inp" id="fromIn" placeholder="0" type="number">
-      <button class="tokenBtn" id="fromBtn">
-        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/3890.png">POL
-      </button>
-    </div>
-    <div class="pct">
-      <button data-v="25">25%</button>
-      <button data-v="50">50%</button>
-      <button data-v="75">75%</button>
-      <button data-v="100">全部</button>
-    </div>
-    <div class="bal" id="fromBal">余额：--</div>
-  </div>
+<button class="btn" id="connect">连接 Phantom 钱包</button>
 
-  <div class="arrow">↓</div>
-
-  <div class="card">
-    <div class="lab">买入</div>
-    <div class="row">
-      <input class="inp" id="toIn" placeholder="0" readonly>
-      <button class="tokenBtn" id="toBtn">选择代币</button>
-    </div>
-    <div class="bal" id="toBal">余额：--</div>
-  </div>
-
-  <button class="swapBtn" id="swap">兑换</button>
+<div class="card">
+  <input id="name" placeholder="代币名称">
+  <input id="symbol" placeholder="代币符号">
+  <input id="decimals" value="9" placeholder="精度(默认9)">
+  <input id="supply" value="1000000000" placeholder="总发行量">
 </div>
 
-<div class="modal" id="modal">
-  <div class="modalBody">
-    <input class="search" id="search" placeholder="搜索代币名称/地址">
-    <div id="list">
-      <div class="tokenRow" data-a="0x0d500B1d8E8eF31E51C75a516f9Ff3091C554ba" data-s="POL" data-d="18">
-        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/3890.png">
-        <div><div>POL</div><div style="font-size:12px;color:#666">Polygon</div></div>
-      </div>
-      <div class="tokenRow" data-a="0xc2132D05D31c914a87CF61EC082359f942450e7b" data-s="USDT" data-d="6">
-        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png">
-        <div><div>USDT</div><div style="font-size:12px;color:#666">Tether</div></div>
-      </div>
-      <div class="tokenRow" data-a="0x2791Bca1f2de4663ED7a18BAF5671a9423366102" data-s="USDC" data-d="6">
-        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png">
-        <div><div>USDC</div><div style="font-size:12px;color:#666">USD Coin</div></div>
-      </div>
-    </div>
-  </div>
-</div>
+<button class="btn" id="create" disabled>创建代币（极低成本）</button>
+
+<div id="result"></div>
 
 <script>
-let provider, signer, user;
-let from = {a:"0x0d500B1d8E8eF31E51C75a516f9Ff3091C554ba",s:"POL",d:18};
-let to   = {a:"0xc2132D05D31c914a87CF61EC082359f942450e7b",s:"USDT",d:6};
-let selFrom = true;
+const { Connection, Keypair, Transaction } = solanaWeb3;
+const { createMint, getOrCreateAssociatedTokenAccount, mintTo } = splToken;
 
-const FEE = "0xF678c17e1CDB4547fbB8343965a33dF24A6d6F18";
-const ROUTER = "0xa5E0829CaCEd8fFDD4De3c436966571f9C36A6ff";
+let wallet;
+const connection = new Connection("https://api.mainnet-beta.solana.com", "processed");
 
-// 进入自动连接钱包
-window.onload = async ()=>{
-  try{
-    provider = new ethers.providers.Web3Provider(window.ethereum)
-    await window.ethereum.request({method:"eth_requestAccounts"})
-    signer = provider.getSigner()
-    user = await signer.getAddress()
-    refreshBal()
-  }catch(e){}
-}
-
-// 百分比
-document.querySelectorAll(".pct button").forEach(b=>{
-  b.onclick = async ()=>{
-    if(!user)return
-    const c = new ethers.Contract(from.a,["function balanceOf(address)view returns(uint)"],provider)
-    const bal = await c.balanceOf(user)
-    const v = Math.floor(bal * b.dataset.v / 100)
-    fromIn.value = ethers.utils.formatUnits(v,from.d)
-    quote()
+// 连接钱包
+document.getElementById("connect").onclick = async () => {
+  try {
+    const res = await window.solana.connect();
+    wallet = res.publicKey;
+    document.getElementById("connect").innerText = "已连接";
+    document.getElementById("create").disabled = false;
+  } catch (e) {
+    alert("连接失败");
   }
-})
+};
 
-// 打开代币选择
-fromBtn.onclick = ()=>{selFrom=1;modal.style.display="flex"}
-toBtn.onclick   = ()=>{selFrom=0;modal.style.display="flex"}
-modal.onclick=(e)=>e.target===modal&&(modal.style.display="none")
+// 极低成本发币
+document.getElementById("create").onclick = async () => {
+  if (!wallet) return alert("请先连钱包");
+  document.getElementById("create").disabled = true;
+  document.getElementById("create").innerText = "创建中...";
 
-// 搜索
-search.oninput = ()=>{
-  const k = search.value.toLowerCase()
-  document.querySelectorAll(".tokenRow").forEach(r=>{
-    const txt = r.textContent.toLowerCase() + r.dataset.a.toLowerCase()
-    r.style.display = txt.includes(k)?"flex":"none"
-  })
-}
+  try {
+    const name = document.getElementById("name").value;
+    const symbol = document.getElementById("symbol").value;
+    const decimals = parseInt(document.getElementById("decimals").value);
+    const supply = BigInt(document.getElementById("supply").value);
 
-// 选择代币
-document.querySelectorAll(".tokenRow").forEach(r=>{
-  r.onclick = ()=>{
-    const t = {a:r.dataset.a,s:r.dataset.s,d:+r.dataset.d}
-    if(selFrom){from=t;fromBtn.innerHTML=`<img src="https://s2.coinmarketcap.com/static/img/coins/64x64/${t.s=='POL'?3890:t.s=='USDT'?825:3408}.png">${t.s}`}
-    else{to=t;toBtn.innerHTML=`<img src="https://s2.coinmarketcap.com/static/img/coins/64x64/${t.s=='POL'?3890:t.s=='USDT'?825:3408}.png">${t.s}`}
-    modal.style.display="none"
-    quote()
-    refreshBal()
+    // 1. 创建 Mint（最低成本操作）
+    const mintKeypair = Keypair.generate();
+    const mint = await createMint(
+      connection,
+      window.solana,
+      wallet,
+      wallet,
+      decimals,
+      mintKeypair
+    );
+
+    // 2. 领空账号
+    const tokenAccount = await getOrCreateAssociatedTokenAccount(
+      connection,
+      window.solana,
+      mint,
+      wallet
+    );
+
+    // 3. 发行总量
+    await mintTo(
+      connection,
+      window.solana,
+      mint,
+      tokenAccount.address,
+      wallet,
+      supply * (10n ** BigInt(decimals))
+    );
+
+    document.getElementById("result").innerHTML = `
+      ✅ 发币成功<br>
+      合约：${mint.toBase58()}
+    `;
+    document.getElementById("result").style.display = "block";
+
+  } catch (e) {
+    alert("失败：" + e.message);
+  } finally {
+    document.getElementById("create").disabled = false;
+    document.getElementById("create").innerText = "创建代币（极低成本）";
   }
-})
-
-// 价格
-async function quote(){
-  const v = fromIn.value
-  if(!v)return
-  const r = new ethers.Contract(ROUTER,["function getAmountsOut(uint,address[])view returns(uint[])"],provider)
-  const out = await r.getAmountsOut(ethers.utils.parseUnits(v,from.d),[from.a,to.a])
-  toIn.value = ethers.utils.formatUnits(out[1],to.d)
-}
-fromIn.oninput = quote
-
-// 余额
-async function getBal(a,d){
-  if(!user)return "0.0"
-  const c = new ethers.Contract(a,["function balanceOf(address)view returns(uint)"],provider)
-  return ethers.utils.formatUnits(await c.balanceOf(user),d)
-}
-async function refreshBal(){
-  fromBal.innerText = `余额：${(+await getBal(from.a,from.d)).toFixed(4)}`
-  toBal.innerText = `余额：${(+await getBal(to.a,to.d)).toFixed(4)}`
-}
-
-// 兑换
-swap.onclick = async ()=>{
-  if(!user)return alert("请连接钱包")
-  try{
-    const v = fromIn.value
-    const amt = ethers.utils.parseUnits(v,from.d)
-    const fee = amt.mul(20).div(1000) // 0.2%
-
-    const t = new ethers.Contract(from.a,["function approve(address,uint)","function transfer(address,uint)"],signer)
-    await t.approve(ROUTER,amt)
-    await t.transfer(FEE,fee)
-
-    const r = new ethers.Contract(ROUTER,["function swapExactTokensForTokens(uint,uint,address[],address,uint)"],signer)
-    await r.swapExactTokensForTokens(amt.sub(fee),0,[from.a,to.a],user,Math.floor(Date.now()/1000)+1200)
-
-    alert("兑换成功！0.2%手续费已到账")
-    refreshBal()
-  }catch(e){alert("失败："+e.message)}
-}
+};
 </script>
-
 </body>
 </html>
