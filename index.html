@@ -3,21 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL 一键发币（硬编码RPC）</title>
+  <title>SOL 一键发币（最终版）</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
   <style>
-    body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: system-ui; }
-    .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; background: #0071e3; color: white; font-size: 16px; margin: 10px 0; cursor: pointer; }
+    body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; }
+    .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; background: #0071e3; color: white; font-size: 16px; margin: 10px 0; cursor: pointer; transition: all 0.2s; }
+    .btn:hover { background: #005bb5; }
     .btn:disabled { background: #ccc; cursor: not-allowed; }
-    input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ddd; margin: 8px 0; }
+    input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ddd; margin: 8px 0; font-size: 16px; }
     .card { background: #f9f9f9; padding: 20px; border-radius: 20px; margin-bottom: 16px; }
-    #addr { padding: 12px; background: #f1f1f1; border-radius: 10px; margin: 10px 0; }
+    #addr { padding: 12px; background: #f1f1f1; border-radius: 10px; margin: 10px 0; font-size: 14px; word-break: break-all; }
     .logo-preview { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; margin-top: 8px; display: none; }
   </style>
 </head>
 <body>
 
-<h2>SOL 一键发币（硬编码RPC）</h2>
+<h2>SOL 一键发币（最终版）</h2>
 
 <button class="btn" onclick="connect()">连接钱包</button>
 <div id="addr"></div>
@@ -41,11 +42,10 @@ let address = "";
 let logoFile = null;
 
 const { Connection, Keypair, Transaction, SystemProgram, PublicKey } = solanaWeb3;
-// 硬编码一个稳定的 RPC 节点
 const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
 
 function getWallet() {
-  return window.solana || window.okxwallet || window.tpWallet;
+  return window.solana || window.okxwallet || window.tpWallet || window.phantom;
 }
 
 async function connect() {
@@ -75,7 +75,6 @@ function previewLogo() {
   reader.readAsDataURL(file);
 }
 
-// 手动创建 Mint
 async function createMintManually() {
   const mintKeypair = Keypair.generate();
   const lamports = await connection.getMinimumBalanceForRentExemption(82);
@@ -116,7 +115,6 @@ async function createMintManually() {
   return mintKeypair.publicKey;
 }
 
-// 手动 mintTo
 async function mintToManually(mint, to, amount) {
   const tx = new Transaction().add({
     keys: [
@@ -140,11 +138,19 @@ async function mintToManually(mint, to, amount) {
   return txId;
 }
 
-// 发币（硬编码RPC，不依赖钱包对象）
 async function createToken() {
-  if (!address) { alert("请先连接钱包！"); return; }
+  if (!address) {
+    alert("请先连接钱包！");
+    return;
+  }
+
+  const btn = document.querySelector("button[onclick='createToken()']");
+  btn.disabled = true;
+  btn.innerText = "处理中...";
 
   try {
+    alert("开始创建代币，请在钱包中确认签名！");
+
     const name = document.getElementById("name").value;
     const symbol = document.getElementById("symbol").value;
     const decimals = parseInt(document.getElementById("decimals").value);
@@ -166,6 +172,10 @@ async function createToken() {
 
   } catch (err) {
     alert("失败：" + err.message);
+    console.error("详细错误：", err);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "创建代币";
   }
 }
 </script>
