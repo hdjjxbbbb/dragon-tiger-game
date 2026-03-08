@@ -7,32 +7,32 @@
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
   <style>
-    *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-    body{max-width:420px;margin:0 auto;padding:24px;background:#fff}
-    .btn{width:100%;padding:16px;border-radius:16px;border:none;background:#0071e3;color:white;font-size:16px;margin:10px 0}
+    *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+    body{max-width:420px;margin:0 auto;padding:20px;background:#fff}
+    .btn{width:100%;padding:16px;border-radius:16px;border:none;background:#0071e3;color:#fff;font-size:16px;margin:10px 0}
     .btn:disabled{background:#ccc}
     input{width:100%;padding:14px;border-radius:12px;border:1px solid #ddd;margin:8px 0}
     .card{background:#f9f9f9;padding:20px;border-radius:20px;margin-bottom:16px}
-    .title{font-size:24px;font-weight:700;margin-bottom:20px}
-    .address{font-size:14px;color:#333;margin:10px 0;padding:10px;background:#f1f1f1;border-radius:10px}
-    #result{background:#e6f7e6;padding:14px;border-radius:12px;margin-top:16px;display:none;word-break:break-all}
+    .title{font-size:24px;margin-bottom:20px}
+    .addr{padding:12px;background:#f1f1f1;border-radius:10px;margin:10px 0;display:none}
+    #result{padding:14px;background:#e6f7e6;border-radius:12px;margin-top:16px;display:none;word-break:break-all}
   </style>
 </head>
 <body>
 
 <div class="title">SOL 一键发币</div>
 
-<button class="btn" id="connectBtn">连接 OKX / OE 钱包</button>
-<div class="address" id="address" style="display:none">钱包地址：加载中...</div>
+<button id="connect" class="btn">连接钱包</button>
+<div id="addr" class="addr">地址：加载中...</div>
 
 <div class="card">
-  <input id="name" placeholder="代币名称" value="TestToken">
+  <input id="name" placeholder="代币名称" value="Test">
   <input id="symbol" placeholder="代币符号" value="TEST">
   <input id="decimals" value="9" placeholder="精度">
-  <input id="supply" value="1000000000" placeholder="发行总量">
+  <input id="supply" value="1000000000" placeholder="发行量">
 </div>
 
-<button class="btn" id="createBtn" disabled>创建代币（需签名支付Gas）</button>
+<button id="create" class="btn" disabled>创建代币（签名支付Gas）</button>
 
 <div id="result"></div>
 
@@ -46,97 +46,93 @@ let address = "";
 
 const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
 
-// ======================================
-// 连接钱包（强制弹窗！）
-// ======================================
-document.getElementById("connectBtn").onclick = async () => {
+// 自动识别钱包
+function getProvider() {
+  return window.solana || window.okxwallet || window.tpWallet || null;
+}
+
+// 连接钱包
+document.getElementById("connect").onclick = async function() {
   try {
-    const okx = window.okxwallet || window.solana;
-    if (!okx) {
-      alert("请在 OKX / OE 钱包内置浏览器打开！");
+    const p = getProvider();
+    if (!p) {
+      alert("请在钱包浏览器打开！");
       return;
     }
 
-    // 强制弹窗授权
-    const res = await okx.connect({ onlyIfTrusted: false });
-    provider = okx;
+    const res = await p.connect();
+    provider = p;
     publicKey = res.publicKey;
     address = publicKey.toBase58();
 
-    // 显示地址
-    document.getElementById("address").innerText = "已连接：" + address;
-    document.getElementById("address").style.display = "block";
-    document.getElementById("connectBtn").innerText = "已连接钱包";
-    document.getElementById("createBtn").disabled = false;
+    document.getElementById("connect").innerText = "已连接";
+    document.getElementById("addr").innerText = "地址：" + address;
+    document.getElementById("addr").style.display = "block";
+    document.getElementById("create").disabled = false;
 
   } catch (e) {
     alert("连接失败：" + e.message);
   }
 };
 
-// ======================================
-// 创建代币（一定会弹签名！）
-// ======================================
-document.getElementById("createBtn").onclick = async () => {
+// 创建代币
+document.getElementById("create").onclick = async function() {
   if (!address) {
-    alert("请先连接钱包！");
+    alert("请先连接钱包");
     return;
   }
 
-  document.getElementById("createBtn").disabled = true;
-  document.getElementById("createBtn").innerText = "签名中...请在钱包确认";
+  document.getElementById("create").disabled = true;
+  document.getElementById("create").innerText = "请签名...";
 
   try {
     const name = document.getElementById("name").value;
     const symbol = document.getElementById("symbol").value;
     const decimals = parseInt(document.getElementById("decimals").value);
-    const supply = document.getElementById("supply").value;
-    const totalAmount = BigInt(supply) * (10n ** BigInt(decimals));
+    const supply = BigInt(document.getElementById("supply").value);
+    const amount = supply * (10n ** BigInt(decimals));
 
-    // 1. 创建代币合约（弹签名）
-    const mintKeypair = Keypair.generate();
+    // 1. 创建Mint
+    const mintKP = Keypair.generate();
     const mint = await createMint(
       connection,
       provider,
       publicKey,
       publicKey,
       decimals,
-      mintKeypair
+      mintKP
     );
 
-    // 2. 创建账户（弹签名）
-    const tokenAccount = await getOrCreateAssociatedTokenAccount(
+    // 2. 创建ATA
+    const ata = await getOrCreateAssociatedTokenAccount(
       connection,
       provider,
       mint,
       publicKey
     );
 
-    // 3. 发行代币（弹签名）
-    const txId = await mintTo(
+    // 3. 铸造
+    const tx = await mintTo(
       connection,
       provider,
       mint,
-      tokenAccount.address,
+      ata.address,
       publicKey,
-      totalAmount
+      amount
     );
 
-    // 成功
     document.getElementById("result").innerHTML = `
       ✅ 发币成功<br>
-      名称：${name}<br>
-      符号：${symbol}<br>
-      合约地址：<br>${mint.toBase58()}<br>
-      交易：${txId}
+      合约：${mint.toBase58()}<br>
+      交易：${tx}
     `;
     document.getElementById("result").style.display = "block";
 
   } catch (e) {
     alert("失败：" + e.message);
   } finally {
-    document.getElementById("createBtn").disabled = false;
-    document.getElementById("createBtn").innerText = "创建代币（需签名支付Gas）";
+    document.getElementById("create").disabled = false;
+    document.getElementById("create").innerText = "创建代币（签名支付Gas）";
   }
 };
 </script>
