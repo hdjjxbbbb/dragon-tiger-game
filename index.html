@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL 发币（多RPC）</title>
+  <title>SOL 一键发币（用钱包RPC）</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
   <style>
     body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: system-ui; }
@@ -17,7 +17,7 @@
 </head>
 <body>
 
-<h2>SOL 发币（多RPC）</h2>
+<h2>SOL 一键发币（用钱包RPC）</h2>
 
 <button class="btn" onclick="connect()">连接钱包</button>
 <div id="addr"></div>
@@ -41,46 +41,22 @@ let address = "";
 let logoFile = null;
 
 const { Connection, Keypair, Transaction, SystemProgram, PublicKey } = solanaWeb3;
-
-// 多个稳定公共 RPC 节点
-const RPC_LIST = [
-  "https://solana-mainnet.rpc.extrnode.com",
-  "https://api.mainnet-beta.solana.com",
-  "https://solana-mainnet.g.alchemy.com/v2/demo",
-  "https://rpc.ankr.com/solana",
-];
-
 let connection;
 
-// 自动选择可用的 RPC 节点
-async function selectRpc() {
-  for (const rpc of RPC_LIST) {
-    try {
-      const conn = new Connection(rpc, "confirmed");
-      await conn.getLatestBlockhash(); // 测试连通性
-      connection = conn;
-      console.log("使用 RPC:", rpc);
-      return;
-    } catch (e) {
-      console.warn("RPC 不可用:", rpc, e.message);
-    }
-  }
-  throw new Error("所有 RPC 节点都不可用，请检查网络");
-}
-
 function getWallet() {
-  return window.solana || window.okxwallet || window.tpWallet;
+  return window.solana || window.okxwallet || window.tpWallet || window.phantom;
 }
 
 async function connect() {
   try {
     const wallet = getWallet();
-    if (!wallet) { alert("请在钱包浏览器打开！"); return; }
+    if (!wallet) { alert("请安装钱包扩展！"); return; }
     const res = await wallet.connect();
     provider = wallet;
     publicKey = res.publicKey;
     address = publicKey.toBase58();
     document.getElementById("addr").innerText = "已连接：" + address;
+    document.getElementById("createToken").disabled = false;
   } catch (err) {
     alert("连接失败：" + err.message);
   }
@@ -99,7 +75,7 @@ function previewLogo() {
   reader.readAsDataURL(file);
 }
 
-// 手动创建 Mint
+// 手动创建 Mint（用钱包自带的 RPC）
 async function createMintManually() {
   const mintKeypair = Keypair.generate();
   const lamports = await connection.getMinimumBalanceForRentExemption(82);
@@ -164,13 +140,13 @@ async function mintToManually(mint, to, amount) {
   return txId;
 }
 
-// 发币（先选 RPC）
+// 发币（用钱包自带的 RPC，不自己选）
 async function createToken() {
   if (!address) { alert("请先连接钱包！"); return; }
 
   try {
-    // 先选一个可用的 RPC
-    await selectRpc();
+    // 关键修复：用钱包自带的 RPC，而不是自己选
+    connection = new Connection(provider.connection.rpcEndpoint, "confirmed");
 
     const name = document.getElementById("name").value;
     const symbol = document.getElementById("symbol").value;
