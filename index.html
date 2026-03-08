@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL 一键发币（带Logo上传）</title>
+  <title>SOL 一键发币（带Logo）</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
   <style>
@@ -18,7 +18,7 @@
 </head>
 <body>
 
-<h2>SOL 一键发币（带Logo上传）</h2>
+<h2>SOL 一键发币（带Logo）</h2>
 
 <button class="btn" onclick="connect()">连接钱包</button>
 <div id="addr"></div>
@@ -61,7 +61,6 @@ async function connect() {
   }
 }
 
-// 预览 Logo
 function previewLogo() {
   const file = document.getElementById("logo").files[0];
   if (!file) return;
@@ -75,7 +74,7 @@ function previewLogo() {
   reader.readAsDataURL(file);
 }
 
-// 发币（修复版：使用正确的库导出）
+// 修复：用正确的库对象名 solanaSplToken
 async function createToken() {
   if (!address) { alert("请先连接钱包！"); return; }
 
@@ -88,13 +87,13 @@ async function createToken() {
 
     const mintKeypair = solanaWeb3.Keypair.generate();
 
-    // 修复：使用正确的库对象
-    const splToken = window.splToken || window["@solana/spl-token"];
-    if (!splToken || !splToken.createMint) {
+    // 关键修复：使用 solanaSplToken（库加载后的正确对象名）
+    const spl = window.solanaSplToken || window.splToken;
+    if (!spl || !spl.createMint) {
       throw new Error("SPL Token 库加载失败，请刷新重试");
     }
 
-    const mint = await splToken.createMint(
+    const mint = await spl.createMint(
       connection,
       provider,
       publicKey,
@@ -103,14 +102,14 @@ async function createToken() {
       mintKeypair
     );
 
-    const ata = await splToken.getOrCreateAssociatedTokenAccount(
+    const ata = await spl.getOrCreateAssociatedTokenAccount(
       connection,
       provider,
       mint,
       publicKey
     );
 
-    const tx = await splToken.mintTo(
+    const tx = await spl.mintTo(
       connection,
       provider,
       mint,
