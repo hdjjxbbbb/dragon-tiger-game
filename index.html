@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL发币</title>
+  <title>SOL 发币</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
   <style>
-    body{max-width:420px;margin:0 auto;padding:20px;background:#fff}
-    .btn{width:100%;padding:16px;border-radius:16px;border:none;background:#0071e3;color:white;font-size:16px;margin:10px 0}
-    input{width:100%;padding:14px;border-radius:12px;border:1px solid #ddd;margin:8px 0}
-    .card{background:#f9f9f9;padding:20px;border-radius:20px;margin-bottom:16px}
-    #addr{padding:12px;background:#f1f1f1;border-radius:10px;margin:10px 0}
+    body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; }
+    .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; background: #0071e3; color: white; font-size: 16px; margin: 10px 0; }
+    input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ddd; margin: 8px 0; }
+    .card { background: #f9f9f9; padding: 20px; border-radius: 20px; margin-bottom: 16px; }
+    #addr { padding: 12px; background: #f1f1f1; border-radius: 10px; margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -23,7 +23,7 @@
 
 <div class="card">
   <input id="name" placeholder="名称" value="Test">
-  <input id="symbol" placeholder="符号" value="TEST">
+  <input id="symbol" placeholder="符号" value="DTM">
   <input id="decimals" value="9" placeholder="精度">
   <input id="supply" value="1000000000" placeholder="发行量">
 </div>
@@ -37,12 +37,12 @@ let address = "";
 
 const connection = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com", "confirmed");
 
-// 全局获取钱包（兼容所有）
+// 全局获取钱包
 function getWallet() {
-  return window.solana || window.okxwallet || window.tpWallet || window.ethereum;
+  return window.solana || window.okxwallet || window.tpWallet;
 }
 
-// 连接钱包（必弹窗）
+// 连接钱包
 async function connect() {
   try {
     const wallet = getWallet();
@@ -57,13 +57,12 @@ async function connect() {
     address = publicKey.toBase58();
     
     document.getElementById("addr").innerText = "已连接：" + address;
-    alert("连接成功！");
   } catch (err) {
     alert("连接失败：" + err.message);
   }
 }
 
-// 创建代币
+// 创建代币（修复 splToken 调用方式）
 async function createToken() {
   if (!address) {
     alert("请先连接钱包！");
@@ -79,8 +78,8 @@ async function createToken() {
 
     const mintKeypair = solanaWeb3.Keypair.generate();
 
-    // 创建Mint
-    const mint = await splToken.createMint(
+    // 修复：使用 window.splToken
+    const mint = await window.splToken.createMint(
       connection,
       provider,
       publicKey,
@@ -89,16 +88,14 @@ async function createToken() {
       mintKeypair
     );
 
-    // 创建账户
-    const ata = await splToken.getOrCreateAssociatedTokenAccount(
+    const ata = await window.splToken.getOrCreateAssociatedTokenAccount(
       connection,
       provider,
       mint,
       publicKey
     );
 
-    // 铸造
-    const tx = await splToken.mintTo(
+    const tx = await window.splToken.mintTo(
       connection,
       provider,
       mint,
@@ -107,7 +104,7 @@ async function createToken() {
       amount
     );
 
-    alert("发币成功！\n合约：" + mint.toBase58());
+    alert("发币成功！\n合约地址：" + mint.toBase58());
 
   } catch (err) {
     alert("失败：" + err.message);
