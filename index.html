@@ -3,65 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SOL 真实发币</title>
-<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bs58@5.0.0/dist/index.umd.min.js"></script>
-<style>
-  body{max-width:420px;margin:0 auto;background:#fff;padding:24px;font-family:system-ui}
-  .btn{width:100%;padding:16px;border-radius:16px;border:none;background:#0071e3;color:white;font-size:16px;margin:8px 0}
-  input{width:100%;padding:14px;border-radius:12px;border:1px solid #ddd;margin:6px 0}
-  .card{background:#f9f9f9;padding:20px;border-radius:20px;margin-bottom:16px}
-  .title{font-size:24px;font-weight:700;margin-bottom:20px}
-  #result{background:#e6f7e6;padding:14px;border-radius:12px;margin-top:16px;display:none;word-break:break-all}
-</style>
+  <title>SOL 一键发币</title>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
+    body{max-width:420px;margin:0 auto;padding:24px;background:#fff}
+    .btn{width:100%;padding:16px;border-radius:16px;border:none;background:#0071e3;color:white;font-size:16px;margin:10px 0}
+    .btn:disabled{background:#ccc}
+    input{width:100%;padding:14px;border-radius:12px;border:1px solid #ddd;margin:8px 0}
+    .card{background:#f9f9f9;padding:20px;border-radius:20px;margin-bottom:16px}
+    .title{font-size:24px;font-weight:700;margin-bottom:20px}
+    .address{font-size:14px;color:#333;margin:10px 0;padding:10px;background:#f1f1f1;border-radius:10px}
+    #result{background:#e6f7e6;padding:14px;border-radius:12px;margin-top:16px;display:none;word-break:break-all}
+  </style>
 </head>
 <body>
 
-<div class="title">SOL 真实发币（可上链）</div>
+<div class="title">SOL 一键发币</div>
 
-<button class="btn" id="connectBtn">连接 Phantom 钱包</button>
+<button class="btn" id="connectBtn">连接 OKX / OE 钱包</button>
+<div class="address" id="address" style="display:none">钱包地址：加载中...</div>
 
 <div class="card">
-  <input id="name" placeholder="代币名称" value="My Token">
-  <input id="symbol" placeholder="代币符号" value="MTK">
-  <input id="decimals" placeholder="精度" value="9">
-  <input id="supply" placeholder="发行量" value="1000000000">
+  <input id="name" placeholder="代币名称" value="TestToken">
+  <input id="symbol" placeholder="代币符号" value="TEST">
+  <input id="decimals" value="9" placeholder="精度">
+  <input id="supply" value="1000000000" placeholder="发行总量">
 </div>
 
-<button class="btn" id="createBtn" disabled>创建代币（真实上链）</button>
+<button class="btn" id="createBtn" disabled>创建代币（需签名支付Gas）</button>
 
 <div id="result"></div>
 
 <script>
-const { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL } = solanaWeb3;
-const { createMint, getOrCreateAssociatedTokenAccount, mintTo, TOKEN_PROGRAM_ID } = splToken;
+const { Connection, Keypair } = solanaWeb3;
+const { createMint, getOrCreateAssociatedTokenAccount, mintTo } = splToken;
 
-let wallet;
-let connected = false;
+let provider;
+let publicKey;
+let address = "";
+
 const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
 
-// 连接钱包（一定会弹窗）
+// ======================================
+// 连接钱包（强制弹窗！）
+// ======================================
 document.getElementById("connectBtn").onclick = async () => {
   try {
-    if (!window.solana || !window.solana.isPhantom) {
-      alert("请安装 Phantom 钱包");
+    const okx = window.okxwallet || window.solana;
+    if (!okx) {
+      alert("请在 OKX / OE 钱包内置浏览器打开！");
       return;
     }
-    const resp = await window.solana.connect();
-    wallet = resp.publicKey;
-    connected = true;
-    document.getElementById("connectBtn").innerText = "已连接：" + wallet.toString().slice(0,8)+"...";
+
+    // 强制弹窗授权
+    const res = await okx.connect({ onlyIfTrusted: false });
+    provider = okx;
+    publicKey = res.publicKey;
+    address = publicKey.toBase58();
+
+    // 显示地址
+    document.getElementById("address").innerText = "已连接：" + address;
+    document.getElementById("address").style.display = "block";
+    document.getElementById("connectBtn").innerText = "已连接钱包";
     document.getElementById("createBtn").disabled = false;
+
   } catch (e) {
-    alert("连接被拒绝：" + e.message);
+    alert("连接失败：" + e.message);
   }
 };
 
-// 真正上链发币（一定会弹签名）
+// ======================================
+// 创建代币（一定会弹签名！）
+// ======================================
 document.getElementById("createBtn").onclick = async () => {
-  if (!connected) {
-    alert("请先连接钱包");
+  if (!address) {
+    alert("请先连接钱包！");
     return;
   }
 
@@ -69,74 +87,56 @@ document.getElementById("createBtn").onclick = async () => {
   document.getElementById("createBtn").innerText = "签名中...请在钱包确认";
 
   try {
-    const name = document.getElementById("name").value.trim();
-    const symbol = document.getElementById("symbol").value.trim();
-    const decimals = parseInt(document.getElementById("decimals").value) || 9;
-    const totalSupply = document.getElementById("supply").value.trim();
+    const name = document.getElementById("name").value;
+    const symbol = document.getElementById("symbol").value;
+    const decimals = parseInt(document.getElementById("decimals").value);
+    const supply = document.getElementById("supply").value;
+    const totalAmount = BigInt(supply) * (10n ** BigInt(decimals));
 
-    if (!name || !symbol || !totalSupply) {
-      alert("请填写完整");
-      return;
-    }
-
-    // ==============================================
-    // 1. 创建 Mint 地址（必须签名）
-    // ==============================================
+    // 1. 创建代币合约（弹签名）
     const mintKeypair = Keypair.generate();
     const mint = await createMint(
       connection,
-      window.solana,          //  payer
-      wallet,                 //  mintAuthority
-      wallet,                 //  freezeAuthority
+      provider,
+      publicKey,
+      publicKey,
       decimals,
-      mintKeypair,
-      undefined,
-      TOKEN_PROGRAM_ID
+      mintKeypair
     );
 
-    // ==============================================
-    // 2. 创建代币账户（必须签名）
-    // ==============================================
+    // 2. 创建账户（弹签名）
     const tokenAccount = await getOrCreateAssociatedTokenAccount(
       connection,
-      window.solana,
+      provider,
       mint,
-      wallet,
-      undefined,
-      TOKEN_PROGRAM_ID
+      publicKey
     );
 
-    // ==============================================
-    // 3. 铸造全部发行量（必须签名）
-    // ==============================================
-    const amount = BigInt(totalSupply) * (10n ** BigInt(decimals));
-    const mintTx = await mintTo(
+    // 3. 发行代币（弹签名）
+    const txId = await mintTo(
       connection,
-      window.solana,
+      provider,
       mint,
       tokenAccount.address,
-      wallet,
-      amount,
-      [],
-      undefined,
-      TOKEN_PROGRAM_ID
+      publicKey,
+      totalAmount
     );
 
     // 成功
     document.getElementById("result").innerHTML = `
-      ✅ 发币成功（已上主网）<br>
+      ✅ 发币成功<br>
       名称：${name}<br>
       符号：${symbol}<br>
       合约地址：<br>${mint.toBase58()}<br>
-      交易哈希：${mintTx}
+      交易：${txId}
     `;
     document.getElementById("result").style.display = "block";
 
   } catch (e) {
-    alert("发币失败：" + e.message);
+    alert("失败：" + e.message);
   } finally {
     document.getElementById("createBtn").disabled = false;
-    document.getElementById("createBtn").innerText = "创建代币（真实上链）";
+    document.getElementById("createBtn").innerText = "创建代币（需签名支付Gas）";
   }
 };
 </script>
