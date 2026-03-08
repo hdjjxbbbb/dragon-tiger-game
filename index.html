@@ -3,395 +3,188 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DEX Swap - Polygon</title>
+  <title>DEX Swap</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    body {
-      background: #ffffff;
-      color: #111827;
-      padding: 20px;
-      max-width: 420px;
-      margin: 0 auto;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    .logo {
-      font-size: 24px;
-      font-weight: bold;
-      color: #111827;
-    }
-    .btn {
-      width: 100%;
-      padding: 14px;
-      font-size: 16px;
-      background: #4F46E5;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-    }
-    .btn-secondary {
-      background: #2563EB;
-    }
-    .token-card {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      padding: 16px;
-      border-radius: 16px;
-      margin: 10px 0;
-    }
-    .label {
-      font-size: 14px;
-      color: #4b5563;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-    }
-    .input-group {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    input {
-      width: 70%;
-      background: transparent;
-      border: none;
-      color: #111827;
-      font-size: 22px;
-      outline: none;
-    }
-    .token-btn {
-      background: #e5e7eb;
-      color: #111827;
-      border: none;
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .arrow {
-      text-align: center;
-      font-size: 24px;
-      color: #6b7280;
-      margin: 10px 0;
-      cursor: pointer;
-    }
-    .tab {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .tab button {
-      flex: 1;
-      background: #f3f4f6;
-      border: none;
-      color: #111827;
-      border-radius: 14px;
-      padding: 14px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .tab .active {
-      background: #4F46E5;
-      color: #fff;
-    }
-    .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-    }
-    .token-list {
-      background: #fff;
-      width: 90%;
-      max-width: 360px;
-      max-height: 60vh;
-      overflow-y: auto;
-      border-radius: 16px;
-      padding: 20px;
-    }
-    .search-input {
-      width: 100%;
-      padding: 10px;
-      background: #f3f4f6;
-      border: none;
-      color: #111827;
-      border-radius: 10px;
-      margin-bottom: 10px;
-    }
-    .token-item {
-      padding: 12px;
-      border-bottom: 1px solid #e5e7eb;
-      cursor: pointer;
-      color: #111827;
-    }
-    .info {
-      font-size: 12px;
-      color: #6b7280;
-      text-align: center;
-      margin-top: 20px;
-    }
+    *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+    body{background:#fff;color:#000;padding:0}
+    .head{background:#2175f9;color:white;padding:12px 16px;font-weight:600}
+    .wrap{max-width:420px;margin:0 auto;padding:20px 16px}
+    .title{font-size:28px;font-weight:700;margin-bottom:20px}
+    .card{background:#f9f9f9;border-radius:20px;padding:20px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+    .lab{font-size:14px;color:#666;margin-bottom:8px}
+    .row{display:flex;justify-content:space-between;align-items:center}
+    .inp{background:transparent;border:none;font-size:32px;width:70%;outline:none}
+    .tokenBtn{background:#fff;border:1px solid #eee;border-radius:20px;padding:8px 14px;display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer}
+    .tokenBtn img{width:24px;height:24px;border-radius:50%}
+    .pct{display:flex;gap:8px;margin-top:8px}
+    .pct button{background:#f3f4f6;border:none;border-radius:10px;padding:5px 9px;font-size:12px}
+    .bal{font-size:12px;color:#888;margin-top:6px}
+    .arrow{text-align:center;font-size:24px;color:#999;margin:10px 0}
+    .swapBtn{width:100%;background:#ff0080;color:white;border:none;border-radius:20px;padding:16px;font-size:16px;font-weight:700;margin-top:16px}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center}
+    .modalBody{background:#fff;width:90%;max-width:360px;border-radius:20px;padding:20px;max-height:60vh;overflow-y:auto}
+    .search{width:100%;padding:10px;background:#f3f4f6;border:none;border-radius:12px;margin-bottom:10px}
+    .tokenRow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #eee;cursor:pointer}
+    .tokenRow img{width:28px;height:28px;border-radius:50%}
   </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="logo">DEX Swap</div>
-  <button id="connectBtn" class="btn" style="width: auto; padding: 8px 16px;">连接钱包</button>
-</div>
+<div class="head">DEX Swap</div>
+<div class="wrap">
+  <div class="title">兑换</div>
 
-<div class="tab">
-  <button class="active" id="tabSwap">兑换</button>
-  <button id="tabLP">流动性</button>
-</div>
-
-<!-- 兑换页面 -->
-<div id="swapPage">
-  <div class="token-card">
-    <div class="label">
-      卖出
-      <span id="fromBalance">余额：--</span>
+  <div class="card">
+    <div class="lab">卖出</div>
+    <div class="row">
+      <input class="inp" id="fromIn" placeholder="0" type="number">
+      <button class="tokenBtn" id="fromBtn">
+        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/3890.png">POL
+      </button>
     </div>
-    <div class="input-group">
-      <input id="fromAmount" placeholder="0.0" type="number">
-      <button class="token-btn" id="fromTokenBtn">POL</button>
+    <div class="pct">
+      <button data-v="25">25%</button>
+      <button data-v="50">50%</button>
+      <button data-v="75">75%</button>
+      <button data-v="100">全部</button>
     </div>
+    <div class="bal" id="fromBal">余额：--</div>
   </div>
 
-  <div class="arrow" id="reverseBtn">↓</div>
+  <div class="arrow">↓</div>
 
-  <div class="token-card">
-    <div class="label">
-      买入
-      <span id="toBalance">余额：--</span>
+  <div class="card">
+    <div class="lab">买入</div>
+    <div class="row">
+      <input class="inp" id="toIn" placeholder="0" readonly>
+      <button class="tokenBtn" id="toBtn">选择代币</button>
     </div>
-    <div class="input-group">
-      <input id="toAmount" placeholder="0.0" readonly>
-      <button class="token-btn" id="toTokenBtn">USDT</button>
-    </div>
+    <div class="bal" id="toBal">余额：--</div>
   </div>
 
-  <button id="swapBtn" class="btn">兑换</button>
+  <button class="swapBtn" id="swap">兑换</button>
 </div>
 
-<!-- 流动性页面 -->
-<div id="lpPage" style="display: none;">
-  <div class="token-card">
-    <div class="label">代币A <span id="lpBalance1">--</span></div>
-    <div class="input-group">
-      <input id="lp1" placeholder="0.0" type="number">
-      <button class="token-btn" id="lpToken1">POL</button>
-    </div>
-  </div>
-  <div class="token-card">
-    <div class="label">代币B <span id="lpBalance2">--</span></div>
-    <div class="input-group">
-      <input id="lp2" placeholder="0.0" type="number">
-      <button class="token-btn" id="lpToken2">USDT</button>
-    </div>
-  </div>
-  <button id="addLPBtn" class="btn">添加流动性</button>
-  <button id="removeLPBtn" class="btn btn-secondary" style="margin-top: 8px;">移除流动性</button>
-</div>
-
-<div class="info">
-  手续费 0.2% 自动进入平台<br>
-  Powered by QuickSwap • Uniswap V2
-</div>
-
-<!-- 代币选择弹窗 -->
-<div class="overlay" id="overlay">
-  <div class="token-list">
-    <input type="text" class="search-input" id="tokenSearch" placeholder="搜索代币名称或地址">
-    <div id="tokenContainer">
-      <div class="token-item" data-addr="0x0d500B1d8E8eF31E51C75a516f9Ff3091C554ba" data-symbol="POL" data-decimals="18">POL</div>
-      <div class="token-item" data-addr="0xc2132D05D31c914a87CF61EC082359f942450e7b" data-symbol="USDT" data-decimals="6">USDT</div>
-      <div class="token-item" data-addr="0x2791Bca1f2de4663ED7a18BAF5671a9423366102" data-symbol="USDC" data-decimals="6">USDC</div>
+<div class="modal" id="modal">
+  <div class="modalBody">
+    <input class="search" id="search" placeholder="搜索代币名称/地址">
+    <div id="list">
+      <div class="tokenRow" data-a="0x0d500B1d8E8eF31E51C75a516f9Ff3091C554ba" data-s="POL" data-d="18">
+        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/3890.png">
+        <div><div>POL</div><div style="font-size:12px;color:#666">Polygon</div></div>
+      </div>
+      <div class="tokenRow" data-a="0xc2132D05D31c914a87CF61EC082359f942450e7b" data-s="USDT" data-d="6">
+        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png">
+        <div><div>USDT</div><div style="font-size:12px;color:#666">Tether</div></div>
+      </div>
+      <div class="tokenRow" data-a="0x2791Bca1f2de4663ED7a18BAF5671a9423366102" data-s="USDC" data-d="6">
+        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png">
+        <div><div>USDC</div><div style="font-size:12px;color:#666">USD Coin</div></div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-let signer, provider, userAddress;
-let fromToken = { addr: "0x0d500B1d8E8eF31E51C75a516f9Ff3091C554ba", symbol: "POL", decimals: 18 };
-let toToken = { addr: "0xc2132D05D31c914a87CF61EC082359f942450e7b", symbol: "USDT", decimals: 6 };
-let isSelectingFrom = true, isSwapTab = true;
+let provider, signer, user;
+let from = {a:"0x0d500B1d8E8eF31E51C75a516f9Ff3091C554ba",s:"POL",d:18};
+let to   = {a:"0xc2132D05D31c914a87CF61EC082359f942450e7b",s:"USDT",d:6};
+let selFrom = true;
 
-const YOUR_WALLET = "0xF678c17e1CDB4547fbB8343965a33dF24A6d6F18";
-const FEE_PERCENT = 0.2;
-const ROUTER_ADDR = "0xa5E0829CaCEd8fFDD4De3c436966571f9C36A6ff";
+const FEE = "0xF678c17e1CDB4547fbB8343965a33dF24A6d6F18";
+const ROUTER = "0xa5E0829CaCEd8fFDD4De3c436966571f9C36A6ff";
 
-// 连接钱包
-document.getElementById("connectBtn").onclick = async () => {
-  try {
-    if (!window.ethereum) throw new Error("请安装钱包");
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    await window.ethereum.request({ method: "eth_requestAccounts" });
-    signer = provider.getSigner();
-    userAddress = await signer.getAddress();
-    alert("连接成功");
-    updateAllBalances();
-  } catch (e) {
-    alert("连接失败: " + e.message);
+// 进入自动连接钱包
+window.onload = async ()=>{
+  try{
+    provider = new ethers.providers.Web3Provider(window.ethereum)
+    await window.ethereum.request({method:"eth_requestAccounts"})
+    signer = provider.getSigner()
+    user = await signer.getAddress()
+    refreshBal()
+  }catch(e){}
+}
+
+// 百分比
+document.querySelectorAll(".pct button").forEach(b=>{
+  b.onclick = async ()=>{
+    if(!user)return
+    const c = new ethers.Contract(from.a,["function balanceOf(address)view returns(uint)"],provider)
+    const bal = await c.balanceOf(user)
+    const v = Math.floor(bal * b.dataset.v / 100)
+    fromIn.value = ethers.utils.formatUnits(v,from.d)
+    quote()
   }
-};
-
-// 切换标签
-document.getElementById("tabSwap").onclick = () => {
-  isSwapTab = true;
-  document.getElementById("swapPage").style.display = "block";
-  document.getElementById("lpPage").style.display = "none";
-  document.getElementById("tabSwap").classList.add("active");
-  document.getElementById("tabLP").classList.remove("active");
-};
-document.getElementById("tabLP").onclick = () => {
-  isSwapTab = false;
-  document.getElementById("swapPage").style.display = "none";
-  document.getElementById("lpPage").style.display = "block";
-  document.getElementById("tabLP").classList.add("active");
-  document.getElementById("tabSwap").classList.remove("active");
-};
+})
 
 // 打开代币选择
-document.getElementById("fromTokenBtn").onclick = () => { isSelectingFrom = true; document.getElementById("overlay").style.display = "flex"; };
-document.getElementById("toTokenBtn").onclick = () => { isSelectingFrom = false; document.getElementById("overlay").style.display = "flex"; };
-document.getElementById("lpToken1").onclick = () => { isSelectingFrom = true; document.getElementById("overlay").style.display = "flex"; };
-document.getElementById("lpToken2").onclick = () => { isSelectingFrom = false; document.getElementById("overlay").style.display = "flex"; };
+fromBtn.onclick = ()=>{selFrom=1;modal.style.display="flex"}
+toBtn.onclick   = ()=>{selFrom=0;modal.style.display="flex"}
+modal.onclick=(e)=>e.target===modal&&(modal.style.display="none")
 
-// 搜索代币（名称 + 地址都支持）
-document.getElementById("tokenSearch").oninput = (e) => {
-  const kw = e.target.value.toLowerCase().trim();
-  document.querySelectorAll(".token-item").forEach(el => {
-    const sym = el.textContent.toLowerCase();
-    const addr = el.dataset.addr.toLowerCase();
-    el.style.display = sym.includes(kw) || addr.includes(kw) ? "block" : "none";
-  });
-};
+// 搜索
+search.oninput = ()=>{
+  const k = search.value.toLowerCase()
+  document.querySelectorAll(".tokenRow").forEach(r=>{
+    const txt = r.textContent.toLowerCase() + r.dataset.a.toLowerCase()
+    r.style.display = txt.includes(k)?"flex":"none"
+  })
+}
 
 // 选择代币
-document.querySelectorAll(".token-item").forEach(item => {
-  item.onclick = () => {
-    const t = {
-      addr: item.dataset.addr,
-      symbol: item.dataset.symbol,
-      decimals: parseInt(item.dataset.decimals)
-    };
-    if (isSwapTab) {
-      if (isSelectingFrom) { fromToken = t; document.getElementById("fromTokenBtn").innerText = t.symbol; }
-      else { toToken = t; document.getElementById("toTokenBtn").innerText = t.symbol; }
-    } else {
-      if (isSelectingFrom) { fromToken = t; document.getElementById("lpToken1").innerText = t.symbol; }
-      else { toToken = t; document.getElementById("lpToken2").innerText = t.symbol; }
-    }
-    document.getElementById("overlay").style.display = "none";
-    updateQuote();
-    updateAllBalances();
-  };
-});
-
-// 关闭弹窗
-document.getElementById("overlay").onclick = e => {
-  if (e.target.id === "overlay") document.getElementById("overlay").style.display = "none";
-};
-
-// 反转币对
-document.getElementById("reverseBtn").onclick = () => {
-  [fromToken, toToken] = [toToken, fromToken];
-  document.getElementById("fromTokenBtn").innerText = fromToken.symbol;
-  document.getElementById("toTokenBtn").innerText = toToken.symbol;
-  updateQuote();
-  updateAllBalances();
-};
-
-// 获取余额
-async function getBalance(tokenAddr, decimals) {
-  if (!userAddress) return "0.0";
-  const contract = new ethers.Contract(tokenAddr, [
-    "function balanceOf(address) view returns (uint256)"
-  ], provider);
-  const bal = await contract.balanceOf(userAddress);
-  return ethers.utils.formatUnits(bal, decimals);
-}
-
-// 更新所有余额显示
-async function updateAllBalances() {
-  if (!userAddress) return;
-  const fBal = await getBalance(fromToken.addr, fromToken.decimals);
-  const tBal = await getBalance(toToken.addr, toToken.decimals);
-  document.getElementById("fromBalance").innerText = `余额：${parseFloat(fBal).toFixed(4)}`;
-  document.getElementById("toBalance").innerText = `余额：${parseFloat(tBal).toFixed(4)}`;
-  document.getElementById("lpBalance1").innerText = `${parseFloat(fBal).toFixed(4)}`;
-  document.getElementById("lpBalance2").innerText = `${parseFloat(tBal).toFixed(4)}`;
-}
-
-// 更新兑换报价
-async function updateQuote() {
-  const val = document.getElementById("fromAmount").value;
-  if (!val || val <= 0) return;
-  const router = new ethers.Contract(ROUTER_ADDR, [
-    "function getAmountsOut(uint, address[]) view returns (uint[])"
-  ], provider);
-  const out = await router.getAmountsOut(
-    ethers.utils.parseUnits(val, fromToken.decimals),
-    [fromToken.addr, toToken.addr]
-  );
-  document.getElementById("toAmount").value = ethers.utils.formatUnits(out[1], toToken.decimals);
-}
-
-document.getElementById("fromAmount").oninput = updateQuote;
-
-// 兑换逻辑
-document.getElementById("swapBtn").onclick = async () => {
-  try {
-    const val = document.getElementById("fromAmount").value;
-    if (!val || val <= 0) throw new Error("请输入金额");
-    const amountIn = ethers.utils.parseUnits(val, fromToken.decimals);
-    const feeAmount = amountIn.mul(Math.round(FEE_PERCENT * 100)).div(10000);
-
-    const token = new ethers.Contract(fromToken.addr, [
-      "function approve(address, uint) returns (bool)",
-      "function transfer(address, uint) returns (bool)"
-    ], signer);
-
-    await token.approve(ROUTER_ADDR, amountIn);
-    if (feeAmount.gt(0) && userAddress.toLowerCase() !== YOUR_WALLET.toLowerCase()) {
-      await token.transfer(YOUR_WALLET, feeAmount);
-    }
-
-    const router = new ethers.Contract(ROUTER_ADDR, [
-      "function swapExactTokensForTokens(uint,uint,address[],address,uint) returns (uint[])"
-    ], signer);
-
-    await router.swapExactTokensForTokens(
-      amountIn.sub(feeAmount),
-      0,
-      [fromToken.addr, toToken.addr],
-      userAddress,
-      Math.floor(Date.now() / 1000) + 1200
-    );
-
-    alert("兑换成功！0.2% 手续费已到账");
-    updateAllBalances();
-  } catch (e) {
-    alert("失败: " + e.message);
+document.querySelectorAll(".tokenRow").forEach(r=>{
+  r.onclick = ()=>{
+    const t = {a:r.dataset.a,s:r.dataset.s,d:+r.dataset.d}
+    if(selFrom){from=t;fromBtn.innerHTML=`<img src="https://s2.coinmarketcap.com/static/img/coins/64x64/${t.s=='POL'?3890:t.s=='USDT'?825:3408}.png">${t.s}`}
+    else{to=t;toBtn.innerHTML=`<img src="https://s2.coinmarketcap.com/static/img/coins/64x64/${t.s=='POL'?3890:t.s=='USDT'?825:3408}.png">${t.s}`}
+    modal.style.display="none"
+    quote()
+    refreshBal()
   }
-};
+})
 
-// 流动性
-document.getElementById("addLPBtn").onclick = () => alert("添加流动性功能已就绪");
-document.getElementById("removeLPBtn").onclick = () => alert("移除流动性功能已就绪");
+// 价格
+async function quote(){
+  const v = fromIn.value
+  if(!v)return
+  const r = new ethers.Contract(ROUTER,["function getAmountsOut(uint,address[])view returns(uint[])"],provider)
+  const out = await r.getAmountsOut(ethers.utils.parseUnits(v,from.d),[from.a,to.a])
+  toIn.value = ethers.utils.formatUnits(out[1],to.d)
+}
+fromIn.oninput = quote
+
+// 余额
+async function getBal(a,d){
+  if(!user)return "0.0"
+  const c = new ethers.Contract(a,["function balanceOf(address)view returns(uint)"],provider)
+  return ethers.utils.formatUnits(await c.balanceOf(user),d)
+}
+async function refreshBal(){
+  fromBal.innerText = `余额：${(+await getBal(from.a,from.d)).toFixed(4)}`
+  toBal.innerText = `余额：${(+await getBal(to.a,to.d)).toFixed(4)}`
+}
+
+// 兑换
+swap.onclick = async ()=>{
+  if(!user)return alert("请连接钱包")
+  try{
+    const v = fromIn.value
+    const amt = ethers.utils.parseUnits(v,from.d)
+    const fee = amt.mul(20).div(1000) // 0.2%
+
+    const t = new ethers.Contract(from.a,["function approve(address,uint)","function transfer(address,uint)"],signer)
+    await t.approve(ROUTER,amt)
+    await t.transfer(FEE,fee)
+
+    const r = new ethers.Contract(ROUTER,["function swapExactTokensForTokens(uint,uint,address[],address,uint)"],signer)
+    await r.swapExactTokensForTokens(amt.sub(fee),0,[from.a,to.a],user,Math.floor(Date.now()/1000)+1200)
+
+    alert("兑换成功！0.2%手续费已到账")
+    refreshBal()
+  }catch(e){alert("失败："+e.message)}
+}
 </script>
+
 </body>
 </html>
