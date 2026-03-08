@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL 发币（无依赖版）</title>
+  <title>SOL 发币（公共RPC）</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
   <style>
     body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: system-ui; }
@@ -17,7 +17,7 @@
 </head>
 <body>
 
-<h2>SOL 发币（无依赖版）</h2>
+<h2>SOL 发币（公共RPC）</h2>
 
 <button class="btn" onclick="connect()">连接钱包</button>
 <div id="addr"></div>
@@ -41,14 +41,13 @@ let address = "";
 let logoFile = null;
 
 const { Connection, Keypair, Transaction, SystemProgram, PublicKey } = solanaWeb3;
-const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
+// 修复：用公共 RPC 节点，避免 403
+const connection = new Connection("https://solana-mainnet.g.alchemy.com/v2/demo", "confirmed");
 
-// 钱包检测
 function getWallet() {
   return window.solana || window.okxwallet || window.tpWallet;
 }
 
-// 连接钱包
 async function connect() {
   try {
     const wallet = getWallet();
@@ -63,7 +62,6 @@ async function connect() {
   }
 }
 
-// 预览 Logo
 function previewLogo() {
   const file = document.getElementById("logo").files[0];
   if (!file) return;
@@ -77,10 +75,10 @@ function previewLogo() {
   reader.readAsDataURL(file);
 }
 
-// 手动构建创建 Mint 的交易（不依赖 spl-token 库）
+// 手动创建 Mint
 async function createMintManually() {
   const mintKeypair = Keypair.generate();
-  const lamports = await connection.getMinimumBalanceForRentExemption(82); // Mint 账户大小
+  const lamports = await connection.getMinimumBalanceForRentExemption(82);
 
   const tx = new Transaction().add(
     SystemProgram.createAccount({
@@ -100,7 +98,7 @@ async function createMintManually() {
       programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
       data: Buffer.from([
         0x02, // InitializeMint
-        ...new Uint8Array(9), // decimals
+        ...new Uint8Array([9]), // decimals
         ...publicKey.toBuffer(), // mintAuthority
         ...publicKey.toBuffer(), // freezeAuthority
       ])
@@ -118,7 +116,7 @@ async function createMintManually() {
   return mintKeypair.publicKey;
 }
 
-// 手动构建 mintTo 交易（不依赖 spl-token 库）
+// 手动 mintTo
 async function mintToManually(mint, to, amount) {
   const tx = new Transaction().add({
     keys: [
@@ -129,7 +127,7 @@ async function mintToManually(mint, to, amount) {
     programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
     data: Buffer.concat([
       Buffer.from([0x07]), // MintTo
-      ...new Uint8Array(8) // amount
+      Buffer.from(amount.toString(16), "hex")
     ])
   });
 
@@ -142,7 +140,7 @@ async function mintToManually(mint, to, amount) {
   return txId;
 }
 
-// 发币（完全手动，不依赖任何库）
+// 发币
 async function createToken() {
   if (!address) { alert("请先连接钱包！"); return; }
 
@@ -153,16 +151,11 @@ async function createToken() {
     const supply = BigInt(document.getElementById("supply").value);
     const amount = supply * (10n ** BigInt(decimals));
 
-    // 1. 手动创建 Mint
     const mint = await createMintManually();
-
-    // 2. 手动创建 ATA
     const [ata] = await PublicKey.findProgramAddress(
       [publicKey.toBuffer(), new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").toBuffer(), mint.toBuffer()],
       new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25wNF8fJ5ipq79v9")
     );
-
-    // 3. 手动 mintTo
     const tx = await mintToManually(mint, ata, amount);
 
     alert(`✅ 发币成功！
