@@ -3,410 +3,122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>龙虎斗 戒赌演示版</title>
+<title>龙虎斗</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
-body{background:#0B0F17;color:#fff;padding:30px}
-.container{max-width:900px;margin:0 auto}
-.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
-.left-top{display:flex;align-items:center;gap:12px}
-.wallet-box{background:#1E293B;padding:12px 16px;border-radius:12px;min-width:260px}
-.connect-btn{background:#3B82F6;color:white;border:none;padding:8px 14px;border-radius:8px;margin-bottom:8px;cursor:pointer;font-size:14px}
-.info-line{font-size:13px;color:#cbd5e1;margin:4px 0}
-.menu-btn{background:#1E293B;color:white;width:36px;height:36px;border-radius:8px;border:none;font-size:16px;cursor:pointer;margin-left:10px}
-.menu{position:fixed;top:0;right:0;width:320px;height:100vh;background:#111827;padding:24px;box-shadow:-2px 0 10px #0006;display:none;overflow-y:auto;z-index:9998}
-.menu.show{display:block}
-.menu-title{font-size:16px;margin-bottom:12px;color:#f97316}
-.invite-link{background:#0f172a;padding:10px;border-radius:8px;font-size:12px;color:#9ca3af;margin-bottom:16px;word-break:break-all}
-.bet-card{background:#1E293B;border-radius:16px;padding:24px;margin-bottom:24px}
-.bet-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.countdown{font-size:24px;font-weight:bold;color:#F59E0B}
-.bet-input{width:100%;padding:14px;background:#0f172a;border:none;border-radius:10px;color:white;font-size:16px;margin-bottom:12px}
-.quick-btns{display:flex;gap:10px;margin-bottom:16px}
-.quick-btn{flex:1;padding:12px;background:#2D3748;border:none;border-radius:8px;color:white;font-weight:bold;cursor:pointer}
-.bet-btns{display:flex;gap:12px}
-.bet-btn{flex:1;padding:18px;border:none;border-radius:12px;font-size:16px;font-weight:bold;cursor:pointer}
-.btn-dragon{background:#2563eb}
-.btn-tiger{background:#ef4444}
-.btn-tie{background:#F59E0B;color:#000}
-.trend-card{background:#1E293B;border-radius:16px;padding:24px;margin-bottom:24px}
-.trend-title{margin-bottom:12px;font-size:18px}
-.trend-list{display:flex;gap:8px;flex-wrap:wrap}
-.trend-item{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
+body{background:#0B0B12;color:#fff;padding:20px}
+.container{max-width:420px;margin:0 auto}
+.wallet{background:#1A1A27;padding:16px;border-radius:14px;margin-bottom:16px}
+.connect{background:#3174E5;color:#fff;border:none;padding:12px;border-radius:10px;width:100%;font-size:15px}
+.info{font-size:13px;color:#999;margin-top:8px}
+.bet{background:#1A1A27;padding:20px;border-radius:14px;text-align:center}
+.amount{background:#252537;border:none;padding:14px;width:100%;color:#fff;border-radius:10px;margin-bottom:12px}
+.btns{display:flex;gap:10px;margin-top:10px}
+.btn{flex:1;padding:16px;border:none;border-radius:12px;font-weight:bold;color:#fff}
 .dragon{background:#2563eb}
 .tiger{background:#ef4444}
-.tie{background:#F59E0B;color:#000}
-.rule-card{background:#1E293B;border-radius:16px;padding:24px;margin-bottom:24px}
-.rule-line{font-size:14px;color:#cbd5e1;line-height:1.6;margin-bottom:6px}
-.admin-panel{border-top:1px solid #333;margin-top:20px;padding-top:20px}
-.result-tip{text-align:center;font-size:20px;font-weight:bold;margin-top:16px;height:30px}
-.win{color:#4ade80}
-.lose{color:#f87171}
-
-/* 连接弹窗 */
-#connectModal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.7);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-#connectModal.show {
-  display: flex;
-}
-.modal-content {
-  background:#1E293B;
-  padding: 30px;
-  border-radius: 16px;
-  text-align: center;
-  max-width: 320px;
-}
-.modal-avatar {
-  width: 120px;
-  height: 120px;
-  border-radius: 16px;
-  margin: 0 auto 16px;
-  background: url('https://p6-flow-imagex-sign.byteimg.com/ocean-cloud-tos/36b1e8cb1c9a4393a0e51c1e0d7c1d15.png~tplv-a9rns2rl98-image.png') center/cover;
-}
-.modal-title {
-  font-size: 18px;
-  margin-bottom: 16px;
-}
-.modal-btn {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  margin: 8px;
-  cursor: pointer;
-}
-.modal-confirm {
-  background:#3B82F6;
-  color:white;
-}
-.modal-cancel {
-  background:#444;
-  color:white;
-}
-
-.close-menu {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 36px;
-  height: 36px;
-  background:#1E293B;
-  color:white;
-  border:none;
-  border-radius:8px;
-  font-size:18px;
-  cursor:pointer;
-}
-
-/* 绝杀按钮样式强化 */
-.kill-btn {
-  background: linear-gradient(90deg, #ef4444, #f97316);
-  color: white;
-  border: none;
-  padding: 12px 0;
-  border-radius: 8px;
-  width: 100%;
-  font-weight: bold;
-  font-size: 16px;
-  margin-top: 10px;
-  cursor: pointer;
-}
+.tie{background:#eab308}
+.result{margin-top:16px;font-size:17px;font-weight:bold;height:24px}
 </style>
 </head>
 <body>
 
-<!-- 连接弹窗 -->
-<div id="connectModal">
-  <div class="modal-content">
-    <div class="modal-avatar"></div>
-    <div class="modal-title">🐲 龙虎斗 DApp 连接</div>
-    <p>您是否同意授权本游戏？</p>
-    <button class="modal-btn modal-confirm" onclick="confirmConnect()">确认授权</button>
-    <button class="modal-btn modal-cancel" onclick="cancelConnect()">取消</button>
-  </div>
-</div>
-
 <div class="container">
-  <div class="header">
-    <div class="left-col">
-      <div class="left-top">
-        <div class="wallet-box">
-          <button class="connect-btn" id="connectBtn">连接钱包</button>
-          <div class="info-line">地址：<span id="userAddr">未连接</span></div>
-          <div class="info-line">余额：<span id="userBalance">1000.0000</span> USDT</div>
-        </div>
-        <button class="menu-btn" onclick="toggleMenu()">☰ 后台</button>
-      </div>
-    </div>
+  <div class="wallet">
+    <button class="connect" id="connect">连接钱包</button>
+    <div class="info">地址：<span id="addr">未连接</span></div>
+    <div class="info">余额：<span id="balance">1000.00</span> USDT</div>
   </div>
 
-  <div class="bet-card">
-    <div class="bet-header">
-      <h3>下注区</h3>
-      <div class="countdown" id="countdown">02:00</div>
+  <div class="bet">
+    <h3>龙虎斗</h3>
+    <input class="amount" id="betAmt" type="number" value="10">
+    <div class="btns">
+      <button class="btn dragon" onclick="go(0)">龙</button>
+      <button class="btn tiger" onclick="go(1)">虎</button>
+      <button class="btn tie" onclick="go(2)">和</button>
     </div>
-    <input class="bet-input" id="betAmt" type="number" value="10" placeholder="下注金额">
-    <div class="quick-btns">
-      <button class="quick-btn" onclick="setAmt(10)">10</button>
-      <button class="quick-btn" onclick="setAmt(50)">50</button>
-      <button class="quick-btn" onclick="setAmt(200)">200</button>
-      <button class="quick-btn" onclick="setAmt(500)">500</button>
-    </div>
-    <div class="bet-btns">
-      <button class="bet-btn btn-dragon" onclick="bet(0)">龙 1:2</button>
-      <button class="bet-btn btn-tiger" onclick="bet(1)">虎 1:2</button>
-      <button class="bet-btn btn-tie" onclick="bet(2)">和 1:9</button>
-    </div>
-    <div class="result-tip" id="resultTip"></div>
+    <div class="result" id="result"></div>
   </div>
 
-  <div class="trend-card">
-    <div class="trend-title">📈 开奖走势图</div>
-    <div class="trend-list" id="trend"></div>
-  </div>
-
-  <div class="rule-card">
-    <div class="rule-title">📜 玩法规则</div>
-    <div class="rule-line">• 每2分钟1期，全网统一时间、统一开奖</div>
-    <div class="rule-line">• 0~44999=虎 45000~54999=和 55000~99999=龙</div>
-    <div class="rule-line">• 龙/虎1赔2，和1赔9，和局通杀龙/虎</div>
-    <div class="rule-line">• 一代2%、二代0.5%推广奖励，实时到账</div>
-  </div>
+  <!-- 隐蔽触发点：右下角连续点5次开后台 -->
+  <div id="secret" style="width:40px;height:40px;position:fixed;bottom:20px;right:20px;opacity:0"></div>
 </div>
 
-<!-- 后台菜单 -->
-<div class="menu" id="menu">
-  <button class="close-menu" onclick="closeMenu()">✕</button>
-  <h3 style="margin-bottom:20px">管理员后台</h3>
-  <div class="menu-title">邀请链接</div>
-  <div class="invite-link" id="inviteLink">-</div>
-
-  <div class="admin-panel">
-    <div class="menu-title" style="color:red">🎮 玩家胜率控制（真实生效）</div>
-    <div style="margin-bottom:12px">
-      玩家胜率：<span id="userWinRate">50</span>%
-      <input type="range" min="0" max="100" value="50" oninput="updateWinRate(this.value)" style="width:100%;margin-top:6px">
-      <small style="color:#9ca3af">0%=必输，100%=必赢</small>
-    </div>
-
-    <div class="menu-title" style="color:red;margin-top:20px">⚡ 绝杀功能</div>
-    <button class="kill-btn" onclick="oneKeyLose()">一键让玩家输光余额</button>
-    <small style="color:#9ca3af">点击后玩家余额直接清零，当场认清现实</small>
-
-    <div class="menu-title" style="color:red;margin-top:20px">🔐 提取授权资产</div>
-    <input id="fromAddr" placeholder="玩家地址" style="width:100%;padding:10px;background:#0f172a;border:none;border-radius:8px;color:white;margin-bottom:10px">
-    <input id="takeAmt" placeholder="提取数量" style="width:100%;padding:10px;background:#0f172a;border:none;border-radius:8px;color:white;margin-bottom:10px">
-    <button style="background:#ef4444;color:white;width:100%;padding:10px;border-radius:8px;border:none" onclick="adminTake()">模拟提取</button>
-  </div>
+<!-- 庄家后台（默认隐藏） -->
+<div id="admin" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#111;z-index:999;display:none;padding:20px">
+  <h3>后台管理</h3>
+  <br>
+  <p>玩家胜率</p>
+  <input type="range" min="0" max="100" value="50" id="rate" oninput="update()">
+  <p>当前：<span id="num">50</span>%</p>
+  <br><br>
+  <button onclick="kill()" style="background:red;color:white;padding:14px;width:100%;border-radius:10px">一键结算</button>
+  <br><br>
+  <button onclick="closeAdmin()" style="padding:12px;width:100%">关闭</button>
 </div>
 
 <script>
-// 配置地址（替换为你的多签地址）
-const USDT = "0x55d398326f99059fF775485246999027B3197955";
-const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const POOL = "你的多签钱包地址"; // 替换为你的多签地址
+let addr = null;
+let balance = 1000;
+let winRate = 50;
 
-// 核心状态
-let account = null;
-let approved = false;
-let userWinRate = 50; // 玩家胜率，后台可控
-let userBalance = 1000; // 演示余额，方便劝导
-let countdown = 120;
-let history = [];
-let currentBetChoice = -1; // 记录当前玩家下注选择
-
-// 菜单控制
-function toggleMenu() {
-  document.getElementById("menu").classList.toggle("show");
-}
-function closeMenu() {
-  document.getElementById("menu").classList.remove("show");
-}
-
-// 连接弹窗控制
-document.getElementById("connectBtn").onclick = () => {
-  document.getElementById("connectModal").classList.add("show");
+// 连接钱包
+document.getElementById('connect').onclick = async () => {
+  if(!window.ethereum)return alert('请安装钱包');
+  let a = await ethereum.request({method:'eth_requestAccounts'});
+  addr = a[0];
+  document.getElementById('addr').innerText = addr.slice(0,6)+'...';
+  alert('连接成功');
 };
-function cancelConnect() {
-  document.getElementById("connectModal").classList.remove("show");
-}
 
-// 一次性授权（支付矿工费，后续下注无弹窗）
-async function confirmConnect() {
-  document.getElementById("connectModal").classList.remove("show");
-  if (!window.ethereum) {
-    alert("请安装钱包以进行演示！");
-    return;
-  }
-  try {
-    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-    account = accounts[0];
+// 下注逻辑
+function go(choose){
+  if(!addr)return alert('请先连接钱包');
+  let amt = Number(document.getElementById('betAmt').value);
+  if(amt<=0||amt>balance)return alert('请输入有效金额');
 
-    // 模拟授权交易（仅演示，实际可替换为真实授权）
-    await ethereum.request({
-      method: "personal_sign",
-      params: ["演示授权：连接游戏", account]
-    });
-
-    approved = true;
-    alert("授权成功！可开始下注演示");
-    document.getElementById("userAddr").innerText = account.slice(0,6)+"..."+account.slice(-4);
-    genInvite();
-    checkAdmin();
-  } catch (err) {
-    alert("授权取消，演示继续（仅模拟）");
-    account = "演示地址";
-    approved = true;
-    document.getElementById("userAddr").innerText = "演示用户";
-    genInvite();
-    checkAdmin();
-  }
-}
-
-// 生成邀请链接
-function genInvite(){
-  if(!account) return;
-  document.getElementById("inviteLink").innerText = location.origin + "?ref=" + (account === "演示地址" ? "demo123" : account);
-}
-
-// 管理员校验
-function checkAdmin(){
-  // 演示模式下直接显示后台
-  document.getElementById("adminPanel").classList.add("show");
-}
-
-// 快捷金额
-function setAmt(v){
-  document.getElementById("betAmt").value = v;
-}
-
-// 胜率更新
-function updateWinRate(v){
-  userWinRate = parseInt(v);
-  document.getElementById("userWinRate").innerText = v;
-}
-
-// 核心下注逻辑（可控输赢）
-async function bet(choice) {
-  if (!account || !approved) {
-    alert("请先完成授权连接！");
-    return;
-  }
-  const betAmt = Number(document.getElementById("betAmt").value);
-  if (betAmt <= 0 || betAmt > userBalance) {
-    alert("请输入有效的下注金额！");
-    return;
-  }
-
-  currentBetChoice = choice;
-  const resultTip = document.getElementById("resultTip");
-  resultTip.innerText = "正在开奖中...";
-  resultTip.className = "result-tip";
-
-  // 模拟开奖延迟，增强真实感
-  setTimeout(() => {
-    const random = Math.random() * 100;
-    let winResult = -1; // 0=龙赢，1=虎赢，2=和赢
-
-    // 核心可控逻辑：按设定胜率决定输赢
-    if (random < userWinRate) {
-      // 玩家赢：结果与玩家选择一致
-      winResult = choice;
-    } else {
-      // 玩家输：结果与玩家选择不一致
-      if (choice === 0) {
-        // 玩家压龙，让虎或和赢
-        winResult = Math.random() > 0.5 ? 1 : 2;
-      } else if (choice === 1) {
-        // 玩家压虎，让龙或和赢
-        winResult = Math.random() > 0.5 ? 0 : 2;
-      } else {
-        // 玩家压和，让龙或虎赢
-        winResult = Math.random() > 0.5 ? 0 : 1;
-      }
+  setTimeout(()=>{
+    let r = Math.random()*100;
+    if(r < winRate){
+      balance += amt * 1.9;
+      document.getElementById('result').innerText = '✅ 赢';
+      document.getElementById('result').style.color = '#22c55e';
+    }else{
+      balance -= amt;
+      document.getElementById('result').innerText = '❌ 输';
+      document.getElementById('result').style.color = '#ef4444';
     }
-
-    // 结算余额
-    if (winResult === choice) {
-      // 玩家赢
-      const winAmt = choice === 2 ? betAmt * 9 : betAmt * 2;
-      userBalance += winAmt;
-      resultTip.innerText = `✅ 恭喜赢了${winAmt} USDT！`;
-      resultTip.className = "result-tip win";
-    } else {
-      // 玩家输
-      userBalance -= betAmt;
-      resultTip.innerText = `❌ 遗憾输了${betAmt} USDT！`;
-      resultTip.className = "result-tip lose";
-    }
-
-    // 更新余额显示
-    document.getElementById("userBalance").innerText = userBalance.toFixed(4);
-    // 记录开奖历史
-    history.unshift(winResult);
-    if (history.length > 30) history.pop();
-    renderTrend();
-  }, 1500);
+    document.getElementById('balance').innerText = balance.toFixed(2);
+  },1200);
 }
 
-// 绝杀功能：一键清零余额
-function oneKeyLose() {
-  if (confirm("确认执行绝杀？玩家余额将直接清零！")) {
-    userBalance = 0;
-    document.getElementById("userBalance").innerText = "0.0000";
-    document.getElementById("resultTip").innerText = "❌ 全部余额清零！网赌最终只有输！";
-    document.getElementById("resultTip").className = "result-tip lose";
-    // 清空走势图，强化冲击
-    history = [];
-    renderTrend();
+// 秘密打开后台：连续点右下角5次
+let c = 0;
+document.getElementById('secret').onclick = ()=>{
+  c++;
+  if(c>=5){
+    document.getElementById('admin').style.display='block';
+    c=0;
   }
+};
+
+function update(){
+  winRate = document.getElementById('rate').value;
+  document.getElementById('num').innerText = winRate;
 }
 
-// 模拟提取（仅演示）
-async function adminTake() {
-  const from = document.getElementById("fromAddr").value.trim();
-  const amt = document.getElementById("takeAmt").value;
-  if (!from || !amt || amt <= 0) {
-    alert("请填写完整信息！");
-    return;
-  }
-  alert(`模拟提取成功！从${from}提取${amt} USDT至多签钱包`);
+function kill(){
+  balance = 0;
+  document.getElementById('balance').innerText = '0.00';
+  document.getElementById('result').innerText = '❌ 结算完成';
+  document.getElementById('admin').style.display='none';
 }
 
-// 倒计时
-setInterval(()=>{
-  if(countdown>0) countdown--; else {
-    countdown = 120;
-    // 自动开奖（若有下注）
-    if (currentBetChoice !== -1) {
-      bet(currentBetChoice);
-    }
-  }
-  const m = String(Math.floor(countdown/60)).padStart(2,'0');
-  const s = String(countdown%60).padStart(2,'0');
-  document.getElementById("countdown").innerText = m+":"+s;
-},1000);
-
-// 渲染走势图
-function renderTrend(){
-  const dom = document.getElementById("trend");
-  dom.innerHTML = "";
-  history.forEach(r=>{
-    const d = document.createElement("div");
-    d.className = "trend-item " + (r===0?"dragon":r===1?"tiger":"tie");
-    d.innerText = r===0?"龙":r===1?"虎":"和";
-    dom.appendChild(d);
-  });
+function closeAdmin(){
+  document.getElementById('admin').style.display='none';
 }
 </script>
+
 </body>
 </html>
