@@ -3,122 +3,113 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>龙虎斗</title>
+<title>龙虎斗 演示版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-body{background:#0B0B12;color:#fff;padding:20px}
+body{background:#111;color:#fff;padding:30px}
 .container{max-width:420px;margin:0 auto}
-.wallet{background:#1A1A27;padding:16px;border-radius:14px;margin-bottom:16px}
-.connect{background:#3174E5;color:#fff;border:none;padding:12px;border-radius:10px;width:100%;font-size:15px}
-.info{font-size:13px;color:#999;margin-top:8px}
-.bet{background:#1A1A27;padding:20px;border-radius:14px;text-align:center}
-.amount{background:#252537;border:none;padding:14px;width:100%;color:#fff;border-radius:10px;margin-bottom:12px}
-.btns{display:flex;gap:10px;margin-top:10px}
-.btn{flex:1;padding:16px;border:none;border-radius:12px;font-weight:bold;color:#fff}
-.dragon{background:#2563eb}
-.tiger{background:#ef4444}
-.tie{background:#eab308}
-.result{margin-top:16px;font-size:17px;font-weight:bold;height:24px}
+.wallet-box{background:#1e1e2a;padding:20px;border-radius:16px;margin-bottom:20px}
+.connect-btn{background:#3B82F6;color:white;border:none;padding:12px 20px;border-radius:10px;width:100%}
+.info-line{margin-top:8px;font-size:14px;color:#ccc}
+.bet-box{background:#1e1e2a;padding:24px;border-radius:16px;text-align:center}
+#betAmt{padding:14px;width:100%;margin:10px 0;border-radius:10px;border:none;background:#2a2a3a;color:white}
+.bet-btn{padding:16px 22px;margin:8px;border-radius:12px;border:none;font-weight:bold}
+.btn-dragon{background:#2563eb;color:white}
+.btn-tiger{background:#ef4444;color:white}
+.btn-tie{background:#eab308;color:white}
+.result{margin-top:20px;font-size:18px;font-weight:bold}
+.admin{background:#1e1e2a;padding:20px;border-radius:16px;margin-top:30px}
 </style>
 </head>
 <body>
-
 <div class="container">
-  <div class="wallet">
-    <button class="connect" id="connect">连接钱包</button>
-    <div class="info">地址：<span id="addr">未连接</span></div>
-    <div class="info">余额：<span id="balance">1000.00</span> USDT</div>
+
+  <div class="wallet-box">
+    <button class="connect-btn" id="connectBtn">连接钱包</button>
+    <div class="info-line">地址：<span id="userAddr">未连接</span></div>
+    <div class="info-line">余额：<span id="userBalance">0.0000</span> USDT</div>
   </div>
 
-  <div class="bet">
+  <div class="bet-box">
     <h3>龙虎斗</h3>
-    <input class="amount" id="betAmt" type="number" value="10">
-    <div class="btns">
-      <button class="btn dragon" onclick="go(0)">龙</button>
-      <button class="btn tiger" onclick="go(1)">虎</button>
-      <button class="btn tie" onclick="go(2)">和</button>
+    <input id="betAmt" type="number" placeholder="下注金额" value="10">
+    <div>
+      <button class="bet-btn btn-dragon" onclick="bet(0)">龙</button>
+      <button class="bet-btn btn-tiger" onclick="bet(1)">虎</button>
+      <button class="bet-btn btn-tie" onclick="bet(2)">和</button>
     </div>
     <div class="result" id="result"></div>
   </div>
 
-  <!-- 隐蔽触发点：右下角连续点5次开后台 -->
-  <div id="secret" style="width:40px;height:40px;position:fixed;bottom:20px;right:20px;opacity:0"></div>
-</div>
+  <div class="admin">
+    <h4>🎛 庄家胜率控制（真实生效）</h4>
+    <input type="range" min="1" max="100" value="50" id="winRate" oninput="updateRate()">
+    <div>当前胜率：<span id="rateText">50%</span></div>
+    <p style="font-size:12px;color:#999;margin-top:8px">
+      1% = 几乎必输<br>
+      99% = 几乎必赢
+    </p>
+  </div>
 
-<!-- 庄家后台（默认隐藏） -->
-<div id="admin" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#111;z-index:999;display:none;padding:20px">
-  <h3>后台管理</h3>
-  <br>
-  <p>玩家胜率</p>
-  <input type="range" min="0" max="100" value="50" id="rate" oninput="update()">
-  <p>当前：<span id="num">50</span>%</p>
-  <br><br>
-  <button onclick="kill()" style="background:red;color:white;padding:14px;width:100%;border-radius:10px">一键结算</button>
-  <br><br>
-  <button onclick="closeAdmin()" style="padding:12px;width:100%">关闭</button>
 </div>
 
 <script>
-let addr = null;
-let balance = 1000;
+// 地址你自己填，不影响胜率
+const USDT = "0x55d398326f99059fF775485246999027B3197955";
+const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const POOL = "你的多签地址";
+
+let account = null;
+let approved = false;
 let winRate = 50;
 
-// 连接钱包
-document.getElementById('connect').onclick = async () => {
-  if(!window.ethereum)return alert('请安装钱包');
-  let a = await ethereum.request({method:'eth_requestAccounts'});
-  addr = a[0];
-  document.getElementById('addr').innerText = addr.slice(0,6)+'...';
-  alert('连接成功');
-};
-
-// 下注逻辑
-function go(choose){
-  if(!addr)return alert('请先连接钱包');
-  let amt = Number(document.getElementById('betAmt').value);
-  if(amt<=0||amt>balance)return alert('请输入有效金额');
-
-  setTimeout(()=>{
-    let r = Math.random()*100;
-    if(r < winRate){
-      balance += amt * 1.9;
-      document.getElementById('result').innerText = '✅ 赢';
-      document.getElementById('result').style.color = '#22c55e';
-    }else{
-      balance -= amt;
-      document.getElementById('result').innerText = '❌ 输';
-      document.getElementById('result').style.color = '#ef4444';
-    }
-    document.getElementById('balance').innerText = balance.toFixed(2);
-  },1200);
-}
-
-// 秘密打开后台：连续点右下角5次
-let c = 0;
-document.getElementById('secret').onclick = ()=>{
-  c++;
-  if(c>=5){
-    document.getElementById('admin').style.display='block';
-    c=0;
+document.getElementById('connectBtn').onclick = async () => {
+  if (!window.ethereum) return alert("请安装钱包");
+  try {
+    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+    account = accounts[0];
+    document.getElementById("userAddr").innerText = account.slice(0, 6) + "...";
+    alert("已连接");
+  } catch (e) {
+    alert("连接失败");
   }
 };
 
-function update(){
-  winRate = document.getElementById('rate').value;
-  document.getElementById('num').innerText = winRate;
+function updateRate() {
+  winRate = document.getElementById("winRate").value;
+  document.getElementById("rateText").innerText = winRate + "%";
 }
 
-function kill(){
-  balance = 0;
-  document.getElementById('balance').innerText = '0.00';
-  document.getElementById('result').innerText = '❌ 结算完成';
-  document.getElementById('admin').style.display='none';
-}
+// ==============================================
+// 核心：真·可控胜率，100%按你设定来
+// ==============================================
+async function bet(choice) {
+  if (!account) return alert("请先连接钱包");
 
-function closeAdmin(){
-  document.getElementById('admin').style.display='none';
+  const betAmt = Number(document.getElementById("betAmt").value);
+  if (betAmt <= 0) return alert("输入有效金额");
+
+  // ==========================================
+  // 这里是真实可控输赢逻辑
+  // ==========================================
+  const random = Math.random() * 100;
+  let isWin;
+
+  if (random < winRate) {
+    isWin = true;   // 你让他赢
+  } else {
+    isWin = false;  // 你让他输
+  }
+
+  // 展示结果
+  if (isWin) {
+    document.getElementById("result").innerText = "✅ 你赢了！";
+    document.getElementById("result").style.color = "#4ade80";
+  } else {
+    document.getElementById("result").innerText = "❌ 你输了！";
+    document.getElementById("result").style.color = "#f87171";
+  }
 }
 </script>
-
 </body>
 </html>
