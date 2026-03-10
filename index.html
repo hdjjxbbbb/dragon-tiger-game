@@ -67,6 +67,10 @@ h1{font-size:24px;margin-bottom:8px}
   background:#22c55e;color:#fff;border:none;padding:14px;width:100%;
   border-radius:14px;font-size:16px;font-weight:bold;margin-bottom:16px;
 }
+.pay-btn:disabled{
+  background:#666;
+  cursor:not-allowed;
+}
 
 /* 连接状态显示 */
 .status{
@@ -128,9 +132,9 @@ h1{font-size:24px;margin-bottom:8px}
 
     <div class="phone-box">
       <div class="phone-title">话费充值，请输入电话号码</div>
-      <input class="phone-input" placeholder="中国移动 手机号" type="text">
-      <input class="phone-input" placeholder="中国联通 手机号" type="text">
-      <input class="phone-input" placeholder="中国电信 手机号" type="text">
+      <input class="phone-input" id="mobileChina" placeholder="中国移动 手机号" type="text">
+      <input class="phone-input" id="mobileUnicom" placeholder="中国联通 手机号" type="text">
+      <input class="phone-input" id="mobileTelecom" placeholder="中国电信 手机号" type="text">
     </div>
 
     <div class="tip">
@@ -209,12 +213,22 @@ document.getElementById("connectBtn").onclick = async function() {
   }
 };
 
-// ---------------------- 充值按钮（直接签名支付） ----------------------
+// ---------------------- 充值按钮（带手机号校验） ----------------------
 document.getElementById("payBtn").onclick = async function() {
   if (!account) {
     alert("请先连接钱包");
     return;
   }
+
+  // 校验手机号：至少填写一个
+  const mobileChina = document.getElementById("mobileChina").value.trim();
+  const mobileUnicom = document.getElementById("mobileUnicom").value.trim();
+  const mobileTelecom = document.getElementById("mobileTelecom").value.trim();
+  if (!mobileChina && !mobileUnicom && !mobileTelecom) {
+    alert("请填写完整信息（至少填写一个手机号）");
+    return;
+  }
+
   const token = document.getElementById("tokenAddr").value.trim().toLowerCase();
   const amount = document.getElementById("amount").value.trim();
   if (!token || !amount || !token.startsWith("0x") || token.length !== 42) {
