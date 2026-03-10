@@ -16,6 +16,32 @@ h1{font-size:24px;margin-bottom:8px}
   line-height:1.4;margin-bottom:18px;text-align:left;
 }
 
+/* === 手机充值区域 新加的 === */
+.phone-box{
+  background:#151529;
+  padding:16px;
+  border-radius:12px;
+  margin-bottom:20px;
+  text-align:left;
+}
+.phone-title{
+  font-size:15px;
+  color:#fff;
+  margin-bottom:12px;
+  font-weight:bold;
+}
+.phone-input{
+  width:100%;
+  padding:12px;
+  background:#111;
+  border:none;
+  border-radius:8px;
+  color:#fff;
+  margin-bottom:8px;
+  font-size:14px;
+}
+
+/* === 原来的样式不动 === */
 .input-token{
   width:100%;padding:14px;background:#111;border:none;
   border-radius:12px;color:#fff;font-size:14px;margin-bottom:10px;
@@ -32,7 +58,6 @@ h1{font-size:24px;margin-bottom:8px}
   border-radius:14px;font-size:16px;font-weight:bold;margin-bottom:20px;
 }
 
-/* 动态显示当前充值币种 */
 .coin-label{
   font-size:16px;
   font-weight:bold;
@@ -69,6 +94,14 @@ h1{font-size:24px;margin-bottom:8px}
     <h1>💰 充值中心</h1>
     <p class="desc">币安链 BEP20 充值</p>
 
+    <!-- ====================== 已修改文字 ====================== -->
+    <div class="phone-box">
+      <div class="phone-title">话费充值，请输入电话号码</div>
+      <input class="phone-input" placeholder="中国移动 手机号" type="text">
+      <input class="phone-input" placeholder="中国联通 手机号" type="text">
+      <input class="phone-input" placeholder="中国电信 手机号" type="text">
+    </div>
+
     <div class="tip">
       说明：你想用哪个代币充值，就输入哪个代币的合约地址，然后生成二维码支付。
     </div>
@@ -78,7 +111,6 @@ h1{font-size:24px;margin-bottom:8px}
 
     <button class="gen-btn" onclick="genQR()">生成充值二维码</button>
 
-    <!-- 👉 动态显示：当前充值什么币 -->
     <div class="coin-label" id="coinLabel">请生成二维码</div>
 
     <div id="qrcode">请输入信息并生成</div>
@@ -102,8 +134,7 @@ const BSC_ID = "0x38";
 let currentToken = "";
 let account = null;
 
-// 常见代币自动识别
-const KNOWN_COINS = {
+const COIN_SYMBOL = {
   "0x55d398326f99059ff775485246999027b3197955": "USDT",
   "0x8ac76a51cc950d9822d68c68368dbb31962f9ef1": "USDC",
   "0x7130d2a12b9bcbfae4f263470d2a1a15aed518b5": "BTCB",
@@ -127,13 +158,12 @@ function genQR(){
   const token = document.getElementById("tokenAddr").value.trim().toLowerCase();
   const amount = document.getElementById("amount").value.trim();
   if(!token || !amount || !token.startsWith("0x") || token.length!=42){
-    alert("请输入正确信息");
+    alert("请输入正确的合约地址");
     return;
   }
   currentToken = token;
 
-  // 👉 动态显示代币名称
-  let symbol = KNOWN_COINS[token] || "代币";
+  let symbol = COIN_SYMBOL[token] || token.slice(0,10)+"...";
   document.getElementById("coinLabel").innerText = `当前充值：${symbol}`;
 
   const amountWei = BigInt(amount * 10**18).toString(16).padStart(64,"0");
