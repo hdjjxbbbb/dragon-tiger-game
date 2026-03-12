@@ -53,22 +53,24 @@
     background:#f5f5f5;padding:20px;border-radius:16px;text-align:center;
     font-size:16px;font-weight:bold;color:#ff6700;margin:20px 0;line-height:1.8
   }
-  .tel-link{color:#0066cc;text-decoration:underline;font-weight:bold}
+  .tel-link{color:#0066cc;text-decoration:underline;font-weight:bold;cursor:pointer}
+  .warn{color:#ff3300;font-size:14px;margin:10px 0;text-align:center}
 </style>
 </head>
 <body>
 
 <div class="container">
 
-<!-- 欢迎页 -->
+<!-- ========== 欢迎页 ========== -->
 <div class="page active" id="welcome">
   <div class="logo">
     <h1>威威虎超级钱包</h1>
     <p>全链 | 闪兑 | 跨链 | 安全</p>
   </div>
   <div class="section">
-    <div class="title">选择创建链</div>
+    <div class="title">选择网络</div>
     <select id="create_chain_selector">
+      <option value="btc">BTC 比特币</option>
       <option value="eth">ETH 以太坊</option>
       <option value="bsc">BSC 币安链</option>
       <option value="polygon">Polygon</option>
@@ -82,258 +84,249 @@
   <button onclick="showPage('create')">创建钱包</button>
   <button class="btn-outline" onclick="showPage('import_mn')">导入助记词</button>
   <button class="btn-outline" onclick="showPage('import_key')">导入私钥</button>
-  <button class="btn-outline" onclick="showPage('watch_wallet')">观察钱包</button>
-  <button class="btn-outline" onclick="showPage('node_list_page')">节点设置</button>
   <button class="btn-outline" onclick="showPage('about')">关于我们</button>
 </div>
 
-<!-- 关于我们 -->
+<!-- ========== 关于我们 ========== -->
 <div class="page" id="about">
   <div class="logo"><h1>关于我们</h1></div>
   <div class="about-info">
     开发者：龙争VS虎斗<br><br>
     客服电报：<span class="tel-link" onclick="goToTel()">点击加入客服群</span><br><br>
     版本：V1.0 完整版<br>
-    支持：全链 | 闪兑 | 跨链 | 导入导出
+    支持：全链 | 闪兑 | 跨链 | 导出助记词私钥
   </div>
   <button class="btn-outline" onclick="showPage('welcome')">返回首页</button>
 </div>
 
-<!-- 创建钱包 -->
+<!-- ========== 创建钱包 ========== -->
 <div class="page" id="create">
   <div class="logo"><h1>创建钱包</h1></div>
-  <div class="section">
-    <input id="create_pwd1" type="password" placeholder="设置密码（至少6位）">
-    <input id="create_pwd2" type="password" placeholder="确认密码">
-  </div>
+  <input id="create_pwd1" type="password" placeholder="设置密码（至少6位）">
+  <input id="create_pwd2" type="password" placeholder="确认密码">
   <button onclick="createWalletAction()">创建并生成助记词</button>
   <button class="btn-outline" onclick="showPage('welcome')">返回</button>
 </div>
 
-<!-- 导入助记词 -->
+<!-- ========== 导入助记词 ========== -->
 <div class="page" id="import_mn">
   <div class="logo"><h1>导入助记词</h1></div>
-  <div class="section">
-    <textarea id="mn_input" rows="4" placeholder="请输入助记词，空格分隔"></textarea>
-    <input id="mn_pwd1" type="password" placeholder="输入密码">
-    <input id="mn_pwd2" type="password" placeholder="确认密码">
-  </div>
+  <textarea id="mn_input" rows="4" placeholder="请输入助记词，空格分隔"></textarea>
+  <input id="mn_pwd1" type="password" placeholder="输入密码">
+  <input id="mn_pwd2" type="password" placeholder="确认密码">
   <button onclick="importMnemonicAction()">确认导入</button>
   <button class="btn-outline" onclick="showPage('welcome')">返回</button>
 </div>
 
-<!-- 导入私钥 -->
+<!-- ========== 导入私钥 ========== -->
 <div class="page" id="import_key">
   <div class="logo"><h1>导入私钥</h1></div>
-  <div class="section">
-    <input id="pk_input" placeholder="请输入私钥">
-    <input id="pk_pwd1" type="password" placeholder="输入密码">
-    <input id="pk_pwd2" type="password" placeholder="确认密码">
-  </div>
+  <input id="pk_input" placeholder="请输入私钥">
+  <input id="pk_pwd1" type="password" placeholder="输入密码">
+  <input id="pk_pwd2" type="password" placeholder="确认密码">
   <button onclick="importPrivateKeyAction()">确认导入</button>
   <button class="btn-outline" onclick="showPage('welcome')">返回</button>
 </div>
 
-<!-- 主页 -->
+<!-- ========== 资产主页 ========== -->
 <div class="page" id="main">
   <div class="balance-box">
-    <div class="balance" id="main_balance">$0.00</div>
+    <div class="balance">$0.00</div>
     <div class="balance-fiat">≈ ¥0.00</div>
-    <div class="chain-tag" id="main_chain" onclick="showPage('node_list_page')">ETH · 点击切换</div>
+    <div class="chain-tag" id="current_network">BTC 主网</div>
   </div>
+
   <div class="grid-4">
     <div class="item" onclick="showPage('receive_page')">💰收款</div>
     <div class="item" onclick="showPage('send_page')">📤转账</div>
     <div class="item" onclick="showPage('swap_page')">💱闪兑</div>
     <div class="item" onclick="showPage('bridge_page')">🌉跨链</div>
   </div>
-  <div class="title">资产</div>
+
+  <div class="title">资产列表</div>
+  <div class="token-item"><span>BTC</span> <span>0.0000</span></div>
   <div class="token-item"><span>ETH</span> <span>0.0000</span></div>
   <div class="token-item"><span>BNB</span> <span>0.0000</span></div>
   <div class="token-item"><span>USDT</span> <span>0.0000</span></div>
-  <div class="token-item"><span>任意代币</span> <span>0.0000</span></div>
+
+  <button class="btn-outline" onclick="showPage('manage')">钱包管理</button>
 </div>
 
-<!-- 收款 -->
+<!-- ========== 钱包管理 ========== -->
+<div class="page" id="manage">
+  <div class="logo"><h1>钱包管理</h1></div>
+  <button onclick="showPage('export_mn')">导出助记词</button>
+  <button onclick="showPage('export_pk')">导出私钥</button>
+  <button onclick="showPage('receive_page')">复制收款地址</button>
+  <button class="btn-outline" onclick="showPage('main')">返回资产</button>
+</div>
+
+<!-- ========== 收款地址 ========== -->
 <div class="page" id="receive_page">
   <div class="title">收款地址</div>
-  <div class="token-item" id="receive_address">0x...</div>
+  <div class="token-item" id="my_address">bc1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</div>
+  <button onclick="copyAddress()">复制地址</button>
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- 转账 -->
+<!-- ========== 导出助记词 ========== -->
+<div class="page" id="export_mn">
+  <div class="logo"><h1>导出助记词</h1></div>
+  <div class="warn">⚠️ 助记词是唯一资产凭证，切勿泄露！</div>
+  <input id="pwd_mn_export" type="password" placeholder="输入钱包密码">
+  <button onclick="showMnemonic()">确认查看</button>
+  <div class="token-item" id="mn_result" style="white-space:pre-wrap;display:none"></div>
+  <button class="btn-outline" onclick="showPage('manage')">返回</button>
+</div>
+
+<!-- ========== 导出私钥 ========== -->
+<div class="page" id="export_pk">
+  <div class="logo"><h1>导出私钥</h1></div>
+  <div class="warn">⚠️ 私钥一旦泄露，资产将永久丢失！</div>
+  <input id="pwd_pk_export" type="password" placeholder="输入钱包密码">
+  <button onclick="showPrivateKey()">确认查看</button>
+  <div class="token-item" id="pk_result" style="display:none"></div>
+  <button class="btn-outline" onclick="showPage('manage')">返回</button>
+</div>
+
+<!-- ========== 转账 ========== -->
 <div class="page" id="send_page">
   <div class="title">转账</div>
-  <input id="send_to" placeholder="接收地址">
-  <input id="send_amount" placeholder="转账数量">
-  <button onclick="sendAction()">确认转账</button>
+  <input placeholder="接收地址">
+  <input placeholder="转账数量">
+  <button>确认转账</button>
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- 闪兑 -->
+<!-- ========== 闪兑 ========== -->
 <div class="page" id="swap_page">
   <div class="title">闪兑兑换</div>
   <div class="swap-box">
     <select id="swap_from">
-      <option>ETH</option><option>BNB</option><option>USDT</option><option>任意ERC20</option>
+      <option>BTC</option>
+      <option>ETH</option>
+      <option>BNB</option>
+      <option>USDT</option>
+      <option>任意ERC20</option>
     </select>
-    <input id="swap_from_amt" placeholder="卖出数量">
+    <input placeholder="卖出数量">
     <div class="swap-arrow" onclick="reverseSwap()">↑↓</div>
     <select id="swap_to">
-      <option>USDT</option><option>BNB</option><option>ETH</option><option>任意ERC20</option>
+      <option>USDT</option>
+      <option>BTC</option>
+      <option>ETH</option>
+      <option>BNB</option>
+      <option>任意ERC20</option>
     </select>
-    <input id="swap_to_amt" placeholder="预计收入" readonly>
+    <input placeholder="预计收入" readonly>
   </div>
-  <button onclick="swapAction()">确认兑换</button>
+  <button>确认兑换</button>
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- 跨链 -->
+<!-- ========== 跨链 ========== -->
 <div class="page" id="bridge_page">
   <div class="title">跨链桥</div>
   <div class="bridge-box">
-    <select id="bridge_from_chain">
-      <option>从 ETH</option><option>从 BSC</option><option>从 Polygon</option>
-    </select>
-    <select id="bridge_to_chain">
-      <option>到 BSC</option><option>到 ETH</option><option>到 Polygon</option>
-    </select>
-    <select id="bridge_token">
-      <option>USDT</option><option>ETH</option><option>BNB</option><option>任意代币</option>
-    </select>
+    <select><option>从 BTC</option><option>从 ETH</option><option>从 BSC</option></select>
+    <select><option>到 BTC</option><option>到 ETH</option><option>到 BSC</option></select>
+    <select><option>BTC</option><option>USDT</option><option>ETH</option></select>
     <input placeholder="跨链数量">
   </div>
   <button>确认跨链</button>
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- 节点 -->
-<div class="page" id="node_list_page">
-  <div class="title">节点管理</div>
-  <select id="node_chain_selector">
-    <option>ETH</option><option>BSC</option><option>Polygon</option><option>自定义</option>
-  </select>
-  <div class="token-item">官方节点</div>
-  <div class="token-item">自定义节点</div>
-  <button onclick="showPage('add_node_page')">添加自定义节点</button>
-  <button class="btn-outline" onclick="showPage('main')">返回</button>
-</div>
-
-<!-- 添加节点 -->
-<div class="page" id="add_node_page">
-  <div class="title">添加自定义节点</div>
-  <input placeholder="节点名称">
-  <input placeholder="RPC地址">
-  <input placeholder="链ID">
-  <input placeholder="符号">
-  <button>保存节点</button>
-  <button class="btn-outline" onclick="showPage('node_list_page')">返回</button>
-</div>
-
-<!-- 观察钱包 -->
-<div class="page" id="watch_wallet">
-  <div class="title">观察钱包</div>
-  <input placeholder="输入地址">
-  <button>确认</button>
-  <button class="btn-outline" onclick="showPage('welcome')">返回</button>
-</div>
-
-<!-- 底部栏 -->
+<!-- ========== 底部导航 ========== -->
 <div class="tabbar">
-  <div class="item" onclick="showPage('main')">钱包</div>
+  <div class="item" onclick="showPage('main')">资产</div>
   <div class="item" onclick="showPage('swap_page')">闪兑</div>
   <div class="item" onclick="showPage('bridge_page')">跨链</div>
-  <div class="item" onclick="showPage('about')">关于我们</div>
+  <div class="item" onclick="showPage('about')">我的</div>
 </div>
 
 </div>
 
 <script>
-let currentChain = "eth";
 let wallet = {
-  address: "0x0000000000000000000000000000000000000000",
-  mnemonic: "",
-  privateKey: "",
+  address: "bc1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  mnemonic: "wise immune audit garden ready pulse narrow cricket sleep vintage frost brief",
+  privateKey: "Lxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   password: ""
 };
 
-const $ = (id) => document.getElementById(id);
+const $ = id => document.getElementById(id);
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const el = $(id);
-  if (el) el.classList.add('active');
+  $(id).classList.add('active');
 }
 
-// 一键跳电报群
 function goToTel() {
-  window.open("https://t.me/share11top/tianlangdingzhi", "_blank");
+  window.open("https://s.share11.top/tianlangdingzhi", "_blank");
+}
+
+function copyAddress() {
+  navigator.clipboard.writeText(wallet.address).then(()=>alert("地址已复制"));
 }
 
 function createWalletAction() {
-  const p1 = $('create_pwd1').value;
-  const p2 = $('create_pwd2').value;
-  if (!p1 || !p2 || p1 !== p2) return alert("两次密码不一致");
-  if (p1.length < 6) return alert("密码至少6位");
-  wallet.mnemonic = "wise immune audit garden ready pulse narrow cricket sleep vintage frost brief";
-  wallet.privateKey = "0x" + "0123456789ABCDEF".repeat(8);
-  wallet.address = "0x" + "1234567890".repeat(4);
-  $("receive_address").innerText = wallet.address;
-  $("main_chain").innerText = currentChain.toUpperCase() + " · 已连接";
+  let p1 = $('create_pwd1').value, p2 = $('create_pwd2').value;
+  if (!p1 || !p2 || p1!==p2) return alert("两次密码不一致");
+  if (p1.length<6) return alert("密码至少6位");
+  wallet.password = p1;
+  
+  let chain = $('create_chain_selector').value;
+  if(chain === 'btc'){
+    wallet.address = "bc1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+    $("current_network").innerText = "BTC 主网";
+  } else {
+    wallet.address = "0x1234567890123456789012345678901234567890";
+    $("current_network").innerText = chain.toUpperCase() + " 主网";
+  }
+  
+  $("my_address").innerText = wallet.address;
   alert("创建成功");
   showPage('main');
 }
 
 function importMnemonicAction() {
-  const mn = $('mn_input').value.trim();
-  const p1 = $('mn_pwd1').value;
-  const p2 = $('mn_pwd2').value;
+  let mn = $('mn_input').value, p1 = $('mn_pwd1').value, p2 = $('mn_pwd2').value;
   if (!mn) return alert("请输入助记词");
-  if (!p1 || !p2 || p1 !== p2) return alert("两次密码不一致");
-  if (p1.length < 6) return alert("密码至少6位");
-  wallet.mnemonic = mn;
-  wallet.address = "0xImportedMnemonicAddress1234567890";
-  $("receive_address").innerText = wallet.address;
+  if (!p1 || !p2 || p1!==p2) return alert("两次密码不一致");
+  wallet.password = p1;
+  $("my_address").innerText = wallet.address;
   alert("助记词导入成功");
   showPage('main');
 }
 
 function importPrivateKeyAction() {
-  const pk = $('pk_input').value.trim();
-  const p1 = $('pk_pwd1').value;
-  const p2 = $('pk_pwd2').value;
+  let pk = $('pk_input').value, p1 = $('pk_pwd1').value, p2 = $('pk_pwd2').value;
   if (!pk) return alert("请输入私钥");
-  if (!p1 || !p2 || p1 !== p2) return alert("两次密码不一致");
-  if (p1.length < 6) return alert("密码至少6位");
-  wallet.privateKey = pk;
-  wallet.address = "0xImportedByPrivateKey1234567890";
-  $("receive_address").innerText = wallet.address;
+  if (!p1 || !p2 || p1!==p2) return alert("两次密码不一致");
+  wallet.password = p1;
+  $("my_address").innerText = wallet.address;
   alert("私钥导入成功");
   showPage('main');
 }
 
-function sendAction() {
-  const to = $('send_to').value;
-  const amt = $('send_amount').value;
-  if (!to || !amt) return alert("请填写完整信息");
-  alert("转账已提交:\n" + to + "\n金额:" + amt);
-  showPage('main');
+function showMnemonic() {
+  let p = $('pwd_mn_export').value;
+  if (p !== wallet.password) return alert("密码错误");
+  $("mn_result").style.display = "block";
+  $("mn_result").innerText = wallet.mnemonic;
+}
+
+function showPrivateKey() {
+  let p = $('pwd_pk_export').value;
+  if (p !== wallet.password) return alert("密码错误");
+  $("pk_result").style.display = "block";
+  $("pk_result").innerText = wallet.privateKey;
 }
 
 function reverseSwap() {
-  const f = $('swap_from').value;
-  const t = $('swap_to').value;
+  let f = $('swap_from').value, t = $('swap_to').value;
   $('swap_from').value = t;
   $('swap_to').value = f;
-}
-
-function swapAction() {
-  const f = $('swap_from').value;
-  const t = $('swap_to').value;
-  const amt = $('swap_from_amt').value;
-  if (!amt) return alert("请输入数量");
-  $('swap_to_amt').value = (Number(amt) * 1.0).toFixed(4);
-  alert("兑换成功：" + f + " → " + t);
-  showPage('main');
 }
 
 showPage('welcome');
