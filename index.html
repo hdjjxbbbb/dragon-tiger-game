@@ -2,67 +2,72 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>威威虎钱包</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>威威虎高级钱包</title>
+<!-- 引入 BIP39 标准库 -->
+<script src="https://cdn.jsdelivr.net/npm/bip39@3.1.0/dist/bip39.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethereum-cryptography/keccak.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethereum-cryptography/hdkey.js"></script>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:system-ui,sans-serif;background:#0B0E1F;color:#fff;max-width:420px;margin:0 auto;padding:24px}
+  body{background:#0B0E1F;color:#fff;font-family:system-ui,sans-serif;max-width:420px;margin:0 auto;padding:24px}
   .card{background:#1A1F3A;border-radius:18px;padding:20px;margin:15px 0}
-  .logo{text-align:center;margin:60px 0 40px}
+  .logo{text-align:center;margin:40px 0}
   .logo-text{font-size:32px;font-weight:800;color:#FFB81C}
-  .slogan{color:#999;margin-top:8px}
   button{width:100%;padding:18px;border-radius:16px;border:none;background:#FFB81C;color:#000;font-size:16px;font-weight:600;margin:10px 0}
   .btn-outline{background:transparent;color:#FFB81C;border:1px solid #FFB81C}
-  input{width:100%;padding:16px;border-radius:16px;background:#222;border:none;color:#fff;margin-top:12px}
   #result{background:#222;padding:16px;border-radius:16px;margin-top:20px;white-space:pre-wrap;font-size:13px;line-height:1.6}
 </style>
 </head>
-
 <body>
 
 <div class="logo">
   <div class="logo-text">威威虎 Wallet</div>
-  <div class="slogan">安全非托管多链钱包</div>
+  <div>高级非托管多链钱包</div>
 </div>
 
-<button onclick="createWallet()">创建新钱包</button>
-<button class="btn-outline" onclick="importMnemonic()">导入助记词</button>
-
-<input id="mnInput" placeholder="输入助记词">
+<button onclick="createAdvancedWallet()">创建高级钱包（BIP39）</button>
+<button class="btn-outline" onclick="importAdvancedWallet()">导入助记词</button>
+<input id="mnInput" placeholder="输入12/24个助记词" style="width:100%;padding:16px;border-radius:16px;background:#222;border:none;color:#fff;margin-top:12px">
 <div id="result"></div>
 
 <script>
-// 真正的随机助记词生成（本地可用，不需要网络）
-function createWallet() {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  let mnemonic = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-  mnemonic = mnemonic.match(/.{1,11}/g).join(' ').slice(0, 48);
-
-  const addr = "0x" + Array.from(crypto.getRandomValues(new Uint8Array(20)))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+// 高级版：标准 BIP39 助记词 + 派生地址
+async function createAdvancedWallet() {
+  // 生成 128 位熵 → 12 个助记词（BIP39 标准）
+  const mnemonic = bip39.generateMnemonic(128);
+  // 生成种子
+  const seed = await bip39.mnemonicToSeed(mnemonic);
+  // 派生 ETH 地址（BIP44 路径）
+  const hdKey = HDKey.fromMasterSeed(seed);
+  const wallet = hdKey.derive("m/44'/60'/0'/0/0");
+  const addr = "0x" + keccak256(wallet.publicKey.slice(1)).slice(-20).toString('hex');
 
   document.getElementById('result').innerText = `
-✅ 创建成功
+✅ 高级钱包创建成功（BIP39 标准）
 地址：${addr}
-助记词（请备份）：
+助记词（请务必备份）：
 ${mnemonic}
+⚠️ 此助记词可导入任何主流钱包（MetaMask/TP/Trust）
 `;
 }
 
-// 导入助记词（简单验证）
-function importMnemonic() {
+// 导入 BIP39 助记词
+async function importAdvancedWallet() {
   const val = document.getElementById('mnInput').value.trim();
-  if (!val || val.split(' ').length < 10) {
-    alert('助记词格式不正确');
+  if (!bip39.validateMnemonic(val)) {
+    alert('助记词格式错误（非 BIP39 标准）');
     return;
   }
+  const seed = await bip39.mnemonicToSeed(val);
+  const hdKey = HDKey.fromMasterSeed(seed);
+  const wallet = hdKey.derive("m/44'/60'/0'/0/0");
+  const addr = "0x" + keccak256(wallet.publicKey.slice(1)).slice(-20).toString('hex');
+
   document.getElementById('result').innerText = `
-✅ 导入成功
-助记词：${val}
+✅ 导入成功（BIP39 标准）
+地址：${addr}
 `;
 }
 </script>
-
 </body>
 </html>
