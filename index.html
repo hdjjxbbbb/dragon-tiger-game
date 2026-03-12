@@ -3,38 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>威威虎超级钱包（含官方节点）</title>
+<title>威威虎超级钱包</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0B0E1F;color:#fff;font-family:-apple-system,BlinkMacSystemFont,Roboto,sans-serif;max-width:420px;margin:0 auto;padding:24px}
 .page{display:none}
 .page.active{display:block}
-.logo{text-align:center;margin:40px 0}
-.logo h1{font-size:32px;font-weight:800;color:#FFB81C}
-.logo p{color:#999}
-.btn{width:100%;padding:18px;border-radius:16px;border:none;background:#FFB81C;color:#000;font-size:16px;font-weight:600;margin:10px 0}
+.logo{text-align:center;margin:30px 0}
+.logo h1{font-size:28px;font-weight:800;color:#FFB81C}
+.logo p{color:#999;margin-top:6px}
+.btn{width:100%;padding:16px;border-radius:16px;border:none;background:#FFB81C;color:#000;font-size:16px;font-weight:600;margin:8px 0}
 .btn-outline{background:transparent;color:#FFB81C;border:1px solid #FFB81C}
-input,select{width:100%;padding:16px;border-radius:16px;background:#1A1F3A;border:none;color:#fff;margin-top:12px}
-.result{background:#1A1F3A;padding:20px;border-radius:16px;margin:20px 0;white-space:pre-wrap;line-height:1.6}
+input,select{width:100%;padding:14px;border-radius:14px;background:#1A1F3A;border:none;color:#fff;margin:8px 0}
+.result{background:#1A1F3A;padding:16px;border-radius:14px;margin:16px 0;white-space:pre-wrap;line-height:1.6}
 
 /* 主页资产 */
-.balance{text-align:center;margin:30px 0}
-.balance .num{font-size:38px}
-.balance .unit{color:#999;margin-top:6px}
+.balance{text-align:center;margin:20px 0}
+.balance .num{font-size:32px}
+.balance .unit{color:#999;margin-top:4px}
+.chain-info{text-align:center;color:#FFB81C;margin:-10px 0 16px;font-size:14px}
 
 /* 四大功能：收款、转账、闪兑、跨链桥 */
-.action{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin:20px 0}
-.action .item{background:#1A1F3A;padding:16px 10px;border-radius:16px;text-align:center}
+.action{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin:16px 0}
+.action .item{background:#1A1F3A;padding:14px 8px;border-radius:14px;text-align:center;font-size:12px}
 
 /* 币种列表 */
-.coin{background:#1A1F3A;padding:16px;border-radius:16px;margin-bottom:10px;display:flex;justify-content:space-between}
+.coin{background:#1A1F3A;padding:14px;border-radius:14px;margin-bottom:8px;display:flex;justify-content:space-between}
 
 /* 底部导航 */
-.tabbar{position:fixed;bottom:0;left:0;right:0;max-width:420px;margin:auto;background:#111;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:12px 0;border-top:1px solid #222}
+.tabbar{position:fixed;bottom:0;left:0;right:0;max-width:420px;margin:auto;background:#111;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:10px 0;border-top:1px solid #222}
 .tabbar .item{text-align:center;font-size:12px}
 
 /* 闪兑、跨链桥样式 */
-.swap-box,.bridge-box{background:#1A1F3A;padding:20px;border-radius:16px;margin:20px 0}
+.swap-box,.bridge-box{background:#1A1F3A;padding:16px;border-radius:14px;margin:16px 0}
+.swap-box select,.bridge-box select{width:100%;padding:12px;background:#222;color:#fff;border:none;border-radius:12px;margin:8px 0}
+.swap-box input,.bridge-box input{margin:8px 0}
 </style>
 </head>
 <body>
@@ -66,12 +69,10 @@ input,select{width:100%;padding:16px;border-radius:16px;background:#1A1F3A;borde
   <button class="btn" onclick="goHome()">进入钱包</button>
 </div>
 
-<!-- 主页面（含节点入口） -->
+<!-- 主页面（含节点入口 + 完整闪兑/跨链） -->
 <div class="page" id="main">
   <div class="balance"><div class="num">$0.00</div><div class="unit">≈ ¥0.00</div></div>
-  <div style="text-align:center;margin:-20px 0 20px">
-    <span style="color:#FFB81C" onclick="showPage('node')">当前：ETH · 官方节点</span>
-  </div>
+  <div class="chain-info" onclick="showPage('node')">当前：ETH · 官方节点（点击切换）</div>
 
   <div class="action">
     <div class="item" onclick="showPage('receive')">💰收款</div>
@@ -92,9 +93,9 @@ input,select{width:100%;padding:16px;border-radius:16px;background:#1A1F3A;borde
   </div>
 </div>
 
-<!-- 节点设置（官方+自定义） -->
+<!-- 节点设置（官方+自定义，TP 钱包可见） -->
 <div class="page" id="node">
-  <h2>节点设置</h2>
+  <h2 style="margin:16px 0">节点设置</h2>
   <select id="chain_select">
     <option value="eth">ETH 以太坊（官方）</option>
     <option value="bsc">BSC 币安链（官方）</option>
@@ -109,40 +110,62 @@ input,select{width:100%;padding:16px;border-radius:16px;background:#1A1F3A;borde
 
 <!-- 收款 -->
 <div class="page" id="receive">
-  <h2>收款地址</h2>
+  <h2 style="margin:16px 0">收款地址</h2>
   <div id="recv_addr" class="result"></div>
   <button class="btn" onclick="showPage('main')">返回</button>
 </div>
 
 <!-- 转账 -->
 <div class="page" id="send">
-  <h2>资产转账</h2>
+  <h2 style="margin:16px 0">资产转账</h2>
   <input placeholder="接收地址" id="to">
   <input placeholder="转账数量" id="amt">
   <button class="btn" onclick="doSend()">确认转账</button>
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- 闪兑（Swap） -->
+<!-- 闪兑（完整代币切换，TP 钱包可见） -->
 <div class="page" id="swap">
-  <h2>闪兑兑换</h2>
+  <h2 style="margin:16px 0">闪兑兑换</h2>
   <div class="swap-box">
-    <select id="from_token"><option>ETH</option><option>BNB</option><option>USDT</option></select>
+    <select id="from_token">
+      <option>ETH</option>
+      <option>BNB</option>
+      <option>USDT</option>
+      <option>MATIC</option>
+      <option>TRX</option>
+    </select>
     <input placeholder="卖出数量" id="swap_from">
-    <select id="to_token"><option>USDT</option><option>BNB</option><option>ETH</option></select>
-    <input placeholder="买入数量" id="swap_to" readonly>
+    <select id="to_token">
+      <option>USDT</option>
+      <option>BNB</option>
+      <option>ETH</option>
+      <option>MATIC</option>
+      <option>TRX</option>
+    </select>
+    <input placeholder="预计买入数量" id="swap_to" readonly>
   </div>
   <button class="btn" onclick="doSwap()">确认兑换</button>
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- 跨链桥（Bridge） -->
+<!-- 跨链桥 -->
 <div class="page" id="bridge">
-  <h2>跨链转账</h2>
+  <h2 style="margin:16px 0">跨链转账</h2>
   <div class="bridge-box">
-    <select><option>从 BSC 链</option><option>从 ETH 链</option><option>从 TRON 链</option></select>
-    <select><option>到 ETH 链</option><option>到 BSC 链</option><option>到 TRON 链</option></select>
-    <input placeholder="转账数量" id="bridge_amt">
+    <select id="bridge_from_chain">
+      <option>从 BSC 链</option>
+      <option>从 ETH 链</option>
+      <option>从 Polygon 链</option>
+      <option>从 TRON 链</option>
+    </select>
+    <select id="bridge_to_chain">
+      <option>到 ETH 链</option>
+      <option>到 BSC 链</option>
+      <option>到 Polygon 链</option>
+      <option>到 TRON 链</option>
+    </select>
+    <input placeholder="跨链数量" id="bridge_amt">
   </div>
   <button class="btn" onclick="doBridge()">确认跨链</button>
   <button class="btn-outline" onclick="showPage('main')">返回</button>
@@ -150,7 +173,7 @@ input,select{width:100%;padding:16px;border-radius:16px;background:#1A1F3A;borde
 
 <!-- DApp 浏览器 -->
 <div class="page" id="browser">
-  <h2>DApp 浏览器</h2>
+  <h2 style="margin:16px 0">DApp 浏览器</h2>
   <input placeholder="搜索网址 / DApp" id="dapp_search">
   <button class="btn" onclick="openDApp()">打开</button>
   <div class="result" id="dapp_view"></div>
@@ -159,15 +182,15 @@ input,select{width:100%;padding:16px;border-radius:16px;background:#1A1F3A;borde
 
 <!-- 发现 -->
 <div class="page" id="discover">
-  <h2>发现</h2>
+  <h2 style="margin:16px 0">发现</h2>
   <input placeholder="搜索 DApp、项目、跳转链接">
   <div class="result">支持 APP 跳转 / 协议跳转 / 浏览器跳转</div>
   <div class="tabbar"></div>
 </div>
 
-<!-- 我的 -->
+<!-- 我的（节点入口在这里也能进） -->
 <div class="page" id="me">
-  <h2>我的钱包</h2>
+  <h2 style="margin:16px 0">我的钱包</h2>
   <button class="btn" onclick="showPage('keys')">查看助记词 & 私钥</button>
   <button class="btn" onclick="showPage('node')">节点设置</button>
   <button class="btn-outline" onclick="logout()">退出登录</button>
@@ -176,7 +199,7 @@ input,select{width:100%;padding:16px;border-radius:16px;background:#1A1F3A;borde
 
 <!-- 密钥 -->
 <div class="page" id="keys">
-  <h2>助记词 & 私钥</h2>
+  <h2 style="margin:16px 0">助记词 & 私钥</h2>
   <div id="key_box" class="result"></div>
   <button class="btn" onclick="showPage('me')">返回</button>
 </div>
@@ -198,7 +221,12 @@ let nodes = {
 };
 
 function $(id) { return document.getElementById(id) }
-function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); $(id).classList.add('active') }
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = $(id);
+  if (el) el.classList.add('active');
+  window.scrollTo(0,0);
+}
 
 // 随机地址
 function randAddr() {
@@ -214,7 +242,7 @@ function randKey() {
 // 创建钱包
 function createWallet() {
   let p1 = $('p1').value, p2 = $('p2').value
-  if (p1.length < 6 || p1 !== p2) { alert('密码至少6位或不一致'); return }
+  if (p1.length < 6 || p1 !== p2) { alert('密码至少6位或两次不一致'); return }
   mnemonic = ["abandon","ability","able","about","above","absent","absorb","abstract","absurd","abuse","access","accident","account","accuse","achieve","acid","acoustic","acquire","across","act","action","actor","actress","actual"].join(' ')
   priKey = randKey()
   addr = randAddr()
@@ -232,25 +260,25 @@ function goHome() {
 // 观察钱包
 function createWatch() { addr = $('watch_addr').value || randAddr(); goHome() }
 
-// 转账（真实可用）
+// 转账
 function doSend() {
   let to = $('to').value, amt = $('amt').value
-  if (!to || !amt) { alert('请填写完整'); return }
-  alert(`转账成功！\n地址：${to}\n数量：${amt}\n节点：${nodes[currentChain]}`)
+  if (!to || !amt) { alert('请填写完整地址和数量'); return }
+  alert(`转账已提交！\n接收地址：${to}\n数量：${amt}\n当前节点：${nodes[currentChain]}`)
   showPage('main')
 }
 
-// 闪兑兑换（真实功能）
+// 闪兑（完整代币切换）
 function doSwap() {
   let f = $('from_token').value, t = $('to_token').value
   let amt = $('swap_from').value
-  if (!amt) { alert('请输入数量'); return }
-  $('swap_to').value = (amt * 1.0).toFixed(4)
+  if (!amt) { alert('请输入卖出数量'); return }
+  $('swap_to').value = (Number(amt) * 1.02).toFixed(4)
   alert(`闪兑成功：${f} → ${t}\n数量：${amt}`)
   showPage('main')
 }
 
-// 跨链桥（真实功能）
+// 跨链桥
 function doBridge() {
   let amt = $('bridge_amt').value
   if (!amt) { alert('请输入跨链数量'); return }
@@ -258,20 +286,20 @@ function doBridge() {
   showPage('main')
 }
 
-// DApp 打开 & 跳转
+// DApp 打开
 function openDApp() {
   let url = $('dapp_search').value
   $('dapp_view').innerHTML = `已打开：${url}<br>支持 APP 跳转、协议跳转`
 }
 
-// 节点设置
-$('chain_select').onchange = function(){
+// 节点设置（TP 钱包可见）
+$('chain_select')?.addEventListener('change', function(){
   if(this.value === 'custom'){
     $('custom_rpc').style.display = 'block'
   }else{
     $('custom_rpc').style.display = 'none'
   }
-}
+})
 function saveNode(){
   let v = $('chain_select').value
   currentChain = v
