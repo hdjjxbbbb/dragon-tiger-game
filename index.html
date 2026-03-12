@@ -1,188 +1,61 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>DQM质押挖矿</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/particles.js/particles.min.js"></script>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
-    }
-    body {
-      background: #050814;
-      color: #fff;
-      padding: 20px;
-      touch-action: manipulation;
-    }
-    #particles {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-    }
-    .container {
-      max-width: 480px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-    .title {
-      font-size: 22px;
-      font-weight: 700;
-      text-align: center;
-      margin: 10px 0 20px;
-      color: #00e0ff;
-    }
-    .project-desc {
-      background: rgba(255,255,255,0.04);
-      border-radius: 16px;
-      padding: 16px;
-      font-size: 13px;
-      line-height: 1.6;
-      color: #ccc;
-      margin-bottom: 16px;
-      text-align: left;
-    }
-    .btn-connect {
-      width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      background: linear-gradient(90deg, #00e0ff, #9d5fff);
-      color: #000;
-      font-weight: 700;
-      border: none;
-      margin-bottom: 16px;
-    }
-    .card {
-      background: rgba(255,255,255,0.04);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 16px;
-    }
-    .ca-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-    }
-    .row {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-    .label {
-      color: #ccc;
-    }
-    .value {
-      color: #fff;
-      font-weight: 600;
-    }
-    .input {
-      width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
-      color: #fff;
-      margin: 10px 0;
-    }
-    .btn-group {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    .btn {
-      flex: 1;
-      padding: 14px;
-      border-radius: 12px;
-      font-weight: 700;
-      border: none;
-    }
-    .btn-primary {
-      background: #00e0ff;
-      color: #000;
-    }
-    .btn-normal {
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-    }
-    .btn-claim {
-      background: #ff9f43;
-      color: #fff;
-    }
-    .admin-card {
-      background: rgba(255,86,153,0.06);
-      border: 1px solid rgba(255,86,153,0.2);
-      border-radius: 16px;
-      padding: 20px;
-      margin-top: 20px;
-      display: none;
-    }
-    .admin-title {
-      color: #ff5699;
-      font-weight: 700;
-      margin-bottom: 12px;
-    }
-    .btn-danger {
-      background: #ff5699;
-      color: #fff;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>DQM 单币质押挖矿</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/particles.js/particles.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;}
+body{background:#050814;color:#fff;padding:20px;touch-action:manipulation;}
+#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
+.container{max-width:480px;margin:0 auto;position:relative;z-index:1;}
+.title{font-size:22px;font-weight:700;text-align:center;margin:10px 0 20px;color:#00e0ff;}
+.project-desc{background:rgba(255,255,255,0.04);border-radius:16px;padding:16px;font-size:13px;line-height:1.6;color:#ccc;margin-bottom:16px;text-align:left;}
+.btn-connect{width:100%;padding:14px;border-radius:12px;background:linear-gradient(90deg,#00e0ff,#9d5fff);color:#000;font-weight:700;border:none;margin-bottom:16px;}
+.card{background:rgba(255,255,255,0.04);border-radius:16px;padding:20px;margin-bottom:16px;}
+.ca-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;}
+.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.label{color:#ccc;}
+.value{color:#fff;font-weight:600;}
+.input{width:100%;padding:14px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff;margin:10px 0;}
+.btn-group{display:flex;gap:10px;margin-top:10px;}
+.btn{flex:1;padding:14px;border-radius:12px;font-weight:700;border:none;}
+.btn-primary{background:#00e0ff;color:#000;}
+.btn-normal{background:rgba(255,255,255,0.1);color:#fff;}
+.btn-claim{background:#ff9f43;color:#fff;}
+.admin-card{background:rgba(255,86,153,0.06);border:1px solid rgba(255,86,153,0.2);border-radius:16px;padding:20px;margin-top:20px;display:none;}
+.admin-title{color:#ff5699;font-weight:700;margin-bottom:12px;}
+.btn-danger{background:#ff5699;color:#fff;}
+</style>
 </head>
 <body>
-
 <div id="particles"></div>
-
 <div class="container">
-  <h3 class="title">DQM 质押挖矿</h3>
-
+  <h3 class="title">DQM 单币质押挖矿</h3>
   <div class="project-desc">
     DQM（大秦梦）是面向未来数字经济打造的核心生态通证，由大秦梦生态联盟共同推动建设。项目以实体产业、数字资产与全球共享经济为基础，构建集产业赋能、消费流通、价值共识、社区治理于一体的开放型生态网络。<br><br>
     大秦梦酒文化庄园是 DQM 生态体系的重要实体基石，以中华千年酒文化为核心，融合现代庄园经济与数字生态理念，打造集酒文化体验、生态农业、品牌消费、休闲度假与数字资产应用于一体的综合型文化庄园。
   </div>
-
   <button class="btn-connect" id="connectBtn" onclick="connect()">连接钱包</button>
-
   <div class="card ca-row">
-    <div style="color:#ccc;">合约地址</div>
-    <div style="font-family: monospace;">0x366625D6...7659</div>
+    <div style="color:#ccc;">DQM 合约地址</div>
+    <div style="font-family:monospace;">0x366625D6...7659</div>
     <button onclick="copyCa()" style="padding:6px 10px;border-radius:8px;background:#00e0ff;color:#000;border:none;">复制</button>
   </div>
-
   <div class="card">
-    <div class="row">
-      <div class="label">钱包地址</div>
-      <div class="value" id="addr">-</div>
-    </div>
-    <div class="row">
-      <div class="label">DQM 余额</div>
-      <div class="value" id="bal">0.0000</div>
-    </div>
-    <div class="row">
-      <div class="label">已质押</div>
-      <div class="value" id="staked">0.0000</div>
-    </div>
-    <div class="row">
-      <div class="label">待领取</div>
-      <div class="value" id="pending">0.0000</div>
-    </div>
+    <div class="row"><div class="label">钱包地址</div><div class="value" id="addr">-</div></div>
+    <div class="row"><div class="label">DQM 余额</div><div class="value" id="bal">0.0000</div></div>
+    <div class="row"><div class="label">已质押</div><div class="value" id="staked">0.0000</div></div>
+    <div class="row"><div class="label">待领取</div><div class="value" id="pending">0.0000</div></div>
   </div>
-
   <input class="input" id="amt" placeholder="输入质押/解押数量" type="number">
   <div class="btn-group">
     <button class="btn btn-primary" onclick="stake()">质押</button>
     <button class="btn btn-normal" onclick="unstake()">解押</button>
     <button class="btn btn-claim" onclick="claim()">领取</button>
   </div>
-
   <div class="admin-card" id="adminPanel">
     <div class="admin-title">🔑 庄家管理后台</div>
     <input class="input" id="withAmt" placeholder="输入提取数量">
@@ -191,25 +64,17 @@
 </div>
 
 <script>
-window.addEventListener('load', function(){
+window.addEventListener('load',function(){
   particlesJS('particles',{
-    particles:{
-      number:{value:60},
-      color:{value:"#00e0ff"},
-      shape:{type:"circle"},
-      opacity:{value:0.4},
-      size:{value:2},
-      line_linked:{enable:true,distance:150,color:"#00e0ff",opacity:0.2,width:1},
-      move:{enable:true,speed:1}
-    }
+    particles:{number:{value:60},color:{value:"#00e0ff"},shape:{type:"circle"},opacity:{value:0.4},size:{value:2},line_linked:{enable:true,distance:150,color:"#00e0ff",opacity:0.2,width:1},move:{enable:true,speed:1}}
   })
 })
 
 const CONFIG = {
-  CONTRACT: "0x24e5758addef7d9d9af0901e35af28818f3b72b",
-  TOKEN:    "0x366625D61063de6A719E85Fff6a9159fb3787659",
-  ADMIN:    "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508",
-  CHAIN:    56
+  CONTRACT: "0x24e5758addef7d9d9af0901e35af28818f3b72b", // 质押合约（保留你原来的）
+  TOKEN:    "0x366625D61063de6A719E85Fff6a9159fb3787659", // DQM 代币地址
+  ADMIN:    "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508", // 管理员地址
+  CHAIN:    56 // BSC 主网
 };
 
 const ABI = [
@@ -228,8 +93,7 @@ const ERC20 = [
 ];
 
 let signer, user, contract, token;
-const decimals = 18;
-let lastBalance = "0.0000"; // 缓存余额，避免闪烁
+const decimals = 18; // 和你双币页一样固定 18 位
 
 async function connect() {
   if (!window.ethereum) return alert("请在钱包内打开");
@@ -239,6 +103,7 @@ async function connect() {
     signer = await p.getSigner();
     user = await signer.getAddress();
 
+    // 完全沿用你双币页的初始化顺序：先代币，后合约
     token = new ethers.Contract(CONFIG.TOKEN, ERC20, signer);
     contract = new ethers.Contract(CONFIG.CONTRACT, ABI, signer);
 
@@ -256,15 +121,14 @@ async function start() {
   if (!user) return;
   document.getElementById("addr").innerText = user.slice(0,6) + "..." + user.slice(-4);
   load();
-  setInterval(load, 5000); // 5秒刷新一次，减少节点压力
+  setInterval(load, 3000); // 和你双币页一样 3 秒刷新
 }
 
 async function load() {
   if (!user || !token) return;
   try {
     const balance = await token.balanceOf(user);
-    lastBalance = ethers.formatUnits(balance, decimals);
-    document.getElementById("bal").innerText = lastBalance;
+    document.getElementById("bal").innerText = ethers.formatUnits(balance, decimals);
 
     if (contract) {
       const info = await contract.userInfo(user);
@@ -274,33 +138,20 @@ async function load() {
     }
   } catch (e) {
     console.error("读取失败:", e);
-    document.getElementById("bal").innerText = lastBalance; // 失败时保留旧值
   }
 }
 
-// 修复：强制先授权，再质押，确保弹出授权窗口
+// 质押：和你双币页逻辑完全一样
 async function stake() {
   const amount = document.getElementById("amt").value;
   if (!amount || Number(amount) <= 0) return alert("请输入有效数量");
-  
   try {
-    // 第一步：授权
-    const approveTx = await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
-    alert("请在钱包中确认授权，授权完成后将自动质押");
-    await approveTx.wait();
-    alert("授权成功，正在执行质押...");
-
-    // 第二步：质押
-    const stakeTx = await contract.stake(ethers.parseUnits(amount, decimals));
-    await stakeTx.wait();
-    alert("质押成功！");
+    await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
+    await contract.stake(ethers.parseUnits(amount, decimals));
+    alert("质押成功");
     load();
   } catch (e) {
-    if (e.message.includes("missing revert data") || e.message.includes("user rejected")) {
-      alert("质押失败：请检查授权是否完成、质押数量是否符合要求，或联系项目方确认合约状态");
-    } else {
-      alert("质押失败：" + e.message);
-    }
+    alert("质押失败：" + e.message);
   }
 }
 
@@ -308,8 +159,7 @@ async function unstake() {
   const amount = document.getElementById("amt").value;
   if (!amount || Number(amount) <= 0) return alert("请输入有效数量");
   try {
-    const tx = await contract.unstake(ethers.parseUnits(amount, decimals));
-    await tx.wait();
+    await contract.unstake(ethers.parseUnits(amount, decimals));
     alert("解押成功");
     load();
   } catch (e) {
@@ -319,8 +169,7 @@ async function unstake() {
 
 async function claim() {
   try {
-    const tx = await contract.claim();
-    await tx.wait();
+    await contract.claim();
     alert("领取成功");
     load();
   } catch (e) {
@@ -332,8 +181,7 @@ async function withdraw() {
   const amount = document.getElementById("withAmt").value;
   if (!amount || Number(amount) <= 0) return alert("请输入提取数量");
   try {
-    const tx = await contract.adminWithdraw(ethers.parseUnits(amount, decimals));
-    await tx.wait();
+    await contract.adminWithdraw(ethers.parseUnits(amount, decimals));
     alert("提取成功！");
     load();
   } catch (e) {
