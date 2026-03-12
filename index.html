@@ -206,10 +206,10 @@ window.addEventListener('load', function(){
 })
 
 const CONFIG = {
-  CONTRACT: "0x24e5758addef7d9d9af0901e35af28818f3b72b", // 质押合约（必须保留）
-  TOKEN:    "0x366625D61063de6A719E85Fff6a9159fb3787659", // DQM代币合约
-  ADMIN:    "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508", // 管理员地址
-  CHAIN:    56 // BSC主网
+  CONTRACT: "0x24e5758addef7d9d9af0901e35af28818f3b72b",
+  TOKEN:    "0x366625D61063de6A719E85Fff6a9159fb3787659",
+  ADMIN:    "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508",
+  CHAIN:    56
 };
 
 const ABI = [
@@ -228,7 +228,8 @@ const ERC20 = [
 ];
 
 let signer, user, contract, token;
-const decimals = 18; // 强制固定18位小数，和双币页一致
+const decimals = 18;
+let lastBalance = "0.0000"; // 缓存余额，避免闪烁
 
 async function connect() {
   if (!window.ethereum) return alert("请在钱包内打开");
@@ -238,7 +239,6 @@ async function connect() {
     signer = await p.getSigner();
     user = await signer.getAddress();
 
-    // 严格按双币页顺序初始化：先代币，后合约
     token = new ethers.Contract(CONFIG.TOKEN, ERC20, signer);
     contract = new ethers.Contract(CONFIG.CONTRACT, ABI, signer);
 
@@ -256,14 +256,15 @@ async function start() {
   if (!user) return;
   document.getElementById("addr").innerText = user.slice(0,6) + "..." + user.slice(-4);
   load();
-  setInterval(load, 2000); // 2秒刷新一次，和双币页一致
+  setInterval(load, 5000); // 5秒刷新一次，减少节点压力
 }
 
 async function load() {
   if (!user || !token) return;
   try {
     const balance = await token.balanceOf(user);
-    document.getElementById("bal").innerText = ethers.formatUnits(balance, decimals);
+    lastBalance = ethers.formatUnits(balance, decimals);
+    document.getElementById("bal").innerText = lastBalance;
 
     if (contract) {
       const info = await contract.userInfo(user);
@@ -273,19 +274,29 @@ async function load() {
     }
   } catch (e) {
     console.error("读取失败:", e);
-    document.getElementById("bal").innerText = "加载中...";
+    document.getElementById("bal").innerText = lastBalance; // 失败时保留旧值
   }
 }
 
+// 修复：强制先授权，再质押，确保弹出授权窗口
 async function stake() {
   const amount = document.getElementById("amt").value;
   if (!amount || Number(amount) <= 0) return alert("请输入有效数量");
+  
   try {
-    await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
-    await contract.stake(ethers.parseUnits(amount, decimals));
-    alert("质押成功");
+    // 第一步：授权
+    const approveTx = await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
+    alert("请在钱包中确认授权，授权完成后将自动质押");
+    await approveTx.wait();
+    alert("授权成功，正在执行质押...");
+
+    // 第二步：质押
+    const stakeTx = await contract.stake(ethers.parseUnits(amount, decimals));
+    await stakeTx.wait();
+    alert("质押成功！");
+    load();
   } catch (e) {
-    if (e.message.includes("missing revert data")) {
+    if (e.message.includes("missing revert data") || e.message.includes("user rejected")) {
       alert("质押失败：请检查授权是否完成、质押数量是否符合要求，或联系项目方确认合约状态");
     } else {
       alert("质押失败：" + e.message);
@@ -297,8 +308,10 @@ async function unstake() {
   const amount = document.getElementById("amt").value;
   if (!amount || Number(amount) <= 0) return alert("请输入有效数量");
   try {
-    await contract.unstake(ethers.parseUnits(amount, decimals));
+    const tx = await contract.unstake(ethers.parseUnits(amount, decimals));
+    await tx.wait();
     alert("解押成功");
+    load();
   } catch (e) {
     alert("解押失败：" + e.message);
   }
@@ -306,8 +319,10 @@ async function unstake() {
 
 async function claim() {
   try {
-    await contract.claim();
+    const tx = await contract.claim();
+    await tx.wait();
     alert("领取成功");
+    load();
   } catch (e) {
     alert("领取失败：" + e.message);
   }
@@ -317,8 +332,10 @@ async function withdraw() {
   const amount = document.getElementById("withAmt").value;
   if (!amount || Number(amount) <= 0) return alert("请输入提取数量");
   try {
-    await contract.adminWithdraw(ethers.parseUnits(amount, decimals));
+    const tx = await contract.adminWithdraw(ethers.parseUnits(amount, decimals));
+    await tx.wait();
     alert("提取成功！");
+    load();
   } catch (e) {
     alert("提取失败：" + e.message);
   }
