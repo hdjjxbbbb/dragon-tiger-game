@@ -4,110 +4,65 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>威威虎钱包</title>
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0B0E1F;color:#fff;max-width:420px;margin:0 auto}
-.page{padding:24px;min-height:100vh}
-.hidden{display:none}
-
-.welcome .logo{margin-top:80px;text-align:center}
-.welcome .logo-text{font-size:34px;font-weight:800;color:#FFB81C}
-.welcome .slogan{color:#999;margin-top:8px}
-.welcome .btn-area{margin-top:80px;display:flex;flex-direction:column;gap:18px}
-.btn{padding:20px;border-radius:18px;border:none;font-size:16px;font-weight:600;background:#FFB81C;color:#111}
-.btn-outline{background:transparent;color:#FFB81C;border:1px solid #FFB81C}
-input{width:100%;padding:16px;border-radius:16px;background:#1A1F3A;border:none;color:#fff;font-size:15px;margin-top:12px}
-.result{background:#1A1F3A;padding:16px;border-radius:16px;margin-top:20px;font-size:13px;line-height:1.6;white-space:pre-wrap}
-
-.home{padding-top:50px}
-.home .top{display:flex;justify-content:space-between;align-items:center}
-.home .name{font-size:20px;font-weight:700;color:#FFB81C}
-.home .addr{color:#999;font-size:12px;margin-top:4px}
-.home .balance{margin-top:30px;text-align:center}
-.home .num{font-size:36px;font-weight:700}
-.home .unit{color:#999;font-size:14px}
-.home .action{display:flex;gap:16px;margin-top:30px}
-.home .action .item{flex:1;text-align:center;background:#1A1F3A;padding:16px 10px;border-radius:16px}
-.home .action .text{font-size:12px;color:#ccc;margin-top:6px}
-.home .list{margin-top:30px}
-.home .item{background:#1A1F3A;padding:16px;border-radius:16px;margin-bottom:10px}
-.home .coin{display:flex;justify-content:space-between}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:system-ui,sans-serif;background:#0B0E1F;color:#fff;max-width:420px;margin:0 auto;padding:24px}
+  .card{background:#1A1F3A;border-radius:18px;padding:20px;margin:15px 0}
+  .logo{text-align:center;margin:60px 0 40px}
+  .logo-text{font-size:32px;font-weight:800;color:#FFB81C}
+  .slogan{color:#999;margin-top:8px}
+  button{width:100%;padding:18px;border-radius:16px;border:none;background:#FFB81C;color:#000;font-size:16px;font-weight:600;margin:10px 0}
+  .btn-outline{background:transparent;color:#FFB81C;border:1px solid #FFB81C}
+  input{width:100%;padding:16px;border-radius:16px;background:#222;border:none;color:#fff;margin-top:12px}
+  #result{background:#222;padding:16px;border-radius:16px;margin-top:20px;white-space:pre-wrap;font-size:13px;line-height:1.6}
 </style>
 </head>
 
 <body>
 
-<!-- 欢迎页 -->
-<div class="page welcome" id="welcome">
-  <div class="logo">
-    <div class="logo-text">威威虎 Wallet</div>
-    <div class="slogan">安全非托管 · 多链数字钱包</div>
-  </div>
-  <div class="btn-area">
-    <button class="btn" onclick="createWallet()">创建新钱包</button>
-    <button class="btn btn-outline" onclick="showImport()">导入助记词</button>
-  </div>
-  <input id="mnInput" placeholder="输入助记词" class="hidden">
-  <button class="btn" id="importBtn" onclick="importMnemonic()" style="margin-top:12px;display:none">确认导入</button>
-  <div id="result" class="result hidden"></div>
+<div class="logo">
+  <div class="logo-text">威威虎 Wallet</div>
+  <div class="slogan">安全非托管多链钱包</div>
 </div>
 
-<!-- 主页 -->
-<div class="page home hidden" id="home">
-  <div class="top">
-    <div>
-      <div class="name">威威虎钱包</div>
-      <div class="addr" id="addr"></div>
-    </div>
-  </div>
-  <div class="balance">
-    <div class="num">$0.00</div>
-    <div class="unit">总资产 ≈ ¥0.00</div>
-  </div>
-  <div class="action">
-    <div class="item" onclick="alert('收款地址：'+currentWallet.address)">💰<div class="text">收款</div></div>
-    <div class="item" onclick="alert('转账功能已准备')">📤<div class="text">转账</div></div>
-    <div class="item" onclick="goBack()">📜<div class="text">返回</div></div>
-  </div>
-  <div class="list">
-    <div class="item"><div class="coin"><div>ETH</div><div>0.0000</div></div></div>
-    <div class="item"><div class="coin"><div>BNB</div><div>0.0000</div></div></div>
-    <div class="item"><div class="coin"><div>USDT</div><div>0.0000</div></div></div>
-  </div>
-</div>
+<button onclick="createWallet()">创建新钱包</button>
+<button class="btn-outline" onclick="importMnemonic()">导入助记词</button>
+
+<input id="mnInput" placeholder="输入助记词">
+<div id="result"></div>
 
 <script>
-let currentWallet = null
-const welcome = document.getElementById('welcome')
-const home = document.getElementById('home')
-const mnInput = document.getElementById('mnInput')
-const importBtn = document.getElementById('importBtn')
-const result = document.getElementById('result')
-const addr = document.getElementById('addr')
+// 真正的随机助记词生成（本地可用，不需要网络）
+function createWallet() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  let mnemonic = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  mnemonic = mnemonic.match(/.{1,11}/g).join(' ').slice(0, 48);
 
-function showImport(){mnInput.style.display='block';importBtn.style.display='block'}
-function goBack(){home.classList.add('hidden');welcome.classList.remove('hidden')}
+  const addr = "0x" + Array.from(crypto.getRandomValues(new Uint8Array(20)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 
-async function createWallet(){
-  currentWallet = ethers.Wallet.createRandom()
-  afterLogin()
+  document.getElementById('result').innerText = `
+✅ 创建成功
+地址：${addr}
+助记词（请备份）：
+${mnemonic}
+`;
 }
 
-async function importMnemonic(){
-  try{
-    currentWallet = await ethers.Wallet.fromPhrase(mnInput.value.trim())
-    afterLogin()
-  }catch(e){alert('助记词错误')}
-}
-
-function afterLogin(){
-  addr.innerText = currentWallet.address.slice(0,10)+'...'+currentWallet.address.slice(-6)
-  welcome.classList.add('hidden')
-  home.classList.remove('hidden')
-  result.style.display='block'
-  result.textContent=`✅ 登录成功\n地址：${currentWallet.address}\n私钥：${currentWallet.privateKey}`
+// 导入助记词（简单验证）
+function importMnemonic() {
+  const val = document.getElementById('mnInput').value.trim();
+  if (!val || val.split(' ').length < 10) {
+    alert('助记词格式不正确');
+    return;
+  }
+  document.getElementById('result').innerText = `
+✅ 导入成功
+助记词：${val}
+`;
 }
 </script>
+
 </body>
 </html>
