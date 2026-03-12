@@ -3,65 +3,69 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>威威虎超级钱包 - 完整版</title>
+<title>威威虎超级钱包</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif}
-  body{background:#0B0E1F;color:#fff;max-width:420px;margin:0 auto;padding-bottom:80px}
+  body{background:#ffffff;color:#000000;max-width:420px;margin:0 auto;padding-bottom:80px}
   .container{padding:24px}
   .page{display:none}
   .page.active{display:block}
   .logo{text-align:center;margin:30px 0}
-  .logo h1{font-size:26px;color:#FFB81C;font-weight:800}
-  .logo p{color:#aaa;margin-top:6px}
+  .logo h1{font-size:26px;color:#ff6700;font-weight:800}
+  .logo p{color:#666;margin-top:6px}
   input, select, textarea{
-    width:100%;padding:14px 16px;border-radius:14px;background:#1A1F3A;
-    border:none;color:#fff;margin:8px 0;font-size:15px
+    width:100%;padding:14px 16px;border-radius:14px;background:#f5f5f5;
+    border:none;color:#000;margin:8px 0;font-size:15px
   }
   button{
-    width:100%;padding:16px;border-radius:16px;border:none;background:#FFB81C;
-    color:#000;font-size:16px;font-weight:600;margin:8px 0;cursor:pointer
+    width:100%;padding:16px;border-radius:16px;border:none;background:#ff6700;
+    color:#fff;font-size:16px;font-weight:600;margin:8px 0;cursor:pointer
   }
-  .btn-outline{background:transparent;color:#FFB81C;border:1px solid #FFB81C}
+  .btn-outline{background:transparent;color:#ff6700;border:1px solid #ff6700}
   .title{margin-bottom:12px;font-size:18px;font-weight:600}
   .balance-box{text-align:center;margin:20px 0}
   .balance{font-size:34px;font-weight:700}
-  .balance-fiat{color:#aaa;margin-top:4px}
+  .balance-fiat{color:#666;margin-top:4px}
   .chain-tag{
-    display:inline-block;background:#1A1F3A;color:#FFB81C;
+    display:inline-block;background:#f5f5f5;color:#ff6700;
     padding:6px 12px;border-radius:20px;margin:10px 0;font-size:13px
   }
   .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:20px 0}
   .grid-4 .item{
-    background:#1A1F3A;padding:14px 8px;border-radius:14px;
+    background:#f5f5f5;padding:14px 8px;border-radius:14px;
     text-align:center;font-size:12px
   }
   .token-item{
-    background:#1A1F3A;padding:14px 16px;border-radius:12px;margin:8px 0;
+    background:#f5f5f5;padding:14px 16px;border-radius:12px;margin:8px 0;
     display:flex;justify-content:space-between;align-items:center
   }
-  .swap-box{background:#1A1F3A;padding:20px;border-radius:16px;margin:20px 0}
-  .swap-arrow{text-align:center;font-size:24px;color:#FFB81C;margin:10px 0}
-  .bridge-box{background:#1A1F3A;padding:20px;border-radius:16px;margin:20px 0}
+  .swap-box{background:#f5f5f5;padding:20px;border-radius:16px;margin:20px 0}
+  .swap-arrow{text-align:center;font-size:24px;color:#ff6700;margin:10px 0}
+  .bridge-box{background:#f5f5f5;padding:20px;border-radius:16px;margin:20px 0}
   .tabbar{
     position:fixed;bottom:0;left:0;right:0;max-width:420px;margin:auto;
-    background:#111;display:grid;grid-template-columns:repeat(4,1fr);
-    padding:12px 0;border-top:1px solid #222
+    background:#ffffff;display:grid;grid-template-columns:repeat(4,1fr);
+    padding:12px 0;border-top:1px solid #eee
   }
   .tabbar .item{text-align:center;font-size:12px}
   .section{margin:20px 0}
+  .about-info{
+    background:#f5f5f5;padding:20px;border-radius:16px;text-align:center;
+    font-size:16px;font-weight:bold;color:#ff6700;margin:20px 0;line-height:1.8
+  }
+  .tel-link{color:#0066cc;text-decoration:underline;font-weight:bold}
 </style>
 </head>
 <body>
 
 <div class="container">
 
-<!-- ====================== 欢迎页 ====================== -->
+<!-- 欢迎页 -->
 <div class="page active" id="welcome">
   <div class="logo">
     <h1>威威虎超级钱包</h1>
     <p>全链 | 闪兑 | 跨链 | 安全</p>
   </div>
-
   <div class="section">
     <div class="title">选择创建链</div>
     <select id="create_chain_selector">
@@ -75,15 +79,27 @@
       <option value="tron">TRON 波场</option>
     </select>
   </div>
-
   <button onclick="showPage('create')">创建钱包</button>
   <button class="btn-outline" onclick="showPage('import_mn')">导入助记词</button>
   <button class="btn-outline" onclick="showPage('import_key')">导入私钥</button>
   <button class="btn-outline" onclick="showPage('watch_wallet')">观察钱包</button>
   <button class="btn-outline" onclick="showPage('node_list_page')">节点设置</button>
+  <button class="btn-outline" onclick="showPage('about')">关于我们</button>
 </div>
 
-<!-- ====================== 创建钱包 ====================== -->
+<!-- 关于我们 -->
+<div class="page" id="about">
+  <div class="logo"><h1>关于我们</h1></div>
+  <div class="about-info">
+    开发者：龙争VS虎斗<br><br>
+    客服电报：<span class="tel-link" onclick="goToTel()">点击加入客服群</span><br><br>
+    版本：V1.0 完整版<br>
+    支持：全链 | 闪兑 | 跨链 | 导入导出
+  </div>
+  <button class="btn-outline" onclick="showPage('welcome')">返回首页</button>
+</div>
+
+<!-- 创建钱包 -->
 <div class="page" id="create">
   <div class="logo"><h1>创建钱包</h1></div>
   <div class="section">
@@ -94,7 +110,7 @@
   <button class="btn-outline" onclick="showPage('welcome')">返回</button>
 </div>
 
-<!-- ====================== 导入助记词 ====================== -->
+<!-- 导入助记词 -->
 <div class="page" id="import_mn">
   <div class="logo"><h1>导入助记词</h1></div>
   <div class="section">
@@ -106,7 +122,7 @@
   <button class="btn-outline" onclick="showPage('welcome')">返回</button>
 </div>
 
-<!-- ====================== 导入私钥 ====================== -->
+<!-- 导入私钥 -->
 <div class="page" id="import_key">
   <div class="logo"><h1>导入私钥</h1></div>
   <div class="section">
@@ -118,21 +134,19 @@
   <button class="btn-outline" onclick="showPage('welcome')">返回</button>
 </div>
 
-<!-- ====================== 钱包主页 ====================== -->
+<!-- 主页 -->
 <div class="page" id="main">
   <div class="balance-box">
     <div class="balance" id="main_balance">$0.00</div>
     <div class="balance-fiat">≈ ¥0.00</div>
     <div class="chain-tag" id="main_chain" onclick="showPage('node_list_page')">ETH · 点击切换</div>
   </div>
-
   <div class="grid-4">
     <div class="item" onclick="showPage('receive_page')">💰收款</div>
     <div class="item" onclick="showPage('send_page')">📤转账</div>
     <div class="item" onclick="showPage('swap_page')">💱闪兑</div>
     <div class="item" onclick="showPage('bridge_page')">🌉跨链</div>
   </div>
-
   <div class="title">资产</div>
   <div class="token-item"><span>ETH</span> <span>0.0000</span></div>
   <div class="token-item"><span>BNB</span> <span>0.0000</span></div>
@@ -140,14 +154,14 @@
   <div class="token-item"><span>任意代币</span> <span>0.0000</span></div>
 </div>
 
-<!-- ====================== 收款 ====================== -->
+<!-- 收款 -->
 <div class="page" id="receive_page">
   <div class="title">收款地址</div>
   <div class="token-item" id="receive_address">0x...</div>
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- ====================== 转账 ====================== -->
+<!-- 转账 -->
 <div class="page" id="send_page">
   <div class="title">转账</div>
   <input id="send_to" placeholder="接收地址">
@@ -156,7 +170,7 @@
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- ====================== 闪兑 ====================== -->
+<!-- 闪兑 -->
 <div class="page" id="swap_page">
   <div class="title">闪兑兑换</div>
   <div class="swap-box">
@@ -164,9 +178,7 @@
       <option>ETH</option><option>BNB</option><option>USDT</option><option>任意ERC20</option>
     </select>
     <input id="swap_from_amt" placeholder="卖出数量">
-
     <div class="swap-arrow" onclick="reverseSwap()">↑↓</div>
-
     <select id="swap_to">
       <option>USDT</option><option>BNB</option><option>ETH</option><option>任意ERC20</option>
     </select>
@@ -176,7 +188,7 @@
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- ====================== 跨链桥 ====================== -->
+<!-- 跨链 -->
 <div class="page" id="bridge_page">
   <div class="title">跨链桥</div>
   <div class="bridge-box">
@@ -195,7 +207,7 @@
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- ====================== 节点列表 ====================== -->
+<!-- 节点 -->
 <div class="page" id="node_list_page">
   <div class="title">节点管理</div>
   <select id="node_chain_selector">
@@ -207,7 +219,7 @@
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- ====================== 添加节点 ====================== -->
+<!-- 添加节点 -->
 <div class="page" id="add_node_page">
   <div class="title">添加自定义节点</div>
   <input placeholder="节点名称">
@@ -218,7 +230,7 @@
   <button class="btn-outline" onclick="showPage('node_list_page')">返回</button>
 </div>
 
-<!-- ====================== 观察钱包 ====================== -->
+<!-- 观察钱包 -->
 <div class="page" id="watch_wallet">
   <div class="title">观察钱包</div>
   <input placeholder="输入地址">
@@ -226,12 +238,12 @@
   <button class="btn-outline" onclick="showPage('welcome')">返回</button>
 </div>
 
-<!-- ====================== 底部导航 ====================== -->
+<!-- 底部栏 -->
 <div class="tabbar">
   <div class="item" onclick="showPage('main')">钱包</div>
   <div class="item" onclick="showPage('swap_page')">闪兑</div>
   <div class="item" onclick="showPage('bridge_page')">跨链</div>
-  <div class="item" onclick="showPage('welcome')">我的</div>
+  <div class="item" onclick="showPage('about')">关于我们</div>
 </div>
 
 </div>
@@ -252,113 +264,73 @@ function showPage(id) {
   if (el) el.classList.add('active');
 }
 
-// ==============================================
-// 创建钱包（双密码验证）
-// ==============================================
+// 一键跳电报群
+function goToTel() {
+  window.open("https://t.me/share11top/tianlangdingzhi", "_blank");
+}
+
 function createWalletAction() {
   const p1 = $('create_pwd1').value;
   const p2 = $('create_pwd2').value;
-  if (!p1 || !p2 || p1 !== p2) {
-    alert("两次密码不一致");
-    return;
-  }
-  if (p1.length < 6) {
-    alert("密码至少6位");
-    return;
-  }
+  if (!p1 || !p2 || p1 !== p2) return alert("两次密码不一致");
+  if (p1.length < 6) return alert("密码至少6位");
   wallet.mnemonic = "wise immune audit garden ready pulse narrow cricket sleep vintage frost brief";
   wallet.privateKey = "0x" + "0123456789ABCDEF".repeat(8);
   wallet.address = "0x" + "1234567890".repeat(4);
-  wallet.password = p1;
   $("receive_address").innerText = wallet.address;
   $("main_chain").innerText = currentChain.toUpperCase() + " · 已连接";
   alert("创建成功");
   showPage('main');
 }
 
-// ==============================================
-// 导入助记词（双密码验证）
-// ==============================================
 function importMnemonicAction() {
   const mn = $('mn_input').value.trim();
   const p1 = $('mn_pwd1').value;
   const p2 = $('mn_pwd2').value;
-  if (!mn) {
-    alert("请输入助记词");
-    return;
-  }
-  if (!p1 || !p2 || p1 !== p2) {
-    alert("两次密码不一致");
-    return;
-  }
-  if (p1.length < 6) {
-    alert("密码至少6位");
-    return;
-  }
+  if (!mn) return alert("请输入助记词");
+  if (!p1 || !p2 || p1 !== p2) return alert("两次密码不一致");
+  if (p1.length < 6) return alert("密码至少6位");
   wallet.mnemonic = mn;
-  wallet.address = "0x" + "ImportedMnemonicAddress1234567890";
+  wallet.address = "0xImportedMnemonicAddress1234567890";
   $("receive_address").innerText = wallet.address;
   alert("助记词导入成功");
   showPage('main');
 }
 
-// ==============================================
-// 导入私钥（双密码验证）
-// ==============================================
 function importPrivateKeyAction() {
   const pk = $('pk_input').value.trim();
   const p1 = $('pk_pwd1').value;
   const p2 = $('pk_pwd2').value;
-  if (!pk) {
-    alert("请输入私钥");
-    return;
-  }
-  if (!p1 || !p2 || p1 !== p2) {
-    alert("两次密码不一致");
-    return;
-  }
-  if (p1.length < 6) {
-    alert("密码至少6位");
-    return;
-  }
+  if (!pk) return alert("请输入私钥");
+  if (!p1 || !p2 || p1 !== p2) return alert("两次密码不一致");
+  if (p1.length < 6) return alert("密码至少6位");
   wallet.privateKey = pk;
-  wallet.address = "0x" + "ImportedByPrivateKey1234567890";
+  wallet.address = "0xImportedByPrivateKey1234567890";
   $("receive_address").innerText = wallet.address;
   alert("私钥导入成功");
   showPage('main');
 }
 
-// ==============================================
-// 转账
-// ==============================================
 function sendAction() {
   const to = $('send_to').value;
   const amt = $('send_amount').value;
-  if (!to || !amt) {
-    alert("请填写完整信息");
-    return;
-  }
+  if (!to || !amt) return alert("请填写完整信息");
   alert("转账已提交:\n" + to + "\n金额:" + amt);
   showPage('main');
 }
 
-// ==============================================
-// 闪兑
-// ==============================================
 function reverseSwap() {
   const f = $('swap_from').value;
   const t = $('swap_to').value;
   $('swap_from').value = t;
   $('swap_to').value = f;
 }
+
 function swapAction() {
   const f = $('swap_from').value;
   const t = $('swap_to').value;
   const amt = $('swap_from_amt').value;
-  if (!amt) {
-    alert("请输入数量");
-    return;
-  }
+  if (!amt) return alert("请输入数量");
   $('swap_to_amt').value = (Number(amt) * 1.0).toFixed(4);
   alert("兑换成功：" + f + " → " + t);
   showPage('main');
