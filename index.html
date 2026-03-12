@@ -6,364 +6,293 @@
 <title>元鲸鱼CES专用钱包</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif}
-  body{background:#ffffff;color:#000000;max-width:420px;margin:0 auto;padding-bottom:80px}
+  body{background:#ffffff;color:#000;max-width:420px;margin:0 auto;padding-bottom:80px}
   .container{padding:24px}
   .page{display:none}
   .page.active{display:block}
   .logo{text-align:center;margin:30px 0}
   .logo h1{font-size:26px;color:#ff6700;font-weight:800}
   .logo p{color:#666;margin-top:6px}
-  input, select, textarea{
-    width:100%;padding:14px 16px;border-radius:14px;background:#f5f5f5;
-    border:none;color:#000;margin:8px 0;font-size:15px
-  }
-  button{
-    width:100%;padding:16px;border-radius:16px;border:none;background:#ff6700;
-    color:#fff;font-size:16px;font-weight:600;margin:8px 0;cursor:pointer
-  }
+  input,select{width:100%;padding:14px 16px;border-radius:14px;background:#f5f5f5;border:none;margin:8px 0;font-size:15px}
+  button{width:100%;padding:16px;border-radius:16px;border:none;background:#ff6700;color:#fff;font-size:16px;font-weight:600;margin:8px 0;cursor:pointer}
   .btn-outline{background:transparent;color:#ff6700;border:1px solid #ff6700}
   .title{margin-bottom:12px;font-size:18px;font-weight:600}
   .balance-box{text-align:center;margin:20px 0}
   .balance{font-size:34px;font-weight:700}
-  .balance-fiat{color:#666;margin-top:4px}
-  .chain-tag{
-    display:inline-block;background:#f5f5f5;color:#ff6700;
-    padding:6px 12px;border-radius:20px;margin:10px 0;font-size:13px
-  }
+  .balance-fiat{color:#666}
+  .chain-tag{display:inline-block;background:#f5f5f5;color:#ff6700;padding:6px 12px;border-radius:20px;margin:10px 0}
   .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:20px 0}
-  .grid-4 .item{
-    background:#f5f5f5;padding:14px 8px;border-radius:14px;
-    text-align:center;font-size:12px
-  }
-  .token-item{
-    background:#f5f5f5;padding:14px 16px;border-radius:12px;margin:8px 0;
-    display:flex;justify-content:space-between;align-items:center
-  }
-  .swap-box{background:#f5f5f5;padding:20px;border-radius:16px;margin:20px 0}
-  .swap-arrow{text-align:center;font-size:24px;color:#ff6700;margin:10px 0}
-  .bridge-box{background:#f5f5f5;padding:20px;border-radius:16px;margin:20px 0}
-  .tabbar{
-    position:fixed;bottom:0;left:0;right:0;max-width:420px;margin:auto;
-    background:#ffffff;display:grid;grid-template-columns:repeat(4,1fr);
-    padding:12px 0;border-top:1px solid #eee
-  }
-  .tabbar .item{text-align:center;font-size:12px}
-  .section{margin:20px 0}
-  .about-info{
-    background:#f5f5f5;padding:20px;border-radius:16px;text-align:center;
-    font-size:16px;font-weight:bold;color:#ff6700;margin:20px 0;line-height:1.8
-  }
-  .tel-link{color:#0066cc;text-decoration:underline;font-weight:bold;cursor:pointer}
-  .warn{color:#ff3300;font-size:14px;margin:10px 0;text-align:center}
-
-  #qrcode_box {
-    width:220px;height:220px;margin:20px auto;
-    border:1px solid #eee;background:#fff;
-  }
-  #qrcode_box img {
-    width:100%;height:100%
-  }
+  .grid-4 .item{background:#f5f5f5;padding:14px 8px;border-radius:14px;text-align:center}
+  .token-item{display:flex;align-items:center;gap:12px;background:#f5f5f5;padding:12px 16px;border-radius:12px;margin:8px 0}
+  .token-logo{width:36px;height:36px;border-radius:50%}
+  .tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;display:grid;grid-template-columns:repeat(4,1fr);padding:12px 0;border-top:1px solid #eee}
+  .tabbar .item{text-align:center}
+  .about-info{background:#f5f5f5;padding:20px;border-radius:16px;text-align:center;color:#ff6700;line-height:1.8}
+  .warn{color:#ff3300;text-align:center;margin:10px 0}
+  #qrcode_box{width:220px;height:220px;background:#fff;border:1px solid #eee;margin:20px auto;display:grid;place-items:center}
 </style>
 </head>
 <body>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-
 <div class="container">
 
-<!-- ========== 欢迎页 ========== -->
+<!-- 欢迎页 -->
 <div class="page active" id="welcome">
   <div class="logo">
     <h1>元鲸鱼CES专用钱包</h1>
     <p>全链 | 闪兑 | 跨链 | 安全</p>
   </div>
-  <div class="section">
-    <div class="title">选择网络</div>
-    <select id="create_chain_selector">
-      <option value="btc">BTC 比特币</option>
-      <option value="eth">ETH 以太坊</option>
-      <option value="bsc">BSC 币安链</option>
-      <option value="polygon">Polygon</option>
-      <option value="arb">Arbitrum</option>
-      <option value="opt">Optimism</option>
-      <option value="okc">OKC 欧科链</option>
-      <option value="heco">HECO 火币链</option>
-      <option value="tron">TRON 波场</option>
-    </select>
-  </div>
+  <div class="title">选择网络</div>
+  <select id="create_chain">
+    <option value="btc">BTC 比特币</option>
+    <option value="eth">ETH 以太坊</option>
+    <option value="bsc">BSC 币安链</option>
+    <option value="polygon">Polygon 多边形</option>
+  </select>
   <button onclick="showPage('create')">创建钱包</button>
   <button class="btn-outline" onclick="showPage('import_mn')">导入助记词</button>
   <button class="btn-outline" onclick="showPage('import_key')">导入私钥</button>
   <button class="btn-outline" onclick="showPage('about')">关于我们</button>
 </div>
 
-<!-- ========== 关于我们 ========== -->
+<!-- 关于我们 -->
 <div class="page" id="about">
   <div class="logo"><h1>关于我们</h1></div>
   <div class="about-info">
-    开发者：币圈老船长<br><br>
-    客服电报：<span class="tel-link" onclick="goToTel()">点击加入客服群</span><br><br>
-    版本：V1.0 完整版<br>
-    支持：全链 | 闪兑 | 跨链 | 导出助记词私钥
+    开发者：币圈老船长<br>
+    客服电报：点击加入客服群<br>
+    版本：V1.0 完整版
   </div>
-  <button class="btn-outline" onclick="showPage('welcome')">返回首页</button>
+  <button class="btn-outline" onclick="showPage('welcome')">返回</button>
 </div>
 
-<!-- ========== 创建钱包 ========== -->
+<!-- 创建钱包 -->
 <div class="page" id="create">
   <div class="logo"><h1>创建钱包</h1></div>
-  <input id="create_pwd1" type="password" placeholder="设置密码（至少6位）">
-  <input id="create_pwd2" type="password" placeholder="确认密码">
-  <button onclick="createWalletAction()">创建并生成助记词</button>
+  <input type="password" id="p1" placeholder="设置密码（至少6位）">
+  <input type="password" id="p2" placeholder="确认密码">
+  <button onclick="createWallet()">创建并生成助记词</button>
   <button class="btn-outline" onclick="showPage('welcome')">返回</button>
 </div>
 
-<!-- ========== 导入助记词 ========== -->
+<!-- 导入助记词 -->
 <div class="page" id="import_mn">
   <div class="logo"><h1>导入助记词</h1></div>
-  <textarea id="mn_input" rows="4" placeholder="请输入助记词，空格分隔"></textarea>
-  <input id="mn_pwd1" type="password" placeholder="输入密码">
-  <input id="mn_pwd2" type="password" placeholder="确认密码">
-  <button onclick="importMnemonicAction()">确认导入</button>
+  <textarea id="mn" placeholder="助记词空格分隔"></textarea>
+  <input type="password" id="mp1" placeholder="输入密码">
+  <input type="password" id="mp2" placeholder="确认密码">
+  <button onclick="importMnemonic()">确认导入</button>
   <button class="btn-outline" onclick="showPage('welcome')">返回</button>
 </div>
 
-<!-- ========== 导入私钥 ========== -->
+<!-- 导入私钥 -->
 <div class="page" id="import_key">
   <div class="logo"><h1>导入私钥</h1></div>
-  <input id="pk_input" placeholder="请输入私钥">
-  <input id="pk_pwd1" type="password" placeholder="输入密码">
-  <input id="pk_pwd2" type="password" placeholder="确认密码">
-  <button onclick="importPrivateKeyAction()">确认导入</button>
+  <input id="pk" placeholder="私钥">
+  <input type="password" id="kp1" placeholder="输入密码">
+  <input type="password" id="kp2" placeholder="确认密码">
+  <button onclick="importKey()">确认导入</button>
   <button class="btn-outline" onclick="showPage('welcome')">返回</button>
 </div>
 
-<!-- ========== 资产主页 ========== -->
+<!-- 资产主页 -->
 <div class="page" id="main">
   <div class="balance-box">
     <div class="balance">$0.00</div>
     <div class="balance-fiat">≈ ¥0.00</div>
-    <div class="chain-tag" id="current_network">BTC 主网</div>
+    <div class="chain-tag" id="chain_tag">BTC 主网</div>
   </div>
-
   <div class="grid-4">
-    <div class="item" onclick="showPage('receive_page')">💰收款</div>
-    <div class="item" onclick="showPage('send_page')">📤转账</div>
-    <div class="item" onclick="showPage('swap_page')">💱闪兑</div>
-    <div class="item" onclick="showPage('bridge_page')">🌉跨链</div>
+    <div class="item" onclick="showPage('receive')">💰收款</div>
+    <div class="item" onclick="showPage('send')">📤转账</div>
+    <div class="item" onclick="showPage('add_token')">➕添加代币</div>
+    <div class="item" onclick="showPage('manage')">⚙️管理</div>
   </div>
-
-  <div class="title">资产列表</div>
-  <div class="token-item"><span>BTC</span> <span>0.0000</span></div>
-  <div class="token-item"><span>ETH</span> <span>0.0000</span></div>
-  <div class="token-item"><span>BNB</span> <span>0.0000</span></div>
-  <div class="token-item"><span>USDT</span> <span>0.0000</span></div>
-
-  <button class="btn-outline" onclick="showPage('manage')">钱包管理</button>
+  <div class="title">我的资产</div>
+  <div id="token_list"></div>
 </div>
 
-<!-- ========== 钱包管理 ========== -->
+<!-- 收款 -->
+<div class="page" id="receive">
+  <div class="logo"><h1>收款</h1></div>
+  <div class="title">接收网络</div>
+  <select id="recv_chain" onchange="updateReceive()">
+    <option value="btc">BTC</option>
+    <option value="eth">ETH</option>
+    <option value="bsc">BSC</option>
+    <option value="polygon">Polygon</option>
+  </select>
+  <div id="qrcode_box">二维码</div>
+  <div class="title">收款地址</div>
+  <div class="token-item" id="recv_addr"></div>
+  <button onclick="copyAddr()">复制地址</button>
+  <button class="btn-outline" onclick="showPage('main')">返回</button>
+</div>
+
+<!-- 添加自定义代币 -->
+<div class="page" id="add_token">
+  <div class="logo"><h1>添加自定义代币</h1></div>
+  <input id="token_contract" placeholder="代币合约地址">
+  <input id="token_symbol" placeholder="代币符号">
+  <button onclick="addToken()">添加代币</button>
+  <button class="btn-outline" onclick="showPage('main')">返回</button>
+</div>
+
+<!-- 钱包管理 -->
 <div class="page" id="manage">
   <div class="logo"><h1>钱包管理</h1></div>
   <button onclick="showPage('export_mn')">导出助记词</button>
   <button onclick="showPage('export_pk')">导出私钥</button>
-  <button onclick="showPage('receive_page')">复制收款地址</button>
-  <button class="btn-outline" onclick="showPage('main')">返回资产</button>
-</div>
-
-<!-- ========== 收款页面（带网络选择 + 真实二维码） ========== -->
-<div class="page" id="receive_page">
-  <div class="logo"><h1>收款</h1></div>
-
-  <div class="title">选择接收网络</div>
-  <select id="receive_chain" onchange="updateReceiveInfo()">
-    <option value="btc">BTC 比特币</option>
-    <option value="eth">ETH 以太坊</option>
-    <option value="bsc">BSC 币安链</option>
-    <option value="tron">TRON 波场</option>
-  </select>
-
-  <div id="qrcode_box"></div>
-
-  <div class="title">收款地址</div>
-  <div class="token-item" id="my_address">bc1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</div>
-
-  <button onclick="copyAddress()">复制地址</button>
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- ========== 导出助记词 ========== -->
+<!-- 导出助记词 -->
 <div class="page" id="export_mn">
   <div class="logo"><h1>导出助记词</h1></div>
   <div class="warn">⚠️ 助记词是唯一资产凭证，切勿泄露！</div>
-  <input id="pwd_mn_export" type="password" placeholder="输入钱包密码">
+  <input type="password" id="pw_mn" placeholder="输入钱包密码">
   <button onclick="showMnemonic()">确认查看</button>
-  <div class="token-item" id="mn_result" style="white-space:pre-wrap;display:none"></div>
+  <div class="token-item" id="mn_text" style="white-space:pre;display:none"></div>
   <button class="btn-outline" onclick="showPage('manage')">返回</button>
 </div>
 
-<!-- ========== 导出私钥 ========== -->
+<!-- 导出私钥 -->
 <div class="page" id="export_pk">
   <div class="logo"><h1>导出私钥</h1></div>
   <div class="warn">⚠️ 私钥一旦泄露，资产将永久丢失！</div>
-  <input id="pwd_pk_export" type="password" placeholder="输入钱包密码">
-  <button onclick="showPrivateKey()">确认查看</button>
-  <div class="token-item" id="pk_result" style="display:none"></div>
+  <input type="password" id="pw_pk" placeholder="输入钱包密码">
+  <button onclick="showPk()">确认查看</button>
+  <div class="token-item" id="pk_text" style="display:none"></div>
   <button class="btn-outline" onclick="showPage('manage')">返回</button>
 </div>
 
-<!-- ========== 转账 ========== -->
-<div class="page" id="send_page">
-  <div class="title">转账</div>
+<!-- 转账 -->
+<div class="page" id="send">
+  <div class="logo"><h1>转账</h1></div>
   <input placeholder="接收地址">
   <input placeholder="转账数量">
   <button>确认转账</button>
   <button class="btn-outline" onclick="showPage('main')">返回</button>
 </div>
 
-<!-- ========== 闪兑 ========== -->
-<div class="page" id="swap_page">
-  <div class="title">闪兑兑换</div>
-  <div class="swap-box">
-    <select id="swap_from">
-      <option>BTC</option>
-      <option>ETH</option>
-      <option>BNB</option>
-      <option>USDT</option>
-    </select>
-    <input placeholder="卖出数量">
-    <div class="swap-arrow" onclick="reverseSwap()">↑↓</div>
-    <select id="swap_to">
-      <option>USDT</option>
-      <option>BTC</option>
-      <option>ETH</option>
-      <option>BNB</option>
-    </select>
-    <input placeholder="预计收入" readonly>
-  </div>
-  <button>确认兑换</button>
-  <button class="btn-outline" onclick="showPage('main')">返回</button>
-</div>
-
-<!-- ========== 跨链 ========== -->
-<div class="page" id="bridge_page">
-  <div class="title">跨链桥</div>
-  <div class="bridge-box">
-    <select><option>从 BTC</option><option>从 ETH</option><option>从 BSC</option></select>
-    <select><option>到 BTC</option><option>到 ETH</option><option>到 BSC</option></select>
-    <select><option>BTC</option><option>USDT</option><option>ETH</option></select>
-    <input placeholder="跨链数量">
-  </div>
-  <button>确认跨链</button>
-  <button class="btn-outline" onclick="showPage('main')">返回</button>
-</div>
-
-<!-- ========== 底部导航 ========== -->
+<!-- 底部导航 -->
 <div class="tabbar">
   <div class="item" onclick="showPage('main')">资产</div>
-  <div class="item" onclick="showPage('swap_page')">闪兑</div>
-  <div class="item" onclick="showPage('bridge_page')">跨链</div>
+  <div class="item" onclick="showPage('receive')">收款</div>
+  <div class="item" onclick="showPage('add_token')">添加代币</div>
   <div class="item" onclick="showPage('about')">我的</div>
 </div>
 
 </div>
 
 <script>
+const logoMap = {
+  BTC:"https://cryptologos.cc/logos/bitcoin-btc-logo.png",
+  ETH:"https://cryptologos.cc/logos/ethereum-eth-logo.png",
+  BNB:"https://cryptologos.cc/logos/bnb-bnb-logo.png",
+  USDT:"https://cryptologos.cc/logos/tether-usdt-logo.png",
+  USDC:"https://cryptologos.cc/logos/usd-coin-usdc-logo.png",
+  MATIC:"https://cryptologos.cc/logos/polygon-matic-logo.png"
+};
+
 let wallet = {
-  address: "bc1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  chain: "btc",
+  password: "",
   mnemonic: "wise immune audit garden ready pulse narrow cricket sleep vintage frost brief",
-  privateKey: "Lxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  password: ""
+  privateKey: "L5xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  addr: {
+    btc: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+    eth: "0x789054616231A4e2Ea711e2a12F758aC36020C36",
+    bsc: "0x789054616231A4e2Ea711e2a12F758aC36020C36",
+    polygon: "0x789054616231A4e2Ea711e2a12F758aC36020C36"
+  },
+  tokens: {
+    btc: [{symbol:"BTC",balance:"0.0000"}],
+    eth: [{symbol:"ETH",balance:"0.0000"},{symbol:"USDT",balance:"0.0000"},{symbol:"USDC",balance:"0.0000"}],
+    bsc: [{symbol:"BNB",balance:"0.0000"},{symbol:"USDT",balance:"0.0000"}],
+    polygon: [{symbol:"MATIC",balance:"0.0000"},{symbol:"USDT",balance:"0.0000"},{symbol:"USDC",balance:"0.0000"}]
+  }
 };
 
 const $ = id => document.getElementById(id);
+
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   $(id).classList.add('active');
+  if(id==='main')renderTokens();
+  if(id==='receive')updateReceive();
 }
 
-function goToTel() {
-  window.open("https://s.share11.top/tianlangdingzhi", "_blank");
-}
-
-function copyAddress() {
-  navigator.clipboard.writeText(wallet.address).then(()=>alert("地址已复制"));
-}
-
-// 生成真实二维码并更新地址
-function updateReceiveInfo() {
-  let chain = $('receive_chain').value;
-  if (chain === 'btc') {
-    wallet.address = "bc1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-  } else if (chain === 'eth') {
-    wallet.address = "0x1234567890123456789012345678901234567890";
-  } else if (chain === 'bsc') {
-    wallet.address = "0x1234567890123456789012345678901234567890";
-  } else if (chain === 'tron') {
-    wallet.address = "Txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-  }
-  $('my_address').innerText = wallet.address;
-  QRCode.toCanvas($('qrcode_box'), wallet.address, { width: 220 }, error => {});
-}
-
-function createWalletAction() {
-  let p1 = $('create_pwd1').value, p2 = $('create_pwd2').value;
-  if (!p1 || !p2 || p1!==p2) return alert("两次密码不一致");
-  if (p1.length<6) return alert("密码至少6位");
-  wallet.password = p1;
-  
-  let chain = $('create_chain_selector').value;
-  if(chain === 'btc'){
-    wallet.address = "bc1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-    $("current_network").innerText = "BTC 主网";
-  } else {
-    wallet.address = "0x1234567890123456789012345678901234567890";
-    $("current_network").innerText = chain.toUpperCase() + " 主网";
-  }
-  
-  $("my_address").innerText = wallet.address;
-  alert("创建成功");
+function createWallet() {
+  if($('p1').value!==$('p2').value||$('p1').length<6)return alert('密码错误');
+  wallet.password = $('p1').value;
+  wallet.chain = $('create_chain').value;
+  alert('创建成功');
   showPage('main');
 }
 
-function importMnemonicAction() {
-  let mn = $('mn_input').value, p1 = $('mn_pwd1').value, p2 = $('mn_pwd2').value;
-  if (!mn) return alert("请输入助记词");
-  if (!p1 || !p2 || p1!==p2) return alert("两次密码不一致");
-  wallet.password = p1;
-  updateReceiveInfo();
-  alert("助记词导入成功");
+function importMnemonic() {
+  if(!$('mn').value||$('mp1').value!==$('mp2').value||$('mp1').length<6)return alert('输入错误');
+  wallet.password = $('mp1').value;
+  alert('导入成功');
   showPage('main');
 }
 
-function importPrivateKeyAction() {
-  let pk = $('pk_input').value, p1 = $('pk_pwd1').value, p2 = $('pk_pwd2').value;
-  if (!pk) return alert("请输入私钥");
-  if (!p1 || !p2 || p1!==p2) return alert("两次密码不一致");
-  wallet.password = p1;
-  updateReceiveInfo();
-  alert("私钥导入成功");
+function importKey() {
+  if(!$('pk').value||$('kp1').value!==$('kp2').value||$('kp1').length<6)return alert('输入错误');
+  wallet.password = $('kp1').value;
+  alert('导入成功');
+  showPage('main');
+}
+
+function renderTokens() {
+  const list = wallet.tokens[wallet.chain];
+  $('token_list').innerHTML = '';
+  list.forEach(t => {
+    const item = document.createElement('div');
+    item.className = 'token-item';
+    const img = document.createElement('img');
+    img.className = 'token-logo';
+    img.src = logoMap[t.symbol] || 'https://picsum.photos/200/200';
+    const name = document.createElement('div');
+    name.innerText = t.symbol + '  ' + t.balance;
+    item.append(img,name);
+    $('token_list').append(item);
+  });
+  const chainName = {btc:'BTC 主网',eth:'ETH 主网',bsc:'BSC 主网',polygon:'Polygon 主网'};
+  $('chain_tag').innerText = chainName[wallet.chain];
+}
+
+function updateReceive() {
+  const c = $('recv_chain').value;
+  const addr = wallet.addr[c];
+  $('recv_addr').innerText = addr;
+  $('qrcode_box').innerText = addr;
+}
+
+function copyAddr() {
+  navigator.clipboard.writeText($('recv_addr').innerText).then(()=>alert('已复制'));
+}
+
+function addToken() {
+  const c = $('token_contract').value;
+  const s = $('token_symbol').value;
+  if(!c||!s)return alert('请输入完整信息');
+  wallet.tokens[wallet.chain].push({symbol:s,balance:'0.0000'});
+  alert('添加成功');
   showPage('main');
 }
 
 function showMnemonic() {
-  let p = $('pwd_mn_export').value;
-  if (p !== wallet.password) return alert("密码错误");
-  $("mn_result").style.display = "block";
-  $("mn_result").innerText = wallet.mnemonic;
+  if($('pw_mn').value!==wallet.password)return alert('密码错误');
+  $('mn_text').style.display='block';
+  $('mn_text').innerText=wallet.mnemonic;
 }
 
-function showPrivateKey() {
-  let p = $('pwd_pk_export').value;
-  if (p !== wallet.password) return alert("密码错误");
-  $("pk_result").style.display = "block";
-  $("pk_result").innerText = wallet.privateKey;
-}
-
-function reverseSwap() {
-  let f = $('swap_from').value, t = $('swap_to').value;
-  $('swap_from').value = t;
-  $('swap_to').value = f;
+function showPk() {
+  if($('pw_pk').value!==wallet.password)return alert('密码错误');
+  $('pk_text').style.display='block';
+  $('pk_text').innerText=wallet.privateKey;
 }
 
 showPage('welcome');
