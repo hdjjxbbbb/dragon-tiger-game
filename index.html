@@ -1,241 +1,166 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DQM 单币质押挖矿 | 大秦梦生态</title>
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,sans-serif}
-html{scroll-behavior:smooth}
-body{background:#050814;color:#fff;overflow-x:hidden}
-#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:0.6}
-.wrapper{position:relative;z-index:1;min-height:100vh}
-.container{max-width:1100px;margin:0 auto;padding:0 20px}
-
-.header{position:sticky;top:0;will-change:backdrop-filter;background:rgba(5,8,20,0.7);border-bottom:1px solid rgba(255,255,255,0.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:999}
-@supports not (backdrop-filter: blur(20px)) {
-  .header{background:linear-gradient(180deg,rgba(5,8,20,0.95),rgba(5,8,20,0.85))}
-}
-.nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
-.logo{font-size:26px;font-weight:800;background:linear-gradient(90deg,#00e0ff,#9d5fff);-webkit-background-clip:text;color:transparent;display:flex;align-items:center;gap:10px}
-
-.hero{padding:40px 0;text-align:center}
-.hero-title{font-size:32px;font-weight:800;background:linear-gradient(90deg,#00e0ff,#9d5fff);-webkit-background-clip:text;color:transparent;margin-bottom:12px}
-.hero-subtitle{font-size:18px;color:#c0c8e5;margin-bottom:30px;letter-spacing:0.5px}
-.hero-desc{max-width:900px;margin:0 auto;border-radius:20px;padding:30px;line-height:1.8;font-size:15px;color:#a1a8c3;text-align:justify;
-  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);will-change:backdrop-filter;
-}
-@supports not (backdrop-filter: blur(8px)) {
-  .hero-desc{background:linear-gradient(135deg,rgba(5,8,20,0.85),rgba(5,8,20,0.95));border-color:rgba(255,255,255,0.1)}
-}
-.hero-desc strong{color:#fff;font-weight:600}
-.hero-desc .hl{color:#00e0ff;font-weight:600}
-.hero-desc .ecos{color:#ffd700;font-weight:600}
-.hero-desc .estate{color:#ff9f43;font-weight:600}
-
-/* 代币合约地址展示 */
-.token-info{max-width:900px;margin:-20px auto 30px auto;padding:16px 20px;border-radius:16px;background:rgba(0,224,255,0.08);border:1px solid rgba(0,224,255,0.2);font-size:14px;color:#fff;text-align:center;display:flex;align-items:center;justify-content:center;gap:12px}
-.token-info .label{color:#00e0ff;font-weight:600}
-.token-info .addr{font-family:monospace;font-size:15px}
-.token-info .copy-btn{padding:8px 14px;border-radius:12px;background:#00e0ff;color:#000;border:none;cursor:pointer;font-weight:600;font-size:13px}
-.token-info .copy-btn:hover{opacity:0.9}
-
-.connect-btn{padding:14px 28px;border-radius:999px;background:linear-gradient(90deg,#00e0ff,#9d5fff);color:#fff;font-weight:600;border:none;cursor:pointer;transition:all 0.3s;box-shadow:0 8px 20px rgba(0,224,255,0.2)}
-.connect-btn:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(157,95,255,0.25)}
-
-.dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin:30px 0}
-.stat-box{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:22px;padding:26px;transition:all 0.3s}
-.stat-box:hover{transform:translateY(-4px);border-color:rgba(0,224,255,0.2)}
-.stat-box h3{font-size:13px;color:#a1a8c3;margin-bottom:10px}
-.stat-box .num{font-size:26px;font-weight:700;background:linear-gradient(90deg,#00e0ff,#9d5fff);-webkit-background-clip:text;color:transparent}
-
-.mining-section{max-width:650px;margin:0 auto}
-.mining-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:28px;padding:40px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);will-change:backdrop-filter}
-@supports not (backdrop-filter: blur(12px)) {
-  .mining-card{background:linear-gradient(135deg,rgba(5,8,20,0.85),rgba(5,8,20,0.95));border-color:rgba(255,255,255,0.1)}
-}
-.card-header{margin-bottom:30px}
-.card-title{font-size:24px;font-weight:700;background:linear-gradient(90deg,#00e0ff,#9d5fff);-webkit-background-clip:text;color:transparent;margin-bottom:8px}
-.card-desc{font-size:15px;color:#8a93b2}
-
-.info-list{display:flex;flex-direction:column;gap:18px;margin-bottom:30px}
-.info-row{display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
-.info-label{color:#a1a8c3;font-size:15px}
-.info-value{font-weight:600;color:#fff}
-.info-high{background:linear-gradient(90deg,#00ffbb,#9d5fff);-webkit-background-clip:text;color:transparent;font-size:18px}
-.countdown{font-size:26px;font-weight:700;color:#ff5699;text-shadow:0 0 12px rgba(255,86,153,0.4)}
-
-.input-group{margin:30px 0}
-.mining-input{width:100%;padding:20px;border-radius:20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#fff;font-size:16px;outline:none}
-.mining-input:focus{border-color:#00e0ff;box-shadow:0 0 0 2px rgba(0,224,255,0.2)}
-
-.btn-group{display:flex;gap:18px;margin-top:10px}
-.btn{flex:1;padding:20px;border-radius:20px;font-weight:600;border:none;cursor:pointer;transition:all 0.3s;font-size:16px}
-.btn-stake{background:linear-gradient(90deg,#00ffbb,#00e0ff);color:#050814}
-.btn-unstake{background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.12)}
-.btn-claim{background:linear-gradient(90deg,#ff9f43,#ff5699);color:#fff}
-.btn:hover{transform:translateY(-3px)}
-
-.invite-card{margin-top:32px;padding:26px;background:rgba(0,224,255,0.04);border:1px dashed rgba(0,224,255,0.2);border-radius:22px}
-.invite-title{font-size:15px;color:#a1a8c3;margin-bottom:14px}
-.invite-row{display:flex;gap:12px}
-.invite-input{flex:1;padding:16px;border-radius:16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#fff}
-.invite-copy{padding:16px 20px;background:#00e0ff;color:#000;border:none;border-radius:16px;cursor:pointer;font-weight:600}
-
-.admin-card{
-  margin-top:30px;
-  background:rgba(255,86,153,0.05);
-  border:1px solid rgba(255,86,153,0.2);
-  border-radius:24px;
-  padding:30px;
-  display:none;
-}
-.admin-title{
-  font-size:20px;
-  font-weight:700;
-  color:#ff5699;
-  margin-bottom:20px;
-}
-.admin-row{
-  display:flex;
-  gap:12px;
-  margin-bottom:12px;
-}
-.admin-input{
-  flex:1;
-  padding:16px;
-  border-radius:16px;
-  background:rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.1);
-  color:#fff;
-  outline:none;
-}
-.admin-btn{
-  padding:16px 22px;
-  border-radius:16px;
-  background:#ff5699;
-  color:#fff;
-  font-weight:600;
-  border:none;
-  cursor:pointer;
-}
-.admin-desc{
-  font-size:13px;
-  color:#ccc;
-  margin-bottom:20px;
-  line-height:1.4;
-}
-
-.footer{text-align:center;padding:40px 20px;color:#777;font-size:13px;margin-top:40px}
-</style>
+  <meta charset="UTF-8">
+  <title>DQM 质押挖矿</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+    }
+    body {
+      background: #050814;
+      color: #fff;
+      padding: 20px;
+      touch-action: manipulation;
+    }
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .title {
+      font-size: 22px;
+      font-weight: 700;
+      text-align: center;
+      margin: 10px 0 20px;
+      color: #00e0ff;
+    }
+    .btn-connect {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      background: linear-gradient(90deg, #00e0ff, #9d5fff);
+      color: #000;
+      font-weight: 700;
+      border: none;
+      margin-bottom: 16px;
+    }
+    .card {
+      background: rgba(255,255,255,0.04);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .label {
+      color: #ccc;
+    }
+    .value {
+      color: #fff;
+      font-weight: 600;
+    }
+    .input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff;
+      margin: 10px 0;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 700;
+      border: none;
+    }
+    .btn-primary {
+      background: #00e0ff;
+      color: #000;
+    }
+    .btn-danger {
+      background: #ff5699;
+      color: #fff;
+    }
+    .btn-claim {
+      background: #ff9f43;
+      color: #fff;
+    }
+    .admin-card {
+      background: rgba(255,86,153,0.06);
+      border: 1px solid rgba(255,86,153,0.2);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+      display: none;
+    }
+    .admin-title {
+      color: #ff5699;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+  </style>
 </head>
-
 <body>
-<div id="particles"></div>
-<div class="wrapper">
-
-<div class="header">
-  <div class="container">
-    <div class="nav">
-      <div class="logo">🏛️ DQM 单币挖矿</div>
-      <button class="connect-btn" id="connectBtn" onclick="connectWallet()">连接钱包</button>
-    </div>
-  </div>
-</div>
-
 <div class="container">
-  <div class="hero">
-    <h1 class="hero-title">DQM 单币质押挖矿</h1>
-    <h2 class="hero-subtitle">大秦梦通证 · 实体锚定 · 数字赋能</h2>
-    <div class="hero-desc">
-      <strong>DQM（大秦梦）</strong>是面向未来数字经济打造的核心生态通证，由<span class="ecos">大秦梦生态联盟</span>共同推动建设。项目以实体产业、数字资产与全球共享经济为基础，构建集<span class="hl">产业赋能</span>、<span class="hl">消费流通</span>、<span class="hl">价值共识</span>、<span class="hl">社区治理</span>于一体的开放型生态网络。<br><br>
-      <span class="estate">大秦梦酒文化庄园</span>是 DQM 生态体系的重要实体基石，以中华千年酒文化为核心，融合现代庄园经济与数字生态理念，打造集<span class="hl">酒文化体验</span>、<span class="hl">生态农业</span>、<span class="hl">品牌消费</span>、<span class="hl">休闲度假</span>与<span class="hl">数字资产应用</span>于一体的综合型文化庄园。
+  <h3 class="title">DQM 质押挖矿</h3>
+
+  <button class="btn-connect" id="connectBtn" onclick="connect()">连接钱包</button>
+
+  <!-- 合约地址 + 复制 -->
+  <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-size:12px; color:#ccc;">合约地址</div>
+    <div style="font-size:12px; color:#fff; font-family: monospace;">0x366625D6...7659</div>
+    <button onclick="copyCa()" style="padding:6px 10px;border-radius:8px;background:#00e0ff;color:#000;border:none;">复制</button>
+  </div>
+
+  <!-- 信息面板 -->
+  <div class="card">
+    <div class="row">
+      <div class="label">钱包地址</div>
+      <div class="value" id="addr">-</div>
+    </div>
+    <div class="row">
+      <div class="label">DQM 余额</div>
+      <div class="value" id="bal">0.0000</div>
+    </div>
+    <div class="row">
+      <div class="label">已质押</div>
+      <div class="value" id="staked">0.0000</div>
+    </div>
+    <div class="row">
+      <div class="label">待领取</div>
+      <div class="value" id="pending">0.0000</div>
     </div>
   </div>
 
-  <!-- 代币合约地址 + 复制按钮 -->
-  <div class="token-info">
-    <span class="label">DQM 合约地址：</span>
-    <span class="addr" id="tokenAddr">0x366625D61063de6A719E85Fff6a9159fb3787659</span>
-    <button class="copy-btn" onclick="copyTokenAddr()">复制</button>
-  </div>
-</div>
-
-<div class="container">
-  <div class="dashboard">
-    <div class="stat-box"><h3>总锁仓 TVL</h3><div class="num">$ --</div></div>
-    <div class="stat-box"><h3>矿池 APY</h3><div class="num">-- %</div></div>
-    <div class="stat-box"><h3>总质押 DQM</h3><div class="num">--</div></div>
-    <div class="stat-box"><h3>全网矿工</h3><div class="num">--</div></div>
+  <!-- 操作区 -->
+  <input class="input" id="amt" placeholder="输入质押/解押数量" type="number">
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="stake()">质押</button>
+    <button class="btn" onclick="unstake()">解押</button>
+    <button class="btn btn-claim" onclick="claim()">领取</button>
   </div>
 
-  <div class="mining-section">
-    <div class="mining-card">
-      <div class="card-header">
-        <div class="card-title">DQM 单币质押挖矿</div>
-        <div class="card-desc">质押 DQM 挖矿 · 收益每秒计算 · 奖励手动领取</div>
-      </div>
-
-      <div class="info-list">
-        <div class="info-row"><span class="info-label">钱包地址</span><span class="info-value" id="addr">-</span></div>
-        <div class="info-row"><span class="info-label">我的 DQM 余额</span><span class="info-value" id="dqmBal">0.0000</span></div>
-        <div class="info-row"><span class="info-label">已质押 DQM</span><span class="info-value" id="staked">0.0000</span></div>
-        <div class="info-row"><span class="info-label">待领取奖励</span><span class="info-value info-high" id="pending">0.0000</span></div>
-        <div class="info-row"><span class="info-label">下次爆块</span><span class="info-value countdown" id="count">00:00:00</span></div>
-      </div>
-
-      <div class="input-group">
-        <input class="mining-input" id="amt" type="number" placeholder="输入质押/解押数量" min="0" step="any">
-      </div>
-
-      <div class="btn-group">
-        <button class="btn btn-stake" onclick="stakeDQM()">质押 DQM</button>
-        <button class="btn btn-unstake" onclick="unstakeDQM()">解押 DQM</button>
-        <button class="btn btn-claim" onclick="claimReward()">领取奖励</button>
-      </div>
-
-      <div class="invite-card">
-        <div class="invite-title">📢 邀请返佣 · 三代收益</div>
-        <div class="invite-row">
-          <input class="invite-input" id="refLink" readonly>
-          <button class="invite-copy" onclick="copyRef()">复制</button>
-        </div>
-      </div>
-
-      <!-- 仅保留：管理员自定义数量提取 -->
-      <div class="admin-card" id="adminPanel">
-        <div class="admin-title">🔑 项目方管理后台</div>
-        <div class="admin-desc">提取合约内 DQM 代币到管理员钱包</div>
-        <div class="admin-row">
-          <input class="admin-input" id="adminTakeAmount" placeholder="输入要提取的 DQM 数量">
-          <button class="admin-btn" onclick="adminTakeCustom()">提取代币</button>
-        </div>
-      </div>
-
-    </div>
+  <!-- 庄家后台 → 只保留：输入数量 + 提取 -->
+  <div class="admin-card" id="adminPanel">
+    <div class="admin-title">🔑 庄家管理后台</div>
+    <input class="input" id="withAmt" placeholder="输入提取数量">
+    <button class="btn btn-danger" onclick="withdraw()" style="width:100%;">提取代币</button>
   </div>
-</div>
-
-<div class="footer">© 2026 DQM大秦梦 · 大秦梦生态联盟 · 酒文化庄园实体背书</div>
 </div>
 
 <script>
-window.addEventListener('load', function() {
-  particlesJS("particles",{
-    particles:{number:{value:80},color:{value:"#00e0ff"},opacity:{value:0.4},size:{value:2.8},
-    line_linked:{enable:true,distance:140,color:"#00e0ff",opacity:0.15,width:1},move:{enable:true,speed:1.8}},
-    interactivity:{onhover:{enable:true,mode:"grab"},onclick:{enable:true,mode:"push"}}
-  });
-});
-
 const CONFIG = {
-  CONTRACT_ADDR: "0x24e5758addef7d9d9af001e35af28818f3b72b",
-  DQM_ADDR:     "0x366625D61063de6A719E85Fff6a9159fb3787659",
-  ADMIN_WALLET: "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508",
-  CHAIN_ID:     56
+  CONTRACT: "0x24e5758addef7d9d9af0901e35af28818f3b72b",
+  TOKEN:    "0x366625D61063de6A719E85Fff6a9159fb3787659",
+  ADMIN:    "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508",
+  CHAIN:    56
 };
 
 const ABI = [
@@ -247,157 +172,83 @@ const ABI = [
   "function adminWithdraw(uint256 amount) external"
 ];
 
-const ERC20_ABI = [
+const ERC20 = [
   "function balanceOf(address) view returns (uint256)",
   "function decimals() view returns (uint8)",
-  "function approve(address,uint256) external returns (bool)",
-  "function allowance(address,address) view returns (uint256)",
-  "function transfer(address to, uint256 value) external returns (bool)"
+  "function approve(address spender, uint256 amount) external returns (bool)"
 ];
 
-let provider, signer, userAddr, contract, dqmToken;
-let dqmDecimals = 18;
+let signer, user, contract, token;
 
-// 复制代币合约地址
-function copyTokenAddr() {
-  navigator.clipboard.writeText(CONFIG.DQM_ADDR);
-  alert("合约地址复制成功！");
+async function connect() {
+  if (!window.ethereum) return alert("请在钱包内打开");
+  await window.ethereum.request({ method: "eth_requestAccounts" });
+  const p = new ethers.BrowserProvider(window.ethereum);
+  signer = await p.getSigner();
+  user = await signer.getAddress();
+  contract = new ethers.Contract(CONFIG.CONTRACT, ABI, signer);
+  token = new ethers.Contract(CONFIG.TOKEN, ERC20, signer);
+  document.getElementById("connectBtn").innerText = "已连接";
+  if (user.toLowerCase() === CONFIG.ADMIN.toLowerCase()) {
+    document.getElementById("adminPanel").style.display = "block";
+  }
+  start();
 }
 
-async function connectWallet() {
-  if (typeof ethers === 'undefined') {
-    alert("钱包库加载失败，请刷新页面重试");
-    return;
-  }
-  try {
-    if (!window.ethereum) {
-      alert("请在 TP钱包 / MetaMask 内打开");
-      return;
-    }
-    const chainIdHex = `0x${CONFIG.CHAIN_ID.toString(16)}`;
-    try {
-      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: chainIdHex }] });
-    } catch (e) {
-      if (e.code === 4902) {
-        alert("请切换到 BSC 主网");
-        return;
-      }
-    }
-    await window.ethereum.request({ method: 'eth_requestAccounts' });
-    provider = new ethers.BrowserProvider(window.ethereum);
-    signer = await provider.getSigner();
-    userAddr = await signer.getAddress();
-
-    contract = new ethers.Contract(CONFIG.CONTRACT_ADDR, ABI, signer);
-    dqmToken = new ethers.Contract(CONFIG.DQM_ADDR, ERC20_ABI, signer);
-    dqmDecimals = await dqmToken.decimals().catch(() => 18);
-
-    document.getElementById("connectBtn").innerText = `${userAddr.slice(0,6)}...`;
-
-    if (userAddr.toLowerCase() === CONFIG.ADMIN_WALLET.toLowerCase()) {
-      document.getElementById("adminPanel").style.display = "block";
-    }
-
-    startAll();
-  } catch (err) {
-    alert("连接失败：" + err.message);
-  }
+async function start() {
+  if (!user) return;
+  document.getElementById("addr").innerText = user.slice(0, 6) + "..." + user.slice(-4);
+  setInterval(load, 3000);
+  load();
 }
 
-async function refreshInfo() {
-  if (!userAddr) return;
+async function load() {
+  if (!user) return;
   try {
-    document.getElementById("addr").innerText = `${userAddr.slice(0,6)}...${userAddr.slice(-4)}`;
-    const [dqmBal, userInfo, pending] = await Promise.all([
-      dqmToken.balanceOf(userAddr),
-      contract.userInfo(userAddr),
-      contract.pendingReward(userAddr)
-    ]);
-    document.getElementById("dqmBal").innerText = ethers.formatUnits(dqmBal, dqmDecimals);
-    document.getElementById("staked").innerText = ethers.formatUnits(userInfo[0], dqmDecimals);
-    document.getElementById("pending").innerText = ethers.formatUnits(pending, 18);
-    document.getElementById("refLink").value = `${window.location.origin}?ref=${userAddr}`;
+    const b = await token.balanceOf(user);
+    const u = await contract.userInfo(user);
+    const p = await contract.pendingReward(user);
+    const d = 18;
+    document.getElementById("bal").innerText = ethers.formatUnits(b, d);
+    document.getElementById("staked").innerText = ethers.formatUnits(u[0], d);
+    document.getElementById("pending").innerText = ethers.formatUnits(p, d);
   } catch (e) {}
 }
 
-async function stakeDQM() {
-  try {
-    const val = document.getElementById("amt").value;
-    if (!val || Number(val) <= 0) return alert("输入有效数量");
-    const amt = ethers.parseUnits(val, dqmDecimals);
-    const allow = await dqmToken.allowance(userAddr, CONFIG.CONTRACT_ADDR);
-    if (allow < amt) {
-      await dqmToken.approve(CONFIG.CONTRACT_ADDR, ethers.MaxUint256);
-      alert("授权成功，执行质押...");
-    }
-    await contract.stake(amt);
-    alert("质押成功！");
-    refreshInfo();
-  } catch (e) {
-    alert("质押失败：" + e.message);
-  }
+async function stake() {
+  const a = document.getElementById("amt").value;
+  if (!a) return alert("输入数量");
+  const d = 18;
+  await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
+  await contract.stake(ethers.parseUnits(a, d));
+  alert("质押成功");
 }
 
-async function unstakeDQM() {
-  try {
-    const val = document.getElementById("amt").value;
-    if (!val || Number(val) <= 0) return alert("输入有效数量");
-    const amt = ethers.parseUnits(val, dqmDecimals);
-    await contract.unstake(amt);
-    alert("解押成功！");
-    refreshInfo();
-  } catch (e) {
-    alert("解押失败：" + e.message);
-  }
+async function unstake() {
+  const a = document.getElementById("amt").value;
+  if (!a) return alert("输入数量");
+  const d = 18;
+  await contract.unstake(ethers.parseUnits(a, d));
+  alert("解押成功");
 }
 
-async function claimReward() {
-  try {
-    await contract.claim();
-    alert("奖励领取成功！");
-    refreshInfo();
-  } catch (e) {
-    alert("领取失败：" + e.message);
-  }
+async function claim() {
+  await contract.claim();
+  alert("领取成功");
 }
 
-// 管理员提取代币
-async function adminTakeCustom() {
-  try {
-    const val = document.getElementById("adminTakeAmount").value;
-    if (!val || Number(val) <= 0) return alert("请输入正确数量");
-    const amount = ethers.parseUnits(val, dqmDecimals);
-    await contract.adminWithdraw(amount);
-    alert("提取成功！代币已转入管理员钱包");
-  } catch (e) {
-    alert("提取失败：" + e.message);
-  }
+// 庄家任意数量提取
+async function withdraw() {
+  const a = document.getElementById("withAmt").value;
+  if (!a) return alert("输入提取数量");
+  const d = 18;
+  await contract.adminWithdraw(ethers.parseUnits(a, d));
+  alert("提取成功！");
 }
 
-function startCountdown() {
-  const total = 28800;
-  let sec = total;
-  const el = document.getElementById("count");
-  function tick() {
-    sec = sec - 1 < 0 ? total : sec - 1;
-    const h = String(Math.floor(sec / 3600)).padStart(2, '0');
-    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
-    const s = String(sec % 60).padStart(2, '0');
-    el.innerText = `${h}:${m}:${s}`;
-  }
-  tick();
-  setInterval(tick, 1000);
-}
-
-function copyRef() {
-  navigator.clipboard.writeText(document.getElementById("refLink").value);
-  alert("邀请链接已复制");
-}
-
-function startAll() {
-  refreshInfo();
-  setInterval(refreshInfo, 5000);
-  startCountdown();
+function copyCa() {
+  navigator.clipboard.writeText(CONFIG.TOKEN);
+  alert("合约地址已复制");
 }
 </script>
 </body>
