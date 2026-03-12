@@ -191,7 +191,6 @@
 </div>
 
 <script>
-// 动态小点背景恢复
 window.addEventListener('load', function(){
   particlesJS('particles',{
     particles:{
@@ -207,10 +206,10 @@ window.addEventListener('load', function(){
 })
 
 const CONFIG = {
-  CONTRACT: "0x24e5758addef7d9d9af0901e35af28818f3b72b",
-  TOKEN:    "0x366625D61063de6A719E85Fff6a9159fb3787659",
-  ADMIN:    "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508",
-  CHAIN:    56
+  CONTRACT: "0x24e5758addef7d9d9af0901e35af28818f3b72b", // 质押合约（必须保留）
+  TOKEN:    "0x366625D61063de6A719E85Fff6a9159fb3787659", // DQM代币合约
+  ADMIN:    "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508", // 管理员地址
+  CHAIN:    56 // BSC主网
 };
 
 const ABI = [
@@ -229,7 +228,7 @@ const ERC20 = [
 ];
 
 let signer, user, contract, token;
-let decimals = 18;
+const decimals = 18; // 强制固定18位小数，和双币页一致
 
 async function connect() {
   if (!window.ethereum) return alert("请在钱包内打开");
@@ -239,10 +238,9 @@ async function connect() {
     signer = await p.getSigner();
     user = await signer.getAddress();
 
+    // 严格按双币页顺序初始化：先代币，后合约
     token = new ethers.Contract(CONFIG.TOKEN, ERC20, signer);
     contract = new ethers.Contract(CONFIG.CONTRACT, ABI, signer);
-    
-    try { decimals = await token.decimals(); } catch(e) {}
 
     document.getElementById("connectBtn").innerText = "已连接";
     if (user.toLowerCase() === CONFIG.ADMIN.toLowerCase()) {
@@ -258,20 +256,25 @@ async function start() {
   if (!user) return;
   document.getElementById("addr").innerText = user.slice(0,6) + "..." + user.slice(-4);
   load();
-  setInterval(load, 3000);
+  setInterval(load, 2000); // 2秒刷新一次，和双币页一致
 }
 
 async function load() {
-  if (!user || !token || !contract) return;
+  if (!user || !token) return;
   try {
     const balance = await token.balanceOf(user);
-    const info = await contract.userInfo(user);
-    const reward = await contract.pendingReward(user);
-
     document.getElementById("bal").innerText = ethers.formatUnits(balance, decimals);
-    document.getElementById("staked").innerText = ethers.formatUnits(info[0], decimals);
-    document.getElementById("pending").innerText = ethers.formatUnits(reward, 18);
-  } catch (e) {}
+
+    if (contract) {
+      const info = await contract.userInfo(user);
+      const reward = await contract.pendingReward(user);
+      document.getElementById("staked").innerText = ethers.formatUnits(info[0], decimals);
+      document.getElementById("pending").innerText = ethers.formatUnits(reward, 18);
+    }
+  } catch (e) {
+    console.error("读取失败:", e);
+    document.getElementById("bal").innerText = "加载中...";
+  }
 }
 
 async function stake() {
@@ -282,7 +285,11 @@ async function stake() {
     await contract.stake(ethers.parseUnits(amount, decimals));
     alert("质押成功");
   } catch (e) {
-    alert("质押失败：" + e.message);
+    if (e.message.includes("missing revert data")) {
+      alert("质押失败：请检查授权是否完成、质押数量是否符合要求，或联系项目方确认合约状态");
+    } else {
+      alert("质押失败：" + e.message);
+    }
   }
 }
 
