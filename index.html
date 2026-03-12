@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WBNB-DQM 流动性质押挖矿 | 大秦梦生态</title>
-<script src="https://cdn.ethers.org/lib-ethers/6.13.0/ethers.umd.min.js"></script>
+<!-- 替换为更稳定的 ethers.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,sans-serif}
@@ -222,10 +223,13 @@ body{background:#050814;color:#fff;overflow-x:hidden}
 </div>
 
 <script>
-particlesJS("particles",{
-  particles:{number:{value:80},color:{value:"#00e0ff"},opacity:{value:0.4},size:{value:2.8},
-  line_linked:{enable:true,distance:140,color:"#00e0ff",opacity:0.15,width:1},move:{enable:true,speed:1.8}},
-  interactivity:{onhover:{enable:true,mode:"grab"},onclick:{enable:true,mode:"push"}}
+// 确保 ethers 已加载后再执行粒子效果
+window.addEventListener('load', function() {
+  particlesJS("particles",{
+    particles:{number:{value:80},color:{value:"#00e0ff"},opacity:{value:0.4},size:{value:2.8},
+    line_linked:{enable:true,distance:140,color:"#00e0ff",opacity:0.15,width:1},move:{enable:true,speed:1.8}},
+    interactivity:{onhover:{enable:true,mode:"grab"},onclick:{enable:true,mode:"push"}}
+  });
 });
 
 // ==========================
@@ -259,8 +263,12 @@ const ERC20_ABI = [
 let provider, signer, userAddr, contract, lpToken, rewardToken;
 let lpDecimals = 18;
 
-// 连接钱包
+// 连接钱包（增加 ethers 存在性检查）
 async function connectWallet() {
+  if (typeof ethers === 'undefined') {
+    alert("钱包库加载失败，请刷新页面重试");
+    return;
+  }
   try {
     if (!window.ethereum) {
       alert("请在 TP钱包 / MetaMask 内打开");
