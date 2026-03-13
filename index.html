@@ -77,8 +77,9 @@ button:disabled{background:#999}
   <button onclick="adminExtract()" style="background:#ff3c50">确认提取到管理员钱包</button>
 </div>
 
+<!-- 先加载 qrcode，再加载 ethers，确保顺序正确 -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-<script src="https://cdn.ethers.org/lib-ethers.5.7.2.umd.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 <script>
 // ======================
 // 你的固定信息
@@ -90,16 +91,25 @@ const MIN_PAY = 28;
 let account;
 let usdtContract;
 
+// 等待页面完全加载后再执行
+window.addEventListener('load', function() {
+  console.log("页面加载完成，ethers 已加载：", typeof ethers !== 'undefined');
+});
+
 // 实时显示金额
 document.getElementById('payAmount').addEventListener('input', function () {
   const v = this.value || 0;
   document.getElementById('showAmount').innerText = v;
 });
 
-// 连接钱包（修复版，兼容所有钱包）
+// 连接钱包（修复版，兼容TP钱包）
 async function connectWallet() {
+  if (typeof ethers === 'undefined') {
+    alert("页面加载中，请稍后再试，或刷新页面");
+    return;
+  }
   if (!window.ethereum) {
-    alert("请安装MetaMask或在TP钱包/币安钱包内打开");
+    alert("请在TP钱包/币安钱包内打开此页面，或安装MetaMask");
     return;
   }
 
