@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WBNB-DQM 流动性质押挖矿 | 大秦梦生态</title>
-<script src="https://cdn.ethers.org/lib-ethers/6.13.0/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,sans-serif}
@@ -182,29 +181,13 @@ const CONTRACT_ADDR = "0x..."; // 你的LP挖矿合约
 const LP_ADDR      = "0x..."; // WBNB-DQM LP地址
 const REWARD_ADDR  = "0x..."; // DQM通证地址
 const CHAIN_ID     = 56;      // BSC主网:56, 测试网:97
+let userAddr = null;
 
-const ABI = [
-  "function stake(uint256 amount)",
-  "function unstake(uint256 amount)",
-  "function autoClaim()",
-  "function userInfo(address) view returns (uint256,uint256,uint256,uint256)",
-  "function pendingReward(address) view returns (uint256)"
-];
-
-const ERC20_ABI = [
-  "function balanceOf(address) view returns (uint256)",
-  "function decimals() view returns (uint8)",
-  "function approve(address spender, uint256 amount) external returns (bool)"
-];
-
-let provider, signer, userAddr, contract, lpToken, rewardToken;
-let decimals = 18;
-
-// 连接钱包（多钱包兼容 + 链ID校验）
+// 连接钱包（原生API，不依赖ethers）
 async function connectWallet() {
   try {
     if (!window.ethereum) throw new Error("请安装 MetaMask/TP钱包/Trust Wallet");
-    // 链ID校验
+    // 切换到BSC链
     const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
     if (parseInt(currentChain) !== CHAIN_ID) {
       await window.ethereum.request({
@@ -218,17 +201,9 @@ async function connectWallet() {
         }
       });
     }
-    // 请求账户
-    await window.ethereum.request({ method: 'eth_requestAccounts' });
-    provider = new ethers.BrowserProvider(window.ethereum);
-    signer = await provider.getSigner();
-    userAddr = await signer.getAddress();
-    // 初始化合约
-    contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
-    lpToken = new ethers.Contract(LP_ADDR, ERC20_ABI, signer);
-    rewardToken = new ethers.Contract(REWARD_ADDR, ERC20_ABI, signer);
-    decimals = await lpToken.decimals();
-    // 更新UI
+    // 获取账户
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    userAddr = accounts[0];
     document.getElementById("connectBtn").innerText = `已连接: ${userAddr.slice(0,6)}...`;
     startAll();
   } catch (err) {
@@ -237,39 +212,75 @@ async function connectWallet() {
   }
 }
 
-// 刷新数据
+// 格式化单位（模拟ethers.formatUnits）
+function formatUnits(hex, decimals = 18) {
+  const num = BigInt(hex);
+  const divisor = BigInt(10 ** decimals);
+  const integer = num / divisor;
+  const fraction = (num % divisor).toString().padStart(decimals, '0').slice(0, 4);
+  return `${integer}.${fraction}`;
+}
+
+// 解析单位（模拟ethers.parseUnits）
+function parseUnits(val, decimals = 18) {
+  const [integer, fraction = ''] = val.split('.');
+  const full = integer + fraction.padEnd(decimals, '0').slice(0, decimals);
+  return BigInt(full).toString(16).padStart(64, '0');
+}
+
+// 刷新数据（原生call）
 async function refreshInfo() {
   if (!userAddr) return;
   try {
     document.getElementById("addr").innerText = userAddr.slice(0,6)+"..."+userAddr.slice(-4);
-    const [lpBal, userInfo, pending] = await Promise.all([
-      lpToken.balanceOf(userAddr),
-      contract.userInfo(userAddr),
-      contract.pendingReward(userAddr)
-    ]);
-    document.getElementById("lpBal").innerText = ethers.formatUnits(lpBal, decimals);
-    document.getElementById("staked").innerText = ethers.formatUnits(userInfo[0], decimals);
-    document.getElementById("pending").innerText = ethers.formatUnits(pending, 18);
+    // 1. 查询LP余额
+    const lpBal = await window.ethereum.request({
+      method: 'eth_call',
+      params: [{ to: LP_ADDR, data: '0x70a08231' + userAddr.slice(2).padStart(64, '0') }, 'latest']
+    });
+    document.getElementById("lpBal").innerText = formatUnits(lpBal);
+
+    // 2. 查询用户质押信息
+    const userInfo = await window.ethereum.request({
+      method: 'eth_call',
+      params: [{ to: CONTRACT_ADDR, data: '0x207a4084' + userAddr.slice(2).padStart(64, '0') }, 'latest']
+    });
+    const stakedHex = userInfo.slice(0, 66);
+    document.getElementById("staked").innerText = formatUnits(stakedHex);
+
+    // 3. 查询待领取奖励
+    const pending = await window.ethereum.request({
+      method: 'eth_call',
+      params: [{ to: CONTRACT_ADDR, data: '0x24bbf4d5' + userAddr.slice(2).padStart(64, '0') }, 'latest']
+    });
+    document.getElementById("pending").innerText = formatUnits(pending, 18);
+
     document.getElementById("refLink").value = `${window.location.origin}${window.location.pathname}?ref=${userAddr}`;
   } catch (err) {
     console.error("刷新数据失败:", err);
   }
 }
 
-// 质押（带授权检查）
+// 质押（原生交易）
 async function stakeLP() {
   try {
     const val = document.getElementById("amt").value.trim();
     if (!val || parseFloat(val) <= 0) return alert("请输入有效数量");
-    const amt = ethers.parseUnits(val, decimals);
-    // 检查授权
-    const allowance = await lpToken.allowance(userAddr, CONTRACT_ADDR);
-    if (allowance < amt) {
-      await lpToken.approve(CONTRACT_ADDR, amt);
-      alert("授权成功，即将执行质押...");
-    }
-    await contract.stake(amt);
-    alert("质押提交成功，等待上链确认...");
+    const amt = parseUnits(val);
+    // 授权
+    const approveData = '0x095ea7b3' + CONTRACT_ADDR.slice(2).padStart(64, '0') + 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+    await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: userAddr, to: LP_ADDR, data: approveData, gasLimit: '0x300000' }]
+    });
+    alert("授权成功，执行质押...");
+    // 质押
+    const stakeData = '0xa694fc3a' + amt;
+    await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: userAddr, to: CONTRACT_ADDR, data: stakeData, gasLimit: '0x300000' }]
+    });
+    alert("质押提交成功！");
     setTimeout(refreshInfo, 3000);
   } catch (err) {
     alert(`质押失败: ${err.message}`);
@@ -277,14 +288,18 @@ async function stakeLP() {
   }
 }
 
-// 解押
+// 解押（原生交易）
 async function unstakeLP() {
   try {
     const val = document.getElementById("amt").value.trim();
     if (!val || parseFloat(val) <= 0) return alert("请输入有效数量");
-    const amt = ethers.parseUnits(val, decimals);
-    await contract.unstake(amt);
-    alert("解押提交成功，等待上链确认...");
+    const amt = parseUnits(val);
+    const unstakeData = '0x35fc0e2d' + amt;
+    await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: userAddr, to: CONTRACT_ADDR, data: unstakeData, gasLimit: '0x300000' }]
+    });
+    alert("解押提交成功！");
     setTimeout(refreshInfo, 3000);
   } catch (err) {
     alert(`解押失败: ${err.message}`);
@@ -292,22 +307,23 @@ async function unstakeLP() {
   }
 }
 
-// 自动领取（容错循环）
+// 自动领取（原生交易）
 async function autoClaimLoop() {
   if (!userAddr) return;
   try {
-    await contract.autoClaim();
-    console.log("自动领取奖励成功");
+    await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: userAddr, to: CONTRACT_ADDR, data: '0x1195799a', gasLimit: '0x300000' }]
+    });
+    console.log("自动领取成功");
   } catch (err) {
-    if (!err.message.includes("no reward") && !err.message.includes("reverted")) {
-      console.error("自动领取失败:", err);
-    }
+    if (!err.message.includes("no reward")) console.error("自动领取失败:", err);
   } finally {
     setTimeout(autoClaimLoop, 15000);
   }
 }
 
-// 倒计时（精准循环）
+// 倒计时
 function startCountdown() {
   let sec = 8 * 60 * 60;
   const countEl = document.getElementById("count");
@@ -322,7 +338,7 @@ function startCountdown() {
   setInterval(update, 1000);
 }
 
-// 复制邀请链接（安全提示）
+// 复制邀请链接
 function copyRef() {
   try {
     const input = document.getElementById("refLink");
