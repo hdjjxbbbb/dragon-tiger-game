@@ -46,8 +46,8 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
 <!-- 注册区域 -->
 <div class="glass">
   <div class="title">进入生态</div>
-  <div class="sub" id="inviteTip">请输入上级邀请码（钱包地址）</div>
-  <input class="input" id="inviteCode" placeholder="请输入上级钱包地址">
+  <div class="sub" id="inviteTip">请输入上级邀请码（10位）</div>
+  <input class="input" id="inviteCode" placeholder="请输入上级10位邀请码">
   <button class="btn-primary" id="enterBtn" disabled>确认进入并激活</button>
 </div>
 
@@ -87,9 +87,20 @@ const REWARD_TOKEN   = "0xccf91d83fCE430408F8DCeFBb80B796546CC1610";
 const DAI_ADDR       = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
 const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1";
 
-const ABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"cost","type":"uint256"}],"name":"ActivatedClassic","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"cost","type":"uint256"}],"name":"ActivatedUnion","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":true,"internalType":"address","name":"referrer","type":"address"}],"name":"Registered","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"bool","name":"isS3","type":"bool"}],"name":"RewardSent","type":"event"},{"constant":true,"inputs":[],"name":"BASE_COST","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"DAI","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MAX_CLASSIC_LEVEL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MAX_UNION_LEVEL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PROJECT_RATIO","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PROJECT_WALLET","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"REWARD_RATIO","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"REWARD_TOKEN","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"S3_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"S6_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"targetLevel","type":"uint256"}],"name":"activateClassicLevel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"targetLevel","type":"uint256"}],"name":"activateUnionLevel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getActivationCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"u","type":"address"}],"name":"getUserInfo","outputs":[{"internalType":"address","name":"referrer","type":"address"},{"internalType":"uint256","name":"classicLv","type":"uint256"},{"internalType":"uint256","name":"unionLv","type":"uint256"},{"internalType":"uint256","name":"power","type":"uint256"},{"internalType":"bool","name":"registered","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getUnionCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"isS3","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"isS6","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"referrer","type":"address"}],"name":"register","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"downlines","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"users","outputs":[{"internalType":"address","name":"referrer","type":"address"},{"internalType":"uint256","name":"classicLevel","type":"uint256"},{"internalType":"uint256","name":"unionLevel","type":"uint256"},{"internalType":"uint256","name":"power","type":"uint256"},{"internalType":"uint256","name":"totalEarned","type":"uint256"},{"internalType":"bool","name":"isRegistered","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"}];
+const ABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"cost","type":"uint256"}],"name":"ActivatedClassic","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"cost","type":"uint256"}],"name":"ActivatedUnion","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":true,"internalType":"address","name":"referrer","type":"address"}],"name":"Registered","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"bool","name":"isS3","type":"bool"}],"name":"RewardSent","type":"event"},{"constant":true,"inputs":[],"name":"BASE_COST","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"DAI","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MAX_CLASSIC_LEVEL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MAX_UNION_LEVEL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PROJECT_RATIO","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PROJECT_WALLET","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"REWARD_RATIO","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"REWARD_TOKEN","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"S3_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"S6_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"targetLevel","type":"uint256"}],"name":"activateClassicLevel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"targetLevel","type":"uint256"}],"name":"activateUnionLevel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getActivationCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"u","type":"address"}],"name":"getUserInfo","outputs":[{"internalType":"address","name":"referrer","type":"address"},{"internalType":"uint256","name":"classicLv","type":"uint256"},{"internalType":"uint256","name":"unionLv","type":"uint256"},{"internalType":"uint256","name":"power","type":"uint256"},{"internalType":"bool","name":"registered","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getUnionCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"isS3","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"isS6","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"referrer","type":"address"}],"name":"register","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"uint256","name":"","type":"uint256"}],"name":"downlines","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"users","outputs":[{"internalType":"address","name":"referrer","type":"address"},{"internalType":"uint256","name":"classicLevel","type":"uint256"},{"internalType":"uint256","name":"unionLevel","type":"uint256"},{"internalType":"uint256","name":"power","type":"uint256"},{"internalType":"uint256","name":"totalEarned","type":"uint256"},{"internalType":"bool","name":"isRegistered","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"}];
 
 let web3, account, contract;
+let isRegistered = false;
+
+// 地址 <-> 10位邀请码 转换
+function addrToCode(addr) {
+  return addr.slice(2, 8).toUpperCase() + addr.slice(-4).toUpperCase();
+}
+function codeToAddr(code) {
+  code = code.trim().toUpperCase();
+  if (code.length !== 10) return null;
+  return "0x" + code.slice(0, 6) + code.slice(-4);
+}
 
 // 连接钱包
 connectBtn.onclick = async () => {
@@ -100,46 +111,75 @@ connectBtn.onclick = async () => {
   account = accounts[0];
   contract = new web3.eth.Contract(ABI, MATRIX_CONTRACT);
 
-  document.getElementById("address").innerText = `已连接：${account}`;
+  document.getElementById("address").innerText = `已连接：${account.slice(0, 6)}…${account.slice(-4)}`;
 
-  // 项目方免邀请码
+  // 项目方特殊处理
   if(account.toLowerCase() === PROJECT_WALLET.toLowerCase()){
     document.getElementById("inviteTip").innerText = "✅ 你是项目方，无需邀请码，直接激活";
     document.getElementById("inviteCode").style.display = "none";
   }
 
-  // 自动识别链接邀请人
-  const ref = new URLSearchParams(window.location.search).get('ref');
-  if(ref && web3.utils.isAddress(ref)) document.getElementById("inviteCode").value = ref;
+  // 从链接解析邀请码（短码，避免404）
+  const urlParams = new URLSearchParams(window.location.search);
+  const refCode = urlParams.get('ref');
+  if(refCode && refCode.length === 10){
+    document.getElementById("inviteCode").value = refCode;
+  }
 
   enterBtn.disabled = false;
   showMyLink();
-  loadRelation();
+  await loadRelation();
   renderList();
 };
 
-// 生成邀请链接
+// 生成邀请链接（短码版，不会404）
 function showMyLink(){
-  const link = `${location.origin}?ref=${account}`;
+  if(!account) return;
+  const code = addrToCode(account);
+  const baseUrl = window.location.origin + window.location.pathname;
+  const link = `${baseUrl}?ref=${code}`;
   document.getElementById("myLink").innerText = link;
   document.getElementById("myInviteCard").style.display = "block";
 }
 
 // 复制链接
 copyLinkBtn.onclick = () => {
-  navigator.clipboard.writeText(document.getElementById("myLink").innerText).then(()=>alert("✅ 邀请链接复制成功"));
+  const link = document.getElementById("myLink").innerText;
+  if(!link) return alert("请先连接钱包");
+  navigator.clipboard.writeText(link).then(() => {
+    alert("✅ 邀请链接复制成功！");
+  });
 };
 
 // 注册
 enterBtn.onclick = async () => {
-  let ref = account.toLowerCase() === PROJECT_WALLET.toLowerCase() ? PROJECT_WALLET : document.getElementById("inviteCode").value.trim();
-  if(!web3.utils.isAddress(ref)) return alert("邀请码必须是钱包地址");
+  let referrerAddr;
+  if(account.toLowerCase() === PROJECT_WALLET.toLowerCase()){
+    referrerAddr = PROJECT_WALLET;
+  } else {
+    const code = document.getElementById("inviteCode").value.trim();
+    referrerAddr = codeToAddr(code);
+    if(!referrerAddr) return alert("邀请码必须是10位有效字符");
+    if(referrerAddr.toLowerCase() === account.toLowerCase()) return alert("不能输入自己的邀请码");
+  }
+
   try {
-    await contract.methods.register(ref).send({from:account});
+    // 先检查是否已注册
+    const info = await contract.methods.getUserInfo(account).call();
+    if(info.registered){
+      alert("✅ 你已经注册过了，可直接激活矩阵");
+      isRegistered = true;
+      await loadRelation();
+      return;
+    }
+
+    await contract.methods.register(referrerAddr).send({from: account});
     alert("✅ 注册成功！上下级关系已上链");
-    loadRelation();
+    isRegistered = true;
+    await loadRelation();
   } catch(e){
-    alert("❌ 已注册或邀请码无效");
+    console.error(e);
+    alert("❌ 注册失败：已注册或邀请码无效");
   }
 };
 
@@ -148,20 +188,28 @@ async function loadRelation(){
   if(!account) return;
   document.getElementById("relationBox").style.display = "block";
   const info = await contract.methods.getUserInfo(account).call();
-  document.getElementById("myReferrer").innerText = info.referrer || "无";
+  isRegistered = info.registered;
+  document.getElementById("myReferrer").innerText = info.referrer ? `${info.referrer.slice(0, 6)}…${info.referrer.slice(-4)}` : "无";
 
   const downDiv = document.getElementById("myDownlines");
   downDiv.innerHTML = "";
   try {
-    for(let i=0;i<50;i++){
-      const d = await contract.methods.downlines(account,i).call();
+    let i = 0;
+    while(true){
+      const d = await contract.methods.downlines(account, i).call();
       if(!d || d === "0x0000000000000000000000000000000000000000") break;
       const item = document.createElement("div");
       item.className = "relation-box";
-      item.innerText = d;
+      item.innerText = `${d.slice(0, 6)}…${d.slice(-4)}`;
       downDiv.appendChild(item);
+      i++;
     }
-  } catch(e){}
+    if(downDiv.innerHTML === ""){
+      downDiv.innerHTML = "<div class='relation-box'>暂无下级</div>";
+    }
+  } catch(e){
+    downDiv.innerHTML = "<div class='relation-box'>暂无下级</div>";
+  }
 }
 
 // 渲染矩阵
@@ -169,35 +217,66 @@ function renderList(){
   const c = document.getElementById("classicList"), u = document.getElementById("unionList");
   c.innerHTML = u.innerHTML = "";
   for(let i=1;i<=12;i++){
-    const cost = web3.utils.toBN(50).mul(web3.utils.toBN(2).pow(web3.utils.toBN(i-1))).toString()+"000000000000000000";
+    const cost = web3.utils.toBN(50).mul(web3.utils.toBN(2).pow(web3.utils.toBN(i-1))).toString() + "000000000000000000";
     const t = document.createElement("div");
     t.className = "item";
-    t.innerHTML = `<div>L${i} ${i%2==1?'S6':'S3'}</div><div>${web3.utils.fromWei(cost,'ether')} DAI</div><button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="actC(${i})">激活</button>`;
+    t.innerHTML = `
+      <div>L${i} ${i%2==1?'<span class="tag-s6">S6</span>':'<span class="tag-s3">S3</span>'}</div>
+      <div>${web3.utils.fromWei(cost, 'ether')} DAI</div>
+      <button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="actC(${i})">激活</button>
+    `;
     c.appendChild(t);
   }
   for(let i=1;i<=9;i++){
-    const cost = web3.utils.toBN(50*i).toString()+"000000000000000000";
+    const cost = web3.utils.toBN(50*i).toString() + "000000000000000000";
     const t = document.createElement("div");
     t.className = "item";
-    t.innerHTML = `<div>挖矿 L${i}</div><div>${web3.utils.fromWei(cost,'ether')} DAI</div><button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="actU(${i})">激活</button>`;
+    t.innerHTML = `
+      <div>挖矿 L${i}</div>
+      <div>${web3.utils.fromWei(cost, 'ether')} DAI</div>
+      <button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="actU(${i})">激活挖矿</button>
+    `;
     u.appendChild(t);
   }
 }
 
-// 激活
-async function actC(l){await act(l,true)}
-async function actU(l){await act(l,false)}
-async function act(l,isC){
-  if(!account) return;
-  const info = await contract.methods.getUserInfo(account).call();
-  if(!info.registered) return alert("请先注册");
-  const cost = isC ? await contract.methods.getActivationCost(l).call() : await contract.methods.getUnionCost(l).call();
-  const dai = new web3.eth.Contract([{constant:false,inputs:[{"name":"_spender"},{"name":"_value"}],name:"approve",outputs:[]},{constant:true,inputs:[{"name":"_owner"},{"name":"_spender"}],name:"allowance",outputs:[{"name":""}]}],DAI_ADDR);
-  const allow = await dai.methods.allowance(account,MATRIX_CONTRACT).call();
-  if(web3.utils.toBN(allow).lt(web3.utils.toBN(cost))) await dai.methods.approve(MATRIX_CONTRACT,cost).send({from:account});
-  if(isC) await contract.methods.activateClassicLevel(l).send({from:account});
-  else await contract.methods.activateUnionLevel(l).send({from:account});
-  alert(`✅ L${l} 激活成功`);
+// 激活矩阵
+async function actC(level){ await activate(level, true); }
+async function actU(level){ await activate(level, false); }
+async function activate(level, isClassic){
+  if(!account) return alert("请先连接钱包");
+  if(!isRegistered){
+    const info = await contract.methods.getUserInfo(account).call();
+    if(!info.registered) return alert("请先注册再激活矩阵");
+    isRegistered = true;
+  }
+
+  try {
+    const cost = isClassic 
+      ? await contract.methods.getActivationCost(level).call()
+      : await contract.methods.getUnionCost(level).call();
+
+    const dai = new web3.eth.Contract([
+      {constant:false,inputs:[{name:"_spender"},{name:"_value"}],name:"approve",outputs:[{name:""}],type:"function"},
+      {constant:true,inputs:[{name:"_owner"},{name:"_spender"}],name:"allowance",outputs:[{name:""}],type:"function"}
+    ], DAI_ADDR);
+
+    const allowance = await dai.methods.allowance(account, MATRIX_CONTRACT).call();
+    if(web3.utils.toBN(allowance).lt(web3.utils.toBN(cost))){
+      await dai.methods.approve(MATRIX_CONTRACT, cost).send({from: account});
+    }
+
+    if(isClassic){
+      await contract.methods.activateClassicLevel(level).send({from: account});
+      alert(`✅ 经典矩阵 L${level} 激活成功！`);
+    } else {
+      await contract.methods.activateUnionLevel(level).send({from: account});
+      alert(`✅ 挖矿矩阵 L${level} 激活成功！`);
+    }
+  } catch(e){
+    console.error(e);
+    alert("❌ 激活失败：请检查余额或 Gas");
+  }
 }
 </script>
 </body>
