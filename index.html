@@ -3,431 +3,158 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meta Whale - 全球NFT分红卡牌</title>
+<title>ROYALTY NFT 预览</title>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,"Microsoft YaHei",sans-serif}
-  body{background:#090b1a;color:#fff;padding:20px;max-width:500px;margin:0 auto}
-  .glass{background:rgba(30,35,60,0.7);border-radius:18px;padding:20px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.1)}
-  .title{font-size:18px;font-weight:bold;margin-bottom:10px}
-  .sub{color:#a0a8c0;font-size:14px;margin-bottom:12px}
-  .btn{background:linear-gradient(90deg,#4facfe,#00F2FE);color:#000;border:none;border-radius:12px;padding:14px;width:100%;font-weight:bold;font-size:16px}
-  .btn:disabled{opacity:0.5}
-  .item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.08)}
-  .item:last-child{border-bottom:none}
-  .price{color:#4facFE;font-weight:bold}
-  input{width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:15px}
-  .copy-btn{background:#4facfe;color:#000;padding:8px 12px;border-radius:8px;font-size:14px;border:none;margin-left:8px}
-  .link-box{background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin:8px 0;word-break:break-all}
+body{
+  background:#090b1a;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  margin:0;
+  font-family:Arial, sans-serif;
+}
 
-  /* ======================
-     🎴 科技风 NFT 卡牌（参考你提供的样式）
-     ====================== */
-  .nft-grid{
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-top: 12px;
-  }
-  .nft-card{
-    height: 200px;
-    position: relative;
-    border-radius: 16px;
-    border: 1px solid;
-    background: #1a1a2e;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s;
-  }
-  .nft-card:hover{
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-  }
+/* 卡牌容器 + 左右翻书动画（你要的效果） */
+.nft-card{
+  width:240px;
+  height:320px;
+  background:#2d2d2d;
+  border-radius:16px;
+  border:2px solid #00ff88;
+  position:relative;
+  overflow:hidden;
+  perspective:1000px;
+  animation: flipY 8s linear infinite;
+}
+@keyframes flipY {
+  0%   { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
 
-  /* 等级配色：1级绿 → 5级红 */
-  .n1{ border-color: #00ff88; }
-  .n2{ border-color: #00ccff; }
-  .n3{ border-color: #6666ff; }
-  .n4{ border-color: #cc66ff; }
-  .n5{ border-color: #ff3333; background: #2a0a0a; }
+/* 卡牌正面 */
+.nft-front{
+  position:absolute;
+  width:100%;
+  height:100%;
+  backface-visibility:hidden;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:20px;
+  color:#fff;
+}
 
-  /* 水晶球（参考你图里的绿色球体） */
-  .orb{
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    position: relative;
-    margin-bottom: 12px;
-    box-shadow: 0 0 20px currentColor;
-    animation: pulse 3s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%{ transform: scale(1); opacity: 0.8; }
-    50%{ transform: scale(1.05); opacity: 1; }
-    100%{ transform: scale(1); opacity: 0.8; }
-  }
-  .n1 .orb{ background: radial-gradient(circle at 30% 30%, #88ffcc, #00cc66); color: #00ff88; }
-  .n2 .orb{ background: radial-gradient(circle at 30% 30%, #88ddff, #0099cc); color: #00ccff; }
-  .n3 .orb{ background: radial-gradient(circle at 30% 30%, #aaaaff, #3333cc); color: #6666ff; }
-  .n4 .orb{ background: radial-gradient(circle at 30% 30%, #dd99ff, #9933cc); color: #cc66ff; }
-  .n5 .orb{ background: radial-gradient(circle at 30% 30%, #ff9999, #cc0000); color: #ff3333; }
+/* 顶部 META FORCE */
+.nft-top{
+  position:absolute;
+  top:15px;
+  left:15px;
+  font-size:12px;
+  font-weight:bold;
+  letter-spacing:1px;
+  color:#00ff88;
+}
+.nft-logo{
+  position:absolute;
+  top:15px;
+  right:15px;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:#00ff88;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  color:#2d2d2d;
+}
 
-  /* 科技风圆环（参考你图里的线条） */
-  .orb-ring{
-    position: absolute;
-    width: 120px;
-    height: 120px;
-    border: 1px solid currentColor;
-    border-radius: 50%;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    opacity: 0.6;
-  }
-  .orb-ring::after{
-    content: '';
-    position: absolute;
-    width: 8px; height: 8px;
-    background: currentColor;
-    border-radius: 50%;
-    top: -4px; left: 50%;
-    transform: translateX(-50%);
-  }
+/* ROYALTY NFT 标题 */
+.nft-title{
+  font-size:22px;
+  letter-spacing:2px;
+  margin:30px 0 20px;
+  opacity:0.9;
+}
+.nft-title span{
+  opacity:0.6;
+}
 
-  .nft-level{ font-size: 16px; font-weight: bold; margin-bottom: 4px; }
-  .nft-name{ font-size: 13px; opacity: 0.9; margin-bottom: 6px; }
-  .nft-pct{ font-size: 14px; color: currentColor; font-weight: bold; }
-  .nft-label{ font-size: 11px; opacity: 0.7; margin-top: 4px; }
+/* 水晶地球 + 光环 */
+.nft-orb{
+  width:130px;
+  height:130px;
+  border-radius:50%;
+  position:relative;
+  margin-bottom:20px;
+  box-shadow:0 0 30px #00ff88;
+}
+.orb-glow{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.5), #00cc66 60%);
+}
+.orb-ring{
+  position:absolute;
+  width:150px;
+  height:150px;
+  border:1px solid #00ff88;
+  border-radius:50%;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  opacity:0.7;
+}
+.orb-ring::after{
+  content:'';
+  position:absolute;
+  width:8px; height:8px;
+  background:#00ff88;
+  border-radius:50%;
+  top:-4px; left:50%;
+  transform:translateX(-50%);
+}
+.orb-orbit{
+  position:absolute;
+  width:110px;
+  height:65px;
+  border:1px solid #00ff88;
+  border-radius:50%;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%) rotateX(60deg);
+  opacity:0.5;
+}
+.orb-dot{
+  position:absolute;
+  width:6px; height:6px;
+  background:#fff;
+  border-radius:50%;
+  top:20%; right:10%;
+}
+
+/* JUST NFT 底部文字 */
+.nft-bottom{
+  font-size:16px;
+  letter-spacing:1px;
+  opacity:0.8;
+}
 </style>
 </head>
 <body>
-
-<div style="text-align:center;margin-bottom:20px">
-  <h1 style="background:linear-gradient(90deg,#4FACFE,#00F2FE);-webkit-background-clip:text;color:transparent">Meta Whale</h1>
-  <p style="color:#a0a8c7">双矩阵 · DAI激活 · 邀请分红 · 科技风NFT</p>
-</div>
-
-<button id="connectBtn" class="btn">连接钱包</button>
-<div id="addressShow" style="text-align:center;margin:12px;color:#a0a8c7"></div>
-
-<!-- 注册：邀请链接自动填码 -->
-<div class="glass">
-  <div class="title">用户注册</div>
-  <div class="sub">通过邀请链接进入，邀请码自动填写</div>
-  <input id="inviteInput" placeholder="自动填入上级邀请码" maxlength="10">
-  <button id="regBtn" class="btn" style="margin-top:12px">确认注册</button>
-</div>
-
-<!-- 邀请中心 -->
-<div class="glass" id="inviteCenter" style="display:none;">
-  <div class="title">👤 我的邀请中心</div>
-  <div style="margin-bottom:8px">我的邀请码：<span id="myCode" style="color:#4FACFE;font-weight:bold"></span></div>
-  <div style="margin-bottom:8px">
-    邀请链接：<button class="copy-btn" onclick="copyLink()">复制链接</button>
-    <div class="link-box" id="myLink"></div>
-  </div>
-  <div style="margin-bottom:12px">我的上级：<span id="uplineCode"></span></div>
-  <div class="sub">下级代理：</div>
-  <div id="downlineList"></div>
-</div>
-
-<!-- 🎴 科技风 NFT 分红卡牌（预览区） -->
-<div class="glass">
-  <div class="title">🎴 科技风 NFT 分红卡牌</div>
-  <div class="sub">全网总分红 5%，等级越高权重越高</div>
-
-  <div class="nft-grid">
-    <div class="nft-card n1">
-      <div class="orb">
-        <div class="orb-ring"></div>
-      </div>
-      <div class="nft-level">Lv.1</div>
-      <div class="nft-name">绿晶地球卡</div>
-      <div class="nft-pct">权重 0.5%</div>
-      <div class="nft-label">ROYALTY NFT</div>
+<div class="nft-card">
+  <div class="nft-front">
+    <div class="nft-top">META FORCE</div>
+    <div class="nft-logo">🐳</div>
+    <div class="nft-title">ROYALTY <span>NFT</span></div>
+    <div class="nft-orb">
+      <div class="orb-glow"></div>
+      <div class="orb-ring"></div>
+      <div class="orb-orbit"></div>
+      <div class="orb-dot"></div>
     </div>
-    <div class="nft-card n2">
-      <div class="orb">
-        <div class="orb-ring"></div>
-      </div>
-      <div class="nft-level">Lv.2</div>
-      <div class="nft-name">青晶星球卡</div>
-      <div class="nft-pct">权重 1.0%</div>
-      <div class="nft-label">ROYALTY NFT</div>
-    </div>
-    <div class="nft-card n3">
-      <div class="orb">
-        <div class="orb-ring"></div>
-      </div>
-      <div class="nft-level">Lv.3</div>
-      <div class="nft-name">蓝晶星云卡</div>
-      <div class="nft-pct">权重 1.5%</div>
-      <div class="nft-label">ROYALTY NFT</div>
-    </div>
-    <div class="nft-card n4">
-      <div class="orb">
-        <div class="orb-ring"></div>
-      </div>
-      <div class="nft-level">Lv.4</div>
-      <div class="nft-name">紫晶银河卡</div>
-      <div class="nft-pct">权重 2.0%</div>
-      <div class="nft-label">ROYALTY NFT</div>
-    </div>
-    <div class="nft-card n5" style="grid-column:span 2">
-      <div class="orb">
-        <div class="orb-ring"></div>
-      </div>
-      <div class="nft-level">Lv.5 至尊</div>
-      <div class="nft-name">赤晶神鲸卡</div>
-      <div class="nft-pct">权重 2.5%</div>
-      <div class="nft-label">ROYALTY NFT</div>
-    </div>
-  </div>
-
-  <div style="font-size:14px;color:#a0a8c7;line-height:1.6;margin-top:14px">
-    <b>🔥 官方分红规则（全网总计 5%）</b><br>
-    • 激活矩阵 → 自动获得对应等级科技风NFT<br>
-    • 等级越高 → 分红权重越高，收益越多<br>
-    • 一次激活，永久持有，自动分红
+    <div class="nft-bottom">JUST NFT</div>
   </div>
 </div>
-
-<!-- ✅ 我的 NFT 卡牌列表（项目方直接看到 Lv5） -->
-<div class="glass" id="myNftBox" style="display:none">
-  <div class="title">✅ 我的 NFT 卡牌</div>
-  <div id="myNftContainer" class="nft-grid" style="margin-top:10px"></div>
-</div>
-
-<!-- 经典矩阵 -->
-<div class="glass">
-  <div class="title">经典矩阵（1～12级）</div>
-  <div id="classicList"></div>
-</div>
-
-<!-- 联合矩阵 -->
-<div class="glass">
-  <div class="title">联合挖矿矩阵（1～9级）</div>
-  <div id="unionList"></div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
-<script>
-  // ======================
-  // ✅ 修复：地址全小写、无换行、无空格
-  // ======================
-  const PROJECT_WALLET   = "0x4d9c3000aa71feb18c1d607703bda912991ef8f1";
-  const CONTRACT_ADDRESS = "0x58285a2b8c2489702d29f1011303d39e0d3f".toLowerCase();
-  const DAI_ADDR         = "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063".toLowerCase();
-
-  let web3, account;
-  let isRegistered = false;
-  const currentUrl = window.location.origin + window.location.pathname;
-
-  // 邀请码：钱包前5 + 后5
-  function getUniqueCode(addr) {
-    const s = addr.replace("0x", "");
-    return s.slice(0,5) + s.slice(-5);
-  }
-
-  // 矩阵价格
-  function classicPrice(lev){ return 50 * 2**(lev-1) }
-  function unionPrice(lev){
-    const arr = [0,50,100,200,400,800,1600,3200,6400,12800];
-    return arr[lev];
-  }
-
-  // 页面加载自动读邀请码
-  window.onload = () => {
-    const code = new URLSearchParams(window.location.search).get("invite");
-    if (code && code.length === 10) {
-      inviteInput.value = code;
-    }
-    renderAll();
-  };
-
-  function renderAll(){
-    renderClassic();
-    renderUnion();
-    showMyNFT();
-  }
-
-  // 经典矩阵渲染
-  function renderClassic(){
-    const box = document.getElementById("classicList");
-    box.innerHTML = "";
-    for(let i=1;i<=12;i++){
-      const p = classicPrice(i);
-      box.innerHTML += `
-      <div class="item">
-        <div>Lv${i}</div>
-        <div class="price">${p} DAI</div>
-        <button onclick="activeClassic(${i})" style="padding:6px 12px;background:#4facfe;color:#000;border:none;border-radius:10px">激活</button>
-      </div>`
-    }
-  }
-
-  // 联合矩阵渲染
-  function renderUnion(){
-    const box = document.getElementById("unionList");
-    box.innerHTML = "";
-    for(let i=1;i<=9;i++){
-      const p = unionPrice(i);
-      box.innerHTML += `
-      <div class="item">
-        <div>Lv${i}</div>
-        <div class="price">${p} DAI</div>
-        <button onclick="activeUnion(${i})" style="padding:6px 12px;background:#4facfe;color:#000;border:none;border-radius:10px">激活</button>
-      </div>`
-    }
-  }
-
-  // ======================
-  // ✅ 激活逻辑（彻底修复地址问题）
-  // ======================
-  async function activeClassic(lev){
-    if(!account) return alert("请先连接钱包");
-    if(!isRegistered) return alert("请先完成注册");
-    try {
-      await payDAI(classicPrice(lev));
-      saveNftLevel(lev);
-      alert("✅ 经典矩阵 Lv"+lev+" 激活成功！\n🎴 NFT已发放");
-      showMyNFT();
-    }catch(e){
-      alert("❌ 激活失败："+e.message);
-    }
-  }
-
-  async function activeUnion(lev){
-    if(!account) return alert("请先连接钱包");
-    if(!isRegistered) return alert("请先完成注册");
-    try {
-      await payDAI(unionPrice(lev));
-      saveNftLevel(lev);
-      alert("✅ 联合矩阵 Lv"+lev+" 激活成功！\n🎴 NFT已发放");
-      showMyNFT();
-    }catch(e){
-      alert("❌ 激活失败："+e.message);
-    }
-  }
-
-  // DAI 支付：强制地址小写 + 无换行
-  async function payDAI(amount){
-    const dai = new web3.eth.Contract([{
-      "constant":false,
-      "inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],
-      "name":"transfer",
-      "outputs":[{"name":"","type":"bool"}],
-      "type":"function"
-    }], DAI_ADDR);
-    const val = web3.utils.toWei(amount+"", "mwei");
-    // ✅ 强制转小写，避免钱包校验失败
-    await dai.methods.transfer(CONTRACT_ADDRESS.toLowerCase(), val).send({from: account.toLowerCase()});
-  }
-
-  // ======================
-  // ✅ NFT 保存与显示（项目方自动拥有 Lv5）
-  // ======================
-  function saveNftLevel(lev){
-    const old = Number(localStorage.getItem("nft_"+account)||0);
-    if(lev>old) localStorage.setItem("nft_"+account, lev);
-  }
-
-  function showMyNFT(){
-    if(!account) return;
-    
-    // ✅ 项目方钱包强制拥有 Lv5
-    let lv = Number(localStorage.getItem("nft_"+account)||0);
-    if(account === PROJECT_WALLET){
-      lv = 5;
-      localStorage.setItem("nft_"+account, 5);
-    }
-
-    const box = document.getElementById("myNftBox");
-    const container = document.getElementById("myNftContainer");
-    if(lv<1){
-      box.style.display="none";
-      return;
-    }
-    box.style.display="block";
-
-    const names = ["","绿晶地球卡","青晶星球卡","蓝晶星云卡","紫晶银河卡","赤晶神鲸卡"];
-    const rate  = [0, 0.5, 1.0, 1.5, 2.0, 2.5];
-    const cls   = ["","n1","n2","n3","n4","n5"];
-
-    // ✅ 在「我的 NFT」里渲染科技风卡牌
-    container.innerHTML = `
-      <div class="nft-card ${cls[lv]}" style="grid-column:span 2">
-        <div class="orb">
-          <div class="orb-ring"></div>
-        </div>
-        <div class="nft-level">Lv.${lv} ${lv===5?'至尊':''}</div>
-        <div class="nft-name">${names[lv]}</div>
-        <div class="nft-pct">分红权重 ${rate[lv]}%</div>
-        <div class="nft-label">ROYALTY NFT</div>
-      </div>
-    `;
-  }
-
-  // ======================
-  // 注册逻辑
-  // ======================
-  regBtn.onclick = () => {
-    const code = inviteInput.value.trim();
-    if(code.length!==10) return alert("邀请码必须10位");
-    isRegistered = true;
-    localStorage.setItem("upline_"+account, code);
-    const downKey = "downlines_"+code;
-    const list = JSON.parse(localStorage.getItem(downKey)||"[]");
-    list.push(account);
-    localStorage.setItem(downKey, JSON.stringify(list));
-    alert("✅ 注册成功！");
-    showInvite();
-  };
-
-  function showInvite(){
-    if(!account) return;
-    const myCode = getUniqueCode(account);
-    const uplineCode = localStorage.getItem("upline_"+account)||"未绑定";
-    document.getElementById("inviteCenter").style.display = "block";
-    document.getElementById("myCode").innerText = myCode;
-    document.getElementById("uplineCode").innerText = uplineCode;
-    document.getElementById("myLink").innerText = `${currentUrl}?invite=${myCode}`;
-    const down = JSON.parse(localStorage.getItem("downlines_"+myCode)||"[]");
-    const el = document.getElementById("downlineList");
-    el.innerHTML = "";
-    down.forEach(a=>{
-      el.innerHTML += `<div class="sub">• ${a.slice(0,6)}…${a.slice(-4)}</div>`
-    })
-  }
-
-  function copyLink(){
-    const link = `${currentUrl}?invite=${getUniqueCode(account)}`;
-    navigator.clipboard.writeText(link).then(()=>alert("✅ 邀请链接已复制"));
-  }
-
-  // ======================
-  // ✅ 修复连接钱包逻辑（兼容更多钱包）
-  // ======================
-  connectBtn.onclick = async () => {
-    if(!window.ethereum){
-      alert("请在支持钱包的浏览器中打开（如TP钱包、MetaMask）");
-      return;
-    }
-    try {
-      if (window.ethereum.enable) await window.ethereum.enable();
-      web3 = new Web3(window.ethereum);
-      const accounts = await web3.eth.getAccounts();
-      account = accounts[0].toLowerCase();
-      document.getElementById("addressShow").innerText = `已连接：${account.slice(0,6)}…${account.slice(-4)}`;
-      isRegistered = !!localStorage.getItem("upline_"+account);
-      if(account === PROJECT_WALLET) isRegistered = true;
-      showInvite();
-      renderAll();
-    }catch(e){
-      alert("连接钱包失败："+e.message+"\n请检查钱包是否授权");
-    }
-  };
-</script>
 </body>
 </html>
