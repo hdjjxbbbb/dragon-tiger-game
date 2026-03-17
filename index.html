@@ -128,7 +128,7 @@ connectBtn.onclick = async () => {
 
   enterBtn.disabled = false;
   showMyLink();
-  await loadRelation();
+  await loadRelation(); // 先加载注册状态
   renderList();
 };
 
@@ -151,8 +151,19 @@ copyLinkBtn.onclick = () => {
   });
 };
 
-// 注册
+// 注册（核心修复：先查是否已注册）
 enterBtn.onclick = async () => {
+  if(!account) return alert("请先连接钱包");
+  
+  // 先查链上状态
+  const info = await contract.methods.getUserInfo(account).call();
+  if(info.registered){
+    alert("✅ 你已经注册过了，可直接激活矩阵！");
+    isRegistered = true;
+    await loadRelation();
+    return;
+  }
+
   let referrerAddr;
   if(account.toLowerCase() === PROJECT_WALLET.toLowerCase()){
     referrerAddr = PROJECT_WALLET;
@@ -164,17 +175,8 @@ enterBtn.onclick = async () => {
   }
 
   try {
-    // 先检查是否已注册
-    const info = await contract.methods.getUserInfo(account).call();
-    if(info.registered){
-      alert("✅ 你已经注册过了，可直接激活矩阵");
-      isRegistered = true;
-      await loadRelation();
-      return;
-    }
-
     await contract.methods.register(referrerAddr).send({from: account});
-    alert("✅ 注册成功！上下级关系已上链");
+    alert("✅ 注册成功！上下级关系已上链，现在可以激活矩阵");
     isRegistered = true;
     await loadRelation();
   } catch(e){
@@ -183,7 +185,7 @@ enterBtn.onclick = async () => {
   }
 };
 
-// 加载上下级关系
+// 加载上下级关系 + 注册状态
 async function loadRelation(){
   if(!account) return;
   document.getElementById("relationBox").style.display = "block";
@@ -240,16 +242,19 @@ function renderList(){
   }
 }
 
-// 激活矩阵
+// 激活矩阵（核心修复：先查注册状态）
 async function actC(level){ await activate(level, true); }
 async function actU(level){ await activate(level, false); }
 async function activate(level, isClassic){
   if(!account) return alert("请先连接钱包");
-  if(!isRegistered){
-    const info = await contract.methods.getUserInfo(account).call();
-    if(!info.registered) return alert("请先注册再激活矩阵");
-    isRegistered = true;
+  
+  // 先查链上注册状态
+  const info = await contract.methods.getUserInfo(account).call();
+  if(!info.registered){
+    alert("❌ 请先注册再激活矩阵");
+    return;
   }
+  isRegistered = true;
 
   try {
     const cost = isClassic 
@@ -275,7 +280,7 @@ async function activate(level, isClassic){
     }
   } catch(e){
     console.error(e);
-    alert("❌ 激活失败：请检查余额或 Gas");
+    alert("❌ 激活失败：请检查DAI余额或Gas费");
   }
 }
 </script>
