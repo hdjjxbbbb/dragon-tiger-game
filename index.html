@@ -19,9 +19,7 @@
   .copy-btn{background:#4facfe;color:#000;padding:8px 12px;border-radius:8px;font-size:14px;border:none;margin-left:8px}
   .link-box{background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin:8px 0;word-break:break-all}
 
-  /* ======================
-     🌍 3D 水晶地球仪 NFT 卡牌（你要的效果）
-     ====================== */
+  /* 🌍 3D 水晶地球仪 NFT 卡牌（通用样式） */
   .nft-grid{
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -45,8 +43,6 @@
     transform: translateY(-5px);
     box-shadow: 0 10px 30px rgba(100, 180, 255, 0.3);
   }
-
-  /* 水晶地球仪核心效果 */
   .globe{
     position: absolute;
     width: 100px;
@@ -65,7 +61,6 @@
     0%   { transform: rotateY(0deg); }
     100% { transform: rotateY(360deg); }
   }
-
   .nft-card > * { position: relative; z-index: 1; }
   .nft-level{ font-size: 18px; font-weight: bold; margin-bottom: 6px; }
   .nft-name { font-size: 13px; opacity: 0.9; margin-bottom: 8px; }
@@ -77,8 +72,6 @@
   .n3{ border-color: rgba(60,160,255,0.5); }
   .n4{ border-color: rgba(140,80,255,0.5); }
   .n5{
-    grid-column: span 2;
-    height: 190px;
     border-color: rgba(255,180,0,0.6);
     background: rgba(40,25,10,0.5);
   }
@@ -123,13 +116,10 @@
   <div id="downlineList"></div>
 </div>
 
-<!-- ======================
-     🌍 3D 水晶地球仪 NFT 分红卡牌（等级区分）
-     ====================== -->
+<!-- 🌍 3D 水晶地球仪 NFT 分红卡牌（预览区） -->
 <div class="glass">
   <div class="title">🌍 全球 3D 水晶 NFT 分红卡牌</div>
   <div class="sub">全网总分红 5%，等级越高权重越高</div>
-
   <div class="nft-grid">
     <div class="nft-card n1">
       <div class="globe"></div>
@@ -155,14 +145,13 @@
       <div class="nft-name">紫晶星球卡</div>
       <div class="nft-pct">权重 2.0%</div>
     </div>
-    <div class="nft-card n5">
+    <div class="nft-card n5" style="grid-column:span 2">
       <div class="globe"></div>
       <div class="nft-level">Lv.5 至尊</div>
       <div class="nft-name">黄金神鲸卡</div>
       <div class="nft-pct">权重 2.5%</div>
     </div>
   </div>
-
   <div style="font-size:14px;color:#a0a8c7;line-height:1.6;margin-top:14px">
     <b>🔥 官方分红规则（全网总计 5%）</b><br>
     • 激活矩阵 → 自动获得对应3D地球仪NFT<br>
@@ -171,10 +160,10 @@
   </div>
 </div>
 
-<!-- 我的NFT -->
+<!-- ✅ 我的 NFT 卡牌列表（项目方直接看到 Lv5） -->
 <div class="glass" id="myNftBox" style="display:none">
   <div class="title">✅ 我的 3D 地球仪 NFT</div>
-  <div id="myNftInfo" style="line-height:1.8"></div>
+  <div id="myNftContainer" class="nft-grid" style="margin-top:10px"></div>
 </div>
 
 <!-- 经典矩阵 -->
@@ -192,17 +181,17 @@
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
   // ======================
-  // ✅ 稳定配置：地址全小写、无换行
+  // ✅ 修复：地址全小写、无换行、无空格
   // ======================
   const PROJECT_WALLET   = "0x4d9c3000aa71feb18c1d607703bda912991ef8f1";
-  const CONTRACT_ADDRESS = "0x58285a2b8c2489702d29f1011303d39e0d3f";
-  const DAI_ADDR         = "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063";
+  const CONTRACT_ADDRESS = "0x58285a2b8c2489702d29f1011303d39e0d3f".toLowerCase();
+  const DAI_ADDR         = "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063".toLowerCase();
 
   let web3, account;
   let isRegistered = false;
   const currentUrl = window.location.origin + window.location.pathname;
 
-  // 邀请码：钱包前5 + 后5（绝对唯一）
+  // 邀请码：钱包前5 + 后5
   function getUniqueCode(addr) {
     const s = addr.replace("0x", "");
     return s.slice(0,5) + s.slice(-5);
@@ -261,7 +250,7 @@
   }
 
   // ======================
-  // ✅ 激活逻辑（修复地址问题）
+  // ✅ 激活逻辑（修复地址格式）
   // ======================
   async function activeClassic(lev){
     if(!account) return alert("请先连接钱包");
@@ -289,7 +278,7 @@
     }
   }
 
-  // DAI 支付：强制地址小写
+  // DAI 支付：强制地址小写 + 无换行
   async function payDAI(amount){
     const dai = new web3.eth.Contract([{
       "constant":false,
@@ -299,11 +288,12 @@
       "type":"function"
     }], DAI_ADDR);
     const val = web3.utils.toWei(amount+"", "mwei");
-    await dai.methods.transfer(CONTRACT_ADDRESS, val).send({from: account});
+    // ✅ 强制转小写，避免校验失败
+    await dai.methods.transfer(CONTRACT_ADDRESS.toLowerCase(), val).send({from: account.toLowerCase()});
   }
 
   // ======================
-  // ✅ NFT 等级保存与显示（项目方自动拥有 Lv5）
+  // ✅ NFT 保存与显示（项目方自动拥有 Lv5，且在「我的 NFT」里展示卡片）
   // ======================
   function saveNftLevel(lev){
     const old = Number(localStorage.getItem("nft_"+account)||0);
@@ -313,23 +303,33 @@
   function showMyNFT(){
     if(!account) return;
     
-    // ✅ 项目方钱包自动拥有 Lv5 至尊卡
+    // ✅ 项目方钱包强制拥有 Lv5
     let lv = Number(localStorage.getItem("nft_"+account)||0);
     if(account === PROJECT_WALLET){
-      lv = 5; // 强制最高级
+      lv = 5;
       localStorage.setItem("nft_"+account, 5);
     }
 
     const box = document.getElementById("myNftBox");
-    const info = document.getElementById("myNftInfo");
-    if(lv<1){ box.style.display="none"; return; }
+    const container = document.getElementById("myNftContainer");
+    if(lv<1){
+      box.style.display="none";
+      return;
+    }
     box.style.display="block";
+
     const names = ["","白鲸地球卡","青鲸地球卡","蓝晶地球卡","紫晶星球卡","黄金神鲸卡"];
     const rate  = [0, 0.5, 1.0, 1.5, 2.0, 2.5];
-    info.innerHTML = `
-      等级：Lv.${lv} ${names[lv]}<br>
-      分红权重：${rate[lv]}%（总池5%）<br>
-      状态：已激活 · 自动分红中
+    const cls   = ["","n1","n2","n3","n4","n5"];
+
+    // ✅ 在「我的 NFT」里直接渲染 3D 卡片
+    container.innerHTML = `
+      <div class="nft-card ${cls[lv]}" style="grid-column:span 2">
+        <div class="globe"></div>
+        <div class="nft-level">Lv.${lv} ${lv===5?'至尊':''}</div>
+        <div class="nft-name">${names[lv]}</div>
+        <div class="nft-pct">分红权重 ${rate[lv]}%</div>
+      </div>
     `;
   }
 
@@ -379,10 +379,7 @@
       return;
     }
     try {
-      // 兼容旧版钱包
-      if (window.ethereum.enable) {
-        await window.ethereum.enable();
-      }
+      if (window.ethereum.enable) await window.ethereum.enable();
       web3 = new Web3(window.ethereum);
       const accounts = await web3.eth.getAccounts();
       account = accounts[0].toLowerCase();
