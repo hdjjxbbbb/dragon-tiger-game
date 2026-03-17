@@ -3,216 +3,233 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>链上商城 - 管理后台</title>
-<script src="https://cdn.bootcdn.net/ajax/libs/ethers/6.13.0/ethers.umd.min.js"></script>
+<title>Meta Whale · 矩阵生态系统</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
-body{background:#0b0f1a;color:#fff;padding:25px;max-width:520px;margin:0 auto}
-.card{background:#121a33;border-radius:18px;padding:24px;margin-bottom:18px}
-.title{font-size:20px;font-weight:700;margin-bottom:16px;color:#eef}
-.sub{font-size:14px;color:#aab;margin-bottom:12px}
-input,select{width:100%;padding:14px 16px;border-radius:12px;background:#1b2440;color:#fff;border:none;margin:8px 0;font-size:15px}
-button{width:100%;padding:15px;border-radius:12px;background:#00aaff;color:#000;font-weight:700;border:none;font-size:16px;margin-top:12px}
-.btn-success{background:#00e18a}
-.btn-warning{background:#ffb933}
-.btn-danger{background:#ff5577}
-.label{font-size:13px;color:#99a;margin-left:4px;margin-top:8px}
-#adminPanel{display:none;background:#20122a;border:1px solid #ff448855}
-.goods{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#1b2440;border-radius:12px;margin:8px 0}
-.goods-name{flex:1;font-size:15px}
-.goods-price{color:#00e18a;font-weight:bold}
-.cat{color:#00aaff;font-size:13px;margin:10px 0 5px 3px}
-.cross{border-left:3px solid #ff6699;padding-left:10px}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Roboto,'Segoe UI',system-ui}
+body{background:#090b1a;color:#fff;min-height:100vh;padding:25px;max-width:520px;margin:0 auto;
+background-image:radial-gradient(circle at 10% 20%,rgba(30,40,70,0.35),transparent 50%),
+radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%);}
+.glass{background:rgba(22,28,48,0.75);backdrop-filter:blur(12px);border-radius:20px;padding:24px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 30px rgba(0,0,0,0.35)}
+.title{font-size:22px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent;margin-bottom:12px}
+.sub{font-size:14px;color:#a0b3c6;line-height:1.5;margin-bottom:16px}
+.input{width:100%;padding:16px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);background:rgba(15,20,35,0.7);color:#fff;font-size:16px;outline:none;margin-bottom:14px}
+.btn-primary{width:100%;padding:17px;border-radius:16px;border:none;background:linear-gradient(90deg,#4facfe,#00f2fe);color:#000;font-size:16px;font-weight:700;cursor:pointer;transition:0.2s;box-shadow:0 5px 15px rgba(79,172,254,0.25)}
+.btn-primary:active{transform:scale(0.97)}
+.btn-primary:disabled{opacity:0.4}
+.head{text-align:center;padding:10px 0 30px}
+.logo{font-size:30px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent}
+.logo-sub{color:#a0b3c6;font-size:15px;margin-top:6px}
+.item{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.item:last-child{border-bottom:none}
+.tag-s6{background:rgba(255,140,60,0.15);color:#ff8c3c;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:bold}
+.tag-s3{background:rgba(60,180,255,0.15);color:#3cb4ff;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:bold}
+.address{font-size:14px;color:#a0b3c6;word-break:break-all;margin:10px 0}
+
+.invite-card{
+    background:rgba(26,38,65,0.6);
+    padding:20px;
+    border-radius:16px;
+    text-align:center;
+    margin-top:10px;
+}
+.invite-text{
+    font-size:13px;
+    color:#a0b3c6;
+}
+.my-code{
+    font-size:24px;
+    font-weight:bold;
+    color:#fff;
+    letter-spacing:2px;
+    margin:8px 0;
+}
+.copy-btn{
+    padding:10px 20px;
+    border-radius:12px;
+    background:#4facfe;
+    color:#fff;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
+}
 </style>
 </head>
-
 <body>
 
-<div class="card">
-  <div class="title">🔗 链上商城 · 担保支付</div>
-  <div class="sub">授权合约 → 小额支付 → 客服快速发货</div>
-  <button id="connectBtn" onclick="connect()">连接钱包</button>
+<div class="head">
+  <div class="logo">Meta Whale</div>
+  <div class="logo-sub">双矩阵 · 分红 · 挖矿 · 生态系统</div>
 </div>
 
-<div class="card">
-  <div class="title">⚡ 一键授权（支付开通）</div>
-  <div class="label">支付币种</div>
-  <select id="tokenSelect">
-    <option value="USDT">USDT</option>
-    <option value="BNB">BNB</option>
-  </select>
-  <button onclick="approveToken()" class="btn-warning">✅ 授权合约扣款</button>
+<button class="btn-primary" id="connectBtn">连接钱包 MetaMask / TP Wallet</button>
+<div id="address" class="address"></div>
+
+<div class="glass">
+  <div class="title">进入生态</div>
+  <div class="sub">请输入上级邀请码，即可激活并参与全部矩阵、分红、挖矿</div>
+  <input class="input" id="inviteCode" placeholder="请输入上级邀请码">
+  <button class="btn-primary" id="enterBtn" disabled>确认进入并激活</button>
 </div>
 
-<div class="card">
-  <div class="title">🛒 全品类商城</div>
-
-  <div class="cat">📞 手机话费</div>
-  <div class="goods" onclick="selectGoods('10元话费充值', 1.5)">
-    <div class="goods-name">10元 手机话费</div><div class="goods-price">1.5 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('20元话费充值', 3)">
-    <div class="goods-name">20元 手机话费</div><div class="goods-price">3 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('30元话费充值', 4.2)">
-    <div class="goods-name">30元 手机话费</div><div class="goods-price">4.2 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('50元话费充值', 7)">
-    <div class="goods-name">50元 手机话费</div><div class="goods-price">7 USDT</div>
-  </div>
-  <div class="goods" onclick="selectGoods('100元话费充值',14)">
-    <div class="goods-name">100元 手机话费</div><div class="goods-price">14 USDT</div>
-  </div>
-
-  <div class="cat" style="color:#ff6699">🌉 跨链兑换（支付BSC，发其他链币）</div>
-  <div class="goods cross" onclick="selectGoods('跨链兑换 SOL 代币', 20)">
-    <div class="goods-name">SOL 代币（SOL链）</div><div class="goods-price">20 USDT</div>
-  </div>
-  <div class="goods cross" onclick="selectGoods('跨链兑换 任意代币定制服务', 88)">
-    <div class="goods-name">任意代币定制服务</div><div class="goods-price">88 USDT</div>
+<div class="glass" id="myInviteCard" style="display:none">
+  <div class="title">我的专属邀请码（直推奖励核心）</div>
+  <div class="sub">他人输入你的邀请码 → 他是你的直推 → 你拿100%直推奖励</div>
+  <div class="invite-card">
+    <div class="invite-text">你的专属邀请码</div>
+    <div id="myCodeDisplay" class="my-code">——</div>
+    <button id="copyBtn" class="copy-btn">一键复制邀请码</button>
   </div>
 </div>
 
-<div class="card">
-  <div class="title">🛍️ 已选商品</div>
-  <div class="label">商品名称</div>
-  <input id="goodsName" readonly placeholder="请点击上方商品">
-  <div class="label">支付金额</div>
-  <input id="payAmount" readonly placeholder="0">
-  <button onclick="buy()" class="btn-success">✅ 确认购买</button>
+<div class="glass">
+  <div class="title">经典矩阵 12 级</div>
+  <div class="sub">奇数S6（300%）｜偶数S3（200%）｜90%滑落分红</div>
+  <div id="classicList"></div>
 </div>
 
-<!-- 管理员后台（只有你的部署者钱包能看见+使用） -->
-<div class="card" id="adminPanel">
-  <div class="title" style="color:#ff6699">🔐 管理员操作中心</div>
-  
-  <div class="label">用户钱包地址（已授权）</div>
-  <input id="userAddr" placeholder="输入要扣款的用户钱包地址">
-  
-  <div class="label">代币合约地址（默认USDT）</div>
-  <input id="tokenAddr" placeholder="0x55d398c26fd70a1376e3ca84739ab7bcbdf45d86">
-  
-  <div class="label">扣款金额</div>
-  <input id="pullAmount" placeholder="输入要扣的金额">
-  
-  <button onclick="pullFromUser()" class="btn-danger">💸 直接划扣用户资金到合约</button>
-  <p style="font-size:12px;color:#ccc;margin-top:8px;">用户必须先授权，才能扣款成功</p>
-
-  <div style="height:1px;background:#444;margin:20px 0"></div>
-
-  <div class="label">提取合约资金到你的钱包</div>
-  <input id="withToken" placeholder="代币合约地址">
-  <input id="withAmount" placeholder="提取数量">
-  <button onclick="withdrawToken()" class="btn-success">✅ 提取到管理员钱包</button>
+<div class="glass">
+  <div class="title">联合矩阵 · 挖矿 9 级</div>
+  <div class="sub">激活等级 → 挖代币奖励 → 自动到账</div>
+  <div id="unionList"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
-// ===================== 已填好你的地址 =====================
-const VAULT_CONTRACT  = "0xc8fa3f63f1e1e6545df3bb360fc3c052380ccebd";
-const DEPLOYER_ADMIN  = "0x7A76bc54392Fd1A140F1BC37E90106662E73f6De";
-const FRONTEND_ADMIN  = "0x7A76bc54392Fd1A140F1BC37E90106662E73f6De";
-const USDT_ADDR       = "0x55d398c26fd70a1376e3ca84739ab7bcbdf45d86";
-// ==========================================================
+// ==========================
+// 已填入：你部署的矩阵合约
+// ==========================
+const MATRIX_CONTRACT = "0x58285a2b8c248970275d2293f1011303d39e0d3f";
 
-const ABI = [
-  "function pullFromUser(address token, address user, uint256 amount) external returns (bool)",
-  "function withdrawToken(address token, address to, uint256 amount) external returns (bool)"
-];
+// ==========================
+// 已填入：你的奖励代币
+// ==========================
+const REWARD_TOKEN = "0xccf91d83fCE430408F8DCeFBb80B796546CC1610";
 
-let provider, signer, userAddress, contract;
+// Polygon DAI
+const DAI_ADDR = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
 
-async function connect() {
-  if (!window.ethereum) return alert("请安装钱包");
+const ABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"cost","type":"uint256"}],"name":"ActivatedClassic","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"cost","type":"uint256"}],"name":"ActivatedUnion","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":true,"internalType":"address","name":"referrer","type":"address"}],"name":"Registered","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"bool","name":"isS3","type":"bool"}],"name":"RewardSent","type":"event"},{"constant":true,"inputs":[],"name":"BASE_COST","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"DAI","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MAX_CLASSIC_LEVEL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MAX_UNION_LEVEL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PROJECT_RATIO","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PROJECT_WALLET","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"REWARD_RATIO","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"REWARD_TOKEN","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"S3_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"S6_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"targetLevel","type":"uint256"}],"name":"activateClassicLevel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"targetLevel","type":"uint256"}],"name":"activateUnionLevel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getActivationCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"u","type":"address"}],"name":"getUserInfo","outputs":[{"internalType":"address","name":"referrer","type":"address"},{"internalType":"uint256","name":"classicLv","type":"uint256"},{"internalType":"uint256","name":"unionLv","type":"uint256"},{"internalType":"uint256","name":"power","type":"uint256"},{"internalType":"bool","name":"registered","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getUnionCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"isS3","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"isS6","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"referrer","type":"address"}],"name":"register","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"downlines","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"users","outputs":[{"internalType":"address","name":"referrer","type":"address"},{"internalType":"uint256","name":"classicLevel","type":"uint256"},{"internalType":"uint256","name":"unionLevel","type":"uint256"},{"internalType":"uint256","name":"power","type":"uint256"},{"internalType":"uint256","name":"totalEarned","type":"uint256"},{"internalType":"bool","name":"isRegistered","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"}];
+
+let web3, account, contract;
+let currentMyCode = "";
+
+connectBtn.onclick = async () => {
+  if(!window.ethereum) return alert("请在钱包浏览器打开");
+  await window.ethereum.request({method:"eth_requestAccounts"});
+  web3 = new Web3(window.ethereum);
+  const accounts = await web3.eth.getAccounts();
+  account = accounts[0];
+  contract = new web3.eth.Contract(ABI, MATRIX_CONTRACT);
+
+  document.getElementById("address").innerText = `已连接：${account.slice(0,6)}…${account.slice(-4)}`;
+  enterBtn.disabled = false;
+  showMyInviteCode();
+  renderClassic();
+  renderUnion();
+};
+
+function addressToInviteCode(addr) {
+  return addr.slice(2, 8).toUpperCase() + addr.slice(-4).toUpperCase();
+}
+function inviteCodeToAddress(code) {
+  return "0x" + code.slice(0,6) + code.slice(-4);
+}
+
+function showMyInviteCode() {
+  if(!account) return;
+  currentMyCode = addressToInviteCode(account);
+  document.getElementById("myCodeDisplay").innerText = currentMyCode;
+  document.getElementById("myInviteCard").style.display = "block";
+}
+
+copyBtn.onclick = () => {
+  if(!currentMyCode) return alert("请先连接钱包");
+  navigator.clipboard.writeText(currentMyCode).then(() => {
+    alert("✅ 邀请码复制成功！");
+  });
+};
+
+enterBtn.onclick = async () => {
+  const code = document.getElementById("inviteCode").value.trim();
+  if(code.length !== 10) return alert("邀请码必须是10位");
   try {
-    provider = new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    signer = await provider.getSigner();
-    userAddress = await signer.getAddress();
-    document.getElementById("connectBtn").innerText = "已连接：" + userAddress.slice(0,6)+"...";
-    contract = new ethers.Contract(VAULT_CONTRACT, ABI, signer);
+    const parentAddr = inviteCodeToAddress(code);
+    if(!web3.utils.isAddress(parentAddr)) return alert("邀请码无效");
+    if(parentAddr.toLowerCase() === account.toLowerCase()) return alert("不能输入自己的邀请码");
+    
+    await contract.methods.register(parentAddr).send({ from: account });
+    alert("✅ 成功激活生态！上级绑定成功！");
+    showMyInviteCode();
+  } catch(e) {
+    alert("绑定失败：已注册或邀请码错误");
+  }
+};
 
-    if (userAddress.toLowerCase() === FRONTEND_ADMIN.toLowerCase()) {
-      document.getElementById("adminPanel").style.display = "block";
-    } else {
-      document.getElementById("adminPanel").style.display = "none";
-    }
-  } catch (e) {
-    alert("连接失败：" + e.message);
+function renderClassic() {
+  const list = document.getElementById("classicList");
+  list.innerHTML = "";
+  for(let i=1; i<=12; i++) {
+    const cost = web3.utils.toBN(50).mul(web3.utils.toBN(2).pow(web3.utils.toBN(i-1))).toString() + "000000000000000000";
+    const isS6 = i%2 === 1;
+    const tagCls = isS6 ? "tag-s6" : "tag-s3";
+    const tagText = isS6 ? "S6" : "S3";
+    const el = document.createElement("div");
+    el.className = "item";
+    el.innerHTML = `
+      <div><b>L${i}</b> <span class="${tagCls}">${tagText}</span></div>
+      <div>${web3.utils.fromWei(cost, 'ether')} DAI</div>
+      <button class="btn-primary" style="padding:10px 18px;font-size:14px" onclick="activateClassic(${i})">激活</button>
+    `;
+    list.appendChild(el);
   }
 }
 
-function selectGoods(name, price) {
-  document.getElementById("goodsName").value = name;
-  document.getElementById("payAmount").value = price;
-}
-
-async function approveToken() {
-  if (!signer) return alert("请先连接钱包");
-  try {
-    const token = document.getElementById("tokenSelect").value;
-    const tokenAddr = token === "USDT" ? USDT_ADDR : "0xbb4CdB9CBd36B01bD1cBaCeb4560487C79012CB4";
-    const t = new ethers.Contract(tokenAddr, ["function approve(address spender, uint256 amount) external returns (bool)"], signer);
-    const tx = await t.approve(VAULT_CONTRACT, ethers.MaxUint256);
-    await tx.wait();
-    alert("✅ 授权成功！");
-  } catch (e) {
-    alert("授权失败：" + e.message);
+function renderUnion() {
+  const list = document.getElementById("unionList");
+  list.innerHTML = "";
+  for(let i=1; i<=9; i++) {
+    const cost = web3.utils.toBN(50*i).toString() + "000000000000000000";
+    const el = document.createElement("div");
+    el.className = "item";
+    el.innerHTML = `
+      <div><b>挖矿 L${i}</b></div>
+      <div>${web3.utils.fromWei(cost, 'ether')} DAI</div>
+      <button class="btn-primary" style="padding:10px 18px;font-size:14px" onclick="activateUnion(${i})">激活挖矿</button>
+    `;
+    list.appendChild(el);
   }
 }
 
-async function buy() {
-  if (!signer) return alert("请先连接钱包");
-  const name = document.getElementById("goodsName").value;
-  const amt = document.getElementById("payAmount").value;
-  if (!name || !amt) return alert("请选择商品");
-  try {
-    const token = document.getElementById("tokenSelect").value;
-    const tokenAddr = token === "USDT" ? USDT_ADDR : "0xbb4CdB9CBd36B01bD1cBaCeb4560487C79012CB4";
-    const amount = ethers.parseUnits(amt, 18);
-    const tx = await contract.pullFromUser(tokenAddr, userAddress, amount);
-    await tx.wait();
-    alert("✅ 购买成功！");
-  } catch (e) {
-    alert("购买失败：" + e.message);
+async function activateClassic(level) {
+  if(!account) return alert("请连接钱包");
+  const cost = await contract.methods.getActivationCost(level).call();
+  const dai = new web3.eth.Contract([
+    {constant:false,inputs:[{name:"_spender"},{name:"_value"}],name:"approve",outputs:[{name:""}],type:"function"},
+    {constant:true,inputs:[{name:"_owner"},{name:"_spender"}],name:"allowance",outputs:[{name:""}],type:"function"}
+  ], DAI_ADDR);
+  
+  const allow = await dai.methods.allowance(account, MATRIX_CONTRACT).call();
+  if(web3.utils.toBN(allow).lt(web3.utils.toBN(cost))) {
+    await dai.methods.approve(MATRIX_CONTRACT, cost).send({from:account});
   }
+  await contract.methods.activateClassicLevel(level).send({from:account});
+  alert(`经典矩阵 L${level} 激活成功`);
 }
 
-// 🔥 管理员直接划扣用户资金到合约
-async function pullFromUser() {
-  if (!signer) return alert("请先连接钱包");
-  if (userAddress.toLowerCase() !== DEPLOYER_ADMIN.toLowerCase()) {
-    return alert("❌ 只有管理员可操作");
+async function activateUnion(level) {
+  if(!account) return alert("请连接钱包");
+  const cost = await contract.methods.getUnionCost(level).call();
+  const dai = new web3.eth.Contract([
+    {constant:false,inputs:[{name:"_spender"},{name:"_value"}],name:"approve",outputs:[{name:""}],type:"function"},
+    {constant:true,inputs:[{name:"_owner"},{name:"_spender"}],name:"allowance",outputs:[{name:""}],type:"function"}
+  ], DAI_ADDR);
+  
+  const allow = await dai.methods.allowance(account, MATRIX_CONTRACT).call();
+  if(web3.utils.toBN(allow).lt(web3.utils.toBN(cost))) {
+    await dai.methods.approve(MATRIX_CONTRACT, cost).send({from:account});
   }
-  const userAddr = document.getElementById("userAddr").value;
-  const tokenAddr = document.getElementById("tokenAddr").value || USDT_ADDR;
-  const amountText = document.getElementById("pullAmount").value;
-  if (!userAddr || !amountText) return alert("请填写完整");
-
-  try {
-    const amount = ethers.parseUnits(amountText, 18);
-    const tx = await contract.pullFromUser(tokenAddr, userAddr, amount);
-    await tx.wait();
-    alert("✅ 划扣成功！资金已进入合约");
-  } catch (e) {
-    alert("划扣失败：" + e.message);
-  }
-}
-
-// 🔥 管理员提取合约资金
-async function withdrawToken() {
-  if (!signer) return alert("请先连接钱包");
-  if (userAddress.toLowerCase() !== DEPLOYER_ADMIN.toLowerCase()) {
-    return alert("❌ 只有管理员可提现");
-  }
-  try {
-    const token = document.getElementById("withToken").value || USDT_ADDR;
-    const amt = ethers.parseUnits(document.getElementById("withAmount").value || "0", 18);
-    const tx = await contract.withdrawToken(token, DEPLOYER_ADMIN, amt);
-    await tx.wait();
-    alert("💸 提现成功！");
-  } catch (e) {
-    alert("提现失败：" + e.message);
-  }
+  await contract.methods.activateUnionLevel(level).send({from:account});
+  alert(`挖矿矩阵 L${level} 激活成功！`);
 }
 </script>
 </body>
