@@ -19,7 +19,9 @@
   .copy-btn{background:#4facfe;color:#000;padding:8px 12px;border-radius:8px;font-size:14px;border:none;margin-left:8px}
   .link-box{background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin:8px 0;word-break:break-all}
 
-  /* 🌍 3D 水晶地球仪 NFT 卡牌（通用样式） */
+  /* ======================
+     🎴 科技风 NFT 卡牌（参考你提供的样式）
+     ====================== */
   .nft-grid{
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -27,69 +29,83 @@
     margin-top: 12px;
   }
   .nft-card{
-    height: 180px;
+    height: 200px;
     position: relative;
-    border-radius: 20px;
+    border-radius: 16px;
+    border: 1px solid;
+    background: #1a1a2e;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(173, 216, 255, 0.3);
-    background: rgba(10, 25, 50, 0.5);
-    overflow: hidden;
     transition: all 0.3s;
   }
   .nft-card:hover{
     transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(100, 180, 255, 0.3);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
   }
-  .globe{
-    position: absolute;
+
+  /* 等级配色：1级绿 → 5级红 */
+  .n1{ border-color: #00ff88; }
+  .n2{ border-color: #00ccff; }
+  .n3{ border-color: #6666ff; }
+  .n4{ border-color: #cc66ff; }
+  .n5{ border-color: #ff3333; background: #2a0a0a; }
+
+  /* 水晶球（参考你图里的绿色球体） */
+  .orb{
     width: 100px;
     height: 100px;
     border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%,
-      rgba(100, 180, 255, 0.5),
-      rgba(20, 60, 140, 0.8)
-    );
-    box-shadow: 0 0 30px rgba(100, 180, 255, 0.6),
-                inset 0 0 20px rgba(0, 50, 120, 0.6);
-    animation: rotate3d 10s linear infinite;
-    z-index: 0;
+    position: relative;
+    margin-bottom: 12px;
+    box-shadow: 0 0 20px currentColor;
+    animation: pulse 3s ease-in-out infinite;
   }
-  @keyframes rotate3d {
-    0%   { transform: rotateY(0deg); }
-    100% { transform: rotateY(360deg); }
+  @keyframes pulse {
+    0%{ transform: scale(1); opacity: 0.8; }
+    50%{ transform: scale(1.05); opacity: 1; }
+    100%{ transform: scale(1); opacity: 0.8; }
   }
-  .nft-card > * { position: relative; z-index: 1; }
-  .nft-level{ font-size: 18px; font-weight: bold; margin-bottom: 6px; }
-  .nft-name { font-size: 13px; opacity: 0.9; margin-bottom: 8px; }
-  .nft-pct  { font-size: 15px; color: #ffdd33; font-weight: bold; }
+  .n1 .orb{ background: radial-gradient(circle at 30% 30%, #88ffcc, #00cc66); color: #00ff88; }
+  .n2 .orb{ background: radial-gradient(circle at 30% 30%, #88ddff, #0099cc); color: #00ccff; }
+  .n3 .orb{ background: radial-gradient(circle at 30% 30%, #aaaaff, #3333cc); color: #6666ff; }
+  .n4 .orb{ background: radial-gradient(circle at 30% 30%, #dd99ff, #9933cc); color: #cc66ff; }
+  .n5 .orb{ background: radial-gradient(circle at 30% 30%, #ff9999, #cc0000); color: #ff3333; }
 
-  /* 等级区分：越高越华丽 */
-  .n1{ border-color: rgba(100,180,255,0.4); }
-  .n2{ border-color: rgba(80,200,255,0.4); }
-  .n3{ border-color: rgba(60,160,255,0.5); }
-  .n4{ border-color: rgba(140,80,255,0.5); }
-  .n5{
-    border-color: rgba(255,180,0,0.6);
-    background: rgba(40,25,10,0.5);
+  /* 科技风圆环（参考你图里的线条） */
+  .orb-ring{
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.6;
   }
-  .n5 .globe{
-    background: radial-gradient(circle at 30% 30%,
-      rgba(255, 200, 0, 0.6),
-      rgba(200, 100, 0, 0.8)
-    );
-    box-shadow: 0 0 40px rgba(255, 200, 0, 0.7),
-                inset 0 0 25px rgba(150, 80, 0, 0.7);
+  .orb-ring::after{
+    content: '';
+    position: absolute;
+    width: 8px; height: 8px;
+    background: currentColor;
+    border-radius: 50%;
+    top: -4px; left: 50%;
+    transform: translateX(-50%);
   }
+
+  .nft-level{ font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+  .nft-name{ font-size: 13px; opacity: 0.9; margin-bottom: 6px; }
+  .nft-pct{ font-size: 14px; color: currentColor; font-weight: bold; }
+  .nft-label{ font-size: 11px; opacity: 0.7; margin-top: 4px; }
 </style>
 </head>
 <body>
 
 <div style="text-align:center;margin-bottom:20px">
   <h1 style="background:linear-gradient(90deg,#4FACFE,#00F2FE);-webkit-background-clip:text;color:transparent">Meta Whale</h1>
-  <p style="color:#a0a8c7">双矩阵 · DAI激活 · 邀请分红 · 3D地球仪NFT</p>
+  <p style="color:#a0a8c7">双矩阵 · DAI激活 · 邀请分红 · 科技风NFT</p>
 </div>
 
 <button id="connectBtn" class="btn">连接钱包</button>
@@ -116,45 +132,62 @@
   <div id="downlineList"></div>
 </div>
 
-<!-- 🌍 3D 水晶地球仪 NFT 分红卡牌（预览区） -->
+<!-- 🎴 科技风 NFT 分红卡牌（预览区） -->
 <div class="glass">
-  <div class="title">🌍 全球 3D 水晶 NFT 分红卡牌</div>
+  <div class="title">🎴 科技风 NFT 分红卡牌</div>
   <div class="sub">全网总分红 5%，等级越高权重越高</div>
+
   <div class="nft-grid">
     <div class="nft-card n1">
-      <div class="globe"></div>
+      <div class="orb">
+        <div class="orb-ring"></div>
+      </div>
       <div class="nft-level">Lv.1</div>
-      <div class="nft-name">白鲸地球卡</div>
+      <div class="nft-name">绿晶地球卡</div>
       <div class="nft-pct">权重 0.5%</div>
+      <div class="nft-label">ROYALTY NFT</div>
     </div>
     <div class="nft-card n2">
-      <div class="globe"></div>
+      <div class="orb">
+        <div class="orb-ring"></div>
+      </div>
       <div class="nft-level">Lv.2</div>
-      <div class="nft-name">青鲸地球卡</div>
+      <div class="nft-name">青晶星球卡</div>
       <div class="nft-pct">权重 1.0%</div>
+      <div class="nft-label">ROYALTY NFT</div>
     </div>
     <div class="nft-card n3">
-      <div class="globe"></div>
+      <div class="orb">
+        <div class="orb-ring"></div>
+      </div>
       <div class="nft-level">Lv.3</div>
-      <div class="nft-name">蓝晶地球卡</div>
+      <div class="nft-name">蓝晶星云卡</div>
       <div class="nft-pct">权重 1.5%</div>
+      <div class="nft-label">ROYALTY NFT</div>
     </div>
     <div class="nft-card n4">
-      <div class="globe"></div>
+      <div class="orb">
+        <div class="orb-ring"></div>
+      </div>
       <div class="nft-level">Lv.4</div>
-      <div class="nft-name">紫晶星球卡</div>
+      <div class="nft-name">紫晶银河卡</div>
       <div class="nft-pct">权重 2.0%</div>
+      <div class="nft-label">ROYALTY NFT</div>
     </div>
     <div class="nft-card n5" style="grid-column:span 2">
-      <div class="globe"></div>
+      <div class="orb">
+        <div class="orb-ring"></div>
+      </div>
       <div class="nft-level">Lv.5 至尊</div>
-      <div class="nft-name">黄金神鲸卡</div>
+      <div class="nft-name">赤晶神鲸卡</div>
       <div class="nft-pct">权重 2.5%</div>
+      <div class="nft-label">ROYALTY NFT</div>
     </div>
   </div>
+
   <div style="font-size:14px;color:#a0a8c7;line-height:1.6;margin-top:14px">
     <b>🔥 官方分红规则（全网总计 5%）</b><br>
-    • 激活矩阵 → 自动获得对应3D地球仪NFT<br>
+    • 激活矩阵 → 自动获得对应等级科技风NFT<br>
     • 等级越高 → 分红权重越高，收益越多<br>
     • 一次激活，永久持有，自动分红
   </div>
@@ -162,7 +195,7 @@
 
 <!-- ✅ 我的 NFT 卡牌列表（项目方直接看到 Lv5） -->
 <div class="glass" id="myNftBox" style="display:none">
-  <div class="title">✅ 我的 3D 地球仪 NFT</div>
+  <div class="title">✅ 我的 NFT 卡牌</div>
   <div id="myNftContainer" class="nft-grid" style="margin-top:10px"></div>
 </div>
 
@@ -250,7 +283,7 @@
   }
 
   // ======================
-  // ✅ 激活逻辑（修复地址格式）
+  // ✅ 激活逻辑（彻底修复地址问题）
   // ======================
   async function activeClassic(lev){
     if(!account) return alert("请先连接钱包");
@@ -258,7 +291,7 @@
     try {
       await payDAI(classicPrice(lev));
       saveNftLevel(lev);
-      alert("✅ 经典矩阵 Lv"+lev+" 激活成功！\n🎴 3D地球仪NFT已发放");
+      alert("✅ 经典矩阵 Lv"+lev+" 激活成功！\n🎴 NFT已发放");
       showMyNFT();
     }catch(e){
       alert("❌ 激活失败："+e.message);
@@ -271,7 +304,7 @@
     try {
       await payDAI(unionPrice(lev));
       saveNftLevel(lev);
-      alert("✅ 联合矩阵 Lv"+lev+" 激活成功！\n🎴 3D地球仪NFT已发放");
+      alert("✅ 联合矩阵 Lv"+lev+" 激活成功！\n🎴 NFT已发放");
       showMyNFT();
     }catch(e){
       alert("❌ 激活失败："+e.message);
@@ -288,12 +321,12 @@
       "type":"function"
     }], DAI_ADDR);
     const val = web3.utils.toWei(amount+"", "mwei");
-    // ✅ 强制转小写，避免校验失败
+    // ✅ 强制转小写，避免钱包校验失败
     await dai.methods.transfer(CONTRACT_ADDRESS.toLowerCase(), val).send({from: account.toLowerCase()});
   }
 
   // ======================
-  // ✅ NFT 保存与显示（项目方自动拥有 Lv5，且在「我的 NFT」里展示卡片）
+  // ✅ NFT 保存与显示（项目方自动拥有 Lv5）
   // ======================
   function saveNftLevel(lev){
     const old = Number(localStorage.getItem("nft_"+account)||0);
@@ -318,17 +351,20 @@
     }
     box.style.display="block";
 
-    const names = ["","白鲸地球卡","青鲸地球卡","蓝晶地球卡","紫晶星球卡","黄金神鲸卡"];
+    const names = ["","绿晶地球卡","青晶星球卡","蓝晶星云卡","紫晶银河卡","赤晶神鲸卡"];
     const rate  = [0, 0.5, 1.0, 1.5, 2.0, 2.5];
     const cls   = ["","n1","n2","n3","n4","n5"];
 
-    // ✅ 在「我的 NFT」里直接渲染 3D 卡片
+    // ✅ 在「我的 NFT」里渲染科技风卡牌
     container.innerHTML = `
       <div class="nft-card ${cls[lv]}" style="grid-column:span 2">
-        <div class="globe"></div>
+        <div class="orb">
+          <div class="orb-ring"></div>
+        </div>
         <div class="nft-level">Lv.${lv} ${lv===5?'至尊':''}</div>
         <div class="nft-name">${names[lv]}</div>
         <div class="nft-pct">分红权重 ${rate[lv]}%</div>
+        <div class="nft-label">ROYALTY NFT</div>
       </div>
     `;
   }
