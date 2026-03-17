@@ -37,79 +37,148 @@ input{width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,2
   <button id="registerBtn" class="btn" disabled>确认注册</button>
 </div>
 
+<!-- 经典矩阵 12级 -->
+<div class="glass">
+  <div class="title">经典矩阵（12级）</div>
+  <div class="sub">永久有效，一次激活</div>
+  <div id="classicList"></div>
+</div>
+
 <!-- 联合矩阵 9级 -->
 <div class="glass">
   <div class="title">联合挖矿矩阵（9级）</div>
-  <div class="sub">50 → 100 → 200 → 400 → 800 → 每级×2</div>
+  <div class="sub">50→100→200→400→800→… 每级×2</div>
   <div id="unionList"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
+// ==========================
 // 你的项目方钱包
+// ==========================
 const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1".toLowerCase();
+
+// ==========================
+// 你提供的合约地址（已填好）
+// ==========================
+const CONTRACT_ADDRESS = "0x58285a2b8c248970275d2293f1011303d39e0d3f";
 
 let account = null;
 let isProject = false;
 let isRegistered = false;
+let web3, contract;
 
-// 9级价格
-function getPrice(level) {
+// 经典矩阵价格
+function getClassicPrice(level) {
+  return 50 * (2 ** (level - 1));
+}
+
+// 联合矩阵价格
+function getUnionPrice(level) {
   const arr = [0,50,100,200,400,800,1600,3200,6400,12800];
   return arr[level];
 }
 
-// 渲染矩阵
-function renderMatrix() {
+function renderAll() {
+  renderClassic();
+  renderUnion();
+}
+
+// 渲染经典矩阵
+function renderClassic() {
+  const box = document.getElementById("classicList");
+  box.innerHTML = "";
+  for(let i=1;i<=12;i++){
+    const cost = getClassicPrice(i);
+    const el = document.createElement("div");
+    el.className = "item";
+    el.innerHTML = `
+      <div>Lv${i}</div>
+      <div class="price">${cost} BNB</div>
+      <button onclick="activateClassic(${i})" 
+      style="padding:6px 10px;border-radius:8px;background:#4facfe;color:#000;border:none;font-weight:bold">
+      激活
+      </button>
+    `;
+    box.appendChild(el);
+  }
+}
+
+// 渲染联合矩阵
+function renderUnion() {
   const box = document.getElementById("unionList");
   box.innerHTML = "";
   for(let i=1;i<=9;i++){
-    const item = document.createElement("div");
-    item.className = "item";
-    item.innerHTML = `
+    const cost = getUnionPrice(i);
+    const el = document.createElement("div");
+    el.className = "item";
+    el.innerHTML = `
       <div>Lv${i}</div>
-      <div class="price">${getPrice(i)} DAI</div>
-      <button onclick="act(${i})" style="padding:6px 10px;border-radius:8px;background:#4facfe;color:#000;border:none;font-weight:bold">激活</button>
+      <div class="price">${cost} BNB</div>
+      <button onclick="activateUnion(${i})" 
+      style="padding:6px 10px;border-radius:8px;background:#4facfe;color:#000;border:none;font-weight:bold">
+      激活
+      </button>
     `;
-    box.appendChild(item);
+    box.appendChild(el);
   }
 }
 
-// 激活
-function act(level) {
+// 真实上链激活经典矩阵
+async function activateClassic(level) {
   if(!account) return alert("请先连接钱包");
-  if(!isProject && !isRegistered) {
-    alert("请先输入10位邀请码完成注册！");
-    return;
+  if(!isProject && !isRegistered) return alert("请先完成注册！");
+  
+  const cost = getClassicPrice(level);
+  try {
+    await contract.methods.activateClassic(level).send({
+      from: account,
+      value: web3.utils.toWei(cost.toString(), "ether")
+    });
+    alert("✅ 经典矩阵 Lv" + level + " 激活上链成功！");
+  } catch(e) {
+    alert("❌ 激活失败：" + e.message);
   }
-  alert(`✅ 激活 Lv${level} 成功`);
 }
 
-// 输入监听
-inviteCode.oninput = function(){
-  if(this.value.length === 10){
-    registerBtn.disabled = false;
-  } else {
-    registerBtn.disabled = true;
+// 真实上链激活联合矩阵
+async function activateUnion(level) {
+  if(!account) return alert("请先连接钱包");
+  if(!isProject && !isRegistered) return alert("请先完成注册！");
+  
+  const cost = getUnionPrice(level);
+  try {
+    await contract.methods.activateUnion(level).send({
+      from: account,
+      value: web3.utils.toWei(cost.toString(), "ether")
+    });
+    alert("✅ 联合矩阵 Lv" + level + " 激活上链成功！");
+  } catch(e) {
+    alert("❌ 激活失败：" + e.message);
   }
+}
+
+// 邀请码输入监听
+inviteCode.oninput = function(){
+  registerBtn.disabled = this.value.length !== 10;
 }
 
 // 注册
 registerBtn.onclick = function(){
-  const code = inviteCode.value.trim();
-  if(code.length !== 10){
-    alert("邀请码必须是10位");
-    return;
-  }
+  const c = inviteCode.value.trim();
+  if(c.length !== 10) return alert("邀请码必须10位");
   isRegistered = true;
-  alert("✅ 注册成功！现在可以激活");
-  renderMatrix();
+  alert("✅ 注册成功！");
 }
 
 // 连接钱包
 connect.onclick = async ()=>{
   if(!window.ethereum) return alert("请在钱包浏览器打开");
-  const a = await window.ethereum.request({method:"eth_requestAccounts"});
-  account = a[0].toLowerCase();
+  await window.ethereum.request({method:"eth_requestAccounts"});
+  
+  web3 = new Web3(window.ethereum);
+  const accounts = await web3.eth.getAccounts();
+  account = accounts[0].toLowerCase();
   isProject = account === PROJECT_WALLET;
 
   document.getElementById("addr").innerText = "已连接："+account.substr(0,6)+"…"+account.substr(-4);
@@ -119,7 +188,26 @@ connect.onclick = async ()=>{
     alert("✅ 项目方账号，无需注册");
   }
 
-  renderMatrix();
+  // ABI 与你合约匹配
+  const ABI = [
+    {
+      "inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],
+      "name":"activateClassic",
+      "outputs":[],
+      "stateMutability":"payable",
+      "type":"function"
+    },
+    {
+      "inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],
+      "name":"activateUnion",
+      "outputs":[],
+      "stateMutability":"payable",
+      "type":"function"
+    }
+  ];
+
+  contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+  renderAll();
 }
 </script>
 
