@@ -26,6 +26,9 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
 .tag-s3{background:rgba(60,180,255,0.15);color:#3cb4ff;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:bold}
 .address{font-size:14px;color:#a0b3c6;word-break:break-all;margin:10px 0;text-align:center}
 .nft-card{background:linear-gradient(90deg,#7D5AED,#B967E4);padding:20px;border-radius:16px;margin:10px 0;color:#fff;font-weight:bold;text-align:center}
+/* 新增：已激活等级样式 */
+.activated{background:rgba(0,255,100,0.15);color:#0f0;border-radius:8px;padding:8px 12px;font-weight:bold}
+.not-activated{color:#fff}
 </style>
 </head>
 <body>
@@ -72,7 +75,8 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
-const MATRIX_CONTRACT = "0x58285a2b8c2489702d29f1011303d39e0d3f";
+// ✅ 你的项目方地址（同时作为收款地址，完整42位）
+const MATRIX_CONTRACT = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1";
 const DAI_ADDR       = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
 const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1".toLowerCase();
 
@@ -80,6 +84,8 @@ let web3, account;
 let isRegistered = false;
 let userPower = 0;
 let hasNFT = false;
+let classicLevel = 0; // 经典矩阵已激活等级
+let unionLevel = 0;   // 联合矩阵已激活等级
 
 // 联合矩阵价格
 function getUnionPrice(level) {
@@ -92,7 +98,7 @@ function getRenewPrice(level) {
   return Number((getUnionPrice(level) * 0.05).toFixed(2));
 }
 
-// 真实 DAI 转账
+// 真实 DAI 转账（收款地址 = 你的项目方地址）
 async function sendDAI(amount) {
   const dai = new web3.eth.Contract([{
     "constant":false,
@@ -105,6 +111,22 @@ async function sendDAI(amount) {
   return await dai.methods.transfer(MATRIX_CONTRACT, value).send({ from: account });
 }
 
+// 加载本地激活状态
+function loadStatus() {
+  if (!account) return;
+  classicLevel = Number(localStorage.getItem(`classic_${account}`) || 0);
+  unionLevel = Number(localStorage.getItem(`union_${account}`) || 0);
+  userPower = Number(localStorage.getItem(`power_${account}`) || 0);
+}
+
+// 保存激活状态
+function saveStatus() {
+  if (!account) return;
+  localStorage.setItem(`classic_${account}`, classicLevel);
+  localStorage.setItem(`union_${account}`, unionLevel);
+  localStorage.setItem(`power_${account}`, userPower);
+}
+
 // 连接钱包
 connectBtn.onclick = async () => {
   if (!window.ethereum) return alert("请在钱包浏览器打开");
@@ -113,7 +135,10 @@ connectBtn.onclick = async () => {
   account = (await web3.eth.getAccounts())[0].toLowerCase();
   document.getElementById("address").innerText = `已连接：${account.slice(0,6)}…${account.slice(-4)}`;
 
-  // 项目方免注册
+  // 加载之前的激活状态
+  loadStatus();
+
+  // 项目方免注册，自动隐藏注册框
   if (account === PROJECT_WALLET) {
     isRegistered = true;
     document.getElementById("regBox").style.display = "none";
@@ -137,21 +162,21 @@ function renderPower() {
   }
 }
 
-// 渲染矩阵
+// 渲染矩阵（已激活等级变色）
 function renderMatrix() {
   // 经典矩阵
   const cList = document.getElementById("classicList");
   cList.innerHTML = "";
   for (let i = 1; i <= 12; i++) {
     const cost = 50 * Math.pow(2, i - 1);
-    const item = document.createElement("div");
-    item.className = "item";
-    item.innerHTML = `
-      <div>L${i} ${i%2===1 ? '<span class="tag-s6">S6</span>' : '<span class="tag-s3">S3</span>'}</div>
-      <div>${cost} DAI</div>
-      <button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="actClassic(${i})">激活</button>
-    `;
-    cList.appendChild(item);
+    const activated = i <= classicLevel;
+    cList.innerHTML += `
+    <div class="item">
+      <div class="${activated ? 'activated' : 'not-activated'}">L${i} ${i%2===1 ? '<span class="tag-s6">S6</span>' : '<span class="tag-s3">S3</span>'}</div>
+      <div class="price">${cost} DAI</div>
+      ${activated ? '<span style="color:#0f0;font-weight:bold">已激活</span>' : 
+        `<button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="actClassic(${i})">激活</button>`}
+    </div>`;
   }
 
   // 联合矩阵
@@ -160,56 +185,66 @@ function renderMatrix() {
   for (let i = 1; i <= 9; i++) {
     const price = getUnionPrice(i);
     const renew = getRenewPrice(i);
-    const item = document.createElement("div");
-    item.className = "item";
-    item.innerHTML = `
-      <div>L${i}</div>
+    const activated = i <= unionLevel;
+    uList.innerHTML += `
+    <div class="item">
+      <div class="${activated ? 'activated' : 'not-activated'}">L${i}</div>
       <div>${price} DAI<br/>续费${renew}/月</div>
       <div>
-        <button class="btn-primary" style="padding:8px 6px;font-size:12px" onclick="actUnion(${i})">激活</button>
-        <button class="btn-primary btn-renew" style="padding:8px 6px;font-size:12px;margin-left:4px" onclick="renewUnion(${i})">续费</button>
+        ${activated ? 
+          `<button class="btn-primary btn-renew" style="padding:8px 6px;font-size:12px" onclick="renewUnion(${i})">续费</button>` :
+          `<button class="btn-primary" style="padding:8px 6px;font-size:12px" onclick="actUnion(${i})">激活</button>`}
       </div>
-    `;
-    uList.appendChild(item);
+    </div>`;
   }
 }
 
-// 经典矩阵激活（真实上链）
+// 经典矩阵激活（真实上链 + 记录状态）
 async function actClassic(level) {
   if (!account) return alert("请先连接钱包");
   if (!isRegistered && account !== PROJECT_WALLET) return alert("请先注册");
+  if (level <= classicLevel) return alert("该等级已激活");
   const cost = 50 * Math.pow(2, level - 1);
   try {
     await sendDAI(cost);
+    classicLevel = level;
+    saveStatus();
+    renderMatrix();
     alert(`✅ 经典矩阵 L${level} 激活成功！`);
   } catch (e) {
     alert("❌ 支付失败：" + e.message);
   }
 }
 
-// 联合矩阵激活（真实上链 + 能量）
+// 联合矩阵激活（真实上链 + 能量 + 记录状态）
 async function actUnion(level) {
   if (!account) return alert("请先连接钱包");
   if (!isRegistered && account !== PROJECT_WALLET) return alert("请先注册");
+  if (level <= unionLevel) return alert("该等级已激活");
   const price = getUnionPrice(level);
   try {
     await sendDAI(price);
+    unionLevel = level;
     userPower += price;
+    saveStatus();
     renderPower();
+    renderMatrix();
     alert(`✅ 联合矩阵 L${level} 激活成功！+${price} 能量`);
   } catch (e) {
     alert("❌ 支付失败：" + e.message);
   }
 }
 
-// 续费（真实上链）
+// 续费（真实上链 + 能量 + 记录状态）
 async function renewUnion(level) {
   if (!account) return alert("请先连接钱包");
   if (!isRegistered && account !== PROJECT_WALLET) return alert("请先注册");
+  if (level > unionLevel) return alert("请先激活该等级");
   const renew = getRenewPrice(level);
   try {
     await sendDAI(renew);
     userPower += renew;
+    saveStatus();
     renderPower();
     alert(`✅ L${level} 续费成功！+${renew} 能量`);
   } catch (e) {
