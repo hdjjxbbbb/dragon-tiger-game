@@ -19,6 +19,7 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
 .btn-renew{background:linear-gradient(90deg,#ffb142,#ff6b6b);color:#fff}
 .btn-claim{background:linear-gradient(90deg,#7D5AED,#B967E4);color:#fff}
 .btn-synthesize{background:linear-gradient(90deg,#ff6b6b,#ff8c3c);color:#fff}
+.btn-copy{background:linear-gradient(90deg,#4facfe,#00f2fe);color:#000;padding:8px 12px;border-radius:10px;font-size:12px;font-weight:bold;border:none;cursor:pointer}
 .head{text-align:center;padding:10px 0 30px}
 .logo{font-size:30px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent}
 .logo-sub{color:#a0b3c6;font-size:15px;margin-top:6px}
@@ -35,6 +36,8 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
 .card-list{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
 .card-item{flex:1 1 calc(50% - 5px);background:rgba(125,90,237,0.1);border:1px solid rgba(125,90,237,0.3);border-radius:12px;padding:12px;text-align:center}
 .card-item-2{flex:1 1 calc(50% - 5px);background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);border-radius:12px;padding:12px;text-align:center}
+.invite-box{display:flex;align-items:center;gap:10px;margin:10px 0}
+.invite-code{flex:1;background:rgba(255,255,255,0.05);padding:12px;border-radius:12px;font-family:monospace}
 </style>
 </head>
 <body>
@@ -48,6 +51,16 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
 <div id="address" class="address"></div>
 <div id="balanceBox" class="balance-box" style="display:none">
   钱包 DAI 余额：<strong id="daiBalance">0</strong> DAI
+</div>
+
+<!-- 邀请中心 -->
+<div class="glass" id="inviteCenter" style="display:none">
+  <div class="title">👤 我的邀请中心</div>
+  <div class="sub">分享邀请码，下级代理激活后你获得额外能量</div>
+  <div class="invite-box">
+    <div class="invite-code" id="myInviteCode"></div>
+    <button class="btn-copy" onclick="copyInviteCode()">复制</button>
+  </div>
 </div>
 
 <!-- 能量值 & NFT -->
@@ -103,7 +116,14 @@ let userPower = 0;
 let classicLevel = 0;
 let unionLevel = 0;
 let daiBalance = 0;
-let cards = { level1: 0, level2: 0 }; // 卡牌数量
+let cards = { level1: 0, level2: 0 };
+let currentUrl = window.location.href.split('?')[0];
+
+// 生成10位邀请码（地址前5+后5）
+function getInviteCode(addr) {
+  const s = addr.replace("0x", "").toLowerCase();
+  return s.slice(0,5) + s.slice(-5);
+}
 
 function getUnionPrice(level) {
   const prices = [0,50,100,200,400,800,1600,3200,6400,12800];
@@ -138,7 +158,6 @@ async function getDaiBalance() {
   return Number(web3.utils.fromWei(bal, 'ether')).toFixed(2);
 }
 
-// 加载状态（新增卡牌）
 function loadStatus() {
   if (!account) return;
   classicLevel = Number(localStorage.getItem(`classic_${account}`) || 0);
@@ -148,7 +167,6 @@ function loadStatus() {
   cards.level2 = Number(localStorage.getItem(`cards2_${account}`) || 0);
 }
 
-// 保存状态（新增卡牌）
 function saveStatus() {
   if (!account) return;
   localStorage.setItem(`classic_${account}`, classicLevel);
@@ -158,7 +176,22 @@ function saveStatus() {
   localStorage.setItem(`cards2_${account}`, cards.level2);
 }
 
-// ✅ 新增：领取1级卡牌（消耗3500能量）
+// ✅ 新增：复制邀请码
+function copyInviteCode() {
+  const code = getInviteCode(account);
+  navigator.clipboard.writeText(code).then(() => alert("✅ 邀请码已复制"));
+}
+
+// ✅ 新增：自动加载URL中的邀请码（下级用上级链接打开时自动填入）
+function autoLoadInviteCode() {
+  const params = new URLSearchParams(window.location.search);
+  const invite = params.get('invite');
+  if (invite && invite.length === 10) {
+    document.getElementById("inviteCode").value = invite;
+    document.getElementById("enterBtn").disabled = false;
+  }
+}
+
 function claimCard() {
   if (userPower < 3500) return alert("能量值不足3500，无法领取");
   userPower -= 3500;
@@ -168,7 +201,6 @@ function claimCard() {
   alert("✅ 成功领取 1级 NFT 分红卡牌！");
 }
 
-// ✅ 新增：3张1级合成1张2级
 function synthesizeCard() {
   if (cards.level1 < 3) return alert("1级卡牌不足3张，无法合成");
   cards.level1 -= 3;
@@ -178,25 +210,19 @@ function synthesizeCard() {
   alert("✅ 成功合成 2级 NFT 分红卡牌！");
 }
 
-// 统一渲染所有
 function renderAll() {
   renderPower();
   renderCards();
   renderMatrix();
+  renderInviteCenter();
 }
 
-// 渲染能量 & 领取按钮
 function renderPower() {
   document.getElementById("powerValue").innerText = userPower;
   const claimBtn = document.getElementById("claimBtn");
-  if (userPower >= 3500) {
-    claimBtn.style.display = "block";
-  } else {
-    claimBtn.style.display = "none";
-  }
+  claimBtn.style.display = userPower >= 3500 ? "block" : "none";
 }
 
-// 渲染卡牌列表 & 合成按钮
 function renderCards() {
   const cardList = document.getElementById("cardList");
   cardList.innerHTML = "";
@@ -206,13 +232,16 @@ function renderCards() {
   for (let i = 0; i < cards.level2; i++) {
     cardList.innerHTML += `<div class="card-item-2">2级卡牌<br/>分红权重 1.5%</div>`;
   }
-
   const synthesizeBtn = document.getElementById("synthesizeBtn");
-  if (cards.level1 >= 3) {
-    synthesizeBtn.style.display = "block";
-  } else {
-    synthesizeBtn.style.display = "none";
-  }
+  synthesizeBtn.style.display = cards.level1 >= 3 ? "block" : "none";
+}
+
+// ✅ 新增：渲染邀请中心
+function renderInviteCenter() {
+  if (!account) return;
+  const code = getInviteCode(account);
+  document.getElementById("myInviteCode").innerText = code;
+  document.getElementById("inviteCenter").style.display = "block";
 }
 
 connectBtn.onclick = async () => {
@@ -232,6 +261,8 @@ connectBtn.onclick = async () => {
     document.getElementById("regBox").style.display = "none";
   }
 
+  // 自动加载URL中的邀请码
+  autoLoadInviteCode();
   renderAll();
 };
 
