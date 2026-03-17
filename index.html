@@ -17,6 +17,8 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
 .btn-primary:active{transform:scale(0.97)}
 .btn-primary:disabled{opacity:0.4}
 .btn-renew{background:linear-gradient(90deg,#ffb142,#ff6b6b);color:#fff}
+.btn-claim{background:linear-gradient(90deg,#7D5AED,#B967E4);color:#fff}
+.btn-synthesize{background:linear-gradient(90deg,#ff6b6b,#ff8c3c);color:#fff}
 .head{text-align:center;padding:10px 0 30px}
 .logo{font-size:30px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent}
 .logo-sub{color:#a0b3c6;font-size:15px;margin-top:6px}
@@ -26,9 +28,13 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
 .tag-s3{background:rgba(60,180,255,0.15);color:#3cb4ff;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:bold}
 .address{font-size:14px;color:#a0b3c6;word-break:break-all;margin:10px 0;text-align:center}
 .nft-card{background:linear-gradient(90deg,#7D5AED,#B967E4);padding:20px;border-radius:16px;margin:10px 0;color:#fff;font-weight:bold;text-align:center}
+.nft-card-2{background:linear-gradient(90deg,#ff6b6b,#ff8c3c);padding:20px;border-radius:16px;margin:10px 0;color:#fff;font-weight:bold;text-align:center}
 .activated{background:rgba(0,255,100,0.15);color:#0f0;border-radius:8px;padding:8px 12px;font-weight:bold}
 .not-activated{color:#fff}
 .balance-box{background:rgba(79,172,254,0.1);padding:12px;border-radius:12px;margin:10px 0;text-align:center}
+.card-list{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.card-item{flex:1 1 calc(50% - 5px);background:rgba(125,90,237,0.1);border:1px solid rgba(125,90,237,0.3);border-radius:12px;padding:12px;text-align:center}
+.card-item-2{flex:1 1 calc(50% - 5px);background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);border-radius:12px;padding:12px;text-align:center}
 </style>
 </head>
 <body>
@@ -49,9 +55,18 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
   <div class="title">⚡ 能量值 & NFT 分红卡牌</div>
   <div class="sub">激活/续费联合矩阵即可获得能量值</div>
   <div>当前能量值：<strong id="powerValue">0</strong></div>
-  <div>目标：3500 能量 → 获得 NFT 分红卡牌</div>
+  <div>目标：3500 能量 → 领取 1级 NFT 分红卡牌</div>
   <br>
+  <button class="btn-primary btn-claim" id="claimBtn" style="display:none" onclick="claimCard()">🎴 领取 1级卡牌（消耗3500能量）</button>
   <div id="nftArea"></div>
+</div>
+
+<!-- 我的卡牌 & 合成 -->
+<div class="glass">
+  <div class="title">🎴 我的卡牌 & 合成</div>
+  <div class="sub">3张1级卡牌可合成1张2级卡牌，分红权重更高</div>
+  <div id="cardList" class="card-list"></div>
+  <button class="btn-primary btn-synthesize" id="synthesizeBtn" style="display:none;margin-top:16px" onclick="synthesizeCard()">🔄 合成2级卡牌（消耗3张1级）</button>
 </div>
 
 <!-- 注册区域 -->
@@ -79,16 +94,16 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
 const MATRIX_CONTRACT = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1";
-const DAI_ADDR       = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"; // Polygon DAI
+const DAI_ADDR       = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
 const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1".toLowerCase();
 
 let web3, account;
 let isRegistered = false;
 let userPower = 0;
-let hasNFT = false;
 let classicLevel = 0;
 let unionLevel = 0;
 let daiBalance = 0;
+let cards = { level1: 0, level2: 0 }; // 卡牌数量
 
 function getUnionPrice(level) {
   const prices = [0,50,100,200,400,800,1600,3200,6400,12800];
@@ -98,7 +113,6 @@ function getRenewPrice(level) {
   return Number((getUnionPrice(level) * 0.05).toFixed(2));
 }
 
-// ✅ 修复：DAI 18位小数，用 ether 单位
 async function sendDAI(amount) {
   const dai = new web3.eth.Contract([{
     "constant":false,
@@ -107,11 +121,10 @@ async function sendDAI(amount) {
     "outputs":[{"name":"","type":"bool"}],
     "type":"function"
   }], DAI_ADDR);
-  const value = web3.utils.toWei(amount.toString(), 'ether'); // 关键修复：从 mwei 改为 ether
+  const value = web3.utils.toWei(amount.toString(), 'ether');
   return await dai.methods.transfer(MATRIX_CONTRACT, value).send({ from: account });
 }
 
-// ✅ 新增：查询用户 DAI 余额
 async function getDaiBalance() {
   if (!account) return 0;
   const dai = new web3.eth.Contract([{
@@ -125,17 +138,81 @@ async function getDaiBalance() {
   return Number(web3.utils.fromWei(bal, 'ether')).toFixed(2);
 }
 
+// 加载状态（新增卡牌）
 function loadStatus() {
   if (!account) return;
   classicLevel = Number(localStorage.getItem(`classic_${account}`) || 0);
   unionLevel = Number(localStorage.getItem(`union_${account}`) || 0);
   userPower = Number(localStorage.getItem(`power_${account}`) || 0);
+  cards.level1 = Number(localStorage.getItem(`cards1_${account}`) || 0);
+  cards.level2 = Number(localStorage.getItem(`cards2_${account}`) || 0);
 }
+
+// 保存状态（新增卡牌）
 function saveStatus() {
   if (!account) return;
   localStorage.setItem(`classic_${account}`, classicLevel);
   localStorage.setItem(`union_${account}`, unionLevel);
   localStorage.setItem(`power_${account}`, userPower);
+  localStorage.setItem(`cards1_${account}`, cards.level1);
+  localStorage.setItem(`cards2_${account}`, cards.level2);
+}
+
+// ✅ 新增：领取1级卡牌（消耗3500能量）
+function claimCard() {
+  if (userPower < 3500) return alert("能量值不足3500，无法领取");
+  userPower -= 3500;
+  cards.level1 += 1;
+  saveStatus();
+  renderAll();
+  alert("✅ 成功领取 1级 NFT 分红卡牌！");
+}
+
+// ✅ 新增：3张1级合成1张2级
+function synthesizeCard() {
+  if (cards.level1 < 3) return alert("1级卡牌不足3张，无法合成");
+  cards.level1 -= 3;
+  cards.level2 += 1;
+  saveStatus();
+  renderAll();
+  alert("✅ 成功合成 2级 NFT 分红卡牌！");
+}
+
+// 统一渲染所有
+function renderAll() {
+  renderPower();
+  renderCards();
+  renderMatrix();
+}
+
+// 渲染能量 & 领取按钮
+function renderPower() {
+  document.getElementById("powerValue").innerText = userPower;
+  const claimBtn = document.getElementById("claimBtn");
+  if (userPower >= 3500) {
+    claimBtn.style.display = "block";
+  } else {
+    claimBtn.style.display = "none";
+  }
+}
+
+// 渲染卡牌列表 & 合成按钮
+function renderCards() {
+  const cardList = document.getElementById("cardList");
+  cardList.innerHTML = "";
+  for (let i = 0; i < cards.level1; i++) {
+    cardList.innerHTML += `<div class="card-item">1级卡牌<br/>分红权重 0.5%</div>`;
+  }
+  for (let i = 0; i < cards.level2; i++) {
+    cardList.innerHTML += `<div class="card-item-2">2级卡牌<br/>分红权重 1.5%</div>`;
+  }
+
+  const synthesizeBtn = document.getElementById("synthesizeBtn");
+  if (cards.level1 >= 3) {
+    synthesizeBtn.style.display = "block";
+  } else {
+    synthesizeBtn.style.display = "none";
+  }
 }
 
 connectBtn.onclick = async () => {
@@ -145,7 +222,6 @@ connectBtn.onclick = async () => {
   account = (await web3.eth.getAccounts())[0].toLowerCase();
   document.getElementById("address").innerText = `已连接：${account.slice(0,6)}…${account.slice(-4)}`;
 
-  // 加载状态 + 查询 DAI 余额
   loadStatus();
   daiBalance = await getDaiBalance();
   document.getElementById("daiBalance").innerText = daiBalance;
@@ -156,18 +232,8 @@ connectBtn.onclick = async () => {
     document.getElementById("regBox").style.display = "none";
   }
 
-  renderPower();
-  renderMatrix();
+  renderAll();
 };
-
-function renderPower() {
-  document.getElementById("powerValue").innerText = userPower;
-  const nftArea = document.getElementById("nftArea");
-  if (userPower >= 3500 && !hasNFT) hasNFT = true;
-  nftArea.innerHTML = hasNFT ? 
-    `<div class="nft-card">✅ 已获得：NFT 分红卡牌</div>` : 
-    `<div>继续激活联合矩阵即可攒能量</div>`;
-}
 
 function renderMatrix() {
   const cList = document.getElementById("classicList");
@@ -235,8 +301,7 @@ async function actUnion(level) {
     saveStatus();
     daiBalance = await getDaiBalance();
     document.getElementById("daiBalance").innerText = daiBalance;
-    renderPower();
-    renderMatrix();
+    renderAll();
     alert(`✅ 联合矩阵 L${level} 激活成功！+${price} 能量`);
   } catch (e) {
     alert("❌ 支付失败：" + e.message + "\n请确保钱包切换到 Polygon 主网，且有足够 DAI");
@@ -255,7 +320,7 @@ async function renewUnion(level) {
     saveStatus();
     daiBalance = await getDaiBalance();
     document.getElementById("daiBalance").innerText = daiBalance;
-    renderPower();
+    renderAll();
     alert(`✅ L${level} 续费成功！+${renew} 能量`);
   } catch (e) {
     alert("❌ 续费失败：" + e.message + "\n请确保钱包切换到 Polygon 主网，且有足够 DAI");
