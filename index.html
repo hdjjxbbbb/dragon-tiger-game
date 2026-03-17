@@ -2,151 +2,513 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LP Mining</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>质押挖矿 - TokenTools</title>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Open Sans,Helvetica Neue,sans-serif}
-body{background:#0B121B;color:#fff;padding:20px}
-.main{max-width:480px;margin:0 auto}
-.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.logo{font-size:18px;font-weight:700}
-.connect-btn{background:#165DFF;color:#fff;border:none;border-radius:12px;padding:10px 16px;font-size:14px;font-weight:600}
-.box{background:#131A29;border-radius:16px;padding:20px;margin-bottom:12px}
-.title{font-size:16px;font-weight:600;margin-bottom:12px}
-.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1F2A3F;font-size:14px}
-.row:last-child{border-bottom:none}
-.label{color:#9CA3AF}
-.value{color:#fff;font-weight:500}
-.input-group{margin-top:10px}
-.input{width:100%;background:#1C2637;border:1px solid #2A3754;border-radius:12px;padding:14px 16px;color:#fff;font-size:15px;margin-top:8px}
-.btn-stake{width:100%;background:#22D1F7;color:#000;font-weight:600;border:none;border-radius:12px;padding:15px;margin-top:12px;font-size:15px}
-.btn-unstake{width:100%;background:#FF445F;color:#fff;font-weight:600;border:none;border-radius:12px;padding:15px;margin-top:12px;font-size:15px}
-.btn-claim{width:100%;background:#10B981;color:#fff;font-weight:600;border:none;border-radius:12px;padding:15px;margin-top:12px;font-size:15px}
-#walletArea{display:none}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  background: #121212;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.wrap {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* 顶部标题栏 */
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  margin-bottom: 12px;
+}
+.header-bar h1 {
+  font-size: 20px;
+  font-weight: 600;
+}
+.wallet-icon {
+  width: 24px;
+  height: 24px;
+  background: #f5b02b;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #000;
+}
+
+/* 通用卡片 */
+.card {
+  background: #1a2035;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffc107;
+  margin-bottom: 12px;
+}
+.yellow {
+  color: #ffc107;
+  font-weight: 600;
+}
+.light-gray {
+  color: #a0aec0;
+}
+
+/* 邀请模块 */
+.invite-link {
+  display: flex;
+  align-items: center;
+  background: #232a45;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 12px 0;
+}
+.invite-link .label {
+  color: #ffc107;
+  font-weight: 600;
+  margin-right: 8px;
+}
+.invite-link .link {
+  flex: 1;
+  color: #fff;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.copy-btn {
+  background: #ffc107;
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.invite-stats {
+  text-align: center;
+  padding: 12px 0;
+}
+.invite-stats .stat-item {
+  margin-bottom: 12px;
+}
+.invite-stats .label {
+  font-size: 16px;
+  color: #fff;
+}
+.invite-stats .value {
+  font-size: 32px;
+  color: #ffc107;
+  font-weight: 700;
+}
+
+.invite-record {
+  margin-top: 12px;
+}
+.invite-record .total {
+  font-size: 18px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #ffc107;
+}
+.invite-table {
+  background: #232a45;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.table-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  padding: 12px;
+  border-bottom: 1px solid #2d3748;
+  font-size: 14px;
+  color: #fff;
+}
+.table-body {
+  padding: 32px 0;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* 质押模块 */
+.stake-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  text-align: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #2d3748;
+}
+.stake-header .label {
+  font-size: 14px;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.stake-header .value {
+  font-size: 18px;
+  color: #ffc107;
+  font-weight: 600;
+}
+
+.stake-tabs {
+  display: flex;
+  margin: 12px 0;
+}
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab.active {
+  color: #ffc107;
+  border-bottom: 2px solid #ffc107;
+}
+.tab:not(.active) {
+  color: #6b7280;
+  background: #232a45;
+}
+
+.stake-input-area {
+  background: #232a45;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.stake-input-area .balance {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.stake-input-area .input-wrap {
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+}
+.stake-input-area input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  outline: none;
+}
+.stake-input-area .max-btn {
+  color: #ffc107;
+  font-weight: 600;
+  cursor: pointer;
+}
+.yellow-btn {
+  width: 100%;
+  background: #ffc107;
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 12px;
+  cursor: pointer;
+}
+
+.reward-area {
+  background: #232a45;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+.reward-area .label {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+.reward-area .value {
+  font-size: 32px;
+  color: #ffc107;
+  font-weight: 700;
+}
+
+/* 介绍模块 */
+.intro-card {
+  background: #1a2035;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.intro-banner {
+  position: relative;
+  height: 240px;
+  background: url('https://picsum.photos/id/237/480/240') center/cover;
+}
+.intro-logo {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 48px;
+  height: 48px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.intro-title {
+  position: absolute;
+  top: 16px;
+  left: 72px;
+  font-size: 20px;
+  font-weight: 600;
+}
+.intro-desc {
+  position: absolute;
+  top: 48px;
+  left: 72px;
+  right: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+.intro-section {
+  padding: 16px;
+}
+.intro-section h2 {
+  font-size: 20px;
+  color: #ffc107;
+  margin-bottom: 12px;
+}
+.intro-section p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #e2e8f0;
+}
+.stats-row {
+  background: #232a45;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.stats-row .label {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+.stats-row .value {
+  font-size: 24px;
+  color: #ffc107;
+  font-weight: 700;
+}
+
+/* 底部 */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  margin-top: 24px;
+}
+.footer-logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffc107;
+}
+.footer-copyright {
+  font-size: 12px;
+  color: #6b7280;
+}
+.lang-select {
+  background: #232a45;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+/* 隐藏未连接钱包的内容 */
+#app {
+  display: none;
+}
+.connect-btn {
+  background: #ffc107;
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 24px;
+}
 </style>
 </head>
 <body>
-<div class="main">
-
-  <div class="head">
-    <div class="logo">LP Staking Mining</div>
-    <button id="connectWallet" class="connect-btn">Connect Wallet</button>
+<div class="wrap">
+  <div class="header-bar">
+    <h1>质押挖矿 - TokenTools</h1>
+    <div class="wallet-icon">T</div>
   </div>
 
-  <div id="walletArea">
-    <div class="box">
-      <div class="title">My Info</div>
-      <div class="row">
-        <span class="label">My LP</span>
-        <span class="value" id="lpBal">0.00</span>
+  <button id="connectBtn" class="connect-btn">连接钱包</button>
+
+  <div id="app">
+    <!-- 邀请模块 -->
+    <div class="card">
+      <h2 class="card-title">我的邀请</h2>
+      <div class="invite-stats">
+        <div class="stat-item">
+          <div class="label">邀请用户总质押</div>
+          <div class="value yellow">0.00</div>
+        </div>
+        <div class="stat-item">
+          <div class="label">邀请奖励</div>
+          <div class="value yellow">0.0000 DTM</div>
+        </div>
       </div>
-      <div class="row">
-        <span class="label">Staked</span>
-        <span class="value" id="staked">0.00</span>
+      <div class="invite-link">
+        <span class="label">邀请链接:</span>
+        <span class="link">https://tokentools.app/...</span>
+        <button class="copy-btn">复制</button>
       </div>
-      <div class="row">
-        <span class="label">Pending Reward</span>
-        <span class="value" id="reward">0.00</span>
+      <div class="invite-record">
+        <div class="total">我的邀请记录<br>总计邀请人数 0</div>
+        <div class="invite-table">
+          <div class="table-header">
+            <span>用户地址</span>
+            <span>质押数量</span>
+            <span>已领取收益</span>
+            <span>最后质押时间</span>
+          </div>
+          <div class="table-body">无数据</div>
+        </div>
       </div>
     </div>
 
-    <div class="box">
-      <div class="title">Stake LP</div>
-      <div class="input-group">
-        <span class="label">Amount</span>
-        <input class="input" id="stakeAmt" placeholder="Input stake amount" type="number">
+    <!-- 质押模块 -->
+    <div class="card">
+      <div class="stake-header">
+        <div>
+          <div class="label">锁仓时间(天)</div>
+          <div class="value yellow">180 天</div>
+        </div>
+        <div>
+          <div class="label">我的质押</div>
+          <div class="value">0</div>
+        </div>
+        <div>
+          <div class="label">已领收益</div>
+          <div class="value">0 DTM</div>
+        </div>
       </div>
-      <button class="btn-stake" id="stakeBtn">Stake</button>
+      <div class="stake-tabs">
+        <div class="tab active">质押</div>
+        <div class="tab">解锁</div>
+      </div>
+      <div class="stake-input-area">
+        <div class="balance">
+          <span>WBNB-DTM 余额</span>
+          <span class="yellow">0</span>
+        </div>
+        <div class="input-wrap">
+          <input type="number" placeholder="输入质押数量">
+          <span class="max-btn">全部</span>
+        </div>
+        <button class="yellow-btn">授权</button>
+      </div>
+      <div class="reward-area">
+        <div class="label">DTM 未领获益</div>
+        <div class="value yellow">0</div>
+      </div>
     </div>
 
-    <div class="box">
-      <button class="btn-unstake" id="unstakeBtn">Unstake All</button>
-      <button class="btn-claim" id="claimBtn">Claim Reward</button>
+    <!-- 介绍模块 -->
+    <div class="intro-card">
+      <div class="intro-banner">
+        <div class="intro-logo">🏯</div>
+        <div class="intro-title">WBNB-DTM 质押</div>
+        <div class="intro-desc">
+          DTM是333链商生态核心通证：大唐梦通证由香港正元链商集团打造，锚定2000多亩实体庄园基底，绑定果酒品牌、线下连锁小酒馆、共享商城三大核心板块价值。作为生态通用权益凭证，它打通线上线下流通，持有者可直接兑换产品与服务；累计持有达标即升级“共享庄主”，共享全球经营分红，优先获取新项目体验与投资机会，深度参与生态建设。以实体为支撑，链接产业、消费、投资端，让每位参与者共享生态发展红利。
+        </div>
+      </div>
+      <div class="intro-section">
+        <h2>● 介绍</h2>
+        <p>WBNB-DTM 质押将获得平台收益的一部分，并根据质押获得的 DTM 数量给予质押者。</p>
+      </div>
+      <div class="stats-row">
+        <div class="label">WBNB-DTM总市值$</div>
+        <div class="value yellow">861,501.65</div>
+      </div>
+      <div class="stats-row">
+        <div class="label">WBNB-DTM总质押</div>
+        <div class="value yellow">20092.61</div>
+      </div>
+    </div>
+
+    <!-- 底部 -->
+    <div class="footer">
+      <div>
+        <div class="footer-logo">TokenTool</div>
+        <div class="footer-copyright">2024 TOKENTOOLS(TT). 版权所有</div>
+      </div>
+      <select class="lang-select">
+        <option>中文简体</option>
+        <option>English</option>
+      </select>
     </div>
   </div>
-
 </div>
 
 <script>
 const CONFIG = {
   chainId: 56,
   staking: "0x5001fA16F04AcdD246d41784e71370Db07262981",
-  lp: "【在这里填入你的LP代币地址】",
+  lp: "【这里填你的LP代币地址】",
   lpDecimals: 18,
   rewardDecimals: 18
 };
 
-const ABI_STAKE = [
-  {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"stakedAmount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"earned","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"stake","outputs":[],"stateMutability":"nonpayable","type":"function"},
-  {"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
-  {"inputs":[],"name":"claimReward","outputs":[],"stateMutability":"nonpayable","type":"function"}
-];
+let provider, signer;
 
-const ABI_ERC20 = [
-  {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"uint256","name":"","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
-];
-
-let provider, signer, stakeC, lpC;
-
-async function switchBSC() {
-  try {
-    await window.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: '0x38' }]
-    });
-  } catch (e) {}
+async function connectWallet() {
+  if (window.ethereum) {
+    try {
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("wallet_switchEthereumChain", [{ chainId: "0x38" }]);
+      signer = provider.getSigner();
+      document.getElementById("connectBtn").style.display = "none";
+      document.getElementById("app").style.display = "block";
+    } catch (e) {
+      alert("连接钱包失败: " + e.message);
+    }
+  } else {
+    alert("请安装 MetaMask 或 TP 钱包");
+  }
 }
 
-async function connect() {
-  await switchBSC();
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
-  signer = provider.getSigner();
-  stakeC = new ethers.Contract(CONFIG.staking, ABI_STAKE, signer);
-  lpC = new ethers.Contract(CONFIG.lp, ABI_ERC20, signer);
-  document.getElementById("walletArea").style.display = "block";
-  refresh();
-}
-
-async function refresh() {
-  const addr = await signer.getAddress();
-  const lpBal = await lpC.balanceOf(addr);
-  const staked = await stakeC.stakedAmount(addr);
-  const reward = await stakeC.earned(addr);
-  document.getElementById("lpBal").innerText = parseFloat(ethers.utils.formatUnits(lpBal, CONFIG.lpDecimals)).toFixed(4);
-  document.getElementById("staked").innerText = parseFloat(ethers.utils.formatUnits(staked, CONFIG.lpDecimals)).toFixed(4);
-  document.getElementById("reward").innerText = parseFloat(ethers.utils.formatUnits(reward, CONFIG.rewardDecimals)).toFixed(4);
-}
-
-document.getElementById("stakeBtn").onclick = async () => {
-  const v = document.getElementById("stakeAmt").value;
-  if (!v) return alert("Input amount");
-  const amt = ethers.utils.parseUnits(v, CONFIG.lpDecimals);
-  await lpC.approve(CONFIG.staking, amt);
-  await stakeC.stake(amt);
-  alert("Stake Success");
-  refresh();
+document.getElementById("connectBtn").onclick = connectWallet;
+document.querySelector(".copy-btn").onclick = () => {
+  navigator.clipboard.writeText("https://tokentools.app/...");
+  alert("链接已复制");
 };
-
-document.getElementById("unstakeBtn").onclick = async () => {
-  const addr = await signer.getAddress();
-  const staked = await stakeC.stakedAmount(addr);
-  await stakeC.withdraw(staked);
-  alert("Unstake Success");
-  refresh();
-};
-
-document.getElementById("claimBtn").onclick = async () => {
-  await stakeC.claimReward();
-  alert("Claim Success");
-  refresh();
-};
-
-document.getElementById("connectWallet").onclick = connect;
 </script>
 </body>
 </html>
