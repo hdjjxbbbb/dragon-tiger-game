@@ -10,82 +10,102 @@ body{background:#090b1a;color:#fff;padding:20px;max-width:500px;margin:0 auto}
 .glass{background:rgba(30,35,60,0.7);border-radius:18px;padding:20px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.08)}
 .title{font-size:18px;font-weight:bold;margin-bottom:10px}
 .sub{color:#a0a8c0;font-size:14px;margin-bottom:12px}
-.btn{background:linear-gradient(90deg,#4facfe,#00f2fe);color:#000;border:none;border-radius:12px;padding:14px;width:100%;font-weight:bold;font-size:15px;margin-top:8px}
-.btn2{background:#6c7580;color:#fff;border:none;border-radius:12px;padding:10px 12px;font-weight:bold;margin-top:8px}
+.btn{background:linear-gradient(90deg,#4facfe,#00F2FE);color:#000;border:none;border-radius:12px;padding:14px;width:100%;font-weight:bold;font-size:16px;margin-top:8px}
 .btn:disabled{opacity:0.5}
 .item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
 .item:last-child{border-bottom:none}
-.price{font-weight:bold;color:#4facfe}
+.price{font-weight:bold;color:#4facFE}
 input{width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:15px;margin-top:10px}
-.copy{background:#4facfe;color:#000;padding:6px 10px;border-radius:8px;font-size:12px;border:none;margin-left:8px}
+.copy-btn{background:#4facFE;color:#000;padding:8px 12px;border-radius:8px;font-size:14px;border:none;margin-left:8px}
+.link-box{background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin:8px 0;word-break:break-all;font-size:14px}
 </style>
 </head>
 
 <body>
 
 <div style="text-align:center;margin-bottom:20px">
-  <h1>Meta Whale</h1>
-  <p style="color:#a0a8c0">双矩阵 · DAI激活 · 邀请分红</p>
+  <h1 style="background:linear-gradient(90deg,#4FACFE,#00F2FE);-webkit-background-clip:text;color:transparent">Meta Whale</h1>
+  <p style="color:#a0a8c7">双矩阵 · DAI激活 · 邀请分红系统</p>
 </div>
 
-<button id="connect" class="btn">连接钱包</button>
-<div id="addr" style="text-align:center;margin:10px 0;color:#aaa"></div>
+<button id="connectBtn" class="btn">连接钱包</button>
+<div id="addressShow" style="text-align:center;margin:12px 0;color:#a0a8c7"></div>
 
-<!-- 邀请注册 -->
+<!-- 注册区域 -->
 <div class="glass">
   <div class="title">注册（必填）</div>
-  <div class="sub">请输入上级10位邀请码</div>
-  <input id="inviteInput" placeholder="输入10位邀请码" maxlength="10">
+  <div class="sub">通过邀请链接打开将自动填入上级唯一邀请码</div>
+  <input id="inviteInput" placeholder="上级邀请码（前5+后5）" maxlength="10">
   <button id="regBtn" class="btn" disabled>确认注册</button>
 </div>
 
-<!-- 我的邀请信息 -->
-<div class="glass" id="myInviteBox" style="display:none">
-  <div class="title">👤 我的邀请信息</div>
+<!-- 邀请中心 -->
+<div class="glass" id="inviteCenter" style="display:none">
+  <div class="title">👤 我的邀请中心</div>
+
   <div style="margin-bottom:8px">
-    我的邀请码：<span id="myCode"></span>
-    <button class="copy" onclick="copyMyCode()">复制</button>
+    我的唯一邀请码：
+    <span id="myCode" style="color:#4FACFE;font-weight:bold"></span>
   </div>
+
   <div style="margin-bottom:8px">
-    我的上级邀请码：<span id="uplineCode"></span>
+    我的邀请链接：
+    <button class="copy-btn" onclick="copyLink()">复制链接</button>
+    <div class="link-box" id="myLink"></div>
   </div>
-  <div class="sub">下级代理列表：</div>
+
+  <div style="margin-bottom:12px">
+    我的上级邀请码：
+    <span id="uplineCode" style="color:#fff"></span>
+  </div>
+
+  <div class="sub">我的下级代理：</div>
   <div id="downlineList"></div>
 </div>
 
 <!-- 经典矩阵 -->
 <div class="glass">
   <div class="title">经典矩阵（12级）</div>
-  <div class="sub">DAI支付，永久有效</div>
+  <div class="sub">DAI 支付 · 一次激活永久有效</div>
   <div id="classicList"></div>
 </div>
 
 <!-- 联合矩阵 -->
 <div class="glass">
   <div class="title">联合挖矿矩阵（9级）</div>
-  <div class="sub">50→100→200→400→800… DAI</div>
+  <div class="sub">50 → 100 → 200 → 400 → 800… DAI</div>
   <div id="unionList"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
 // ==========================
-// 配置（已填好你的信息）
+// 你的配置
 // ==========================
 const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1".toLowerCase();
 const CONTRACT_ADDRESS = "0x58285a2b8c248970275d2293f1011303d39e0d3f";
-const DAI_ADDRESS  = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
+const DAI_ADDRESS      = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
 
-let web3, account, isProject = false;
+let web3, account;
 let isRegistered = false;
-let myCode, uplineCode;
-let downlines = [];
+let currentUrl = window.location.href.split('?')[0];
+
+// ==========================
+// 【核心】唯一邀请码：前5位 + 后5位 = 10位绝对不重复
+// ==========================
+function getUniqueCode(address) {
+  if (!address) return "";
+  const s = address.replace("0x", "");
+  const front5 = s.slice(0, 5);
+  const last5 = s.slice(-5);
+  return front5 + last5;
+}
 
 // ==========================
 // 价格
 // ==========================
-function classicPrice(lev){ return 50 * 2**(lev-1) }
-function unionPrice(lev){
+function classicPrice(lev) { return 50 * (2 ** (lev - 1)); }
+function unionPrice(lev) {
   const arr = [0,50,100,200,400,800,1600,3200,6400,12800];
   return arr[lev];
 }
@@ -93,127 +113,161 @@ function unionPrice(lev){
 // ==========================
 // 渲染
 // ==========================
-function renderAll(){
+function renderAll() {
   renderClassic();
   renderUnion();
-  showMyInviteUI();
+  showInviteCenter();
 }
 
-function renderClassic(){
-  let el = document.getElementById('classicList');
-  el.innerHTML = '';
-  for(let i=1;i<=12;i++){
-    let p = classicPrice(i);
-    el.innerHTML += `
+function renderClassic() {
+  const box = document.getElementById('classicList');
+  box.innerHTML = '';
+  for (let i = 1; i <= 12; i++) {
+    const p = classicPrice(i);
+    box.innerHTML += `
     <div class="item">
       <div>Lv${i}</div>
       <div class="price">${p} DAI</div>
-      <button onclick="payClassic(${i})" style="padding:6px 10px;border-radius:8px;background:#4facfe;color:#000;border:none;font-weight:bold">激活</button>
+      <button onclick="activeClassic(${i})" style="padding:6px 10px;border-radius:8px;background:#4FACFE;color:#000;border:none;font-weight:bold">激活</button>
     </div>`;
   }
 }
 
-function renderUnion(){
-  let el = document.getElementById('unionList');
-  el.innerHTML = '';
-  for(let i=1;i<=9;i++){
-    let p = unionPrice(i);
-    el.innerHTML += `
+function renderUnion() {
+  const box = document.getElementById('unionList');
+  box.innerHTML = '';
+  for (let i = 1; i <= 9; i++) {
+    const p = unionPrice(i);
+    box.innerHTML += `
     <div class="item">
       <div>Lv${i}</div>
       <div class="price">${p} DAI</div>
-      <button onclick="payUnion(${i})" style="padding:6px 10px;border-radius:8px;background:#4facfe;color:#000;border:none;font-weight:bold">激活</button>
+      <button onclick="activeUnion(${i})" style="padding:6px 10px;border-radius:8px;background:#4FACFE;color:#000;border:none;font-weight:bold">激活</button>
     </div>`;
   }
 }
 
 // ==========================
-// DAI 支付激活（真实上链）
+// DAI 上链支付
 // ==========================
-async function payClassic(lev){
-  if(!account) return alert("请连接钱包");
-  if(!isProject && !isRegistered) return alert("请先注册");
-  const amount = classicPrice(lev);
-  await payDAI(CONTRACT_ADDRESS, amount);
-  alert("✅ 经典矩阵 Lv"+lev+" 激活成功");
+async function activeClassic(lev) {
+  if (!account) return alert("请先连接钱包");
+  if (!isRegistered) return alert("请先完成注册！");
+  try {
+    await daiTransfer(CONTRACT_ADDRESS, classicPrice(lev));
+    alert("✅ 经典矩阵 Lv" + lev + " 激活成功");
+  } catch (e) { alert("❌ 失败：" + e.message); }
 }
 
-async function payUnion(lev){
-  if(!account) return alert("请连接钱包");
-  if(!isProject && !isRegistered) return alert("请先注册");
-  const amount = unionPrice(lev);
-  await payDAI(CONTRACT_ADDRESS, amount);
-  alert("✅ 联合矩阵 Lv"+lev+" 激活成功");
+async function activeUnion(lev) {
+  if (!account) return alert("请先连接钱包");
+  if (!isRegistered) return alert("请先完成注册！");
+  try {
+    await daiTransfer(CONTRACT_ADDRESS, unionPrice(lev));
+    alert("✅ 联合矩阵 Lv" + lev + " 激活成功");
+  } catch (e) { alert("❌ 失败：" + e.message); }
 }
 
-async function payDAI(to, daiAmount){
-  const dai = new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}], DAI_ADDRESS);
-  const val = web3.utils.toWei(daiAmount.toString(), "mwei");
-  await dai.methods.transfer(to, val).send({from:account});
+async function daiTransfer(to, amount) {
+  const dai = new web3.eth.Contract([{
+    "constant": false,
+    "inputs": [{"name": "_to"}, {"name": "_value"}],
+    "name": "transfer",
+    "outputs": [{"name": "", "type": "bool"}],
+    "type": "function"
+  }], DAI_ADDRESS);
+  const val = web3.utils.toWei(amount.toString(), "mwei");
+  await dai.methods.transfer(to, val).send({ from: account });
 }
 
 // ==========================
-// 邀请码 注册 / 生成 / 复制
+// 链接自动带入邀请码
 // ==========================
-inviteInput.oninput = ()=>{
+function autoLoadInviteCode() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("invite");
+  if (code && code.length === 10) {
+    inviteInput.value = code;
+    regBtn.disabled = false;
+  }
+}
+
+// ==========================
+// 注册逻辑
+// ==========================
+inviteInput.oninput = () => {
   regBtn.disabled = inviteInput.value.trim().length !== 10;
-}
+};
 
-regBtn.onclick = ()=>{
+regBtn.onclick = () => {
   const code = inviteInput.value.trim();
-  if(code.length !==10) return alert("邀请码必须10位");
+  if (code.length !== 10) return alert("邀请码必须10位");
+
   isRegistered = true;
-  uplineCode = code;
-  myCode = genCode();
-  localStorage.setItem("myCode_"+account, myCode);
-  localStorage.setItem("upline_"+account, uplineCode);
-  alert("✅ 注册成功！上级已绑定");
-  showMyInviteUI();
-}
+  localStorage.setItem("upline_" + account, code);
 
-function genCode(){
-  return Math.random().toString().slice(2,12);
-}
+  // 记录下级
+  const downKey = "downlines_" + code;
+  const list = JSON.parse(localStorage.getItem(downKey) || "[]");
+  list.push(account);
+  localStorage.setItem(downKey, JSON.stringify(list));
 
-function showMyInviteUI(){
-  if(!account) return;
-  myCode = localStorage.getItem("myCode_"+account) || "";
-  uplineCode = localStorage.getItem("upline_"+account) || "";
-  if(!myCode) return;
-  document.getElementById("myInviteBox").style.display = "block";
+  alert("✅ 注册成功！上下级绑定完成");
+  showInviteCenter();
+};
+
+// ==========================
+// 显示邀请中心
+// ==========================
+function showInviteCenter() {
+  if (!account) return;
+
+  const myCode = getUniqueCode(account);
+  const uplineCode = localStorage.getItem("upline_" + account) || "未绑定";
+
+  document.getElementById("inviteCenter").style.display = "block";
   document.getElementById("myCode").innerText = myCode;
   document.getElementById("uplineCode").innerText = uplineCode;
-  showDownlines();
-}
+  document.getElementById("myLink").innerText = `${currentUrl}?invite=${myCode}`;
 
-function copyMyCode(){
-  navigator.clipboard.writeText(myCode).then(()=>alert("✅ 复制成功"));
-}
-
-// ==========================
-// 下级代理展示
-// ==========================
-function showDownlines(){
-  let list = JSON.parse(localStorage.getItem("downlines_"+myCode) || "[]");
-  let el = document.getElementById("downlineList");
+  // 下级列表
+  const down = JSON.parse(localStorage.getItem("downlines_" + myCode) || "[]");
+  const el = document.getElementById("downlineList");
   el.innerHTML = "";
-  list.forEach(item=>{
-    el.innerHTML += `<div class="sub">• ${item.addr} （已激活）</div>`;
+  down.forEach(addr => {
+    el.innerHTML += `<div class="sub">• ${addr.slice(0,6)}…${addr.slice(-4)}</div>`;
   });
+}
+
+// ==========================
+// 复制链接
+// ==========================
+function copyLink() {
+  const link = `${currentUrl}?invite=${getUniqueCode(account)}`;
+  navigator.clipboard.writeText(link).then(() => alert("✅ 邀请链接复制成功"));
 }
 
 // ==========================
 // 连接钱包
 // ==========================
-connect.onclick = async ()=>{
-  await window.ethereum.request({method:"eth_requestAccounts"});
+connectBtn.onclick = async () => {
+  await window.ethereum.request({ method: "eth_requestAccounts" });
   web3 = new Web3(window.ethereum);
   account = (await web3.eth.getAccounts())[0].toLowerCase();
-  isProject = account === PROJECT_WALLET;
-  document.getElementById("addr").innerText = account.slice(0,6)+"…"+account.slice(-4);
-  if(isProject){ isRegistered = true; alert("✅ 项目方账号"); }
+
+  document.getElementById("addressShow").innerText = `已连接：${account.slice(0,6)}…${account.slice(-4)}`;
+
+  // 项目方默认已注册
+  if (account === PROJECT_WALLET) {
+    isRegistered = true;
+    if (!localStorage.getItem("upline_" + account)) {
+      localStorage.setItem("upline_" + account, "官方项目方");
+    }
+  }
+
+  autoLoadInviteCode();
   renderAll();
-}
+};
 </script>
 </body>
 </html>
