@@ -196,15 +196,20 @@ async function loadRelation(){
   const downDiv = document.getElementById("myDownlines");
   downDiv.innerHTML = "";
   try {
+    // 修复：兼容合约 downlines 函数
     let i = 0;
     while(true){
-      const d = await contract.methods.downlines(account, i).call();
-      if(!d || d === "0x0000000000000000000000000000000000000000") break;
-      const item = document.createElement("div");
-      item.className = "relation-box";
-      item.innerText = `${d.slice(0, 6)}…${d.slice(-4)}`;
-      downDiv.appendChild(item);
-      i++;
+      try {
+        const d = await contract.methods.downlines(account, i).call();
+        if(!d || d === "0x0000000000000000000000000000000000000000") break;
+        const item = document.createElement("div");
+        item.className = "relation-box";
+        item.innerText = `${d.slice(0, 6)}…${d.slice(-4)}`;
+        downDiv.appendChild(item);
+        i++;
+      } catch(e) {
+        break; // 遍历到最后一个下级时会报错，跳出循环
+      }
     }
     if(downDiv.innerHTML === ""){
       downDiv.innerHTML = "<div class='relation-box'>暂无下级</div>";
