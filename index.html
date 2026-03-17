@@ -90,7 +90,7 @@ const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1";
 const ABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"cost","type":"uint256"}],"name":"ActivatedClassic","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"cost","type":"uint256"}],"name":"ActivatedUnion","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":true,"internalType":"address","name":"referrer","type":"address"}],"name":"Registered","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"bool","name":"isS3","type":"bool"}],"name":"RewardSent","type":"event"},{"constant":true,"inputs":[],"name":"BASE_COST","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"DAI","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MAX_CLASSIC_LEVEL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MAX_UNION_LEVEL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PROJECT_RATIO","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PROJECT_WALLET","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"REWARD_RATIO","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"REWARD_TOKEN","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"S3_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"S6_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"targetLevel","type":"uint256"}],"name":"activateClassicLevel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"targetLevel","type":"uint256"}],"name":"activateUnionLevel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getActivationCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"u","type":"address"}],"name":"getUserInfo","outputs":[{"internalType":"address","name":"referrer","type":"address"},{"internalType":"uint256","name":"classicLv","type":"uint256"},{"internalType":"uint256","name":"unionLv","type":"uint256"},{"internalType":"uint256","name":"power","type":"uint256"},{"internalType":"bool","name":"registered","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getUnionCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"isS3","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"isS6","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"referrer","type":"address"}],"name":"register","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"uint256","name":"","type":"uint256"}],"name":"downlines","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"users","outputs":[{"internalType":"address","name":"referrer","type":"address"},{"internalType":"uint256","name":"classicLevel","type":"uint256"},{"internalType":"uint256","name":"unionLevel","type":"uint256"},{"internalType":"uint256","name":"power","type":"uint256"},{"internalType":"uint256","name":"totalEarned","type":"uint256"},{"internalType":"bool","name":"isRegistered","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"}];
 
 let web3, account, contract;
-let isRegistered = false;
+let isProject = false;
 
 // 地址 <-> 10位邀请码 转换
 function addrToCode(addr) {
@@ -113,10 +113,12 @@ connectBtn.onclick = async () => {
 
   document.getElementById("address").innerText = `已连接：${account.slice(0, 6)}…${account.slice(-4)}`;
 
-  // 项目方特殊处理
-  if(account.toLowerCase() === PROJECT_WALLET.toLowerCase()){
-    document.getElementById("inviteTip").innerText = "✅ 你是项目方，无需邀请码，直接激活";
+  // 项目方特殊处理：直接标记为已注册
+  isProject = account.toLowerCase() === PROJECT_WALLET.toLowerCase();
+  if(isProject){
+    document.getElementById("inviteTip").innerText = "✅ 你是项目方，无需注册，直接激活矩阵";
     document.getElementById("inviteCode").style.display = "none";
+    document.getElementById("enterBtn").style.display = "none";
   }
 
   // 从链接解析邀请码（短码，避免404）
@@ -126,9 +128,9 @@ connectBtn.onclick = async () => {
     document.getElementById("inviteCode").value = refCode;
   }
 
-  enterBtn.disabled = false;
+  enterBtn.disabled = !isProject;
   showMyLink();
-  await loadRelation(); // 先加载注册状态
+  await loadRelation();
   renderList();
 };
 
@@ -151,33 +153,25 @@ copyLinkBtn.onclick = () => {
   });
 };
 
-// 注册（核心修复：先查是否已注册）
+// 注册（仅普通用户）
 enterBtn.onclick = async () => {
-  if(!account) return alert("请先连接钱包");
+  if(!account || isProject) return;
   
-  // 先查链上状态
   const info = await contract.methods.getUserInfo(account).call();
   if(info.registered){
     alert("✅ 你已经注册过了，可直接激活矩阵！");
-    isRegistered = true;
     await loadRelation();
     return;
   }
 
-  let referrerAddr;
-  if(account.toLowerCase() === PROJECT_WALLET.toLowerCase()){
-    referrerAddr = PROJECT_WALLET;
-  } else {
-    const code = document.getElementById("inviteCode").value.trim();
-    referrerAddr = codeToAddr(code);
-    if(!referrerAddr) return alert("邀请码必须是10位有效字符");
-    if(referrerAddr.toLowerCase() === account.toLowerCase()) return alert("不能输入自己的邀请码");
-  }
+  const code = document.getElementById("inviteCode").value.trim();
+  const referrerAddr = codeToAddr(code);
+  if(!referrerAddr) return alert("邀请码必须是10位有效字符");
+  if(referrerAddr.toLowerCase() === account.toLowerCase()) return alert("不能输入自己的邀请码");
 
   try {
     await contract.methods.register(referrerAddr).send({from: account});
-    alert("✅ 注册成功！上下级关系已上链，现在可以激活矩阵");
-    isRegistered = true;
+    alert("✅ 注册成功！现在可以激活矩阵");
     await loadRelation();
   } catch(e){
     console.error(e);
@@ -185,18 +179,16 @@ enterBtn.onclick = async () => {
   }
 };
 
-// 加载上下级关系 + 注册状态
+// 加载上下级关系
 async function loadRelation(){
   if(!account) return;
   document.getElementById("relationBox").style.display = "block";
   const info = await contract.methods.getUserInfo(account).call();
-  isRegistered = info.registered;
   document.getElementById("myReferrer").innerText = info.referrer ? `${info.referrer.slice(0, 6)}…${info.referrer.slice(-4)}` : "无";
 
   const downDiv = document.getElementById("myDownlines");
   downDiv.innerHTML = "";
   try {
-    // 修复：兼容合约 downlines 函数
     let i = 0;
     while(true){
       try {
@@ -207,13 +199,9 @@ async function loadRelation(){
         item.innerText = `${d.slice(0, 6)}…${d.slice(-4)}`;
         downDiv.appendChild(item);
         i++;
-      } catch(e) {
-        break; // 遍历到最后一个下级时会报错，跳出循环
-      }
+      } catch(e) { break; }
     }
-    if(downDiv.innerHTML === ""){
-      downDiv.innerHTML = "<div class='relation-box'>暂无下级</div>";
-    }
+    if(downDiv.innerHTML === "") downDiv.innerHTML = "<div class='relation-box'>暂无下级</div>";
   } catch(e){
     downDiv.innerHTML = "<div class='relation-box'>暂无下级</div>";
   }
@@ -247,19 +235,19 @@ function renderList(){
   }
 }
 
-// 激活矩阵（核心修复：先查注册状态）
+// 激活矩阵（核心修复：项目方直接放行）
 async function actC(level){ await activate(level, true); }
 async function actU(level){ await activate(level, false); }
 async function activate(level, isClassic){
   if(!account) return alert("请先连接钱包");
   
-  // 先查链上注册状态
-  const info = await contract.methods.getUserInfo(account).call();
-  if(!info.registered){
-    alert("❌ 请先注册再激活矩阵");
-    return;
+  // 项目方直接放行
+  if(isProject){
+    // 继续走激活流程
+  } else {
+    const info = await contract.methods.getUserInfo(account).call();
+    if(!info.registered) return alert("❌ 请先注册再激活矩阵");
   }
-  isRegistered = true;
 
   try {
     const cost = isClassic 
