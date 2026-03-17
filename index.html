@@ -3,368 +3,150 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meta Whale · 矩阵生态系统</title>
+<title>LP Mining</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Roboto,'Segoe UI',system-ui}
-body{background:#090b1a;color:#fff;min-height:100vh;padding:25px;max-width:520px;margin:0 auto;
-background-image:radial-gradient(circle at 10% 20%,rgba(30,40,70,0.35),transparent 50%),
-radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
-.glass{background:rgba(22,28,48,0.75);backdrop-filter:blur(12px);border-radius:20px;padding:24px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 30px rgba(0,0,0,0.35)}
-.title{font-size:22px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent;margin-bottom:12px}
-.sub{font-size:14px;color:#a0b3c6;line-height:1.5;margin-bottom:16px}
-.input{width:100%;padding:16px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);background:rgba(15,20,35,0.7);color:#fff;font-size:16px;outline:none;margin-bottom:14px}
-.btn-primary{width:100%;padding:17px;border-radius:16px;border:none;background:linear-gradient(90deg,#4facfe,#00f2fe);color:#000;font-size:16px;font-weight:700;cursor:pointer;transition:0.2s;box-shadow:0 5px 15px rgba(79,172,254,0.25)}
-.btn-primary:active{transform:scale(0.97)}
-.btn-primary:disabled{opacity:0.4}
-.btn-renew{background:linear-gradient(90deg,#ffb142,#ff6b6b);color:#fff}
-.btn-claim{background:linear-gradient(90deg,#7D5AED,#B967E4);color:#fff}
-.btn-synthesize{background:linear-gradient(90deg,#ff6b6b,#ff8c3c);color:#fff}
-.btn-copy{background:linear-gradient(90deg,#4facfe,#00f2fe);color:#000;padding:8px 12px;border-radius:10px;font-size:12px;font-weight:bold;border:none;cursor:pointer}
-.head{text-align:center;padding:10px 0 30px}
-.logo{font-size:30px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent}
-.logo-sub{color:#a0b3c6;font-size:15px;margin-top:6px}
-.item{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
-.item:last-child{border-bottom:none}
-.tag-s6{background:rgba(255,140,60,0.15);color:#ff8c3c;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:bold}
-.tag-s3{background:rgba(60,180,255,0.15);color:#3cb4ff;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:bold}
-.address{font-size:14px;color:#a0b3c6;word-break:break-all;margin:10px 0;text-align:center}
-.nft-card{background:linear-gradient(90deg,#7D5AED,#B967E4);padding:20px;border-radius:16px;margin:10px 0;color:#fff;font-weight:bold;text-align:center}
-.nft-card-2{background:linear-gradient(90deg,#ff6b6b,#ff8c3c);padding:20px;border-radius:16px;margin:10px 0;color:#fff;font-weight:bold;text-align:center}
-.activated{background:rgba(0,255,100,0.15);color:#0f0;border-radius:8px;padding:8px 12px;font-weight:bold}
-.not-activated{color:#fff}
-.balance-box{background:rgba(79,172,254,0.1);padding:12px;border-radius:12px;margin:10px 0;text-align:center}
-.card-list{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
-.card-item{flex:1 1 calc(50% - 5px);background:rgba(125,90,237,0.1);border:1px solid rgba(125,90,237,0.3);border-radius:12px;padding:12px;text-align:center}
-.card-item-2{flex:1 1 calc(50% - 5px);background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);border-radius:12px;padding:12px;text-align:center}
-.invite-box{display:flex;align-items:center;gap:10px;margin:10px 0}
-.invite-code{flex:1;background:rgba(255,255,255,0.05);padding:12px;border-radius:12px;font-family:monospace}
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Open Sans,Helvetica Neue,sans-serif}
+body{background:#0B121B;color:#fff;padding:20px}
+.main{max-width:480px;margin:0 auto}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.logo{font-size:18px;font-weight:700}
+.connect-btn{background:#165DFF;color:#fff;border:none;border-radius:12px;padding:10px 16px;font-size:14px;font-weight:600}
+.box{background:#131A29;border-radius:16px;padding:20px;margin-bottom:12px}
+.title{font-size:16px;font-weight:600;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1F2A3F;font-size:14px}
+.row:last-child{border-bottom:none}
+.label{color:#9CA3AF}
+.value{color:#fff;font-weight:500}
+.input-group{margin-top:10px}
+.input{width:100%;background:#1C2637;border:1px solid #2A3754;border-radius:12px;padding:14px 16px;color:#fff;font-size:15px;margin-top:8px}
+.btn-stake{width:100%;background:#22D1F7;color:#000;font-weight:600;border:none;border-radius:12px;padding:15px;margin-top:12px;font-size:15px}
+.btn-unstake{width:100%;background:#FF445F;color:#fff;font-weight:600;border:none;border-radius:12px;padding:15px;margin-top:12px;font-size:15px}
+.btn-claim{width:100%;background:#10B981;color:#fff;font-weight:600;border:none;border-radius:12px;padding:15px;margin-top:12px;font-size:15px}
+#walletArea{display:none}
 </style>
 </head>
 <body>
+<div class="main">
 
-<div class="head">
-  <div class="logo">Meta Whale</div>
-  <div class="logo-sub">双矩阵 · 分红 · 挖矿 · NFT卡牌</div>
-</div>
-
-<button class="btn-primary" id="connectBtn">连接钱包 MetaMask / TP Wallet</button>
-<div id="address" class="address"></div>
-<div id="balanceBox" class="balance-box" style="display:none">
-  钱包 DAI 余额：<strong id="daiBalance">0</strong> DAI
-</div>
-
-<!-- 邀请中心 -->
-<div class="glass" id="inviteCenter" style="display:none">
-  <div class="title">👤 我的邀请中心</div>
-  <div class="sub">分享邀请码，下级代理激活后你获得额外能量</div>
-  <div class="invite-box">
-    <div class="invite-code" id="myInviteCode"></div>
-    <button class="btn-copy" onclick="copyInviteCode()">复制</button>
+  <div class="head">
+    <div class="logo">LP Staking Mining</div>
+    <button id="connectWallet" class="connect-btn">Connect Wallet</button>
   </div>
-</div>
 
-<!-- 能量值 & NFT -->
-<div class="glass">
-  <div class="title">⚡ 能量值 & NFT 分红卡牌</div>
-  <div class="sub">激活/续费联合矩阵即可获得能量值</div>
-  <div>当前能量值：<strong id="powerValue">0</strong></div>
-  <div>目标：3500 能量 → 领取 1级 NFT 分红卡牌</div>
-  <br>
-  <button class="btn-primary btn-claim" id="claimBtn" style="display:none" onclick="claimCard()">🎴 领取 1级卡牌（消耗3500能量）</button>
-  <div id="nftArea"></div>
-</div>
-
-<!-- 我的卡牌 & 合成 -->
-<div class="glass">
-  <div class="title">🎴 我的卡牌 & 合成</div>
-  <div class="sub">3张1级卡牌可合成1张2级卡牌，分红权重更高</div>
-  <div id="cardList" class="card-list"></div>
-  <button class="btn-primary btn-synthesize" id="synthesizeBtn" style="display:none;margin-top:16px" onclick="synthesizeCard()">🔄 合成2级卡牌（消耗3张1级）</button>
-</div>
-
-<!-- 注册区域 -->
-<div class="glass" id="regBox">
-  <div class="title">进入生态</div>
-  <div class="sub" id="inviteTip">请输入上级邀请码（10位）</div>
-  <input class="input" id="inviteCode" placeholder="请输入上级10位邀请码">
-  <button class="btn-primary" id="enterBtn" disabled>确认进入并激活</button>
-</div>
-
-<!-- 经典矩阵：一次性激活永久有效 -->
-<div class="glass">
-  <div class="title">经典矩阵 12 级（永久有效）</div>
-  <div class="sub">奇数S6｜偶数S3｜90%分红</div>
-  <div id="classicList"></div>
-</div>
-
-<!-- 联合矩阵：每月续费 -->
-<div class="glass">
-  <div class="title">联合挖矿矩阵 9 级（每月续费）</div>
-  <div class="sub">每级费用翻倍，续费为原价5%</div>
-  <div id="unionList"></div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
-<script>
-const MATRIX_CONTRACT = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1";
-const DAI_ADDR       = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
-const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1".toLowerCase();
-
-let web3, account;
-let isRegistered = false;
-let userPower = 0;
-let classicLevel = 0;
-let unionLevel = 0;
-let daiBalance = 0;
-let cards = { level1: 0, level2: 0 };
-let currentUrl = window.location.href.split('?')[0];
-
-// 生成10位邀请码（地址前5+后5）
-function getInviteCode(addr) {
-  const s = addr.replace("0x", "").toLowerCase();
-  return s.slice(0,5) + s.slice(-5);
-}
-
-function getUnionPrice(level) {
-  const prices = [0,50,100,200,400,800,1600,3200,6400,12800];
-  return prices[level] || 0;
-}
-function getRenewPrice(level) {
-  return Number((getUnionPrice(level) * 0.05).toFixed(2));
-}
-
-async function sendDAI(amount) {
-  const dai = new web3.eth.Contract([{
-    "constant":false,
-    "inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],
-    "name":"transfer",
-    "outputs":[{"name":"","type":"bool"}],
-    "type":"function"
-  }], DAI_ADDR);
-  const value = web3.utils.toWei(amount.toString(), 'ether');
-  return await dai.methods.transfer(MATRIX_CONTRACT, value).send({ from: account });
-}
-
-async function getDaiBalance() {
-  if (!account) return 0;
-  const dai = new web3.eth.Contract([{
-    "constant":true,
-    "inputs":[{"name":"_owner","type":"address"}],
-    "name":"balanceOf",
-    "outputs":[{"name":"balance","type":"uint256"}],
-    "type":"function"
-  }], DAI_ADDR);
-  const bal = await dai.methods.balanceOf(account).call();
-  return Number(web3.utils.fromWei(bal, 'ether')).toFixed(2);
-}
-
-function loadStatus() {
-  if (!account) return;
-  classicLevel = Number(localStorage.getItem(`classic_${account}`) || 0);
-  unionLevel = Number(localStorage.getItem(`union_${account}`) || 0);
-  userPower = Number(localStorage.getItem(`power_${account}`) || 0);
-  cards.level1 = Number(localStorage.getItem(`cards1_${account}`) || 0);
-  cards.level2 = Number(localStorage.getItem(`cards2_${account}`) || 0);
-}
-
-function saveStatus() {
-  if (!account) return;
-  localStorage.setItem(`classic_${account}`, classicLevel);
-  localStorage.setItem(`union_${account}`, unionLevel);
-  localStorage.setItem(`power_${account}`, userPower);
-  localStorage.setItem(`cards1_${account}`, cards.level1);
-  localStorage.setItem(`cards2_${account}`, cards.level2);
-}
-
-// ✅ 新增：复制邀请码
-function copyInviteCode() {
-  const code = getInviteCode(account);
-  navigator.clipboard.writeText(code).then(() => alert("✅ 邀请码已复制"));
-}
-
-// ✅ 新增：自动加载URL中的邀请码（下级用上级链接打开时自动填入）
-function autoLoadInviteCode() {
-  const params = new URLSearchParams(window.location.search);
-  const invite = params.get('invite');
-  if (invite && invite.length === 10) {
-    document.getElementById("inviteCode").value = invite;
-    document.getElementById("enterBtn").disabled = false;
-  }
-}
-
-function claimCard() {
-  if (userPower < 3500) return alert("能量值不足3500，无法领取");
-  userPower -= 3500;
-  cards.level1 += 1;
-  saveStatus();
-  renderAll();
-  alert("✅ 成功领取 1级 NFT 分红卡牌！");
-}
-
-function synthesizeCard() {
-  if (cards.level1 < 3) return alert("1级卡牌不足3张，无法合成");
-  cards.level1 -= 3;
-  cards.level2 += 1;
-  saveStatus();
-  renderAll();
-  alert("✅ 成功合成 2级 NFT 分红卡牌！");
-}
-
-function renderAll() {
-  renderPower();
-  renderCards();
-  renderMatrix();
-  renderInviteCenter();
-}
-
-function renderPower() {
-  document.getElementById("powerValue").innerText = userPower;
-  const claimBtn = document.getElementById("claimBtn");
-  claimBtn.style.display = userPower >= 3500 ? "block" : "none";
-}
-
-function renderCards() {
-  const cardList = document.getElementById("cardList");
-  cardList.innerHTML = "";
-  for (let i = 0; i < cards.level1; i++) {
-    cardList.innerHTML += `<div class="card-item">1级卡牌<br/>分红权重 0.5%</div>`;
-  }
-  for (let i = 0; i < cards.level2; i++) {
-    cardList.innerHTML += `<div class="card-item-2">2级卡牌<br/>分红权重 1.5%</div>`;
-  }
-  const synthesizeBtn = document.getElementById("synthesizeBtn");
-  synthesizeBtn.style.display = cards.level1 >= 3 ? "block" : "none";
-}
-
-// ✅ 新增：渲染邀请中心
-function renderInviteCenter() {
-  if (!account) return;
-  const code = getInviteCode(account);
-  document.getElementById("myInviteCode").innerText = code;
-  document.getElementById("inviteCenter").style.display = "block";
-}
-
-connectBtn.onclick = async () => {
-  if (!window.ethereum) return alert("请在钱包浏览器打开");
-  await window.ethereum.request({ method: "eth_requestAccounts" });
-  web3 = new Web3(window.ethereum);
-  account = (await web3.eth.getAccounts())[0].toLowerCase();
-  document.getElementById("address").innerText = `已连接：${account.slice(0,6)}…${account.slice(-4)}`;
-
-  loadStatus();
-  daiBalance = await getDaiBalance();
-  document.getElementById("daiBalance").innerText = daiBalance;
-  document.getElementById("balanceBox").style.display = "block";
-
-  if (account === PROJECT_WALLET) {
-    isRegistered = true;
-    document.getElementById("regBox").style.display = "none";
-  }
-
-  // 自动加载URL中的邀请码
-  autoLoadInviteCode();
-  renderAll();
-};
-
-function renderMatrix() {
-  const cList = document.getElementById("classicList");
-  cList.innerHTML = "";
-  for (let i = 1; i <= 12; i++) {
-    const cost = 50 * Math.pow(2, i - 1);
-    const activated = i <= classicLevel;
-    cList.innerHTML += `
-    <div class="item">
-      <div class="${activated ? 'activated' : 'not-activated'}">L${i} ${i%2===1 ? '<span class="tag-s6">S6</span>' : '<span class="tag-s3">S3</span>'}</div>
-      <div class="price">${cost} DAI</div>
-      ${activated ? '<span style="color:#0f0;font-weight:bold">已激活</span>' : 
-        `<button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="actClassic(${i})">激活</button>`}
-    </div>`;
-  }
-
-  const uList = document.getElementById("unionList");
-  uList.innerHTML = "";
-  for (let i = 1; i <= 9; i++) {
-    const price = getUnionPrice(i);
-    const renew = getRenewPrice(i);
-    const activated = i <= unionLevel;
-    uList.innerHTML += `
-    <div class="item">
-      <div class="${activated ? 'activated' : 'not-activated'}">L${i}</div>
-      <div>${price} DAI<br/>续费${renew}/月</div>
-      <div>
-        ${activated ? 
-          `<button class="btn-primary btn-renew" style="padding:8px 6px;font-size:12px" onclick="renewUnion(${i})">续费</button>` :
-          `<button class="btn-primary" style="padding:8px 6px;font-size:12px" onclick="actUnion(${i})">激活</button>`}
+  <div id="walletArea">
+    <div class="box">
+      <div class="title">My Info</div>
+      <div class="row">
+        <span class="label">My LP</span>
+        <span class="value" id="lpBal">0.00</span>
       </div>
-    </div>`;
-  }
-}
+      <div class="row">
+        <span class="label">Staked</span>
+        <span class="value" id="staked">0.00</span>
+      </div>
+      <div class="row">
+        <span class="label">Pending Reward</span>
+        <span class="value" id="reward">0.00</span>
+      </div>
+    </div>
 
-async function actClassic(level) {
-  if (!account) return alert("请先连接钱包");
-  if (!isRegistered && account !== PROJECT_WALLET) return alert("请先注册");
-  if (level <= classicLevel) return alert("该等级已激活");
-  const cost = 50 * Math.pow(2, level - 1);
-  if (Number(daiBalance) < cost) return alert("DAI 余额不足，请先充值");
-  try {
-    await sendDAI(cost);
-    classicLevel = level;
-    saveStatus();
-    daiBalance = await getDaiBalance();
-    document.getElementById("daiBalance").innerText = daiBalance;
-    renderMatrix();
-    alert(`✅ 经典矩阵 L${level} 激活成功！`);
-  } catch (e) {
-    alert("❌ 支付失败：" + e.message + "\n请确保钱包切换到 Polygon 主网，且有足够 DAI");
-  }
-}
+    <div class="box">
+      <div class="title">Stake LP</div>
+      <div class="input-group">
+        <span class="label">Amount</span>
+        <input class="input" id="stakeAmt" placeholder="Input stake amount" type="number">
+      </div>
+      <button class="btn-stake" id="stakeBtn">Stake</button>
+    </div>
 
-async function actUnion(level) {
-  if (!account) return alert("请先连接钱包");
-  if (!isRegistered && account !== PROJECT_WALLET) return alert("请先注册");
-  if (level <= unionLevel) return alert("该等级已激活");
-  const price = getUnionPrice(level);
-  if (Number(daiBalance) < price) return alert("DAI 余额不足，请先充值");
-  try {
-    await sendDAI(price);
-    unionLevel = level;
-    userPower += price;
-    saveStatus();
-    daiBalance = await getDaiBalance();
-    document.getElementById("daiBalance").innerText = daiBalance;
-    renderAll();
-    alert(`✅ 联合矩阵 L${level} 激活成功！+${price} 能量`);
-  } catch (e) {
-    alert("❌ 支付失败：" + e.message + "\n请确保钱包切换到 Polygon 主网，且有足够 DAI");
-  }
-}
+    <div class="box">
+      <button class="btn-unstake" id="unstakeBtn">Unstake All</button>
+      <button class="btn-claim" id="claimBtn">Claim Reward</button>
+    </div>
+  </div>
 
-async function renewUnion(level) {
-  if (!account) return alert("请先连接钱包");
-  if (!isRegistered && account !== PROJECT_WALLET) return alert("请先注册");
-  if (level > unionLevel) return alert("请先激活该等级");
-  const renew = getRenewPrice(level);
-  if (Number(daiBalance) < renew) return alert("DAI 余额不足，请先充值");
-  try {
-    await sendDAI(renew);
-    userPower += renew;
-    saveStatus();
-    daiBalance = await getDaiBalance();
-    document.getElementById("daiBalance").innerText = daiBalance;
-    renderAll();
-    alert(`✅ L${level} 续费成功！+${renew} 能量`);
-  } catch (e) {
-    alert("❌ 续费失败：" + e.message + "\n请确保钱包切换到 Polygon 主网，且有足够 DAI");
-  }
-}
+</div>
 
-inviteCode.oninput = () => {
-  enterBtn.disabled = inviteCode.value.trim().length !== 10;
+<script>
+const CONFIG = {
+  chainId: 56,
+  staking: "0x5001fA16F04AcdD246d41784e71370Db07262981",
+  lp: "【在这里填入你的LP代币地址】",
+  lpDecimals: 18,
+  rewardDecimals: 18
 };
-enterBtn.onclick = () => {
-  isRegistered = true;
-  alert("✅ 注册成功！");
+
+const ABI_STAKE = [
+  {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"stakedAmount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"earned","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"stake","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"claimReward","outputs":[],"stateMutability":"nonpayable","type":"function"}
+];
+
+const ABI_ERC20 = [
+  {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"uint256","name":"","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
+];
+
+let provider, signer, stakeC, lpC;
+
+async function switchBSC() {
+  try {
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: '0x38' }]
+    });
+  } catch (e) {}
+}
+
+async function connect() {
+  await switchBSC();
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  await provider.send("eth_requestAccounts", []);
+  signer = provider.getSigner();
+  stakeC = new ethers.Contract(CONFIG.staking, ABI_STAKE, signer);
+  lpC = new ethers.Contract(CONFIG.lp, ABI_ERC20, signer);
+  document.getElementById("walletArea").style.display = "block";
+  refresh();
+}
+
+async function refresh() {
+  const addr = await signer.getAddress();
+  const lpBal = await lpC.balanceOf(addr);
+  const staked = await stakeC.stakedAmount(addr);
+  const reward = await stakeC.earned(addr);
+  document.getElementById("lpBal").innerText = parseFloat(ethers.utils.formatUnits(lpBal, CONFIG.lpDecimals)).toFixed(4);
+  document.getElementById("staked").innerText = parseFloat(ethers.utils.formatUnits(staked, CONFIG.lpDecimals)).toFixed(4);
+  document.getElementById("reward").innerText = parseFloat(ethers.utils.formatUnits(reward, CONFIG.rewardDecimals)).toFixed(4);
+}
+
+document.getElementById("stakeBtn").onclick = async () => {
+  const v = document.getElementById("stakeAmt").value;
+  if (!v) return alert("Input amount");
+  const amt = ethers.utils.parseUnits(v, CONFIG.lpDecimals);
+  await lpC.approve(CONFIG.staking, amt);
+  await stakeC.stake(amt);
+  alert("Stake Success");
+  refresh();
 };
+
+document.getElementById("unstakeBtn").onclick = async () => {
+  const addr = await signer.getAddress();
+  const staked = await stakeC.stakedAmount(addr);
+  await stakeC.withdraw(staked);
+  alert("Unstake Success");
+  refresh();
+};
+
+document.getElementById("claimBtn").onclick = async () => {
+  await stakeC.claimReward();
+  alert("Claim Success");
+  refresh();
+};
+
+document.getElementById("connectWallet").onclick = connect;
 </script>
 </body>
 </html>
