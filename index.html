@@ -11,11 +11,13 @@ body{background:#090b1a;color:#fff;padding:20px;max-width:500px;margin:0 auto}
 .title{font-size:18px;font-weight:bold;margin-bottom:10px}
 .sub{color:#a0a8c0;font-size:14px;margin-bottom:12px}
 .btn{background:linear-gradient(90deg,#4facfe,#00f2fe);color:#000;border:none;border-radius:12px;padding:14px;width:100%;font-weight:bold;font-size:15px;margin-top:8px}
+.btn2{background:#6c7580;color:#fff;border:none;border-radius:12px;padding:10px 12px;font-weight:bold;margin-top:8px}
 .btn:disabled{opacity:0.5}
 .item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
 .item:last-child{border-bottom:none}
 .price{font-weight:bold;color:#4facfe}
 input{width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:15px;margin-top:10px}
+.copy{background:#4facfe;color:#000;padding:6px 10px;border-radius:8px;font-size:12px;border:none;margin-left:8px}
 </style>
 </head>
 
@@ -23,193 +25,195 @@ input{width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,2
 
 <div style="text-align:center;margin-bottom:20px">
   <h1>Meta Whale</h1>
-  <p style="color:#a0a8c0">双矩阵 · 分红系统</p>
+  <p style="color:#a0a8c0">双矩阵 · DAI激活 · 邀请分红</p>
 </div>
 
 <button id="connect" class="btn">连接钱包</button>
 <div id="addr" style="text-align:center;margin:10px 0;color:#aaa"></div>
 
-<!-- 邀请码注册 -->
+<!-- 邀请注册 -->
 <div class="glass">
   <div class="title">注册（必填）</div>
   <div class="sub">请输入上级10位邀请码</div>
-  <input id="inviteCode" placeholder="请输入10位邀请码" maxlength="10">
-  <button id="registerBtn" class="btn" disabled>确认注册</button>
+  <input id="inviteInput" placeholder="输入10位邀请码" maxlength="10">
+  <button id="regBtn" class="btn" disabled>确认注册</button>
 </div>
 
-<!-- 经典矩阵 12级 -->
+<!-- 我的邀请信息 -->
+<div class="glass" id="myInviteBox" style="display:none">
+  <div class="title">👤 我的邀请信息</div>
+  <div style="margin-bottom:8px">
+    我的邀请码：<span id="myCode"></span>
+    <button class="copy" onclick="copyMyCode()">复制</button>
+  </div>
+  <div style="margin-bottom:8px">
+    我的上级邀请码：<span id="uplineCode"></span>
+  </div>
+  <div class="sub">下级代理列表：</div>
+  <div id="downlineList"></div>
+</div>
+
+<!-- 经典矩阵 -->
 <div class="glass">
   <div class="title">经典矩阵（12级）</div>
-  <div class="sub">永久有效，一次激活</div>
+  <div class="sub">DAI支付，永久有效</div>
   <div id="classicList"></div>
 </div>
 
-<!-- 联合矩阵 9级 -->
+<!-- 联合矩阵 -->
 <div class="glass">
   <div class="title">联合挖矿矩阵（9级）</div>
-  <div class="sub">50→100→200→400→800→… 每级×2</div>
+  <div class="sub">50→100→200→400→800… DAI</div>
   <div id="unionList"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
 // ==========================
-// 你的项目方钱包
+// 配置（已填好你的信息）
 // ==========================
 const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1".toLowerCase();
-
-// ==========================
-// 你提供的合约地址（已填好）
-// ==========================
 const CONTRACT_ADDRESS = "0x58285a2b8c248970275d2293f1011303d39e0d3f";
+const DAI_ADDRESS  = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
 
-let account = null;
-let isProject = false;
+let web3, account, isProject = false;
 let isRegistered = false;
-let web3, contract;
+let myCode, uplineCode;
+let downlines = [];
 
-// 经典矩阵价格
-function getClassicPrice(level) {
-  return 50 * (2 ** (level - 1));
-}
-
-// 联合矩阵价格
-function getUnionPrice(level) {
+// ==========================
+// 价格
+// ==========================
+function classicPrice(lev){ return 50 * 2**(lev-1) }
+function unionPrice(lev){
   const arr = [0,50,100,200,400,800,1600,3200,6400,12800];
-  return arr[level];
+  return arr[lev];
 }
 
-function renderAll() {
+// ==========================
+// 渲染
+// ==========================
+function renderAll(){
   renderClassic();
   renderUnion();
+  showMyInviteUI();
 }
 
-// 渲染经典矩阵
-function renderClassic() {
-  const box = document.getElementById("classicList");
-  box.innerHTML = "";
+function renderClassic(){
+  let el = document.getElementById('classicList');
+  el.innerHTML = '';
   for(let i=1;i<=12;i++){
-    const cost = getClassicPrice(i);
-    const el = document.createElement("div");
-    el.className = "item";
-    el.innerHTML = `
+    let p = classicPrice(i);
+    el.innerHTML += `
+    <div class="item">
       <div>Lv${i}</div>
-      <div class="price">${cost} BNB</div>
-      <button onclick="activateClassic(${i})" 
-      style="padding:6px 10px;border-radius:8px;background:#4facfe;color:#000;border:none;font-weight:bold">
-      激活
-      </button>
-    `;
-    box.appendChild(el);
+      <div class="price">${p} DAI</div>
+      <button onclick="payClassic(${i})" style="padding:6px 10px;border-radius:8px;background:#4facfe;color:#000;border:none;font-weight:bold">激活</button>
+    </div>`;
   }
 }
 
-// 渲染联合矩阵
-function renderUnion() {
-  const box = document.getElementById("unionList");
-  box.innerHTML = "";
+function renderUnion(){
+  let el = document.getElementById('unionList');
+  el.innerHTML = '';
   for(let i=1;i<=9;i++){
-    const cost = getUnionPrice(i);
-    const el = document.createElement("div");
-    el.className = "item";
-    el.innerHTML = `
+    let p = unionPrice(i);
+    el.innerHTML += `
+    <div class="item">
       <div>Lv${i}</div>
-      <div class="price">${cost} BNB</div>
-      <button onclick="activateUnion(${i})" 
-      style="padding:6px 10px;border-radius:8px;background:#4facfe;color:#000;border:none;font-weight:bold">
-      激活
-      </button>
-    `;
-    box.appendChild(el);
+      <div class="price">${p} DAI</div>
+      <button onclick="payUnion(${i})" style="padding:6px 10px;border-radius:8px;background:#4facfe;color:#000;border:none;font-weight:bold">激活</button>
+    </div>`;
   }
 }
 
-// 真实上链激活经典矩阵
-async function activateClassic(level) {
-  if(!account) return alert("请先连接钱包");
-  if(!isProject && !isRegistered) return alert("请先完成注册！");
-  
-  const cost = getClassicPrice(level);
-  try {
-    await contract.methods.activateClassic(level).send({
-      from: account,
-      value: web3.utils.toWei(cost.toString(), "ether")
-    });
-    alert("✅ 经典矩阵 Lv" + level + " 激活上链成功！");
-  } catch(e) {
-    alert("❌ 激活失败：" + e.message);
-  }
+// ==========================
+// DAI 支付激活（真实上链）
+// ==========================
+async function payClassic(lev){
+  if(!account) return alert("请连接钱包");
+  if(!isProject && !isRegistered) return alert("请先注册");
+  const amount = classicPrice(lev);
+  await payDAI(CONTRACT_ADDRESS, amount);
+  alert("✅ 经典矩阵 Lv"+lev+" 激活成功");
 }
 
-// 真实上链激活联合矩阵
-async function activateUnion(level) {
-  if(!account) return alert("请先连接钱包");
-  if(!isProject && !isRegistered) return alert("请先完成注册！");
-  
-  const cost = getUnionPrice(level);
-  try {
-    await contract.methods.activateUnion(level).send({
-      from: account,
-      value: web3.utils.toWei(cost.toString(), "ether")
-    });
-    alert("✅ 联合矩阵 Lv" + level + " 激活上链成功！");
-  } catch(e) {
-    alert("❌ 激活失败：" + e.message);
-  }
+async function payUnion(lev){
+  if(!account) return alert("请连接钱包");
+  if(!isProject && !isRegistered) return alert("请先注册");
+  const amount = unionPrice(lev);
+  await payDAI(CONTRACT_ADDRESS, amount);
+  alert("✅ 联合矩阵 Lv"+lev+" 激活成功");
 }
 
-// 邀请码输入监听
-inviteCode.oninput = function(){
-  registerBtn.disabled = this.value.length !== 10;
+async function payDAI(to, daiAmount){
+  const dai = new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}], DAI_ADDRESS);
+  const val = web3.utils.toWei(daiAmount.toString(), "mwei");
+  await dai.methods.transfer(to, val).send({from:account});
 }
 
-// 注册
-registerBtn.onclick = function(){
-  const c = inviteCode.value.trim();
-  if(c.length !== 10) return alert("邀请码必须10位");
+// ==========================
+// 邀请码 注册 / 生成 / 复制
+// ==========================
+inviteInput.oninput = ()=>{
+  regBtn.disabled = inviteInput.value.trim().length !== 10;
+}
+
+regBtn.onclick = ()=>{
+  const code = inviteInput.value.trim();
+  if(code.length !==10) return alert("邀请码必须10位");
   isRegistered = true;
-  alert("✅ 注册成功！");
+  uplineCode = code;
+  myCode = genCode();
+  localStorage.setItem("myCode_"+account, myCode);
+  localStorage.setItem("upline_"+account, uplineCode);
+  alert("✅ 注册成功！上级已绑定");
+  showMyInviteUI();
 }
 
+function genCode(){
+  return Math.random().toString().slice(2,12);
+}
+
+function showMyInviteUI(){
+  if(!account) return;
+  myCode = localStorage.getItem("myCode_"+account) || "";
+  uplineCode = localStorage.getItem("upline_"+account) || "";
+  if(!myCode) return;
+  document.getElementById("myInviteBox").style.display = "block";
+  document.getElementById("myCode").innerText = myCode;
+  document.getElementById("uplineCode").innerText = uplineCode;
+  showDownlines();
+}
+
+function copyMyCode(){
+  navigator.clipboard.writeText(myCode).then(()=>alert("✅ 复制成功"));
+}
+
+// ==========================
+// 下级代理展示
+// ==========================
+function showDownlines(){
+  let list = JSON.parse(localStorage.getItem("downlines_"+myCode) || "[]");
+  let el = document.getElementById("downlineList");
+  el.innerHTML = "";
+  list.forEach(item=>{
+    el.innerHTML += `<div class="sub">• ${item.addr} （已激活）</div>`;
+  });
+}
+
+// ==========================
 // 连接钱包
+// ==========================
 connect.onclick = async ()=>{
-  if(!window.ethereum) return alert("请在钱包浏览器打开");
   await window.ethereum.request({method:"eth_requestAccounts"});
-  
   web3 = new Web3(window.ethereum);
-  const accounts = await web3.eth.getAccounts();
-  account = accounts[0].toLowerCase();
+  account = (await web3.eth.getAccounts())[0].toLowerCase();
   isProject = account === PROJECT_WALLET;
-
-  document.getElementById("addr").innerText = "已连接："+account.substr(0,6)+"…"+account.substr(-4);
-
-  if(isProject){
-    isRegistered = true;
-    alert("✅ 项目方账号，无需注册");
-  }
-
-  // ABI 与你合约匹配
-  const ABI = [
-    {
-      "inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],
-      "name":"activateClassic",
-      "outputs":[],
-      "stateMutability":"payable",
-      "type":"function"
-    },
-    {
-      "inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],
-      "name":"activateUnion",
-      "outputs":[],
-      "stateMutability":"payable",
-      "type":"function"
-    }
-  ];
-
-  contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+  document.getElementById("addr").innerText = account.slice(0,6)+"…"+account.slice(-4);
+  if(isProject){ isRegistered = true; alert("✅ 项目方账号"); }
   renderAll();
 }
 </script>
-
 </body>
 </html>
