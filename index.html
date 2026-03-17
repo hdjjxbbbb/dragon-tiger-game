@@ -8,7 +8,7 @@
 *{margin:0;padding:0;box-sizing:border-box;font-family:Roboto,'Segoe UI',system-ui}
 body{background:#090b1a;color:#fff;min-height:100vh;padding:25px;max-width:520px;margin:0 auto;
 background-image:radial-gradient(circle at 10% 20%,rgba(30,40,70,0.35),transparent 50%),
-radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%);}
+radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
 .glass{background:rgba(22,28,48,0.75);backdrop-filter:blur(12px);border-radius:20px;padding:24px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 30px rgba(0,0,0,0.35)}
 .title{font-size:22px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent;margin-bottom:12px}
 .sub{font-size:14px;color:#a0b3c6;line-height:1.5;margin-bottom:16px}
@@ -25,33 +25,12 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%);}
 .tag-s3{background:rgba(60,180,255,0.15);color:#3cb4ff;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:bold}
 .address{font-size:14px;color:#a0b3c6;word-break:break-all;margin:10px 0}
 
-.invite-card{
-    background:rgba(26,38,65,0.6);
-    padding:20px;
-    border-radius:16px;
-    text-align:center;
-    margin-top:10px;
-}
-.invite-text{
-    font-size:13px;
-    color:#a0b3c6;
-}
-.my-code{
-    font-size:24px;
-    font-weight:bold;
-    color:#fff;
-    letter-spacing:2px;
-    margin:8px 0;
-}
-.copy-btn{
-    padding:10px 20px;
-    border-radius:12px;
-    background:#4facfe;
-    color:#fff;
-    border:none;
-    font-weight:bold;
-    cursor:pointer;
-}
+.invite-card{background:rgba(26,38,65,0.6);padding:20px;border-radius:16px;text-align:center;margin-top:10px}
+.invite-text{font-size:13px;color:#a0b3c6}
+.my-link{font-size:14px;color:#fff;word-break:break-all;margin:8px 0;background:rgba(0,0,0,0.2);padding:10px;border-radius:8px}
+.copy-btn{padding:10px 20px;border-radius:12px;background:#4facfe;color:#fff;border:none;font-weight:bold;cursor:pointer}
+
+.relation-box{background:rgba(0,0,0,0.2);padding:12px;border-radius:10px;margin:5px 0;font-size:14px;color:#fff}
 </style>
 </head>
 <body>
@@ -64,55 +43,55 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%);}
 <button class="btn-primary" id="connectBtn">连接钱包 MetaMask / TP Wallet</button>
 <div id="address" class="address"></div>
 
+<!-- 注册区域 -->
 <div class="glass">
   <div class="title">进入生态</div>
-  <div class="sub">请输入上级邀请码，即可激活并参与全部矩阵、分红、挖矿</div>
-  <input class="input" id="inviteCode" placeholder="请输入上级邀请码">
+  <div class="sub" id="inviteTip">请输入上级邀请码（钱包地址）</div>
+  <input class="input" id="inviteCode" placeholder="请输入上级钱包地址">
   <button class="btn-primary" id="enterBtn" disabled>确认进入并激活</button>
 </div>
 
+<!-- 我的邀请链接 -->
 <div class="glass" id="myInviteCard" style="display:none">
-  <div class="title">我的专属邀请码（直推奖励核心）</div>
-  <div class="sub">他人输入你的邀请码 → 他是你的直推 → 你拿100%直推奖励</div>
-  <div class="invite-card">
-    <div class="invite-text">你的专属邀请码</div>
-    <div id="myCodeDisplay" class="my-code">——</div>
-    <button id="copyBtn" class="copy-btn">一键复制邀请码</button>
-  </div>
+  <div class="title">我的邀请链接（分享即绑定）</div>
+  <div class="my-link" id="myLink">——</div>
+  <button id="copyLinkBtn" class="copy-btn">一键复制邀请链接</button>
 </div>
 
+<!-- 上下级关系核对 -->
+<div class="glass" id="relationBox" style="display:none">
+  <div class="title">上下级关系核对</div>
+  <div class="sub">下级可查看上级，上级可查看下级，防止绑错</div>
+  <div><strong>我的上级：</strong><span id="myReferrer">-</span></div>
+  <br>
+  <div><strong>我的下级列表：</strong></div>
+  <div id="myDownlines">-</div>
+</div>
+
+<!-- 矩阵 -->
 <div class="glass">
   <div class="title">经典矩阵 12 级</div>
-  <div class="sub">奇数S6（300%）｜偶数S3（200%）｜90%滑落分红</div>
+  <div class="sub">奇数S6｜偶数S3｜90%分红</div>
   <div id="classicList"></div>
 </div>
 
 <div class="glass">
-  <div class="title">联合矩阵 · 挖矿 9 级</div>
-  <div class="sub">激活等级 → 挖代币奖励 → 自动到账</div>
+  <div class="title">联合挖矿 9 级</div>
   <div id="unionList"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
-// ==========================
-// 已填入：你部署的矩阵合约
-// ==========================
 const MATRIX_CONTRACT = "0x58285a2b8c248970275d2293f1011303d39e0d3f";
-
-// ==========================
-// 已填入：你的奖励代币
-// ==========================
-const REWARD_TOKEN = "0xccf91d83fCE430408F8DCeFBb80B796546CC1610";
-
-// Polygon DAI
-const DAI_ADDR = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
+const REWARD_TOKEN   = "0xccf91d83fCE430408F8DCeFBb80B796546CC1610";
+const DAI_ADDR       = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
+const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1";
 
 const ABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"cost","type":"uint256"}],"name":"ActivatedClassic","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"cost","type":"uint256"}],"name":"ActivatedUnion","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":true,"internalType":"address","name":"referrer","type":"address"}],"name":"Registered","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"bool","name":"isS3","type":"bool"}],"name":"RewardSent","type":"event"},{"constant":true,"inputs":[],"name":"BASE_COST","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"DAI","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MAX_CLASSIC_LEVEL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MAX_UNION_LEVEL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PROJECT_RATIO","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PROJECT_WALLET","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"REWARD_RATIO","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"REWARD_TOKEN","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"S3_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"S6_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"targetLevel","type":"uint256"}],"name":"activateClassicLevel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"targetLevel","type":"uint256"}],"name":"activateUnionLevel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getActivationCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"u","type":"address"}],"name":"getUserInfo","outputs":[{"internalType":"address","name":"referrer","type":"address"},{"internalType":"uint256","name":"classicLv","type":"uint256"},{"internalType":"uint256","name":"unionLv","type":"uint256"},{"internalType":"uint256","name":"power","type":"uint256"},{"internalType":"bool","name":"registered","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getUnionCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"isS3","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"isS6","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"referrer","type":"address"}],"name":"register","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"downlines","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"users","outputs":[{"internalType":"address","name":"referrer","type":"address"},{"internalType":"uint256","name":"classicLevel","type":"uint256"},{"internalType":"uint256","name":"unionLevel","type":"uint256"},{"internalType":"uint256","name":"power","type":"uint256"},{"internalType":"uint256","name":"totalEarned","type":"uint256"},{"internalType":"bool","name":"isRegistered","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"}];
 
 let web3, account, contract;
-let currentMyCode = "";
 
+// 连接钱包
 connectBtn.onclick = async () => {
   if(!window.ethereum) return alert("请在钱包浏览器打开");
   await window.ethereum.request({method:"eth_requestAccounts"});
@@ -121,115 +100,104 @@ connectBtn.onclick = async () => {
   account = accounts[0];
   contract = new web3.eth.Contract(ABI, MATRIX_CONTRACT);
 
-  document.getElementById("address").innerText = `已连接：${account.slice(0,6)}…${account.slice(-4)}`;
+  document.getElementById("address").innerText = `已连接：${account}`;
+
+  // 项目方免邀请码
+  if(account.toLowerCase() === PROJECT_WALLET.toLowerCase()){
+    document.getElementById("inviteTip").innerText = "✅ 你是项目方，无需邀请码，直接激活";
+    document.getElementById("inviteCode").style.display = "none";
+  }
+
+  // 自动识别链接邀请人
+  const ref = new URLSearchParams(window.location.search).get('ref');
+  if(ref && web3.utils.isAddress(ref)) document.getElementById("inviteCode").value = ref;
+
   enterBtn.disabled = false;
-  showMyInviteCode();
-  renderClassic();
-  renderUnion();
+  showMyLink();
+  loadRelation();
+  renderList();
 };
 
-function addressToInviteCode(addr) {
-  return addr.slice(2, 8).toUpperCase() + addr.slice(-4).toUpperCase();
-}
-function inviteCodeToAddress(code) {
-  return "0x" + code.slice(0,6) + code.slice(-4);
-}
-
-function showMyInviteCode() {
-  if(!account) return;
-  currentMyCode = addressToInviteCode(account);
-  document.getElementById("myCodeDisplay").innerText = currentMyCode;
+// 生成邀请链接
+function showMyLink(){
+  const link = `${location.origin}?ref=${account}`;
+  document.getElementById("myLink").innerText = link;
   document.getElementById("myInviteCard").style.display = "block";
 }
 
-copyBtn.onclick = () => {
-  if(!currentMyCode) return alert("请先连接钱包");
-  navigator.clipboard.writeText(currentMyCode).then(() => {
-    alert("✅ 邀请码复制成功！");
-  });
+// 复制链接
+copyLinkBtn.onclick = () => {
+  navigator.clipboard.writeText(document.getElementById("myLink").innerText).then(()=>alert("✅ 邀请链接复制成功"));
 };
 
+// 注册
 enterBtn.onclick = async () => {
-  const code = document.getElementById("inviteCode").value.trim();
-  if(code.length !== 10) return alert("邀请码必须是10位");
+  let ref = account.toLowerCase() === PROJECT_WALLET.toLowerCase() ? PROJECT_WALLET : document.getElementById("inviteCode").value.trim();
+  if(!web3.utils.isAddress(ref)) return alert("邀请码必须是钱包地址");
   try {
-    const parentAddr = inviteCodeToAddress(code);
-    if(!web3.utils.isAddress(parentAddr)) return alert("邀请码无效");
-    if(parentAddr.toLowerCase() === account.toLowerCase()) return alert("不能输入自己的邀请码");
-    
-    await contract.methods.register(parentAddr).send({ from: account });
-    alert("✅ 成功激活生态！上级绑定成功！");
-    showMyInviteCode();
-  } catch(e) {
-    alert("绑定失败：已注册或邀请码错误");
+    await contract.methods.register(ref).send({from:account});
+    alert("✅ 注册成功！上下级关系已上链");
+    loadRelation();
+  } catch(e){
+    alert("❌ 已注册或邀请码无效");
   }
 };
 
-function renderClassic() {
-  const list = document.getElementById("classicList");
-  list.innerHTML = "";
-  for(let i=1; i<=12; i++) {
-    const cost = web3.utils.toBN(50).mul(web3.utils.toBN(2).pow(web3.utils.toBN(i-1))).toString() + "000000000000000000";
-    const isS6 = i%2 === 1;
-    const tagCls = isS6 ? "tag-s6" : "tag-s3";
-    const tagText = isS6 ? "S6" : "S3";
-    const el = document.createElement("div");
-    el.className = "item";
-    el.innerHTML = `
-      <div><b>L${i}</b> <span class="${tagCls}">${tagText}</span></div>
-      <div>${web3.utils.fromWei(cost, 'ether')} DAI</div>
-      <button class="btn-primary" style="padding:10px 18px;font-size:14px" onclick="activateClassic(${i})">激活</button>
-    `;
-    list.appendChild(el);
+// 加载上下级关系
+async function loadRelation(){
+  if(!account) return;
+  document.getElementById("relationBox").style.display = "block";
+  const info = await contract.methods.getUserInfo(account).call();
+  document.getElementById("myReferrer").innerText = info.referrer || "无";
+
+  const downDiv = document.getElementById("myDownlines");
+  downDiv.innerHTML = "";
+  try {
+    for(let i=0;i<50;i++){
+      const d = await contract.methods.downlines(account,i).call();
+      if(!d || d === "0x0000000000000000000000000000000000000000") break;
+      const item = document.createElement("div");
+      item.className = "relation-box";
+      item.innerText = d;
+      downDiv.appendChild(item);
+    }
+  } catch(e){}
+}
+
+// 渲染矩阵
+function renderList(){
+  const c = document.getElementById("classicList"), u = document.getElementById("unionList");
+  c.innerHTML = u.innerHTML = "";
+  for(let i=1;i<=12;i++){
+    const cost = web3.utils.toBN(50).mul(web3.utils.toBN(2).pow(web3.utils.toBN(i-1))).toString()+"000000000000000000";
+    const t = document.createElement("div");
+    t.className = "item";
+    t.innerHTML = `<div>L${i} ${i%2==1?'S6':'S3'}</div><div>${web3.utils.fromWei(cost,'ether')} DAI</div><button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="actC(${i})">激活</button>`;
+    c.appendChild(t);
+  }
+  for(let i=1;i<=9;i++){
+    const cost = web3.utils.toBN(50*i).toString()+"000000000000000000";
+    const t = document.createElement("div");
+    t.className = "item";
+    t.innerHTML = `<div>挖矿 L${i}</div><div>${web3.utils.fromWei(cost,'ether')} DAI</div><button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="actU(${i})">激活</button>`;
+    u.appendChild(t);
   }
 }
 
-function renderUnion() {
-  const list = document.getElementById("unionList");
-  list.innerHTML = "";
-  for(let i=1; i<=9; i++) {
-    const cost = web3.utils.toBN(50*i).toString() + "000000000000000000";
-    const el = document.createElement("div");
-    el.className = "item";
-    el.innerHTML = `
-      <div><b>挖矿 L${i}</b></div>
-      <div>${web3.utils.fromWei(cost, 'ether')} DAI</div>
-      <button class="btn-primary" style="padding:10px 18px;font-size:14px" onclick="activateUnion(${i})">激活挖矿</button>
-    `;
-    list.appendChild(el);
-  }
-}
-
-async function activateClassic(level) {
-  if(!account) return alert("请连接钱包");
-  const cost = await contract.methods.getActivationCost(level).call();
-  const dai = new web3.eth.Contract([
-    {constant:false,inputs:[{name:"_spender"},{name:"_value"}],name:"approve",outputs:[{name:""}],type:"function"},
-    {constant:true,inputs:[{name:"_owner"},{name:"_spender"}],name:"allowance",outputs:[{name:""}],type:"function"}
-  ], DAI_ADDR);
-  
-  const allow = await dai.methods.allowance(account, MATRIX_CONTRACT).call();
-  if(web3.utils.toBN(allow).lt(web3.utils.toBN(cost))) {
-    await dai.methods.approve(MATRIX_CONTRACT, cost).send({from:account});
-  }
-  await contract.methods.activateClassicLevel(level).send({from:account});
-  alert(`经典矩阵 L${level} 激活成功`);
-}
-
-async function activateUnion(level) {
-  if(!account) return alert("请连接钱包");
-  const cost = await contract.methods.getUnionCost(level).call();
-  const dai = new web3.eth.Contract([
-    {constant:false,inputs:[{name:"_spender"},{name:"_value"}],name:"approve",outputs:[{name:""}],type:"function"},
-    {constant:true,inputs:[{name:"_owner"},{name:"_spender"}],name:"allowance",outputs:[{name:""}],type:"function"}
-  ], DAI_ADDR);
-  
-  const allow = await dai.methods.allowance(account, MATRIX_CONTRACT).call();
-  if(web3.utils.toBN(allow).lt(web3.utils.toBN(cost))) {
-    await dai.methods.approve(MATRIX_CONTRACT, cost).send({from:account});
-  }
-  await contract.methods.activateUnionLevel(level).send({from:account});
-  alert(`挖矿矩阵 L${level} 激活成功！`);
+// 激活
+async function actC(l){await act(l,true)}
+async function actU(l){await act(l,false)}
+async function act(l,isC){
+  if(!account) return;
+  const info = await contract.methods.getUserInfo(account).call();
+  if(!info.registered) return alert("请先注册");
+  const cost = isC ? await contract.methods.getActivationCost(l).call() : await contract.methods.getUnionCost(l).call();
+  const dai = new web3.eth.Contract([{constant:false,inputs:[{"name":"_spender"},{"name":"_value"}],name:"approve",outputs:[]},{constant:true,inputs:[{"name":"_owner"},{"name":"_spender"}],name:"allowance",outputs:[{"name":""}]}],DAI_ADDR);
+  const allow = await dai.methods.allowance(account,MATRIX_CONTRACT).call();
+  if(web3.utils.toBN(allow).lt(web3.utils.toBN(cost))) await dai.methods.approve(MATRIX_CONTRACT,cost).send({from:account});
+  if(isC) await contract.methods.activateClassicLevel(l).send({from:account});
+  else await contract.methods.activateUnionLevel(l).send({from:account});
+  alert(`✅ L${l} 激活成功`);
 }
 </script>
 </body>
