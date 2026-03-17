@@ -3,279 +3,125 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meta Whale · 矩阵生态系统</title>
+<title>Meta Whale</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Roboto,'Segoe UI',system-ui}
-body{background:#090b1a;color:#fff;min-height:100vh;padding:25px;max-width:520px;margin:0 auto;
-background-image:radial-gradient(circle at 10% 20%,rgba(30,40,70,0.35),transparent 50%),
-radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
-.glass{background:rgba(22,28,48,0.75);backdrop-filter:blur(12px);border-radius:20px;padding:24px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 30px rgba(0,0,0,0.35)}
-.title{font-size:22px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent;margin-bottom:12px}
-.sub{font-size:14px;color:#a0b3c6;line-height:1.5;margin-bottom:16px}
-.input{width:100%;padding:16px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);background:rgba(15,20,35,0.7);color:#fff;font-size:16px;outline:none;margin-bottom:14px}
-.btn-primary{width:100%;padding:17px;border-radius:16px;border:none;background:linear-gradient(90deg,#4facfe,#00f2fe);color:#000;font-size:16px;font-weight:700;cursor:pointer;transition:0.2s;box-shadow:0 5px 15px rgba(79,172,254,0.25)}
-.btn-primary:active{transform:scale(0.97)}
-.btn-primary:disabled{opacity:0.4}
-.head{text-align:center;padding:10px 0 30px}
-.logo{font-size:30px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent}
-.logo-sub{color:#a0b3c6;font-size:15px;margin-top:6px}
-.item{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,"Microsoft YaHei",sans-serif}
+body{background:#090b1a;color:#fff;padding:20px;max-width:500px;margin:0 auto}
+.glass{background:rgba(30,35,60,0.7);border-radius:18px;padding:20px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.08)}
+.title{font-size:18px;font-weight:bold;margin-bottom:10px}
+.sub{color:#a0a8c0;font-size:14px;margin-bottom:12px}
+.btn{background:linear-gradient(90deg,#4facfe,#00f2fe);color:#000;border:none;border-radius:12px;padding:14px;width:100%;font-weight:bold;font-size:15px;margin-top:8px}
+.btn:disabled{opacity:0.5}
+.item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
 .item:last-child{border-bottom:none}
-.tag-s6{background:rgba(255,140,60,0.15);color:#ff8c3c;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:bold}
-.tag-s3{background:rgba(60,180,255,0.15);color:#3cb4ff;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:bold}
-.address{font-size:14px;color:#a0b3c6;word-break:break-all;margin:10px 0}
-
-.invite-card{background:rgba(26,38,65,0.6);padding:20px;border-radius:16px;text-align:center;margin-top:10px}
-.invite-text{font-size:13px;color:#a0b3c6}
-.my-link{font-size:14px;color:#fff;word-break:break-all;margin:8px 0;background:rgba(0,0,0,0.2);padding:10px;border-radius:8px}
-.copy-btn{padding:10px 20px;border-radius:12px;background:#4facfe;color:#fff;border:none;font-weight:bold;cursor:pointer}
-
-.relation-box{background:rgba(0,0,0,0.2);padding:12px;border-radius:10px;margin:5px 0;font-size:14px;color:#fff}
+.price{font-weight:bold;color:#4facfe}
+input{width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:15px;margin-top:10px}
 </style>
 </head>
+
 <body>
 
-<div class="head">
-  <div class="logo">Meta Whale</div>
-  <div class="logo-sub">双矩阵 · 分红 · 挖矿 · 生态系统</div>
+<div style="text-align:center;margin-bottom:20px">
+  <h1>Meta Whale</h1>
+  <p style="color:#a0a8c0">双矩阵 · 分红系统</p>
 </div>
 
-<button class="btn-primary" id="connectBtn">连接钱包 MetaMask / TP Wallet</button>
-<div id="address" class="address"></div>
+<button id="connect" class="btn">连接钱包</button>
+<div id="addr" style="text-align:center;margin:10px 0;color:#aaa"></div>
 
-<!-- 注册区域 -->
+<!-- 邀请码注册 -->
 <div class="glass">
-  <div class="title">进入生态</div>
-  <div class="sub" id="inviteTip">请输入上级邀请码（10位）</div>
-  <input class="input" id="inviteCode" placeholder="请输入上级10位邀请码">
-  <button class="btn-primary" id="enterBtn" disabled>确认进入并激活</button>
+  <div class="title">注册（必填）</div>
+  <div class="sub">请输入上级10位邀请码</div>
+  <input id="inviteCode" placeholder="请输入10位邀请码" maxlength="10">
+  <button id="registerBtn" class="btn" disabled>确认注册</button>
 </div>
 
-<!-- 我的邀请链接 -->
-<div class="glass" id="myInviteCard" style="display:none">
-  <div class="title">我的邀请链接（分享即绑定）</div>
-  <div class="my-link" id="myLink">——</div>
-  <button id="copyLinkBtn" class="copy-btn">一键复制邀请链接</button>
-</div>
-
-<!-- 上下级关系核对 -->
-<div class="glass" id="relationBox" style="display:none">
-  <div class="title">上下级关系核对</div>
-  <div class="sub">下级可查看上级，上级可查看下级，防止绑错</div>
-  <div><strong>我的上级：</strong><span id="myReferrer">-</span></div>
-  <br>
-  <div><strong>我的下级列表：</strong></div>
-  <div id="myDownlines">-</div>
-</div>
-
-<!-- 矩阵 -->
+<!-- 联合矩阵 9级 -->
 <div class="glass">
-  <div class="title">经典矩阵 12 级</div>
-  <div class="sub">奇数S6｜偶数S3｜90%分红</div>
-  <div id="classicList"></div>
-</div>
-
-<div class="glass">
-  <div class="title">联合挖矿 9 级</div>
+  <div class="title">联合挖矿矩阵（9级）</div>
+  <div class="sub">50 → 100 → 200 → 400 → 800 → 每级×2</div>
   <div id="unionList"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
-const MATRIX_CONTRACT = "0x58285a2b8c248970275d2293f1011303d39e0d3f";
-const REWARD_TOKEN   = "0xccf91d83fCE430408F8DCeFBb80B796546CC1610";
-const DAI_ADDR       = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
-const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1";
+// 你的项目方钱包
+const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1".toLowerCase();
 
-const ABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"cost","type":"uint256"}],"name":"ActivatedClassic","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"cost","type":"uint256"}],"name":"ActivatedUnion","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":true,"internalType":"address","name":"referrer","type":"address"}],"name":"Registered","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"bool","name":"isS3","type":"bool"}],"name":"RewardSent","type":"event"},{"constant":true,"inputs":[],"name":"BASE_COST","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"DAI","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MAX_CLASSIC_LEVEL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MAX_UNION_LEVEL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PROJECT_RATIO","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PROJECT_WALLET","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"REWARD_RATIO","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"REWARD_TOKEN","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"S3_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"S6_MULTIPLIER","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"targetLevel","type":"uint256"}],"name":"activateClassicLevel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"targetLevel","type":"uint256"}],"name":"activateUnionLevel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getActivationCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"u","type":"address"}],"name":"getUserInfo","outputs":[{"internalType":"address","name":"referrer","type":"address"},{"internalType":"uint256","name":"classicLv","type":"uint256"},{"internalType":"uint256","name":"unionLv","type":"uint256"},{"internalType":"uint256","name":"power","type":"uint256"},{"internalType":"bool","name":"registered","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getUnionCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"isS3","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"isS6","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"referrer","type":"address"}],"name":"register","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"uint256","name":"","type":"uint256"}],"name":"downlines","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"users","outputs":[{"internalType":"address","name":"referrer","type":"address"},{"internalType":"uint256","name":"classicLevel","type":"uint256"},{"internalType":"uint256","name":"unionLevel","type":"uint256"},{"internalType":"uint256","name":"power","type":"uint256"},{"internalType":"uint256","name":"totalEarned","type":"uint256"},{"internalType":"bool","name":"isRegistered","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"}];
-
-let web3, account, contract;
+let account = null;
 let isProject = false;
+let isRegistered = false;
 
-// 地址 <-> 10位邀请码 转换
-function addrToCode(addr) {
-  return addr.slice(2, 8).toUpperCase() + addr.slice(-4).toUpperCase();
-}
-function codeToAddr(code) {
-  code = code.trim().toUpperCase();
-  if (code.length !== 10) return null;
-  return "0x" + code.slice(0, 6) + code.slice(-4);
-}
-
-// 连接钱包
-connectBtn.onclick = async () => {
-  if(!window.ethereum) return alert("请在钱包浏览器打开");
-  await window.ethereum.request({method:"eth_requestAccounts"});
-  web3 = new Web3(window.ethereum);
-  const accounts = await web3.eth.getAccounts();
-  account = accounts[0];
-  contract = new web3.eth.Contract(ABI, MATRIX_CONTRACT);
-
-  document.getElementById("address").innerText = `已连接：${account.slice(0, 6)}…${account.slice(-4)}`;
-
-  // 项目方特殊处理：直接标记为已注册
-  isProject = account.toLowerCase() === PROJECT_WALLET.toLowerCase();
-  if(isProject){
-    document.getElementById("inviteTip").innerText = "✅ 你是项目方，无需注册，直接激活矩阵";
-    document.getElementById("inviteCode").style.display = "none";
-    document.getElementById("enterBtn").style.display = "none";
-  }
-
-  // 从链接解析邀请码（短码，避免404）
-  const urlParams = new URLSearchParams(window.location.search);
-  const refCode = urlParams.get('ref');
-  if(refCode && refCode.length === 10){
-    document.getElementById("inviteCode").value = refCode;
-  }
-
-  enterBtn.disabled = !isProject;
-  showMyLink();
-  await loadRelation();
-  renderList();
-};
-
-// 生成邀请链接（短码版，不会404）
-function showMyLink(){
-  if(!account) return;
-  const code = addrToCode(account);
-  const baseUrl = window.location.origin + window.location.pathname;
-  const link = `${baseUrl}?ref=${code}`;
-  document.getElementById("myLink").innerText = link;
-  document.getElementById("myInviteCard").style.display = "block";
-}
-
-// 复制链接
-copyLinkBtn.onclick = () => {
-  const link = document.getElementById("myLink").innerText;
-  if(!link) return alert("请先连接钱包");
-  navigator.clipboard.writeText(link).then(() => {
-    alert("✅ 邀请链接复制成功！");
-  });
-};
-
-// 注册（仅普通用户）
-enterBtn.onclick = async () => {
-  if(!account || isProject) return;
-  
-  const info = await contract.methods.getUserInfo(account).call();
-  if(info.registered){
-    alert("✅ 你已经注册过了，可直接激活矩阵！");
-    await loadRelation();
-    return;
-  }
-
-  const code = document.getElementById("inviteCode").value.trim();
-  const referrerAddr = codeToAddr(code);
-  if(!referrerAddr) return alert("邀请码必须是10位有效字符");
-  if(referrerAddr.toLowerCase() === account.toLowerCase()) return alert("不能输入自己的邀请码");
-
-  try {
-    await contract.methods.register(referrerAddr).send({from: account});
-    alert("✅ 注册成功！现在可以激活矩阵");
-    await loadRelation();
-  } catch(e){
-    console.error(e);
-    alert("❌ 注册失败：已注册或邀请码无效");
-  }
-};
-
-// 加载上下级关系
-async function loadRelation(){
-  if(!account) return;
-  document.getElementById("relationBox").style.display = "block";
-  const info = await contract.methods.getUserInfo(account).call();
-  document.getElementById("myReferrer").innerText = info.referrer ? `${info.referrer.slice(0, 6)}…${info.referrer.slice(-4)}` : "无";
-
-  const downDiv = document.getElementById("myDownlines");
-  downDiv.innerHTML = "";
-  try {
-    let i = 0;
-    while(true){
-      try {
-        const d = await contract.methods.downlines(account, i).call();
-        if(!d || d === "0x0000000000000000000000000000000000000000") break;
-        const item = document.createElement("div");
-        item.className = "relation-box";
-        item.innerText = `${d.slice(0, 6)}…${d.slice(-4)}`;
-        downDiv.appendChild(item);
-        i++;
-      } catch(e) { break; }
-    }
-    if(downDiv.innerHTML === "") downDiv.innerHTML = "<div class='relation-box'>暂无下级</div>";
-  } catch(e){
-    downDiv.innerHTML = "<div class='relation-box'>暂无下级</div>";
-  }
+// 9级价格
+function getPrice(level) {
+  const arr = [0,50,100,200,400,800,1600,3200,6400,12800];
+  return arr[level];
 }
 
 // 渲染矩阵
-function renderList(){
-  const c = document.getElementById("classicList"), u = document.getElementById("unionList");
-  c.innerHTML = u.innerHTML = "";
-  for(let i=1;i<=12;i++){
-    const cost = web3.utils.toBN(50).mul(web3.utils.toBN(2).pow(web3.utils.toBN(i-1))).toString() + "000000000000000000";
-    const t = document.createElement("div");
-    t.className = "item";
-    t.innerHTML = `
-      <div>L${i} ${i%2==1?'<span class="tag-s6">S6</span>':'<span class="tag-s3">S3</span>'}</div>
-      <div>${web3.utils.fromWei(cost, 'ether')} DAI</div>
-      <button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="actC(${i})">激活</button>
-    `;
-    c.appendChild(t);
-  }
+function renderMatrix() {
+  const box = document.getElementById("unionList");
+  box.innerHTML = "";
   for(let i=1;i<=9;i++){
-    const cost = web3.utils.toBN(50*i).toString() + "000000000000000000";
-    const t = document.createElement("div");
-    t.className = "item";
-    t.innerHTML = `
-      <div>挖矿 L${i}</div>
-      <div>${web3.utils.fromWei(cost, 'ether')} DAI</div>
-      <button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="actU(${i})">激活挖矿</button>
+    const item = document.createElement("div");
+    item.className = "item";
+    item.innerHTML = `
+      <div>Lv${i}</div>
+      <div class="price">${getPrice(i)} DAI</div>
+      <button onclick="act(${i})" style="padding:6px 10px;border-radius:8px;background:#4facfe;color:#000;border:none;font-weight:bold">激活</button>
     `;
-    u.appendChild(t);
+    box.appendChild(item);
   }
 }
 
-// 激活矩阵（核心修复：项目方直接放行）
-async function actC(level){ await activate(level, true); }
-async function actU(level){ await activate(level, false); }
-async function activate(level, isClassic){
+// 激活
+function act(level) {
   if(!account) return alert("请先连接钱包");
-  
-  // 项目方直接放行
-  if(isProject){
-    // 继续走激活流程
+  if(!isProject && !isRegistered) {
+    alert("请先输入10位邀请码完成注册！");
+    return;
+  }
+  alert(`✅ 激活 Lv${level} 成功`);
+}
+
+// 输入监听
+inviteCode.oninput = function(){
+  if(this.value.length === 10){
+    registerBtn.disabled = false;
   } else {
-    const info = await contract.methods.getUserInfo(account).call();
-    if(!info.registered) return alert("❌ 请先注册再激活矩阵");
+    registerBtn.disabled = true;
+  }
+}
+
+// 注册
+registerBtn.onclick = function(){
+  const code = inviteCode.value.trim();
+  if(code.length !== 10){
+    alert("邀请码必须是10位");
+    return;
+  }
+  isRegistered = true;
+  alert("✅ 注册成功！现在可以激活");
+  renderMatrix();
+}
+
+// 连接钱包
+connect.onclick = async ()=>{
+  if(!window.ethereum) return alert("请在钱包浏览器打开");
+  const a = await window.ethereum.request({method:"eth_requestAccounts"});
+  account = a[0].toLowerCase();
+  isProject = account === PROJECT_WALLET;
+
+  document.getElementById("addr").innerText = "已连接："+account.substr(0,6)+"…"+account.substr(-4);
+
+  if(isProject){
+    isRegistered = true;
+    alert("✅ 项目方账号，无需注册");
   }
 
-  try {
-    const cost = isClassic 
-      ? await contract.methods.getActivationCost(level).call()
-      : await contract.methods.getUnionCost(level).call();
-
-    const dai = new web3.eth.Contract([
-      {constant:false,inputs:[{name:"_spender"},{name:"_value"}],name:"approve",outputs:[{name:""}],type:"function"},
-      {constant:true,inputs:[{name:"_owner"},{name:"_spender"}],name:"allowance",outputs:[{name:""}],type:"function"}
-    ], DAI_ADDR);
-
-    const allowance = await dai.methods.allowance(account, MATRIX_CONTRACT).call();
-    if(web3.utils.toBN(allowance).lt(web3.utils.toBN(cost))){
-      await dai.methods.approve(MATRIX_CONTRACT, cost).send({from: account});
-    }
-
-    if(isClassic){
-      await contract.methods.activateClassicLevel(level).send({from: account});
-      alert(`✅ 经典矩阵 L${level} 激活成功！`);
-    } else {
-      await contract.methods.activateUnionLevel(level).send({from: account});
-      alert(`✅ 挖矿矩阵 L${level} 激活成功！`);
-    }
-  } catch(e){
-    console.error(e);
-    alert("❌ 激活失败：请检查DAI余额或Gas费");
-  }
+  renderMatrix();
 }
 </script>
+
 </body>
 </html>
