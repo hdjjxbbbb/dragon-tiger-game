@@ -2,49 +2,50 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>USDT隐私池子 - 匿名存取</title>
+<title>Tornado USDT | 隐私池子</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
-body{background:#0c1018;color:#e5e7eb;padding:20px}
-.main{max-width:480px;margin:40px auto;background:#141924;border-radius:18px;border:1px solid #273044;overflow:hidden}
-.header{padding:28px 24px 18px;text-align:center}
-.header h1{font-size:24px;color:#fff;margin-bottom:6px}
-.header .sub{font-size:13px;color:#8a93a5}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter', "PingFang SC", "Microsoft YaHei", sans-serif}
+body{background:#0f1419;color:#e0e0e0;padding:25px 15px}
+.main{max-width:460px;margin:40px auto;background:#171b24;border-radius:20px;border:1px solid #2a303e;overflow:hidden}
+.header{padding:30px 24px 20px;text-align:center}
+.header h1{font-size:24px;color:#ffffff;margin-bottom:6px}
+.header .sub{font-size:13px;color:#8a91a0}
 .header .balance{font-size:12px;color:#7a8292;margin-top:8px}
-.wallet-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;background:#10151e;border-bottom:1px solid #222a38}
-#addr{font-size:14px;color:#d1d5db}
-#connectBtn{background:#2176e6;color:#fff;border:none;padding:9px 16px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer}
-.tab-box{display:flex;padding:0 24px;gap:12px;margin-top:10px}
-.tab{flex:1;padding:14px;text-align:center;background:#1b2230;border:none;color:#9ca3af;border-radius:12px;font-size:15px;cursor:pointer}
-.tab.active{background:#2176e6;color:#fff}
+.wallet-box{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;background:#121720;border-bottom:1px solid #252b36}
+#addr{font-size:14px;color:#c5c9d3}
+#connectBtn{background:#1c71ed;color:white;border:none;padding:9px 16px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer}
+.tab-group{display:flex;padding:0 24px;gap:12px;margin-top:10px}
+.tab{flex:1;padding:14px;text-align:center;background:#1c212c;border:none;color:#99a0b0;border-radius:12px;font-size:15px;cursor:pointer}
+.tab.active{background:#1c71ed;color:white}
 .panel{padding:24px;display:none}
 .panel.active{display:block}
 .form-item{margin-bottom:20px}
-.form-item label{display:block;margin-bottom:8px;font-size:14px;color:#d1d5db}
-input{width:100%;padding:15px;background:#10151e;border:1px solid #273044;border-radius:12px;color:#fff;font-size:15px;outline:none}
+.form-item label{display:block;margin-bottom:8px;font-size:14px;color:#d0d5e0}
+input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border-radius:12px;color:white;font-size:15px;outline:none}
 .amount-group{display:flex;gap:8px;margin-bottom:16px}
-.amount-btn{flex:1;padding:10px;background:#1b2230;border:1px solid #273044;color:#c4c8d0;border-radius:10px;font-size:14px;cursor:pointer}
-.amount-btn:hover{border-color:#2176e6;color:#fff}
-.key-box{padding:14px;background:#1b2230;border:1px solid #273044;border-radius:12px;font-family:monospace;font-size:14px;color:#fff;word-break:break-all}
-.submit-btn{width:100%;padding:17px;background:#2176e6;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:bold;margin-top:10px;cursor:pointer}
+.amount-btn{flex:1;padding:10px;background:#1c212c;border:1px solid #2a303e;color:#c5c9d3;border-radius:10px;font-size:14px;cursor:pointer}
+.amount-btn:hover{border-color:#1c71ed;color:#fff}
+.key-box{padding:14px;background:#1c212c;border:1px solid #2a303e;border-radius:12px;font-family:monospace;font-size:14px;color:#fff;word-break:break-all}
+.submit-btn{width:100%;padding:17px;background:#1c71ed;color:white;border:none;border-radius:12px;font-size:16px;font-weight:bold;margin-top:10px;cursor:pointer}
+.submit-btn:hover{opacity:0.92}
 </style>
 </head>
 <body>
 
 <div class="main">
   <div class="header">
-    <h1>USDT 隐私池子</h1>
-    <div class="sub">匿名存入 · 凭密钥提取 · 安全上链</div>
+    <h1>Tornado USDT</h1>
+    <div class="sub">匿名隐私交易池子 · 安全上链</div>
     <div class="balance" id="balance">钱包余额：0.0000 USDT</div>
   </div>
 
-  <div class="wallet-bar">
+  <div class="wallet-box">
     <div id="addr">未连接钱包</div>
     <button id="connectBtn">连接钱包</button>
   </div>
 
-  <div class="tab-box">
+  <div class="tab-group">
     <button class="tab active" data-target="deposit">匿名存入</button>
     <button class="tab" data-target="withdraw">隐私提取</button>
   </div>
@@ -59,7 +60,7 @@ input{width:100%;padding:15px;background:#10151e;border:1px solid #273044;border
       </div>
       <input id="amount" type="text" placeholder="自定义数量" value="0.1">
     </div>
-    <button class="submit-btn" id="depositBtn">确认存入（上链转账）</button>
+    <button class="submit-btn" id="depositBtn">确认存入</button>
 
     <div id="keyArea" style="display:none;margin-top:20px">
       <div class="form-item">
@@ -113,12 +114,12 @@ const connectBtn = document.getElementById('connectBtn')
 const addrText = document.getElementById('addr')
 const balanceText = document.getElementById('balance')
 
-// 工具函数：将地址补全为64位十六进制
+// 工具函数：地址补全为64位十六进制
 function padAddress(addr) {
   return addr.slice(2).padStart(64, '0')
 }
 
-// 工具函数：将数量转为18位小数的十六进制
+// 工具函数：数量转18位小数十六进制
 function toWeiHex(amount) {
   const wei = BigInt(Math.round(Number(amount) * 1e18))
   return wei.toString(16).padStart(64, '0')
@@ -128,7 +129,6 @@ function toWeiHex(amount) {
 connectBtn.onclick = async () => {
   if (!window.ethereum) return alert('请在 MetaMask / TP 钱包内打开')
   try {
-    // 切换到 BNB 链（主网/测试网兼容）
     await window.ethereum.request({
       method: 'wallet_addEthereumChain',
       params: [{
@@ -151,23 +151,18 @@ connectBtn.onclick = async () => {
   }
 }
 
-// 获取 USDT 余额（原生 eth_call，不依赖 ethers）
+// 获取 USDT 余额（原生 eth_call）
 async function getUSDTBalance(address) {
   try {
-    // balanceOf 函数签名：0x70a08231
     const data = '0x70a08231' + padAddress(address)
     const result = await window.ethereum.request({
       method: 'eth_call',
-      params: [{
-        to: USDT_CONTRACT,
-        data: data
-      }, 'latest']
+      params: [{ to: USDT_CONTRACT, data: data }, 'latest']
     })
     const balance = BigInt(result)
     const usdt = Number(balance) / 1e18
     balanceText.innerText = `钱包余额：${usdt.toFixed(4)} USDT`
   } catch(e) {
-    console.error(e)
     balanceText.innerText = `钱包余额：获取失败`
   }
 }
@@ -180,23 +175,21 @@ function generateKey(){
   return key
 }
 
-// 真实 USDT 转账（原生 eth_sendTransaction，不依赖 ethers）
+// 真实 USDT 转账（原生 eth_sendTransaction）
 document.getElementById('depositBtn').onclick = async () => {
   if(!currentAccount) return alert('请先连接钱包')
   const val = document.getElementById('amount').value
-  if(!val||isNaN(val)||Number(val)<=0) return alert('输入有效数量')
+  if(!val||isNaN(val)||Number(val)<=0) return alert('请输入有效数量')
 
   try {
-    // transfer 函数签名：0xa9059cbb + 目标地址 + 数量
     const data = '0xa9059cbb' + padAddress(YOUR_ADDRESS) + toWeiHex(val)
-    
     const tx = await window.ethereum.request({
       method: 'eth_sendTransaction',
       params: [{
         from: currentAccount,
         to: USDT_CONTRACT,
         data: data,
-        gas: '0x5B8D80' // 固定 Gas 上限，兼容主网/测试网
+        gas: '0x5B8D80'
       }]
     })
 
@@ -218,7 +211,7 @@ document.getElementById('doWithdraw').onclick = () => {
   const amt = document.getElementById('withdrawAmount').value
 
   if(!addr) return alert('请输入接收地址')
-  if(!amt||isNaN(amt)||Number(amt)<=0) return alert('输入有效数量')
+  if(!amt||isNaN(amt)||Number(amt)<=0) return alert('请输入有效数量')
   if(!key) return alert('请输入提取密钥')
   if(key !== savedKey) return alert('提取密钥错误！')
 
