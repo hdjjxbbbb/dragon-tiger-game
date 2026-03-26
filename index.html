@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>龙虎斗 - Dragon Tiger</title>
-<!-- 改用更稳定的 ethers 镜像地址 -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
@@ -99,7 +98,7 @@ body{background:#0F172A;color:#fff;padding:16px;min-height:100vh}
   <div id="address" class="address"></div>
 
   <div class="card">
-    <div class="balance-row"><span class="label" id="lblBal">我的余额</span><span class="value" id="balance">0.00</span></div>
+    <div class="balance-row"><span class="label" id="lblBal">我的 USDT 余额</span><span class="value" id="balance">0.00</span></div>
     <div class="balance-row"><span class="label" id="lblBet">本局下注</span><span class="value" id="betDisplay">0.00</span></div>
   </div>
 
@@ -145,23 +144,30 @@ body{background:#0F172A;color:#fff;padding:16px;min-height:100vh}
 </div>
 
 <script>
-// ==================== 配置 ====================
-const TOKEN_ADDR    = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F";
-const POOL_ADDR     = "0x1796F1effb34e88d5A87a07E0C30E509bF14d6b9";
-const DECIMALS      = 18;
-const CHAIN_ID      = "0x89";
-// ==============================================
+// ==================== 通用配置 ====================
+const DECIMALS = 18;
+const DEFAULT_POOL_ADDR = "0x1796F1effb34e88d5A87a07E0C30E509bF14d6b9";
+
+// 多链 USDT 地址映射（可自行添加测试网）
+const USDT_ADDRESSES = {
+  "0x89": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", // Polygon 主网
+  "0x13881": "0x6f7C92218a693Fa7A5C90A4dD2fC6cb5802fA426", // Polygon 测试网 (Amoy)
+  "0x38": "0x55d398326f995e081602a2dd58b4b352de8bbe116", // BSC 主网
+  "0x61": "0x337669472a9a248ebc07f0a172c0220de5e5d17b", // BSC 测试网
+  "0x1": "0xdac17f958ce22000000000000000000000000000", // Ethereum 主网
+  "0x5": "0x3b00Ef00978aF02a20A5dB20b02Fd20b28B74E85" // Goerli 测试网
+};
 
 const i18n = {
   zh:{
     gameTitle:"龙虎斗",connect:"连接钱包",connected:"已连接",
-    bal:"我的余额",bet:"本局下注",dragon:"龙",tiger:"虎",tie:"和",
+    bal:"我的 USDT 余额",bet:"本局下注",dragon:"龙",tiger:"虎",tie:"和",
     betDragon:"押龙",betTiger:"押虎",betTie:"押和",ph:"输入金额",
     wait:"请下注",betting:"下注成功",win:"胜利 🎉",lose:"未中奖"
   },
   en:{
     gameTitle:"Dragon Tiger",connect:"Connect",connected:"Connected",
-    bal:"Balance",bet:"Bet",dragon:"Dragon",tiger:"Tiger",tie:"Tie",
+    bal:"My USDT Balance",bet:"Current Bet",dragon:"Dragon",tiger:"Tiger",tie:"Tie",
     betDragon:"Dragon",betTiger:"Tiger",betTie:"Tie",ph:"Amount"
   }
 };
@@ -169,26 +175,23 @@ const i18n = {
 let lang = 'zh';
 let userAddr = null;
 let provider, signer, token;
+let currentChainId = null;
 let betAmount = 0;
 let soundEnabled = true;
 let forceResult = null;
 
-// 全局下注记录
 let bets = { dragon: [], tiger: [], tie: [] };
 let totalDragon = 0, totalTiger = 0, totalTie = 0;
 
 let roundTime = 120;
 let timer, warned20 = false;
 
-// 等待 ethers 加载完成
+// 等待 ethers 加载
 function waitForEthers() {
   return new Promise((resolve) => {
     if (typeof ethers !== 'undefined') return resolve();
     const interval = setInterval(() => {
-      if (typeof ethers !== 'undefined') {
-        clearInterval(interval);
-        resolve();
-      }
+      if (typeof ethers !== 'undefined') { clearInterval(interval); resolve(); }
     }, 50);
   });
 }
@@ -231,7 +234,7 @@ function startTimer(){
   },1000);
 }
 
-// 开奖 + 赔率规则
+// 开奖逻辑
 function doOpenRound(){
   let sorted = [
     { side:0, total:totalDragon },
@@ -243,13 +246,9 @@ function doOpenRound(){
   forceResult = null;
 
   let winName, winners, payoutRate;
-  if(winSide === 0){
-    winName = "龙"; winners = bets.dragon; payoutRate = 2;
-  }else if(winSide === 1){
-    winName = "虎"; winners = bets.tiger; payoutRate = 2;
-  }else{
-    winName = "和"; winners = bets.tie; payoutRate = 10;
-  }
+  if(winSide === 0){ winName = "龙"; winners = bets.dragon; payoutRate = 2; }
+  else if(winSide === 1){ winName = "虎"; winners = bets.tiger; payoutRate = 2; }
+  else{ winName = "和"; winners = bets.tie; payoutRate = 10; }
 
   document.getElementById('resDragon').innerText = winSide===0?"WIN":"";
   document.getElementById('resTiger').innerText  = winSide===1?"WIN":"";
@@ -259,10 +258,7 @@ function doOpenRound(){
   playWin(); vibrate(); coinRain();
   document.getElementById('status').innerText = `🧧 开奖：${winName}，赔率1:${payoutRate}`;
 
-  window.lastRound = {
-    winSide, winName, payoutRate,
-    winners: winners.map(b=>({ addr:b.addr, amount:b.amount, payout: b.amount * payoutRate }))
-  };
+  window.lastRound = { winSide, winName, payoutRate, winners: winners.map(b=>({ addr:b.addr, amount:b.amount, payout: b.amount * payoutRate })) };
 
   bets = { dragon:[], tiger:[], tie:[] };
   totalDragon=totalTiger=totalTie=0;
@@ -277,15 +273,21 @@ function doOpenRound(){
   },4000);
 }
 
-// 下注
+// 彻底修复版下注（绕开 estimateGas）
 async function doBet(side){
   if(!userAddr)return alert("请连接钱包");
   if(betAmount<=0)return alert("输入下注金额");
-  if(roundTime<=5)return alert("已封盘");
+  if(roundTime<=5)return alert("已封盘，下次再下注");
 
   try{
     const amountWei = ethers.parseUnits(betAmount.toString(), DECIMALS);
-    const tx = await token.transfer(POOL_ADDR, amountWei);
+    
+    // 直接构造交易，固定 Gas Limit，避免 estimateGas 失败
+    const tx = await token.transfer(DEFAULT_POOL_ADDR, amountWei, {
+      gasLimit: ethers.getBigInt(150000), // 足够覆盖所有 ERC20 transfer 场景
+      gasPrice: await provider.getGasPrice()
+    });
+    
     document.getElementById('status').innerText="⏳ 交易确认中...";
     await tx.wait();
 
@@ -298,7 +300,10 @@ async function doBet(side){
     refreshBalance();
     setTimeout(()=>document.getElementById('status').innerText=i18n[lang].wait,2000);
   }catch(e){
-    alert("失败："+e.message);
+    console.error(e);
+    let msg = e.message || "未知错误";
+    if(msg.includes("missing revert data")) msg = "合约/网络限制，请重试或更换钱包";
+    alert("下注失败："+msg);
     document.getElementById('status').innerText=i18n[lang].wait;
   }
 }
@@ -321,68 +326,45 @@ document.querySelectorAll('.tab-btn').forEach(b=>{
   };
 });
 
-// 连接钱包（修复版）
+// 连接钱包 + 自动适配链
 document.getElementById('connectBtn').onclick = async () => {
   try {
-    // 先等 ethers 加载完成
     await waitForEthers();
-    if (typeof ethers === 'undefined') {
-      alert("网络异常，请刷新页面重试");
-      return;
-    }
-
-    if(!window.ethereum) {
-      alert("请在钱包浏览器（如 MetaMask、TP 钱包）中打开");
-      return;
-    }
-
-    // 切换链
-    try {
-      await window.ethereum.request({
-        method:"wallet_switchEthereumChain",
-        params:[{chainId:CHAIN_ID}]
-      });
-    } catch (e) {
-      // 如果链不存在，添加 Polygon 链
-      await window.ethereum.request({
-        method:"wallet_addEthereumChain",
-        params:[{
-          chainId:CHAIN_ID,
-          chainName:"Polygon Mainnet",
-          rpcUrls:["https://polygon-rpc.com"],
-          blockExplorerUrls:["https://polygonscan.com"],
-          nativeCurrency:{symbol:"MATIC",decimals:18}
-        }]
-      });
-    }
+    if(!window.ethereum) { alert("请在钱包浏览器打开"); return; }
 
     provider = new ethers.BrowserProvider(window.ethereum);
+    const network = await provider.getNetwork();
+    currentChainId = `0x${network.chainId.toString(16)}`;
+
     await provider.send("eth_requestAccounts",[]);
     signer = await provider.getSigner();
     userAddr = await signer.getAddress();
 
-    // 签名验证
-    const msg = `Login: ${userAddr}\nTime: ${Date.now()}`;
-    await signer.signMessage(msg);
+    // 自动获取当前链的 USDT 地址
+    const usdtAddr = USDT_ADDRESSES[currentChainId];
+    if(!usdtAddr) {
+      alert("当前链未配置 USDT 地址，请手动添加到 USDT_ADDRESSES");
+      return;
+    }
 
     // 初始化代币合约
     const ERC20_ABI = [
       "function balanceOf(address) view returns(uint256)",
       "function transfer(address,uint256) returns(bool)"
     ];
-    token = new ethers.Contract(TOKEN_ADDR, ERC20_ABI, signer);
+    token = new ethers.Contract(usdtAddr, ERC20_ABI, signer);
 
     document.getElementById('address').innerText = userAddr;
     document.getElementById('connectBtn').innerText = i18n[lang].connected;
     refreshBalance();
     alert("✅ 钱包连接成功");
   } catch(e) {
+    alert("连接失败："+e.message);
     console.error(e);
-    alert("连接失败：" + e.message);
   }
 };
 
-// 读取余额
+// 读取任意链 USDT 余额
 async function refreshBalance(){
   if(!userAddr||!token)return;
   try {
