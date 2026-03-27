@@ -58,6 +58,7 @@ const { Connection, Keypair, Transaction, SystemProgram, PublicKey } = solanaWeb
 const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const ATA_PROGRAM_ID   = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25wNF8fJ5ipq79v9");
 
+// ✅ 把 RPC_LIST 移到这里，在 selectRpc 之前定义
 const RPC_LIST = [
   "https://solana-mainnet.rpc.extrnode.com",
   "https://api.mainnet-beta.solana.com",
@@ -135,12 +136,9 @@ async function fetchTokenInfo() {
 
     const data = account.data;
     const decimals = data[44];
-    log("精度读取完成");
-
-    // 尝试读取元数据（简化版，兼容绝大多数SPL）
+    log("精度读取完成：" + decimals);
     document.getElementById("decimals").value = decimals;
 
-    // 这里做一个快速模拟，真实项目可对接元数据协议
     log("已自动填充精度，名称/符号可手动修改");
 
   } catch (e) {
