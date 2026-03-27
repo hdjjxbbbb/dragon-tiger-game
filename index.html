@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Solana 发币终极版</title>
+<title>Solana 发币稳定版</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.0/lib/index.iife.min.js"></script>
@@ -13,24 +13,22 @@ body{max-width:420px;margin:auto;padding:20px;font-family:system-ui;background:#
 input,button{width:100%;padding:14px;margin:8px 0;border-radius:12px;border:1px solid #ddd}
 button{background:#0071e3;color:#fff;border:none}
 .log{font-size:12px;background:#fff;padding:10px;border-radius:10px;margin-top:10px}
-img{width:80px;border-radius:10px;margin-top:10px}
 </style>
 </head>
 
 <body>
 
-<h2>🚀 一键发币（稳定版）</h2>
+<h2>🚀 发币稳定版</h2>
 
 <button onclick="connect()">连接钱包</button>
 <div id="addr"></div>
 
-<input id="name" placeholder="Token 名称">
+<input id="name" placeholder="名称">
 <input id="symbol" placeholder="符号">
 <input id="decimals" value="9">
 <input id="supply" value="1000000">
-<input type="file" id="logo">
 
-<label><input type="checkbox" id="revoke"> 创建后销毁权限（推荐）</label>
+<label><input type="checkbox" id="revoke"> 销毁权限</label>
 
 <button onclick="createToken()">创建代币</button>
 
@@ -38,6 +36,7 @@ img{width:80px;border-radius:10px;margin-top:10px}
 
 <script>
 let provider, publicKey, connection;
+
 const { Connection, Keypair, Transaction, SystemProgram } = solanaWeb3;
 const splToken = window.splToken;
 
@@ -45,54 +44,83 @@ function log(t){
   document.getElementById("log").innerText = t + "\n" + document.getElementById("log").innerText;
 }
 
+// 多RPC
+async function initConnection(){
+  const RPCS = [
+    "https://rpc.ankr.com/solana",
+    "https://solana-mainnet.rpc.extrnode.com",
+    "https://api.mainnet-beta.solana.com"
+  ];
+
+  for (let rpc of RPCS){
+    try{
+      const conn = new Connection(rpc, "confirmed");
+      await conn.getLatestBlockhash();
+      connection = conn;
+      log("RPC: " + rpc);
+      return;
+    }catch(e){}
+  }
+
+  throw new Error("RPC不可用");
+}
+
 // 连接钱包
 async function connect(){
   const w = window.solana;
-  if(!w) return alert("请用 Phantom 打开");
+  if(!w) return alert("请用 Phantom / OKX 打开");
 
   const res = await w.connect();
   provider = w;
   publicKey = res.publicKey;
 
-  connection = new Connection("https://api.mainnet-beta.solana.com");
+  await initConnection();
 
   document.getElementById("addr").innerText = publicKey.toBase58();
 }
 
-// 图片转base64（关键）
-function fileToBase64(file){
-  return new Promise((resolve, reject)=>{
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = ()=> resolve(reader.result);
-    reader.onerror = err => reject(err);
-  });
+// 稳定发交易
+async function sendTx(tx, signers=[]){
+  const RPCS = [
+    "https://rpc.ankr.com/solana",
+    "https://solana-mainnet.rpc.extrnode.com",
+    "https://api.mainnet-beta.solana.com"
+  ];
+
+  for (let rpc of RPCS){
+    try{
+      const conn = new Connection(rpc, "confirmed");
+
+      tx.feePayer = publicKey;
+      tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
+
+      if(signers.length) tx.partialSign(...signers);
+
+      const signed = await provider.signTransaction(tx);
+      const sig = await conn.sendRawTransaction(signed.serialize());
+
+      await conn.confirmTransaction(sig);
+
+      log("成功RPC: " + rpc);
+      return sig;
+
+    }catch(e){
+      log("切换RPC...");
+    }
+  }
+
+  throw new Error("交易失败");
 }
 
 // 发币
 async function createToken(){
 try{
-  const name = document.getElementById("name").value;
-  const symbol = document.getElementById("symbol").value;
   const decimals = parseInt(document.getElementById("decimals").value);
-  const supply = parseInt(document.getElementById("supply").value);
-  const file = document.getElementById("logo").files[0];
+  const supply = document.getElementById("supply").value;
   const revoke = document.getElementById("revoke").checked;
 
-  if(!file) return alert("请选择Logo");
-
-  log("处理Logo...");
-  const imageBase64 = await fileToBase64(file);
-
-  const metadata = {
-    name,
-    symbol,
-    image: imageBase64
-  };
-
-  log("创建Token...");
-
   const mint = Keypair.generate();
+
   const lamports = await connection.getMinimumBalanceForRentExemption(82);
 
   const tx = new Transaction();
@@ -106,22 +134,32 @@ try{
   }));
 
   tx.add(splToken.createInitializeMintInstruction(
-    mint.publicKey, decimals, publicKey, publicKey
+    mint.publicKey,
+    decimals,
+    publicKey,
+    publicKey
   ));
 
   const ata = await splToken.getAssociatedTokenAddress(
-    mint.publicKey, publicKey
+    mint.publicKey,
+    publicKey
   );
 
   tx.add(splToken.createAssociatedTokenAccountInstruction(
-    publicKey, ata, publicKey, mint.publicKey
+    publicKey,
+    ata,
+    publicKey,
+    mint.publicKey
   ));
+
+  // 大数安全
+  const amount = BigInt(supply) * BigInt(10 ** decimals);
 
   tx.add(splToken.createMintToInstruction(
     mint.publicKey,
     ata,
     publicKey,
-    supply * (10 ** decimals)
+    amount
   ));
 
   if(revoke){
@@ -133,19 +171,13 @@ try{
     ));
   }
 
-  tx.feePayer = publicKey;
-  tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+  const sig = await sendTx(tx, [mint]);
 
-  tx.partialSign(mint);
-
-  const signed = await provider.signTransaction(tx);
-  const sig = await connection.sendRawTransaction(signed.serialize());
-
-  log("✅ 发币成功");
+  log("✅ 成功");
   log("Mint: " + mint.publicKey.toBase58());
   log("TX: " + sig);
 
-  alert("发币成功！");
+  alert("发币成功");
 
 }catch(e){
   log("错误: " + e.message);
