@@ -3,22 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Solana 一键发币</title>
+<title>Solana 发币终极版</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.0/lib/index.iife.min.js"></script>
 
 <style>
-body{max-width:420px;margin:0 auto;padding:20px;font-family:system-ui;background:#f9f9f9}
-input,button{width:100%;padding:14px;margin:8px 0;border-radius:10px;border:1px solid #ddd}
+body{max-width:420px;margin:auto;padding:20px;font-family:system-ui;background:#f5f5f5}
+input,button{width:100%;padding:14px;margin:8px 0;border-radius:12px;border:1px solid #ddd}
 button{background:#0071e3;color:#fff;border:none}
 .log{font-size:12px;background:#fff;padding:10px;border-radius:10px;margin-top:10px}
+img{width:80px;border-radius:10px;margin-top:10px}
 </style>
 </head>
 
 <body>
 
-<h2>🚀 Solana 一键发币</h2>
+<h2>🚀 一键发币（稳定版）</h2>
 
 <button onclick="connect()">连接钱包</button>
 <div id="addr"></div>
@@ -29,9 +30,7 @@ button{background:#0071e3;color:#fff;border:none}
 <input id="supply" value="1000000">
 <input type="file" id="logo">
 
-<label>
-<input type="checkbox" id="revoke"> 创建后销毁权限（推荐）
-</label>
+<label><input type="checkbox" id="revoke"> 创建后销毁权限（推荐）</label>
 
 <button onclick="createToken()">创建代币</button>
 
@@ -39,7 +38,6 @@ button{background:#0071e3;color:#fff;border:none}
 
 <script>
 let provider, publicKey, connection;
-
 const { Connection, Keypair, Transaction, SystemProgram } = solanaWeb3;
 const splToken = window.splToken;
 
@@ -61,24 +59,17 @@ async function connect(){
   document.getElementById("addr").innerText = publicKey.toBase58();
 }
 
-// 上传IPFS（需要你填key）
-async function uploadIPFS(file){
-  const form = new FormData();
-  form.append("file", file);
-
-  const res = await fetch("https://api.nft.storage/upload",{
-    method:"POST",
-    headers:{
-      Authorization:"Bearer 你的NFT_STORAGE_KEY"
-    },
-    body:form
+// 图片转base64（关键）
+function fileToBase64(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = ()=> resolve(reader.result);
+    reader.onerror = err => reject(err);
   });
-
-  const data = await res.json();
-  return `https://ipfs.io/ipfs/${data.value.cid}`;
 }
 
-// 创建Token
+// 发币
 async function createToken(){
 try{
   const name = document.getElementById("name").value;
@@ -88,27 +79,24 @@ try{
   const file = document.getElementById("logo").files[0];
   const revoke = document.getElementById("revoke").checked;
 
-  log("上传Logo...");
-  const imageUrl = await uploadIPFS(file);
+  if(!file) return alert("请选择Logo");
+
+  log("处理Logo...");
+  const imageBase64 = await fileToBase64(file);
 
   const metadata = {
     name,
     symbol,
-    image:imageUrl
+    image: imageBase64
   };
 
-  log("上传Metadata...");
-  const metaBlob = new Blob([JSON.stringify(metadata)]);
-  const metaFile = new File([metaBlob], "meta.json");
-  const metaUrl = await uploadIPFS(metaFile);
+  log("创建Token...");
 
   const mint = Keypair.generate();
-
   const lamports = await connection.getMinimumBalanceForRentExemption(82);
 
   const tx = new Transaction();
 
-  // 创建mint
   tx.add(SystemProgram.createAccount({
     fromPubkey: publicKey,
     newAccountPubkey: mint.publicKey,
@@ -118,22 +106,15 @@ try{
   }));
 
   tx.add(splToken.createInitializeMintInstruction(
-    mint.publicKey,
-    decimals,
-    publicKey,
-    publicKey
+    mint.publicKey, decimals, publicKey, publicKey
   ));
 
   const ata = await splToken.getAssociatedTokenAddress(
-    mint.publicKey,
-    publicKey
+    mint.publicKey, publicKey
   );
 
   tx.add(splToken.createAssociatedTokenAccountInstruction(
-    publicKey,
-    ata,
-    publicKey,
-    mint.publicKey
+    publicKey, ata, publicKey, mint.publicKey
   ));
 
   tx.add(splToken.createMintToInstruction(
@@ -143,19 +124,11 @@ try{
     supply * (10 ** decimals)
   ));
 
-  // 可选销毁权限
   if(revoke){
     tx.add(splToken.createSetAuthorityInstruction(
       mint.publicKey,
       publicKey,
       splToken.AuthorityType.MintTokens,
-      null
-    ));
-
-    tx.add(splToken.createSetAuthorityInstruction(
-      mint.publicKey,
-      publicKey,
-      splToken.AuthorityType.FreezeAccount,
       null
     ));
   }
@@ -168,9 +141,9 @@ try{
   const signed = await provider.signTransaction(tx);
   const sig = await connection.sendRawTransaction(signed.serialize());
 
-  log("发币成功！");
-  log("Mint地址: " + mint.publicKey.toBase58());
-  log("交易: " + sig);
+  log("✅ 发币成功");
+  log("Mint: " + mint.publicKey.toBase58());
+  log("TX: " + sig);
 
   alert("发币成功！");
 
