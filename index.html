@@ -126,15 +126,6 @@
   <div class="title">蓝鲸鱼 🐳 分红中心</div>
   <div class="sub">当前能量：<span id="energyVal">0</span></div>
 
-  <!-- 邀请链接 -->
-  <div class="glass" style="padding:12px;margin:10px 0">
-    <div class="title" style="font-size:14px">我的邀请链接</div>
-    <div class="copy-link">
-      <input type="text" id="inviteLink" readonly>
-      <button class="btn btn-sm" onclick="copyInvite()">复制</button>
-    </div>
-  </div>
-
   <!-- 合成 -->
   <div style="margin-top:10px;">
     <button class="btn btn-sm" onclick="craftCard(1)">合成1级卡 3500能量</button>
@@ -172,9 +163,10 @@
 <button id="connectBtn" class="btn">连接钱包</button>
 <div id="addressShow" style="text-align:center;margin:12px;"></div>
 
+<!-- 邀请码移到主页 -->
 <div class="glass">
-  <div class="title">用户注册</div>
-  <input id="inviteInput" placeholder="邀请码" maxlength:10>
+  <div class="title">用户注册 / 邀请码</div>
+  <input id="inviteInput" placeholder="邀请码（选填）" maxlength="10">
   <button id="regBtn" class="btn" style="margin-top:12px">确认注册</button>
 </div>
 
@@ -283,15 +275,16 @@
 
 <!-- 联合矩阵 -->
 <div class="glass">
-  <div class="title">联合矩阵（9级·30天有效期）</div>
+  <div class="title">联合矩阵（9级·30天有效期·独立计时）</div>
   <button class="btn btn-gold" onclick="batchPayUnion()">一键激活/续费所有等级</button>
   <div id="unionList"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
+// 管理员钱包（项目方收款地址）
+const ADMIN_WALLET = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a".toLowerCase();
 const DAI_CONTRACT = "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063".toLowerCase();
-const RECEIVE_ADDR = "0x58285a2b8c2489702d9f1011303d39e0d3f".toLowerCase();
 
 const classicPrice = [50,100,200,400,800,1600,3200,6400,12800,25600,51200,102400];
 const unionPrice   = [100,200,400,800,1600,3200,6400,12800,25600];
@@ -302,7 +295,7 @@ const CARD1_ENERGY = 3500;
 let web3, account;
 let registered = false;
 
-// 本地存储
+// 本地存储（按钱包地址隔离）
 function key(k) { return k + "_" + account; }
 function get(k, d=0) { const v=localStorage.getItem(key(k)); return v?Number(v):d; }
 function set(k, v) { localStorage.setItem(key(k), v); }
@@ -315,20 +308,6 @@ function refresh() {
   renderMatrix();
   renderMyCards();
   document.getElementById("energyVal").innerText = get("energy");
-}
-
-// 邀请链接
-function loadInviteLink() {
-  if(!account) return;
-  const base = window.location.origin + window.location.pathname;
-  const link = base + "?invite=" + account.slice(2,10);
-  document.getElementById("inviteLink").value = link;
-}
-function copyInvite() {
-  const inp = document.getElementById("inviteLink");
-  inp.select();
-  document.execCommand("copy");
-  alert("复制成功");
 }
 
 // 合成卡牌
@@ -390,18 +369,18 @@ function renderMyCards() {
   el.innerHTML = html || '<div style="grid-column:span 2;text-align:center;padding:20px">暂无卡牌</div>';
 }
 
-// 联合矩阵30天计时
+// 联合矩阵：每个级别独立30天计时
 function setUnionExpire(lv) {
   const expire = Date.now() + 30*24*60*60*1000;
-  localStorage.setItem("union_expire_"+account+"_"+lv, expire);
+  localStorage.setItem(`union_expire_${account}_${lv}`, expire);
 }
 function getUnionExpire(lv) {
-  return +localStorage.getItem("union_expire_"+account+"_"+lv) || 0;
+  return +localStorage.getItem(`union_expire_${account}_${lv}`) || 0;
 }
 
 // 渲染两个矩阵
 function renderMatrix() {
-  // 经典
+  // 经典矩阵
   let cList = "";
   const cLv = get("classic",0);
   for(let i=1;i<=12;i++){
@@ -415,11 +394,11 @@ function renderMatrix() {
   }
   document.getElementById("classicList").innerHTML = cList;
 
-  // 联合
+  // 联合矩阵：每个级别独立倒计时
   let uList = "";
   const uLv = get("union",0);
   for(let i=1;i<=9;i++){
-    const act = i<=uLv;
+    const act = i <= uLv;
     const exp = getUnionExpire(i);
     const now = Date.now();
     const isExp = act && exp < now;
@@ -444,67 +423,67 @@ function renderMatrix() {
 
 // 单一支付：经典
 async function payClassic(lv) {
-  if(!account||!registered)return alert("请先连接钱包并注册");
+  if(!account)return alert("请先连接钱包");
   const amount = classicPrice[lv-1];
   if(!confirm(`确认支付 ${amount} DAI 激活经典Lv${lv}？`))return;
   try{
-    await trans(amount);
+    await trans(amount); // 真实上链
     set("classic", Math.max(get("classic"), lv));
     addEnergy(amount/100*ENERGY_PER_100_DAI);
     alert("支付成功，已激活");
     refresh(); loadDaiBalance();
-  }catch(e){alert("支付取消或失败");}
+  }catch(e){alert("支付失败或已取消");}
 }
 
 // 单一支付：联合激活
 async function payUnion(lv) {
-  if(!account||!registered)return alert("请先连接钱包并注册");
+  if(!account)return alert("请先连接钱包");
   const amount = unionPrice[lv-1];
   if(!confirm(`确认支付 ${amount} DAI 激活联合Lv${lv}？`))return;
   try{
-    await trans(amount);
+    await trans(amount); // 真实上链
     set("union", Math.max(get("union"), lv));
     setUnionExpire(lv);
     addEnergy(amount/100*ENERGY_PER_100_DAI);
     alert("支付成功，已激活30天");
     refresh(); loadDaiBalance();
-  }catch(e){alert("支付取消或失败");}
+  }catch(e){alert("支付失败或已取消");}
 }
 
 // 单一支付：联合续费
 async function payRenew(lv) {
-  if(!account||!registered)return alert("请先连接钱包并注册");
+  if(!account)return alert("请先连接钱包");
   const amount = Math.round(unionPrice[lv-1]*RENEW_RATE);
   if(!confirm(`确认支付 ${amount} DAI 续费联合Lv${lv} 30天？`))return;
   try{
-    await trans(amount);
+    await trans(amount); // 真实上链
     setUnionExpire(lv);
     addEnergy(amount/100*ENERGY_PER_100_DAI);
     alert("续费成功，延长30天");
     refresh(); loadDaiBalance();
-  }catch(e){alert("支付取消或失败");}
+  }catch(e){alert("支付失败或已取消");}
 }
 
-// 批量：经典一键全部激活
+// 批量：经典一键全部激活（真实上链）
 async function batchPayClassic() {
-  if(!account||!registered)return alert("请先连接钱包并注册");
+  if(!account)return alert("请先连接钱包");
   const current = get("classic",0);
   let total = 0;
   for(let i=current+1;i<=12;i++) total += classicPrice[i-1];
   if(total<=0)return alert("经典矩阵所有等级已全部激活");
   if(!confirm(`一键激活经典全部未激活等级\n总计：${total} DAI\n确认支付？`))return;
   try{
-    await trans(total);
+    await trans(total); // 真实上链
     set("classic",12);
     addEnergy(total/100*ENERGY_PER_100_DAI);
     alert("批量支付成功，经典矩阵全部激活");
     refresh(); loadDaiBalance();
-  }catch(e){alert("支付取消或失败");}
+  }catch(e){alert("支付失败或已取消");}
 }
 
-// 批量：联合一键激活/续费全部
+// 批量：联合一键激活/续费全部（真实上链）
 async function batchPayUnion() {
-  if(!account||!registered)return alert("请先连接钱包并注册");
+  if(!account)return alert("请先连接钱包");
   const now = Date.now();
   let total = 0;
   for(let i=1;i<=9;i++){
@@ -519,16 +498,16 @@ async function batchPayUnion() {
   if(total<=0)return alert("联合矩阵所有等级均在有效期内");
   if(!confirm(`一键激活/续费联合全部等级\n总计：${total} DAI\n确认支付？`))return;
   try{
-    await trans(total);
+    await trans(total); // 真实上链
     set("union",9);
     for(let i=1;i<=9;i++) setUnionExpire(i);
     addEnergy(total/100*ENERGY_PER_100_DAI);
     alert("批量支付成功，联合矩阵全部激活30天");
     refresh(); loadDaiBalance();
-  }catch(e){alert("支付取消或失败");}
+  }catch(e){alert("支付失败或已取消");}
 }
 
-// 上链转账（必须签名）
+// 真实上链转账：代币秒进管理员钱包
 async function trans(amount) {
   const abi = [
     {"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
@@ -538,8 +517,8 @@ async function trans(amount) {
   const dai = new web3.eth.Contract(abi, DAI_CONTRACT);
   const dec = await dai.methods.decimals().call();
   const val = BigInt(amount) * (10n ** BigInt(dec));
-  // 上链签名
-  return await dai.methods.transfer(RECEIVE_ADDR, val.toString()).send({from:account});
+  // 必须签名上链，资金直接进入管理员钱包
+  return await dai.methods.transfer(ADMIN_WALLET, val.toString()).send({from:account});
 }
 
 // DAI余额（金黄色）
@@ -557,21 +536,30 @@ async function loadDaiBalance() {
     `${account.slice(0,6)}...${account.slice(-4)} | <span class="gold-balance">DAI: ${bal}</span>`;
 }
 
-// 连接钱包
+// 连接钱包：已注册用户无需重复注册
 document.getElementById('connectBtn').onclick = async () => {
   await window.ethereum.request({method:'eth_requestAccounts'});
   web3 = new Web3(window.ethereum);
   const accounts = await web3.eth.getAccounts();
   account = accounts[0].toLowerCase();
+  // 自动检测是否已注册
+  registered = !!localStorage.getItem(`registered_${account}`);
   loadDaiBalance();
-  loadInviteLink();
   refresh();
+  if(registered){
+    document.getElementById('regBtn').disabled = true;
+    document.getElementById('regBtn').innerText = "已注册";
+  }
 };
 
-// 注册
+// 注册：仅首次
 document.getElementById('regBtn').onclick = () => {
   if(!account)return alert("请先连接钱包");
+  if(registered)return alert("已注册，无需重复操作");
   registered = true;
+  localStorage.setItem(`registered_${account}`, "1");
+  document.getElementById('regBtn').disabled = true;
+  document.getElementById('regBtn').innerText = "已注册";
   alert("注册成功");
   refresh();
 };
