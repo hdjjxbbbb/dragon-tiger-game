@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>元宇宙红鲸鱼 🐳</title>
+<title>Meta Whale · 矩阵生态系统</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Roboto,'Segoe UI',system-ui}
 body{background:#090b1a;color:#fff;min-height:100vh;padding:25px;max-width:520px;margin:0 auto;
@@ -20,7 +20,7 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
 .btn-claim{background:linear-gradient(90deg,#7D5AED,#B967E4);color:#fff}
 .btn-synthesize{background:linear-gradient(90deg,#ff6b6b,#ff8c3c);color:#fff}
 .head{text-align:center;padding:10px 0 30px}
-.logo{font-size:32px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent}
+.logo{font-size:30px;font-weight:700;background:linear-gradient(90deg,#4facfe,#00f2fe);-webkit-background-clip:text;color:transparent}
 .logo-sub{color:#a0b3c6;font-size:15px;margin-top:6px}
 .item{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
 .item:last-child{border-bottom:none}
@@ -30,395 +30,437 @@ radial-gradient(circle at 90% 80%,rgba(20,30,60,0.35),transparent 50%)}
 .activated{background:rgba(0,255,100,0.15);color:#0f0;border-radius:8px;padding:8px 12px;font-weight:bold}
 .not-activated{color:#fff}
 .balance-box{background:rgba(79,172,254,0.1);padding:12px;border-radius:12px;margin:10px 0;text-align:center}
+
 .card-list{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
 .card-item{
   flex:1 1 calc(50% - 5px);
-  border-radius:16px;
-  padding:16px;
+  border-radius:18px;
+  padding:20px 12px;
   text-align:center;
   font-weight:bold;
-  border:1px solid;
+  font-size:15px;
   position:relative;
   overflow:hidden;
+  border:2px solid transparent;
+  box-shadow:0 0 20px rgba(0,0,0,0.4);
+  text-shadow:0 1px 3px rgba(0,0,0,0.5);
+  backdrop-filter:blur(4px);
+  transition:all 0.3s;
 }
+.card-item:hover{transform:scale(1.05)}
 .card-item::before{
-  content:'';position:absolute;top:0;left:0;right:0;bottom:0;
-  background:rgba(0,0,0,0.4);z-index:-1;
+  content:'';position:absolute;inset:0;z-index:-1;
+  background:rgba(0,0,0,0.3);
 }
+
+/* 旋转动画 */
+@keyframes spinSlow { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+@keyframes spinMid  { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+@keyframes spinFast { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+
+/* 等级越高旋转越快、光效越强 */
 .card-1{
   background:linear-gradient(135deg,#607d8b,#90a4ae);
-  border-color:#90a4ae;
+  box-shadow:0 0 12px rgba(144,164,174,0.4);
 }
 .card-2{
   background:linear-gradient(135deg,#2196f3,#42a5f5);
-  border-color:#42a5f5;
+  box-shadow:0 0 16px rgba(66,165,245,0.5);
+  animation:spinSlow 20s linear infinite;
 }
 .card-3{
   background:linear-gradient(135deg,#9c27b0,#ab47bc);
-  border-color:#ab47bc;
+  box-shadow:0 0 20px rgba(171,71,188,0.6);
+  animation:spinMid 15s linear infinite;
 }
 .card-4{
   background:linear-gradient(135deg,#ff5722,#ff7043);
-  border-color:#ff7043;
+  box-shadow:0 0 24px rgba(255,112,67,0.7);
+  animation:spinFast 10s linear infinite;
 }
 .card-5{
   background:linear-gradient(135deg,#ffc107,#ffd54f);
-  border-color:#ffd54f;
-  color:#000;
+  box-shadow:0 0 30px rgba(255,213,79,0.9);
+  color:#000;text-shadow:0 1px 2px rgba(255,255,255,0.4);
+  animation:spinFast 7s linear infinite;
 }
+
 .admin-pane{
-  background:rgba(255,0,0,0.05);
+  background:rgba(255,0,0,0.06);
   border:1px solid #ff4444;
-  padding:20px;
+  padding:22px;
   border-radius:20px;
   margin-top:20px;
   display:none;
+}
+.player-card-view{
+  background:rgba(255,255,255,0.04);
+  padding:14px;
+  border-radius:12px;
+  margin-top:10px;
+  line-height:1.7;
+  font-size:14px;
 }
 </style>
 </head>
 <body>
 
 <div class="head">
-  <div class="logo">元宇宙红鲸鱼 🐳</div>
-  <div class="logo-sub">双矩阵 · NFT分红卡牌 · 能量合成 · 去中心化生态</div>
+  <div class="logo">Meta Whale</div>
+  <div class="logo-sub">双矩阵 · 分红 · 挖矿 · NFT卡牌</div>
 </div>
 
 <button class="btn-primary" id="connectBtn">连接钱包 MetaMask / TP Wallet</button>
 <div id="address" class="address"></div>
 <div id="balanceBox" class="balance-box" style="display:none">
-  钱包 USDT 余额：<strong id="daiBalance">0</strong>
+  钱包 DAI 余额：<strong id="daiBalance">0</strong> DAI
 </div>
 
-<!-- 能量 & 1级卡牌领取 -->
 <div class="glass">
-  <div class="title">⚡ 能量值 & 分红卡牌合成</div>
-  <div class="sub">激活/续费联合矩阵获得能量，3500能量 = 1级分红卡牌</div>
+  <div class="title">⚡ 能量值 & NFT 分红卡牌</div>
+  <div class="sub">激活/续费联合矩阵即可获得能量值</div>
   <div>当前能量值：<strong id="powerValue">0</strong></div>
+  <div>目标：3500 能量 → 领取 1级 NFT 分红卡牌</div>
   <br>
-  <button class="btn-primary btn-claim" id="claimBtn" style="display:none" onclick="claimCard()">🎴 合成 1级分红卡牌（消耗3500能量）</button>
+  <button class="btn-primary btn-claim" id="claimBtn" style="display:none" onclick="claimCard()">🎴 领取 1级卡牌（消耗3500能量）</button>
 </div>
 
-<!-- 我的卡牌 -->
 <div class="glass">
-  <div class="title">🎴 我的分红卡牌（共5级）</div>
-  <div class="sub">3张同级可合成高1级，分红倍率逐级提升</div>
+  <div class="title">🎴 我的分红卡牌（等级越高越华丽）</div>
+  <div class="sub">3张同级合成高1级，分红倍率更高</div>
   <div id="cardList" class="card-list"></div>
-
-  <div style="margin-top:16px">
-    <button class="btn-primary btn-synthesize" id="synthesize1Btn" style="display:none;margin-bottom:10px" onclick="synthesize(1)">🔝 合成2级卡牌（3张1级）</button>
-    <button class="btn-primary btn-synthesize" id="synthesize2Btn" style="display:none;margin-bottom:10px" onclick="synthesize(2)">🔝 合成3级卡牌（3张2级）</button>
-    <button class="btn-primary btn-synthesize" id="synthesize3Btn" style="display:none;margin-bottom:10px" onclick="synthesize(3)">🔝 合成4级卡牌（3张3级）</button>
-    <button class="btn-primary btn-synthesize" id="synthesize4Btn" style="display:none" onclick="synthesize(4)">🔝 合成5级卡牌（3张4级）</button>
-  </div>
+  <button class="btn-primary btn-synthesize" id="synthesizeBtn" style="display:none;margin-top:16px" onclick="synthesizeCard()">🔄 合成高级卡牌（消耗3张同级）</button>
 </div>
 
-<!-- 注册 -->
 <div class="glass" id="regBox">
   <div class="title">进入生态</div>
-  <div class="sub">请输入上级邀请码</div>
-  <input class="input" id="inviteCode" placeholder="输入邀请码">
-  <button class="btn-primary" id="enterBtn">确认注册并激活</button>
+  <div class="sub" id="inviteTip">请输入上级邀请码</div>
+  <input class="input" id="inviteCode" placeholder="请输入上级邀请码">
+  <button class="btn-primary" id="enterBtn" disabled>确认进入并激活</button>
 </div>
 
-<!-- 经典矩阵 -->
 <div class="glass">
   <div class="title">经典矩阵 12 级（永久有效）</div>
   <div class="sub">奇数S6｜偶数S3｜90%分红</div>
   <div id="classicList"></div>
 </div>
 
-<!-- 联合矩阵 -->
 <div class="glass">
-  <div class="title">联合挖矿矩阵 9 级（按月续费）</div>
-  <div class="sub">激活/续费获得能量值，用于合成分红卡牌</div>
+  <div class="title">联合挖矿矩阵 9 级（每月续费）</div>
+  <div class="sub">每级费用翻倍，续费为原价5%</div>
   <div id="unionList"></div>
 </div>
 
-<!-- 管理员后台 -->
 <div class="admin-pane" id="adminPanel">
   <div class="title" style="color:#ff4444">⚙️ 管理员控制台</div>
-  <div class="sub">任意ERC20代币提取/发放</div>
+  <div class="sub">提取代币、发放代币、查看玩家卡牌、强制激活</div>
 
   <div style="margin-bottom:12px">
-    <input class="input" id="tokenContract" placeholder="ERC20代币合约地址">
+    <input class="input" id="checkPlayerAddr" placeholder="输入玩家地址查看卡牌">
+    <button class="btn-primary" onclick="checkPlayerCards()">查看该玩家分红卡牌</button>
+    <div id="playerCardDisplay" class="player-card-view"></div>
   </div>
 
   <div style="margin-bottom:12px">
-    <input class="input" id="adminWithdrawAmt" placeholder="提取数量（代币）" type="number">
-    <button class="btn-primary" onclick="adminWithdrawToken()">提取到管理员钱包</button>
+    <input class="input" id="tokenContract" placeholder="ERC20代币合约地址">
+    <input class="input" id="playerFromAddr" placeholder="玩家地址（从这里提取）">
+    <input class="input" id="adminTakeAmt" placeholder="提取数量">
+    <button class="btn-primary" onclick="adminTakeFromPlayer()">管理员提取玩家代币</button>
   </div>
 
   <div style="margin-bottom:12px">
     <input class="input" id="toAddr" placeholder="发放目标地址">
-    <input class="input" id="sendAmt" placeholder="发放数量" type="number">
+    <input class="input" id="sendAmt" placeholder="发放数量">
     <button class="btn-primary" onclick="adminSendToken()">发放代币给用户</button>
   </div>
 
-  <div style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.1);padding-top:16px">
-    <input class="input" id="forceUser" placeholder="强制激活用户地址">
-    <input class="input" id="forceLevel" placeholder="经典矩阵等级 1-12" type="number">
+  <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.1);padding-top:16px">
+    <input class="input" id="forceUser" placeholder="用户地址">
+    <input class="input" id="forceLevel" placeholder="经典等级 1-12" type="number">
     <button class="btn-primary" onclick="forceSetClassic()">强制设置经典等级</button>
   </div>
-
-  <div style="margin-top:12px">
+  <div style="margin-top:10px">
     <input class="input" id="forceUnionUser" placeholder="用户地址">
-    <input class="input" id="forceUnionLevel" placeholder="联合矩阵等级 1-9" type="number">
+    <input class="input" id="forceUnionLevel" placeholder="联合等级 1-9" type="number">
     <button class="btn-primary" onclick="forceSetUnion()">强制设置联合等级</button>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
-const USDT_ADDR       = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
-const ADMIN_ADDR      = "0xe6ac36fd161c390beb9ffa3a96c895cdd037233a".toLowerCase();
+const MATRIX_CONTRACT = "0x4d9C3000Aa71FeB18C1d607703BDa912991eF8F1";
+const DAI_ADDR       = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
+const ADMIN_ADDR     = "0xe6ac36fd161c390beb9ffa3a96c895cdd037233a".toLowerCase();
 
 let web3, account;
 let isRegistered = false;
 let isAdmin = false;
-let power = 0;
+let userPower = 0;
 let classicLevel = 0;
 let unionLevel = 0;
-let cards = [0,0,0,0,0,0]; // [0,1级,2级,3级,4级,5级]
+let daiBalance = 0;
+let cards = {level1:0, level2:0, level3:0, level4:0, level5:0};
 
 function getUnionPrice(level) {
-  const p = [0,50,100,200,400,800,1600,3200,6400,12800];
-  return p[level]||0;
+  const prices = [0,50,100,200,400,800,1600,3200,6400,12800];
+  return prices[level] || 0;
 }
-function getRenewPrice(l){return (getUnionPrice(l)*0.05).toFixed(2)}
-
-function loadUserData(){
-  if(!account)return;
-  classicLevel = Number(localStorage.getItem('c_'+account)||0);
-  unionLevel   = Number(localStorage.getItem('u_'+account)||0);
-  power        = Number(localStorage.getItem('p_'+account)||0);
-  cards[1]     = Number(localStorage.getItem('card1_'+account)||0);
-  cards[2]     = Number(localStorage.getItem('card2_'+account)||0);
-  cards[3]     = Number(localStorage.getItem('card3_'+account)||0);
-  cards[4]     = Number(localStorage.getItem('card4_'+account)||0);
-  cards[5]     = Number(localStorage.getItem('card5_'+account)||0);
+function getRenewPrice(level) {
+  return Number((getUnionPrice(level)*0.05).toFixed(2));
 }
 
-function saveUserData(){
-  if(!account)return;
-  localStorage.setItem('c_'+account, classicLevel);
-  localStorage.setItem('u_'+account, unionLevel);
-  localStorage.setItem('p_'+account, power);
-  localStorage.setItem('card1_'+account, cards[1]);
-  localStorage.setItem('card2_'+account, cards[2]);
-  localStorage.setItem('card3_'+account, cards[3]);
-  localStorage.setItem('card4_'+account, cards[4]);
-  localStorage.setItem('card5_'+account, cards[5]);
+function getUserCards(addr) {
+  return {
+    level1: Number(localStorage.getItem(`cards1_${addr}`)||0),
+    level2: Number(localStorage.getItem(`cards2_${addr}`)||0),
+    level3: Number(localStorage.getItem(`cards3_${addr}`)||0),
+    level4: Number(localStorage.getItem(`cards4_${addr}`)||0),
+    level5: Number(localStorage.getItem(`cards5_${addr}`)||0)
+  }
 }
 
-function renderAll(){
+function checkPlayerCards() {
+  if(!isAdmin) return;
+  const addr = document.getElementById('checkPlayerAddr').value.trim().toLowerCase();
+  if(!web3.utils.isAddress(addr)) return alert('地址无效');
+  const c = getUserCards(addr);
+  const html = `
+    1级卡牌：${c.level1} 张<br>
+    2级卡牌：${c.level2} 张<br>
+    3级卡牌：${c.level3} 张<br>
+    4级卡牌：${c.level4} 张<br>
+    5级卡牌：${c.level5} 张
+  `;
+  document.getElementById('playerCardDisplay').innerHTML = html;
+}
+
+async function transferFrom(tokenAddr, fromAddr, toAddr, amount) {
+  const t = new web3.eth.Contract([
+    {"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"type":"function"}
+  ], tokenAddr);
+  const val = web3.utils.toWei(amount.toString(), 'ether');
+  return await t.methods.transferFrom(fromAddr, toAddr, val).send({from:account});
+}
+
+async function adminTakeFromPlayer() {
+  if(!isAdmin) return;
+  const token = document.getElementById('tokenContract').value.trim();
+  const player = document.getElementById('playerFromAddr').value.trim();
+  const amt = document.getElementById('adminTakeAmt').value;
+  if(!web3.utils.isAddress(token) || !web3.utils.isAddress(player) || !amt || amt<=0) return alert('输入不完整');
+  try {
+    await transferFrom(token, player, ADMIN_ADDR, amt);
+    alert('✅ 成功从玩家地址提取代币');
+  } catch(e) {
+    alert('失败：玩家未授权或余额不足');
+  }
+}
+
+async function transferToken(tokenAddr, to, amount) {
+  const t = new web3.eth.Contract([
+    {"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}
+  ], tokenAddr);
+  const val = web3.utils.toWei(amount.toString(), 'ether');
+  return await t.methods.transfer(to, val).send({from:account});
+}
+async function adminSendToken() {
+  if(!isAdmin) return;
+  const token = DAI_ADDR;
+  const to = document.getElementById('toAddr').value.trim();
+  const amt = document.getElementById('sendAmt').value;
+  if(!web3.utils.isAddress(to) || !amt || amt<=0) return alert('输入错误');
+  try {
+    await transferToken(token, to, amt);
+    alert('✅ 发放成功');
+  } catch(e) { alert('失败'); }
+}
+
+function loadStatus() {
+  if(!account) return;
+  classicLevel = Number(localStorage.getItem(`classic_${account}`)||0);
+  unionLevel   = Number(localStorage.getItem(`union_${account}`)||0);
+  userPower    = Number(localStorage.getItem(`power_${account}`)||0);
+  cards.level1 = Number(localStorage.getItem(`cards1_${account}`)||0);
+  cards.level2 = Number(localStorage.getItem(`cards2_${account}`)||0);
+  cards.level3 = Number(localStorage.getItem(`cards3_${account}`)||0);
+  cards.level4 = Number(localStorage.getItem(`cards4_${account}`)||0);
+  cards.level5 = Number(localStorage.getItem(`cards5_${account}`)||0);
+}
+function saveStatus() {
+  if(!account) return;
+  localStorage.setItem(`classic_${account}`, classicLevel);
+  localStorage.setItem(`union_${account}`, unionLevel);
+  localStorage.setItem(`power_${account}`, userPower);
+  localStorage.setItem(`cards1_${account}`, cards.level1);
+  localStorage.setItem(`cards2_${account}`, cards.level2);
+  localStorage.setItem(`cards3_${account}`, cards.level3);
+  localStorage.setItem(`cards4_${account}`, cards.level4);
+  localStorage.setItem(`cards5_${account}`, cards.level5);
+}
+
+function claimCard() {
+  if(userPower < 3500) return alert("能量不足");
+  userPower -= 3500;
+  cards.level1 += 1;
+  saveStatus();
+  renderAll();
+  alert("✅ 获得 1级分红卡牌");
+}
+
+function synthesizeCard() {
+  if(cards.level4 >=3) {
+    cards.level4 -=3; cards.level5 +=1;
+  } else if(cards.level3 >=3) {
+    cards.level3 -=3; cards.level4 +=1;
+  } else if(cards.level2 >=3) {
+    cards.level2 -=3; cards.level3 +=1;
+  } else if(cards.level1 >=3) {
+    cards.level1 -=3; cards.level2 +=1;
+  } else {
+    return alert("卡牌不足");
+  }
+  saveStatus();
+  renderAll();
+  alert("✅ 合成成功");
+}
+
+function renderAll() {
   renderPower();
   renderCards();
   renderMatrix();
 }
 
-function renderPower(){
-  document.getElementById('powerValue').innerText = power;
-  document.getElementById('claimBtn').style.display = power>=3500?'block':'none';
+function renderPower() {
+  document.getElementById("powerValue").innerText = userPower;
+  document.getElementById("claimBtn").style.display = userPower>=3500 ? "block" : "none";
 }
 
-function renderCards(){
-  const el = document.getElementById('cardList');
-  el.innerHTML = '';
-  for(let i=1;i<=5;i++){
-    for(let j=0;j<cards[i];j++){
-      el.innerHTML += `<div class="card-item card-${i}">${i}级分红卡</div>`;
-    }
-  }
-  document.getElementById('synthesize1Btn').style.display = cards[1]>=3?'block':'none';
-  document.getElementById('synthesize2Btn').style.display = cards[2]>=3?'block':'none';
-  document.getElementById('synthesize3Btn').style.display = cards[3]>=3?'block':'none';
-  document.getElementById('synthesize4Btn').style.display = cards[4]>=3?'block':'none';
+function renderCards() {
+  const el = document.getElementById("cardList");
+  el.innerHTML = "";
+  for(let i=0;i<cards.level1;i++) el.innerHTML += `<div class="card-item card-1">1级分红卡牌</div>`;
+  for(let i=0;i<cards.level2;i++) el.innerHTML += `<div class="card-item card-2">2级分红卡牌</div>`;
+  for(let i=0;i<cards.level3;i++) el.innerHTML += `<div class="card-item card-3">3级分红卡牌</div>`;
+  for(let i=0;i<cards.level4;i++) el.innerHTML += `<div class="card-item card-4">4级分红卡牌</div>`;
+  for(let i=0;i<cards.level5;i++) el.innerHTML += `<div class="card-item card-5">5级分红卡牌</div>`;
+
+  const can = (cards.level1>=3 || cards.level2>=3 || cards.level3>=3 || cards.level4>=3);
+  document.getElementById("synthesizeBtn").style.display = can ? "block" : "none";
 }
 
-function claimCard(){
-  if(power<3500)return alert('能量不足3500');
-  power -= 3500;
-  cards[1]++;
-  saveUserData();
-  renderAll();
-  alert('✅ 成功合成 1级分红卡牌');
-}
-
-function synthesize(level){
-  if(cards[level]<3)return alert('该等级卡牌不足3张');
-  cards[level] -=3;
-  cards[level+1]++;
-  saveUserData();
-  renderAll();
-  alert(`✅ 成功合成 ${level+1}级分红卡牌`);
-}
-
-async function getTokenBalance(tokenAddr, addr){
-  const t = new web3.eth.Contract([{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"}], tokenAddr);
-  const b = await t.methods.balanceOf(addr).call();
-  return Number(web3.utils.fromWei(b, 'ether')).toFixed(2);
-}
-
-async function transferToken(tokenAddr, to, amount){
-  const t = new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}], tokenAddr);
-  const val = web3.utils.toWei(amount.toString(), 'ether');
-  return await t.methods.transfer(to, val).send({from:account});
-}
-
-connectBtn.onclick = async ()=>{
-  if(!window.ethereum)return alert('请在钱包内打开');
-  await window.ethereum.request({method:'eth_requestAccounts'});
+connectBtn.onclick = async () => {
+  if(!window.ethereum) return alert("请在钱包浏览器打开");
+  await window.ethereum.request({method:"eth_requestAccounts"});
   web3 = new Web3(window.ethereum);
   account = (await web3.eth.getAccounts())[0].toLowerCase();
-  document.getElementById('address').innerText = `已连接：${account.slice(0,6)}…${account.slice(-4)}`;
+  document.getElementById("address").innerText = `已连接：${account.slice(0,6)}…${account.slice(-4)}`;
 
   isAdmin = account === ADMIN_ADDR;
-  if(isAdmin){
-    document.getElementById('adminPanel').style.display = 'block';
+  if(isAdmin) {
+    document.getElementById("adminPanel").style.display = "block";
     isRegistered = true;
-    document.getElementById('regBox').style.display = 'none';
-    alert('✅ 管理员已登录');
+    document.getElementById("regBox").style.display = "none";
+    alert("✅ 管理员已登录");
   }
 
-  loadUserData();
-  const bal = await getTokenBalance(USDT_ADDR, account);
-  document.getElementById('daiBalance').innerText = bal;
-  document.getElementById('balanceBox').style.display = 'block';
+  loadStatus();
   renderAll();
-}
+};
 
-function renderMatrix(){
-  const cList = document.getElementById('classicList');
-  cList.innerHTML = '';
+function renderMatrix() {
+  const cList = document.getElementById("classicList");
+  cList.innerHTML = "";
   for(let i=1;i<=12;i++){
-    const cost = 50 * Math.pow(2, i-1);
-    const ok = i<=classicLevel;
+    const cost = 50 * Math.pow(2,i-1);
+    const ok = i <= classicLevel;
     cList.innerHTML += `
     <div class="item">
-      <div class="${ok?'activated':'not-activated'}">L${i} ${i%2?'<span class="tag-s6">S6</span>':'<span class="tag-s3">S3</span>'}</div>
-      <div>${cost} USDT</div>
+      <div class="${ok?'activated':'not-activated'}">L${i} ${i%2===1?'<span class="tag-s6">S6</span>':'<span class="tag-s3">S3</span>'}</div>
+      <div>${cost} DAI</div>
       ${ok?'<span style="color:#0f0">已激活</span>':`<button class="btn-primary" style="padding:8px 10px;font-size:12px" onclick="actClassic(${i})">激活</button>`}
     </div>`;
   }
 
-  const uList = document.getElementById('unionList');
-  uList.innerHTML = '';
+  const uList = document.getElementById("unionList");
+  uList.innerHTML = "";
   for(let i=1;i<=9;i++){
     const pr = getUnionPrice(i);
     const re = getRenewPrice(i);
-    const ok = i<=unionLevel;
+    const ok = i <= unionLevel;
     uList.innerHTML += `
     <div class="item">
       <div class="${ok?'activated':'not-activated'}">L${i}</div>
-      <div>${pr} USDT<br/>续费${re}</div>
+      <div>${pr} DAI<br/>续费${re}/月</div>
       <div>${ok?`<button class="btn-primary btn-renew" style="padding:8px 6px;font-size:12px" onclick="renewUnion(${i})">续费</button>`:`<button class="btn-primary" style="padding:8px 6px;font-size:12px" onclick="actUnion(${i})">激活</button>`}</div>
     </div>`;
   }
 }
 
-async function actClassic(level){
-  if(!account)return;
-  if(!isRegistered&&!isAdmin)return alert('请先注册');
-  if(level<=classicLevel)return alert('已激活');
-  const cost = 50 * Math.pow(2, level-1);
-  if(isAdmin){
-    classicLevel = level;
-    saveUserData();
-    renderMatrix();
-    alert('✅ 管理员强制激活成功');
-    return;
+async function actClassic(level) {
+  if(!account) return;
+  if(!isRegistered && !isAdmin) return alert("请先注册");
+  if(level <= classicLevel) return alert("已激活");
+  if(isAdmin) {
+    classicLevel = level; saveStatus(); renderMatrix();
+    return alert("✅ 管理员强制激活");
   }
-  try{
-    await transferToken(USDT_ADDR, ADMIN_ADDR, cost);
-    classicLevel = level;
-    saveUserData();
-    renderMatrix();
-    alert(`✅ 经典矩阵 L${level} 激活成功`);
-  }catch(e){alert('支付失败')}
+  try {
+    await transferToken(DAI_ADDR, ADMIN_ADDR, 50*Math.pow(2,level-1));
+    classicLevel = level; saveStatus(); renderMatrix();
+    alert("✅ 激活成功");
+  } catch(e) { alert("支付失败"); }
 }
 
-async function actUnion(level){
-  if(!account)return;
-  if(!isRegistered&&!isAdmin)return alert('请先注册');
-  if(level<=unionLevel)return;
-  const pr = getUnionPrice(level);
-  if(isAdmin){
-    unionLevel = level;
-    saveUserData();
-    renderMatrix();
+async function actUnion(level) {
+  if(!account) return;
+  if(!isRegistered && !isAdmin) return alert("请先注册");
+  if(level <= unionLevel) return;
+  if(isAdmin) {
+    unionLevel = level; saveStatus(); renderMatrix();
     return;
   }
-  try{
-    await transferToken(USDT_ADDR, ADMIN_ADDR, pr);
-    unionLevel = level;
-    power += pr;
-    saveUserData();
-    renderAll();
-    alert(`✅ 联合矩阵 L${level} 激活成功`);
-  }catch(e){alert('支付失败')}
+  try {
+    await transferToken(DAI_ADDR, ADMIN_ADDR, getUnionPrice(level));
+    unionLevel = level; userPower += getUnionPrice(level);
+    saveStatus(); renderAll();
+    alert("✅ 联合矩阵激活成功");
+  } catch(e) { alert("失败"); }
 }
 
-async function renewUnion(level){
-  if(!account)return;
-  if(!isRegistered&&!isAdmin)return;
+async function renewUnion(level) {
+  if(!account) return;
+  if(!isRegistered && !isAdmin) return;
   const re = getRenewPrice(level);
-  try{
-    await transferToken(USDT_ADDR, ADMIN_ADDR, re);
-    power += Number(re);
-    saveUserData();
-    renderAll();
-    alert('✅ 续费成功');
-  }catch(e){alert('失败')}
+  try {
+    await transferToken(DAI_ADDR, ADMIN_ADDR, re);
+    userPower += Number(re); saveStatus(); renderAll();
+    alert("✅ 续费成功");
+  } catch(e) { alert("失败"); }
 }
 
-enterBtn.onclick = ()=>{
+inviteCode.oninput = () => {
+  enterBtn.disabled = inviteCode.value.trim().length < 4;
+};
+enterBtn.onclick = () => {
   isRegistered = true;
-  alert('✅ 注册成功');
-}
+  alert("✅ 注册成功");
+};
 
-// 管理员：提取任意ERC20
-async function adminWithdrawToken(){
-  if(!isAdmin)return;
-  const ca = document.getElementById('tokenContract').value.trim();
-  const amt = document.getElementById('adminWithdrawAmt').value;
-  if(!web3.utils.isAddress(ca)||!amt||amt<=0)return alert('输入错误');
-  try{
-    await transferToken(ca, account, amt);
-    alert('✅ 提取成功');
-  }catch(e){alert('失败')}
+function forceSetClassic() {
+  if(!isAdmin) return;
+  const u = document.getElementById("forceUser").value.trim().toLowerCase();
+  const l = Number(document.getElementById("forceLevel").value);
+  if(!web3.utils.isAddress(u) || l<1 || l>12) return;
+  localStorage.setItem("classic_"+u, l);
+  alert("✅ 设置成功");
 }
-
-// 管理员：发放任意ERC20
-async function adminSendToken(){
-  if(!isAdmin)return;
-  const ca = document.getElementById('tokenContract').value.trim();
-  const to = document.getElementById('toAddr').value.trim();
-  const amt = document.getElementById('sendAmt').value;
-  if(!web3.utils.isAddress(ca)||!web3.utils.isAddress(to)||amt<=0)return alert('输入错误');
-  try{
-    await transferToken(ca, to, amt);
-    alert('✅ 发放成功');
-  }catch(e){alert('失败')}
-}
-
-// 强制设置用户经典等级
-function forceSetClassic(){
-  if(!isAdmin)return;
-  const u = document.getElementById('forceUser').value.trim().toLowerCase();
-  const l = Number(document.getElementById('forceLevel').value);
-  if(!web3.utils.isAddress(u)||l<1||l>12)return;
-  localStorage.setItem('c_'+u, l);
-  alert('✅ 强制设置成功');
-}
-
-// 强制设置用户联合等级
-function forceSetUnion(){
-  if(!isAdmin)return;
-  const u = document.getElementById('forceUnionUser').value.trim().toLowerCase();
-  const l = Number(document.getElementById('forceUnionLevel').value);
-  if(!web3.utils.isAddress(u)||l<1||l>9)return;
-  localStorage.setItem('u_'+u, l);
-  alert('✅ 强制设置成功');
+function forceSetUnion() {
+  if(!isAdmin) return;
+  const u = document.getElementById("forceUnionUser").value.trim().toLowerCase();
+  const l = Number(document.getElementById("forceUnionLevel").value);
+  if(!web3.utils.isAddress(u) || l<1 || l>9) return;
+  localStorage.setItem("union_"+u, l);
+  alert("✅ 设置成功");
 }
 </script>
 </body>
