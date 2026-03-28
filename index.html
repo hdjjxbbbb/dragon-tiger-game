@@ -3,366 +3,130 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>彩虹水晶球分红系统 - 安全零信任版</title>
+<title>Meta Whale</title>
+
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
-body{background:#0f172a;color:#fff;padding-bottom:60px}
-
-/* 右上角菜单 */
-.menu-btn{
-  position:fixed;top:12px;right:12px;z-index:9999;
-  background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);
-  border:none;color:#fff;font-size:22px;padding:10px 14px;border-radius:12px
-}
-.sidebar{
-  position:fixed;top:0;right:0;height:100vh;width:280px;
-  background:#111827;z-index:9998;
-  padding:80px 20px 20px;overflow-y:auto;
-  transform:translateX(100%);transition:0.3s
-}
-.sidebar.open{transform:translateX(0)}
-.sidebar .section{margin-bottom:24px}
-.sidebar h4{margin-bottom:10px;font-size:14px;color:#aaa}
-.sidebar button{width:100%;margin:4px 0;padding:12px;border-radius:10px;border:none;background:#1f2937;color:#fff}
-
-.container{max-width:500px;margin:0 auto;padding:20px}
-.invite-box{background:#1e293b;padding:16px;border-radius:16px;margin-bottom:20px}
-.invite-link{font-size:14px;color:#fff;word-break:break-all;margin-bottom:8px}
-.copy-btn{background:#3b82f6;color:#fff;border:none;padding:10px;border-radius:8px;width:100%}
-
-.glass{background:#1e293b;border-radius:16px;padding:20px;margin-bottom:20px}
-.input{width:100%;padding:14px;margin:8px 0;border-radius:12px;border:none;background:#0f172a;color:#fff}
-.btn{width:100%;padding:14px;border-radius:12px;border:none;background:#3b82f6;color:#fff;font-weight:bold;margin-top:8px}
-.btn:disabled{background:#333;color:#888}
-
-/* 5格彩虹水晶球 */
-.crystal-row{display:flex;gap:10px;margin-top:12px}
-.crystal{
-  width:60px;height:60px;border-radius:50%;position:relative;
-  display:grid;place-items:center;font-weight:bold;font-size:12px;
-  border:2px solid rgba(255,255,255,0.3)
-}
-.crystal.owned{
-  background:conic-gradient(red,orange,yellow,green,blue,indigo,violet,red);
-  animation:rotate 3s linear infinite;color:#000
-}
-.crystal.locked{background:#333;color:#888}
-@keyframes rotate{100%{transform:rotate(360deg)}}
-
-.matrix-item{padding:12px 0;border-bottom:1px solid #333}
-.admin-info{color:#ff6666;font-size:12px;margin-top:8px}
+body{background:#0b0f1f;color:#fff;font-family:Arial;padding:20px;max-width:500px;margin:auto}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;background:#4facfe;color:#000;font-weight:bold;margin-top:10px}
+.item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #333}
+.price{color:#4facfe}
 </style>
 </head>
 
 <body>
-<button class="menu-btn" id="toggleMenu">☰</button>
-<div class="sidebar" id="sidebar">
-  <div class="section">
-    <h4>🎴 分红卡牌</h4>
-    <button onclick="synthCard()">合成1级水晶球</button>
-    <button onclick="showTransfer()">转账/出售卡牌</button>
-  </div>
 
-  <div id="adminArea" style="display:none">
-    <div class="section">
-      <h4>⚙️ 管理员后台（本地操作）</h4>
-      <button onclick="adminCheckUser()">查看用户卡牌</button>
-      <button onclick="adminForceCard()">给玩家添加卡牌</button>
-      <button onclick="adminForceClassic()">强制经典矩阵</button>
-      <button onclick="adminForceUnion()">强制联合矩阵</button>
-      <div class="admin-info">注：仅本地状态，无链上操作</div>
-    </div>
-  </div>
+<h2>Meta Whale (Polygon)</h2>
+
+<button id="connect" class="btn">连接钱包</button>
+<div id="addr"></div>
+
+<div style="margin-top:20px">
+<h3>经典矩阵</h3>
+<div id="classic"></div>
 </div>
 
-<div class="container">
-  <div class="invite-box glass">
-    <div>我的邀请链接</div>
-    <div class="invite-link" id="myLink">-</div>
-    <button class="copy-btn" id="copyLink">复制完整邀请链接</button>
-  </div>
-
-  <div class="glass">
-    <input class="input" placeholder="邀请码" id="inviteInput" readonly>
-    <button class="btn" id="regBtn">注册账号</button>
-    <p style="font-size:12px;margin-top:8px">激活矩阵请手动转 DAI 至官方地址</p>
-  </div>
-
-  <div class="glass">
-    <p>能量值：<span id="power">0</span></p>
-    <p style="font-size:12px">合成1级需：102400 能量（累计消耗10240 DAI）</p>
-    <button class="btn" onclick="synthCard()">合成1级彩虹水晶球</button>
-  </div>
-
-  <!-- 经典矩阵 -->
-  <div class="glass">
-    <h3>经典矩阵</h3>
-    <div id="classicList"></div>
-    <p style="font-size:12px;margin-top:8px">激活后请联系管理员确认到账</p>
-  </div>
-
-  <!-- 联合矩阵 -->
-  <div class="glass">
-    <h3>联合矩阵</h3>
-    <div id="unionList"></div>
-    <p style="font-size:12px;margin-top:8px">激活后请联系管理员确认到账</p>
-  </div>
-
-  <!-- 5格卡牌 -->
-  <div class="glass">
-    <h3>分红水晶球（1-5级）</h3>
-    <div class="crystal-row" id="crystalRow"></div>
-  </div>
-
-  <!-- 转账面板（本地） -->
-  <div class="glass" id="transferPanel" style="display:none;margin-top:20px">
-    <h3>转账卡牌（本地记录）</h3>
-    <select class="input" id="cardSelect"></select>
-    <input class="input" placeholder="对方钱包地址" id="toAddr">
-    <button class="btn" onclick="transferCard()">确认转账</button>
-  </div>
-</div>
+<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 
 <script>
-// 官方收款地址（玩家手动转账用，前端不碰私钥/签名）
-const OFFICIAL_DAI_ADDR = "0x你的官方收款钱包地址";
+// ==========================
+// 配置（必须改成你的）
+// ==========================
+const CONTRACT = "你的合约地址"; 
+const DAI = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"; // Polygon DAI
 
-// 管理员地址
-const ADMIN_ADDR = "0xe6ac36fd161c390beb9ffa3a96c895cdd037233a".toLowerCase();
+let web3, account, contract;
 
-let account, isAdmin = false, isRegistered = false;
-let userPower = 0;
-let cards = {1:0,2:0,3:0,4:0,5:0};
-let classicActive = {};
-let unionActive = {};
-
-// 合成1级卡需要102400能量 = 累计消耗10240 DAI
-const SYNTH_COST = 102400;
-const POWER_PER_DAI = 10;
-
-window.onload = async ()=>{
-  if(window.ethereum){
-    const accounts = await ethereum.request({method:'eth_requestAccounts'});
-    account = accounts[0]?.toLowerCase() || "";
-    isAdmin = account === ADMIN_ADDR;
-    if(isAdmin) document.getElementById('adminArea').style.display = "block";
-  }
-  loadInvite();
-  loadUserData();
-  renderAll();
+// 价格
+function price(level){
+  return 50 * (2 ** (level-1));
 }
 
-// 右上角菜单
-document.getElementById('toggleMenu').onclick=()=>{
-  document.getElementById('sidebar').classList.toggle('open');
-}
-
-// 邀请链接
-document.getElementById('copyLink').onclick=()=>{
-  const code = account ? account.slice(-8) : "----";
-  const link = window.location.origin + window.location.pathname + "?invite=" + code;
-  navigator.clipboard.writeText(link);
-  alert("复制成功");
-}
-
-// 读取邀请码
-function loadInvite(){
-  const u = new URLSearchParams(location.search);
-  const inv = u.get('invite');
-  if(inv) document.getElementById('inviteInput').value = inv;
-}
-
-// 本地用户数据（仅 localStorage）
-function loadUserData(){
-  if(!account) return;
-  const key = "user_"+account;
-  const d = JSON.parse(localStorage.getItem(key)) || {
-    reg:false,power:0,cards:{1:0,2:0,3:0,4:0,5:0},
-    classic:{},union:{}
-  };
-  isRegistered = d.reg;
-  userPower = d.power;
-  cards = d.cards;
-  classicActive = d.classic;
-  unionActive = d.union;
-  if(isAdmin) cards = {1:1,2:1,3:1,4:1,5:1};
-  renderAll();
-}
-
-function saveUserData(){
-  if(!account || isAdmin) return;
-  localStorage.setItem("user_"+account, JSON.stringify({
-    reg:true,power:userPower,cards:cards,
-    classic:classicActive,union:unionActive
-  }));
-}
-
-// 注册（本地）
-document.getElementById('regBtn').onclick=()=>{
-  if(isRegistered) return alert("已注册");
-  isRegistered = true;
-  userPower += 10;
-  saveUserData();
-  alert("注册成功");
-  renderAll();
-}
-
-// 渲染全部
-function renderAll(){
-  document.getElementById('power').innerText = userPower;
-  renderCrystal();
-  renderClassic();
-  renderUnion();
-  renderCardSelect();
-}
-
-// 5格彩虹水晶球
-function renderCrystal(){
-  const el = document.getElementById('crystalRow');
-  el.innerHTML = '';
-  for(let lv=1;lv<=5;lv++){
-    const owned = cards[lv] >= 1;
-    el.innerHTML += `
-      <div class="crystal ${owned?'owned':'locked'}">
-        ${lv}级<br>${owned?'已拥有':'未拥有'}
-      </div>
-    `;
+// 渲染
+function render(){
+  const box = document.getElementById("classic");
+  box.innerHTML = "";
+  for(let i=1;i<=5;i++){
+    box.innerHTML += `
+    <div class="item">
+      <div>Lv${i}</div>
+      <div class="price">${price(i)} DAI</div>
+      <button onclick="buy(${i})">激活</button>
+    </div>`;
   }
 }
 
-// 经典矩阵
-function renderClassic(){
-  const el = document.getElementById('classicList');
-  el.innerHTML = '';
-  for(let lv=1;lv<=12;lv++){
-    const cost = 50 * Math.pow(2, lv-1);
-    const act = classicActive[lv];
-    el.innerHTML += `
-      <div class="matrix-item">
-        <div>Lv.${lv} · ${cost} DAI</div>
-        <button class="btn" ${act?'disabled':''} onclick="actClassic(${lv},${cost})">
-          ${act?'已激活':'我已转账'}
-        </button>
-      </div>
-    `;
+// 买
+async function buy(level){
+  if(!account) return alert("先连接钱包");
+
+  const amount = price(level);
+  const val = web3.utils.toWei(amount+"","mwei");
+
+  const dai = new web3.eth.Contract([
+    {
+      "name":"approve",
+      "type":"function",
+      "inputs":[
+        {"name":"spender","type":"address"},
+        {"name":"amount","type":"uint256"}
+      ]
+    }
+  ], DAI);
+
+  try{
+
+    alert("① 授权中...");
+    await dai.methods.approve(CONTRACT, val).send({from:account});
+
+    alert("② 激活中...");
+    await contract.methods.activate(level).send({from:account});
+
+    alert("✅ 成功");
+
+  }catch(e){
+    let msg = e.message;
+    if(msg.includes("insufficient")) msg="余额不足";
+    if(msg.includes("rejected")) msg="用户取消";
+    alert("❌ "+msg);
   }
 }
 
-// 联合矩阵
-function renderUnion(){
-  const el = document.getElementById('unionList');
-  el.innerHTML = '';
-  const prices = [0,50,100,200,400,800,1600,3200,6400,12800];
-  for(let lv=1;lv<=9;lv++){
-    const cost = prices[lv];
-    const act = unionActive[lv];
-    el.innerHTML += `
-      <div class="matrix-item">
-        <div>联合Lv.${lv} · ${cost} DAI</div>
-        <button class="btn" ${act?'disabled':''} onclick="actUnion(${lv},${cost})">
-          ${act?'已激活':'我已转账'}
-        </button>
-      </div>
-    `;
+// 连接钱包
+document.getElementById("connect").onclick = async ()=>{
+
+  if(!window.ethereum) return alert("请用钱包打开");
+
+  await ethereum.request({method:"eth_requestAccounts"});
+
+  web3 = new Web3(window.ethereum);
+
+  // 强制Polygon
+  const chainId = await web3.eth.getChainId();
+  if(chainId !== 137){
+    alert("请切换Polygon网络");
+    return;
   }
-}
 
-// 激活矩阵（本地确认，无链上操作）
-function actClassic(lv,cost){
-  if(!isRegistered) return alert("请先注册");
-  if(classicActive[lv]) return;
-  if(!confirm(`请先手动转账 ${cost} DAI 至：${OFFICIAL_DAI_ADDR}\n转账完成后点击确认`)) return;
-  classicActive[lv] = true;
-  userPower += cost * POWER_PER_DAI;
-  saveUserData();
-  alert("激活成功（本地已记录）");
-  renderAll();
-}
+  const accs = await web3.eth.getAccounts();
+  account = accs[0];
 
-function actUnion(lv,cost){
-  if(!isRegistered) return alert("请先注册");
-  if(unionActive[lv]) return;
-  if(!confirm(`请先手动转账 ${cost} DAI 至：${OFFICIAL_DAI_ADDR}\n转账完成后点击确认`)) return;
-  unionActive[lv] = true;
-  userPower += cost * POWER_PER_DAI;
-  saveUserData();
-  alert("激活成功（本地已记录）");
-  renderAll();
-}
+  document.getElementById("addr").innerText =
+    account.slice(0,6)+"..."+account.slice(-4);
 
-// 合成卡牌
-function synthCard(){
-  if(!account) return alert("请连接钱包");
-  if(isAdmin) return alert("管理员无需合成");
-  if(userPower < SYNTH_COST) return alert("能量不足");
-  userPower -= SYNTH_COST;
-  cards[1]++;
-  saveUserData();
-  alert("合成1级彩虹水晶球成功");
-  renderAll();
-}
+  // 合约ABI（最小可用）
+  const ABI = [
+    {
+      "name":"activate",
+      "type":"function",
+      "inputs":[{"name":"level","type":"uint256"}]
+    }
+  ];
 
-// 卡牌转账（本地）
-function showTransfer(){
-  document.getElementById('transferPanel').style.display = "block";
-}
-function renderCardSelect(){
-  const s = document.getElementById('cardSelect');
-  s.innerHTML = '';
-  for(let lv=1;lv<=5;lv++){
-    if(cards[lv]>=1) s.innerHTML += `<option value="${lv}">${lv}级水晶球</option>`;
-  }
-}
-function transferCard(){
-  const lv = document.getElementById('cardSelect').value;
-  const to = document.getElementById('toAddr').value.trim().toLowerCase();
-  if(!to || !lv || cards[lv]<1) return alert("参数错误");
-  cards[lv]--;
-  const targetKey = "user_"+to;
-  const target = JSON.parse(localStorage.getItem(targetKey)) || {reg:true,power:0,cards:{1:0,2:0,3:0,4:0,5:0}};
-  target.cards[lv]++;
-  localStorage.setItem(targetKey, JSON.stringify(target));
-  saveUserData();
-  alert("转账成功（本地已记录）");
-  renderAll();
-}
+  contract = new web3.eth.Contract(ABI, CONTRACT);
 
-// ======================
-// 管理员本地功能
-// ======================
-function adminCheckUser(){
-  const addr = prompt("输入玩家地址");
-  if(!addr) return;
-  const d = JSON.parse(localStorage.getItem("user_"+addr.toLowerCase())) || {cards:{1:0,2:0,3:0,4:0,5:0}};
-  alert(`1:${d.cards[1]} | 2:${d.cards[2]} | 3:${d.cards[3]} | 4:${d.cards[4]} | 5:${d.cards[5]}`);
-}
-function adminForceCard(){
-  const addr=prompt("玩家地址"),lv=prompt("等级1-5");
-  if(!addr||!lv)return;
-  const key="user_"+addr.toLowerCase();
-  const d=JSON.parse(localStorage.getItem(key))||{reg:true,power:0,cards:{1:0,2:0,3:0,4:0,5:0}};
-  d.cards[lv]++;
-  localStorage.setItem(key,JSON.stringify(d));
-  alert("添加成功");
-}
-function adminForceClassic(){
-  const addr=prompt("玩家地址"),lv=prompt("等级1-12");
-  if(!addr||!lv)return;
-  const key="user_"+addr.toLowerCase();
-  const d=JSON.parse(localStorage.getItem(key))||{reg:true,power:0,cards:{1:0,2:0,3:0,4:0,5:0},classic:{},union:{}};
-  d.classic[lv]=true;
-  localStorage.setItem(key,JSON.stringify(d));
-  alert("已强制激活");
-}
-function adminForceUnion(){
-  const addr=prompt("玩家地址"),lv=prompt("等级1-9");
-  if(!addr||!lv)return;
-  const key="user_"+addr.toLowerCase();
-  const d=JSON.parse(localStorage.getItem(key))||{reg:true,power:0,cards:{1:0,2:0,3:0,4:0,5:0},classic:{},union:{}};
-  d.union[lv]=true;
-  localStorage.setItem(key,JSON.stringify(d));
-  alert("已强制激活");
-}
+  render();
+};
 </script>
+
 </body>
 </html>
