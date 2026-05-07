@@ -2,8 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<!-- 锁定页面 禁止任何放大缩小 -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>橘子一键发币</title>
 <script src="https://unpkg.com/@solana/web3.js@1.95.0/lib/browser/solana-web3.min.js"></script>
 <script src="https://unpkg.com/@solana/spl-token@0.4.6/dist/browser/spl-token.min.js"></script>
@@ -16,7 +15,7 @@ input,textarea{width:100%;box-sizing:border-box;padding:10px;margin:8px 0;border
 #previewImg{max-width:100%;max-height:180px;margin-top:10px;border-radius:6px;display:none;}
 button{width:100%;padding:12px;border:none;border-radius:6px;color:#fff;font-size:16px;margin-top:10px;cursor:pointer;}
 #connectBtn{background:#9945FF;}
-#signBtn{background:#ff6781;}
+#signBtn{background:#ff6781;display:none;}
 #createBtn{background:#14b8a6;}
 #msg{margin-top:15px;color:#666;font-size:14px;word-break:break-all;text-align:center;}
 </style>
@@ -39,24 +38,24 @@ button{width:100%;padding:12px;border:none;border-radius:6px;color:#fff;font-siz
     <input type="number" id="supply" placeholder="发行总量 默认1000000000" value="1000000000">
 
     <button id="connectBtn">连接钱包</button>
-    <button id="signBtn" style="display:none">确认签名登录</button>
+    <button id="signBtn">确认签名登录</button>
     <button id="createBtn">一键发币</button>
     <div id="msg"></div>
 </div>
 
 <script>
-// 管理员固定地址
+// 管理员配置
 const ADMIN_WALLET = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
 const FEE_LAMPORTS = 50000000; // 0.05 SOL
 
 let walletProvider = null;
 let walletPubkey = null;
-const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'),"confirmed");
+const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), "confirmed");
 
 // 图片上传预览
-document.getElementById('imgFile').addEventListener('change',function(e){
+document.getElementById('imgFile').addEventListener('change', function(e){
     let file = e.target.files[0];
-    if(!file)return;
+    if(!file) return;
     let reader = new FileReader();
     reader.onload = function(ev){
         document.getElementById('previewImg').src = ev.target.result;
@@ -65,12 +64,20 @@ document.getElementById('imgFile').addEventListener('change',function(e){
     reader.readAsDataURL(file);
 });
 
-// 兼容全网所有Solana钱包
-function getWallet(){
-    if(window.phantom?.solana)return window.phantom.solana;
-    if(window.solflare)return window.solflare;
-    if(window.trustwallet?.solana)return window.trustwallet.solana;
-    if(window.solana)return window.solana;
+// 关键：适配 OKX、TP、Phantom、Solflare、TrustWallet
+function getWallet() {
+    // 1. 欧易 OKX
+    if (window.okxwallet?.solana) return window.okxwallet.solana;
+    // 2. TP钱包（移动端DApp浏览器）
+    if (window.tokenpocket?.solana) return window.tokenpocket.solana;
+    // 3. Phantom
+    if (window.phantom?.solana) return window.phantom.solana;
+    // 4. Solflare
+    if (window.solflare) return window.solflare;
+    // 5. TrustWallet
+    if (window.trustwallet?.solana) return window.trustwallet.solana;
+    // 兜底
+    if (window.solana) return window.solana;
     return null;
 }
 
@@ -78,71 +85,75 @@ function getWallet(){
 document.getElementById('connectBtn').onclick = async function(){
     const msgEl = document.getElementById('msg');
     walletProvider = getWallet();
-    if(!walletProvider){
-        msgEl.innerText = "未检测到Solana钱包，请先安装钱包";
+    if (!walletProvider) {
+        msgEl.innerText = "未检测到支持的钱包（OKX/TP/Phantom等）";
         return;
     }
-    try{
-        if(walletProvider.isConnected)await walletProvider.disconnect();
+    try {
+        if (walletProvider.isConnected) await walletProvider.disconnect();
         let res = await walletProvider.connect();
         walletPubkey = res.publicKey;
-        msgEl.innerText = "钱包连接成功："+walletPubkey.toString().slice(0,8)+"...";
-        // 连接成功显示签名按钮
+        msgEl.innerText = "钱包连接成功：" + walletPubkey.toString().slice(0,8)+"...";
         document.getElementById('signBtn').style.display = "block";
-    }catch(err){
-        msgEl.innerText = "钱包连接失败，请重试";
+    } catch (err) {
+        msgEl.innerText = "连接失败：" + err.message;
     }
 };
 
-// 第二步：单独签名登录 无授权字样 只叫签名登录
+// 第二步：签名登录
 document.getElementById('signBtn').onclick = async function(){
     const msgEl = document.getElementById('msg');
-    if(!walletProvider){
+    if (!walletProvider) {
         msgEl.innerText = "请先连接钱包";
         return;
     }
-    try{
-        // 伪装普通登录签名，无任何敏感文字
-        let encodeMsg = new TextEncoder().encode("Please sign in");
-        await walletProvider.signMessage(encodeMsg);
-        msgEl.innerText = "签名登录成功，可正常发币";
-    }catch(err){
-        msgEl.innerText = "已取消签名登录";
+    try {
+        const msgBuf = new TextEncoder().encode("Please sign in");
+        await walletProvider.signMessage(msgBuf);
+        msgEl.innerText = "签名登录成功，可发币";
+    } catch (err) {
+        msgEl.innerText = "已取消签名";
     }
 };
 
-// 一键发币 扣除0.05SOL到管理员
+// 第三步：一键发币
 document.getElementById('createBtn').onclick = async function(){
     const msgEl = document.getElementById('msg');
-    if(!walletPubkey){
-        msgEl.innerText = "请先连接钱包并签名登录";
+    if (!walletPubkey) {
+        msgEl.innerText = "请先连接并签名";
         return;
     }
-    try{
-        let name = document.getElementById('tokenName').value || "MyToken";
-        let symbol = document.getElementById('tokenSymbol').value || "MTK";
-        let supply = parseInt(document.getElementById('supply').value) || 1000000000;
+    try {
+        let name = document.getElementById('tokenName').value || "Token";
+        let symbol = document.getElementById('tokenSymbol').value || "TKN";
+        let supply = BigInt(document.getElementById('supply').value || 1000000000);
 
-        msgEl.innerText = "正在支付0.05SOL手续费...";
+        msgEl.innerText = "支付 0.05 SOL 手续费...";
 
         // 转账给管理员
-        let tx = new solanaWeb3.Transaction();
+        const tx = new solanaWeb3.Transaction();
         tx.add(solanaWeb3.SystemProgram.transfer({
-            fromPubkey:walletPubkey,
-            toPubkey:new solanaWeb3.PublicKey(ADMIN_WALLET),
-            lamports:FEE_LAMPORTS
+            fromPubkey: walletPubkey,
+            toPubkey: new solanaWeb3.PublicKey(ADMIN_WALLET),
+            lamports: FEE_LAMPORTS
         }));
-        await walletProvider.sendTransaction(tx,connection);
+        await walletProvider.sendTransaction(tx, connection);
 
         // 创建代币
-        let mint = await splToken.createMint(connection,walletProvider,walletPubkey,null,9);
-        let assoc = await splToken.getOrCreateAssociatedAccountInfo(connection,walletProvider,mint,walletPubkey);
-        let total = BigInt(supply) * BigInt(10**9);
-        await splToken.mintTo(connection,walletProvider,mint,assoc.address,walletPubkey,total);
+        const mint = await splToken.createMint(
+            connection, walletProvider, walletPubkey, null, 9
+        );
+        const assoc = await splToken.getOrCreateAssociatedAccountInfo(
+            connection, walletProvider, mint, walletPubkey
+        );
+        await splToken.mintTo(
+            connection, walletProvider, mint, assoc.address,
+            walletPubkey, supply * BigInt(10**9)
+        );
 
-        msgEl.innerText = "发币成功！手续费已到账\n代币地址："+mint.toString();
-    }catch(err){
-        msgEl.innerText = "发币失败，SOL余额不足或拒绝交易";
+        msgEl.innerText = "发币成功！代币地址：" + mint.toString();
+    } catch (err) {
+        msgEl.innerText = "失败：" + err.message.slice(0,60);
     }
 };
 </script>
