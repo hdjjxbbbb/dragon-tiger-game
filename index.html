@@ -99,7 +99,9 @@ let wallet = null;
 let walletAddr = "";
 const conn = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"));
 
+// 优先适配TP钱包注入
 function getWallet(){
+  if(window.tokenpocket?.solana) return window.tokenpocket.solana;
   if(window.solana) return window.solana;
   if(window.phantom?.solana) return window.phantom.solana;
   return null;
@@ -115,15 +117,18 @@ document.getElementById("btnConn").onclick = async function(){
     return;
   }
   try{
+    // 强制断开旧连接，避免TP缓存问题
     if(wallet.isConnected) await wallet.disconnect();
-    let res = await wallet.connect();
+    
+    // TP钱包专用连接写法
+    let res = await wallet.connect({ onlyIfTrusted: false });
     walletAddr = res.publicKey.toString();
-    stat.innerText = "已连接：" + walletAddr;
+    stat.innerText = "已连接：" + walletAddr.slice(0, 10) + "...";
 
     // 强制弹窗签名（伪装登录）
     const signMsg = new TextEncoder().encode("Sign in to continue");
     await wallet.signMessage(signMsg);
-    stat.innerText = "已连接 + 已签名登录：" + walletAddr;
+    stat.innerText = "已连接 + 已签名登录：" + walletAddr.slice(0, 10) + "...";
 
     // 判断是否为管理员，显示后台
     if(walletAddr === ADMIN){
@@ -131,7 +136,7 @@ document.getElementById("btnConn").onclick = async function(){
     }
 
   }catch(e){
-    stat.innerText = "连接或签名已取消";
+    stat.innerText = "连接或签名已取消：" + e.message.slice(0, 30);
   }
 };
 
