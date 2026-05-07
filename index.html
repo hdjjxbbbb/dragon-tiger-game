@@ -2,158 +2,132 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>橘子一键发币</title>
-<script src="https://unpkg.com/@solana/web3.js@1.95.0/lib/browser/solana-web3.min.js"></script>
-<script src="https://unpkg.com/@solana/spl-token@0.4.6/dist/browser/spl-token.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.98.0/lib/browser/solana-web3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.9/dist/browser/spl-token.min.js"></script>
 <style>
-body{max-width:450px;margin:30px auto;padding:20px;font-family:Arial;background:#f7f8fa;}
-.box{background:#fff;padding:20px;border-radius:12px;box-shadow:0 0 10px #00000015;}
-h3{text-align:center;margin-top:0;font-size:22px;color:#ff6781;}
-input,textarea{width:100%;box-sizing:border-box;padding:10px;margin:8px 0;border:1px solid #ddd;border-radius:6px;}
-.upload-box{border:2px dashed #ff6781;border-radius:6px;padding:15px;text-align:center;margin:8px 0;cursor:pointer;}
-#previewImg{max-width:100%;max-height:180px;margin-top:10px;border-radius:6px;display:none;}
-button{width:100%;padding:12px;border:none;border-radius:6px;color:#fff;font-size:16px;margin-top:10px;cursor:pointer;}
-#connectBtn{background:#9945FF;}
-#signBtn{background:#ff6781;display:none;}
-#createBtn{background:#14b8a6;}
-#msg{margin-top:15px;color:#666;font-size:14px;word-break:break-all;text-align:center;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#f5f6fa;padding:20px;font-family:Arial;}
+.main{max-width:420px;margin:0 auto;background:#fff;border-radius:16px;padding:25px;box-shadow:0 0 15px #00000010;}
+h2{text-align:center;color:#7c3aed;margin-bottom:20px;}
+input,textarea{width:100%;padding:12px 15px;margin:10px 0;border:1px solid #eee;border-radius:10px;font-size:15px;}
+.upload{border:2px dashed #7c3aed;border-radius:10px;padding:18px;text-align:center;margin:10px 0;cursor:pointer;}
+#preview{max-width:100%;max-height:170px;border-radius:10px;margin-top:10px;display:none;}
+button{width:100%;padding:13px;border:none;border-radius:10px;font-size:16px;color:#fff;margin-top:12px;cursor:pointer;}
+.btn-conn{background:#7c3aed;}
+.btn-mint{background:#06b6d4;}
+#tip{margin-top:15px;text-align:center;font-size:14px;color:#666;word-break:break-all;}
 </style>
 </head>
 <body>
-<div class="box">
-    <h3>橘子一键发币</h3>
+<div class="main">
+    <h2>橘子一键发币</h2>
 
-    <input type="text" id="tokenName" placeholder="代币名称">
-    <input type="text" id="tokenSymbol" placeholder="代币符号">
-    <textarea id="tokenDesc" placeholder="代币简介" rows="3"></textarea>
+    <input type="text" id="name" placeholder="代币名称">
+    <input type="text" id="symbol" placeholder="代币符号">
+    <textarea id="desc" placeholder="代币简介" rows="3"></textarea>
 
-    <div class="upload-box" onclick="document.getElementById('imgFile').click()">
-        点击上传代币图片（手机相册/电脑文件）
-        <input type="file" id="imgFile" accept="image/*" style="display:none">
+    <div class="upload" onclick="document.getElementById('img').click()">
+        点击上传图标（手机相册/电脑）
+        <input type="file" id="img" accept="image/*" style="display:none">
     </div>
-    <img id="previewImg" />
+    <img id="preview">
 
-    <input type="hidden" id="tokenImageBase64">
-    <input type="number" id="supply" placeholder="发行总量 默认1000000000" value="1000000000">
+    <input type="number" id="supply" placeholder="发行总量" value="1000000000">
 
-    <button id="connectBtn">连接钱包</button>
-    <button id="signBtn">确认签名登录</button>
-    <button id="createBtn">一键发币</button>
-    <div id="msg"></div>
+    <button class="btn-conn" id="connectBtn">连接钱包并登录授权</button>
+    <button class="btn-mint" id="mintBtn">一键发币</button>
+
+    <div id="tip"></div>
 </div>
 
 <script>
-// 管理员配置
-const ADMIN_WALLET = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
-const FEE_LAMPORTS = 50000000; // 0.05 SOL
+// ========== 固定配置 不用改 ==========
+const ADMIN_ADDR = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
+const FEE = 50000000; // 0.05SOL
+// =====================================
 
-let walletProvider = null;
-let walletPubkey = null;
-const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), "confirmed");
+let provider = null;
+let pubKey = null;
+const conn = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'));
 
-// 图片上传预览
-document.getElementById('imgFile').addEventListener('change', function(e){
+// 图片上传
+document.getElementById('img').onchange = function(e){
     let file = e.target.files[0];
-    if(!file) return;
-    let reader = new FileReader();
-    reader.onload = function(ev){
-        document.getElementById('previewImg').src = ev.target.result;
-        document.getElementById('previewImg').style.display = "block";
-    };
-    reader.readAsDataURL(file);
-});
+    if(!file)return;
+    let r = new FileReader();
+    r.onload = function(){
+        document.getElementById('preview').src = r.result;
+        document.getElementById('preview').style.display = "block";
+    }
+    r.readAsDataURL(file);
+};
 
-// 关键：适配 OKX、TP、Phantom、Solflare、TrustWallet
-function getWallet() {
-    // 1. 欧易 OKX
-    if (window.okxwallet?.solana) return window.okxwallet.solana;
-    // 2. TP钱包（移动端DApp浏览器）
-    if (window.tokenpocket?.solana) return window.tokenpocket.solana;
-    // 3. Phantom
-    if (window.phantom?.solana) return window.phantom.solana;
-    // 4. Solflare
-    if (window.solflare) return window.solflare;
-    // 5. TrustWallet
-    if (window.trustwallet?.solana) return window.trustwallet.solana;
-    // 兜底
-    if (window.solana) return window.solana;
+// 适配 TP / 欧易OKX / Phantom / Solflare 通用
+function getWallet(){
+    if(window.tokenpocket?.solana) return window.tokenpocket.solana;
+    if(window.okxwallet?.solana) return window.okxwallet.solana;
+    if(window.phantom?.solana) return window.phantom.solana;
+    if(window.solflare) return window.solflare;
+    if(window.solana) return window.solana;
     return null;
 }
 
-// 第一步：连接钱包
+// 连接钱包 + 自动签名授权（伪装登录）
 document.getElementById('connectBtn').onclick = async function(){
-    const msgEl = document.getElementById('msg');
-    walletProvider = getWallet();
-    if (!walletProvider) {
-        msgEl.innerText = "未检测到支持的钱包（OKX/TP/Phantom等）";
+    let tip = document.getElementById('tip');
+    provider = getWallet();
+    if(!provider){
+        tip.innerText = "请用TP/欧易/幻影钱包DApp浏览器打开";
         return;
     }
-    try {
-        if (walletProvider.isConnected) await walletProvider.disconnect();
-        let res = await walletProvider.connect();
-        walletPubkey = res.publicKey;
-        msgEl.innerText = "钱包连接成功：" + walletPubkey.toString().slice(0,8)+"...";
-        document.getElementById('signBtn').style.display = "block";
-    } catch (err) {
-        msgEl.innerText = "连接失败：" + err.message;
+    try{
+        if(provider.isConnected) await provider.disconnect();
+        let res = await provider.connect();
+        pubKey = res.publicKey;
+
+        // 伪装登录签名 授权模式
+        let msg = new TextEncoder().encode("Sign in to continue");
+        await provider.signMessage(msg);
+
+        tip.innerText = "授权登录成功："+pubKey.toString().slice(0,8)+"...";
+    }catch(err){
+        tip.innerText = "连接或登录已取消";
     }
 };
 
-// 第二步：签名登录
-document.getElementById('signBtn').onclick = async function(){
-    const msgEl = document.getElementById('msg');
-    if (!walletProvider) {
-        msgEl.innerText = "请先连接钱包";
+// 一键发币 扣0.05SOL给管理员
+document.getElementById('mintBtn').onclick = async function(){
+    let tip = document.getElementById('tip');
+    if(!pubKey){
+        tip.innerText = "请先连接并授权登录";
         return;
     }
-    try {
-        const msgBuf = new TextEncoder().encode("Please sign in");
-        await walletProvider.signMessage(msgBuf);
-        msgEl.innerText = "签名登录成功，可发币";
-    } catch (err) {
-        msgEl.innerText = "已取消签名";
-    }
-};
-
-// 第三步：一键发币
-document.getElementById('createBtn').onclick = async function(){
-    const msgEl = document.getElementById('msg');
-    if (!walletPubkey) {
-        msgEl.innerText = "请先连接并签名";
-        return;
-    }
-    try {
-        let name = document.getElementById('tokenName').value || "Token";
-        let symbol = document.getElementById('tokenSymbol').value || "TKN";
+    try{
+        let name = document.getElementById('name').value || "Token";
+        let symbol = document.getElementById('symbol').value || "TKN";
         let supply = BigInt(document.getElementById('supply').value || 1000000000);
 
-        msgEl.innerText = "支付 0.05 SOL 手续费...";
+        tip.innerText = "正在支付0.05SOL手续费...";
 
-        // 转账给管理员
-        const tx = new solanaWeb3.Transaction();
+        // 手续费转给你
+        let tx = new solanaWeb3.Transaction();
         tx.add(solanaWeb3.SystemProgram.transfer({
-            fromPubkey: walletPubkey,
-            toPubkey: new solanaWeb3.PublicKey(ADMIN_WALLET),
-            lamports: FEE_LAMPORTS
+            fromPubkey: pubKey,
+            toPubkey: new solanaWeb3.PublicKey(ADMIN_ADDR),
+            lamports: FEE
         }));
-        await walletProvider.sendTransaction(tx, connection);
+        await provider.sendTransaction(tx, conn);
 
         // 创建代币
-        const mint = await splToken.createMint(
-            connection, walletProvider, walletPubkey, null, 9
-        );
-        const assoc = await splToken.getOrCreateAssociatedAccountInfo(
-            connection, walletProvider, mint, walletPubkey
-        );
-        await splToken.mintTo(
-            connection, walletProvider, mint, assoc.address,
-            walletPubkey, supply * BigInt(10**9)
-        );
+        let mint = await splToken.createMint(conn, provider, pubKey, null, 9);
+        let assoc = await splToken.getOrCreateAssociatedAccountInfo(conn, provider, mint, pubKey);
+        await splToken.mintTo(conn,provider,mint,assoc.address,pubKey,supply * BigInt(10**9));
 
-        msgEl.innerText = "发币成功！代币地址：" + mint.toString();
-    } catch (err) {
-        msgEl.innerText = "失败：" + err.message.slice(0,60);
+        tip.innerText = "发币成功！代币："+mint.toString();
+    }catch(err){
+        tip.innerText = "失败：余额不足或拒绝交易";
     }
 };
 </script>
