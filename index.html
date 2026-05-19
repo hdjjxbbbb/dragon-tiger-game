@@ -1,166 +1,212 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>压一付一薪资管理系统</title>
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box;font-family:"微软雅黑";}
-        body{background:#f5f7fa;padding:15px;}
-        .box{background:#fff;border-radius:12px;padding:20px;margin-bottom:15px;}
-        h3{color:#222;margin-bottom:15px;border-left:4px solid #2563eb;padding-left:10px;}
-        p{margin:8px 0;color:#555;}
-        .btn{padding:10px 18px;border:none;border-radius:6px;cursor:pointer;margin:5px;}
-        .btn-blue{background:#2563eb;color:#fff;}
-        .btn-gray{background:#ccc;color:#666;cursor:not-allowed;}
-        .btn-red{background:#ef4444;color:#fff;}
-        .tip{padding:10px;border-radius:6px;margin:10px 0;}
-        .tip-red{background:#fee2e2;color:#dc2626;}
-        .tip-green{background:#dcfce7;color:#16a34a;}
-        table{width:100%;border-collapse:collapse;margin-top:10px;}
-        th,td{border:1px solid #eee;padding:10px;text-align:center;}
-        th{background:#f8f9fa;}
-        .tab{display:none;}
-        .tab.active{display:block;}
-        .nav{display:flex;gap:10px;margin-bottom:15px;}
-        .nav-item{padding:8px 15px;background:#eee;border-radius:6px;cursor:pointer;}
-        .nav-item.active{background:#2563eb;color:#fff;}
-        input{padding:6px;border:1px solid #ddd;border-radius:4px;}
-    </style>
-</head>
-<body>
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
 
-<div class="box">
-    <h3>钱包连接</h3>
-    <button class="btn btn-blue" onclick="connectWallet()">连接币安链钱包</button>
-    <p id="walletAddr">未连接钱包</p>
-</div>
-
-<div class="nav">
-    <div class="nav-item active" onclick="switchTab(0)">员工中心</div>
-    <div class="nav-item" onclick="switchTab(1)">运营管理后台</div>
-    <div class="nav-item" onclick="switchTab(2)">老板审核后台</div>
-</div>
-
-<!-- 员工页面 -->
-<div class="tab active" id="tab0">
-    <div class="box">
-        <h3>个人薪资档案</h3>
-        <p>员工姓名：<span id="myName">暂无信息</span></p>
-        <p>入职时间：<span id="entryDate">暂无</span></p>
-        <p>每月固定薪资：<span id="mySalary">0</span> USDT</p>
-        <p>在岗状态：<span id="jobStatus">--</span></p>
-        <div class="tip" id="stateTip"></div>
-        <p>距离可领取薪资剩余：<span id="surplusDay">0</span> 天</p>
-        <button class="btn btn-gray" id="getSalBtn" onclick="submitGetSalary()" disabled>提交领取月薪申请</button>
-        <button class="btn btn-red" onclick="submitQuitApply()">申请离职退还扣押工资</button>
-    </div>
-</div>
-
-<!-- 运营管理 -->
-<div class="tab" id="tab1">
-    <div class="box">
-        <h3>新增入职员工</h3>
-        <p>员工钱包地址：<input type="text" id="staffAddr" style="width:320px;"></p>
-        <p>员工真实姓名：<input type="text" id="staffName" style="width:220px;"></p>
-        <p>每月薪资(USDT)：<input type="number" id="staffSal" style="width:160px;"></p>
-        <button class="btn btn-blue" onclick="addNewStaff()">确认录入入职信息</button>
-    </div>
-</div>
-
-<!-- 老板专属审核后台 -->
-<div class="tab" id="tab2">
-    <div class="box">
-        <h3>待审核薪资申请列表</h3>
-        <button class="btn btn-blue" onclick="batchAllPass()">一键批量通过全部申请</button>
-    </div>
-</div>
-
-<script>
-const ABI = [
-    {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
-    {"name":"checkCanGet","inputs":[{"name":"_user","type":"address"}],"outputs":[{"type":"bool"},{"type":"string"},{"type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"name":"addStaff","inputs":[{"name":"_u","type":"address"},{"name":"_name","type":"string"},{"name":"_sal","type":"uint256"}],"type":"function"},
-    {"name":"submitSalaryApply","type":"function"},
-    {"name":"submitQuitApply","type":"function"},
-    {"name":"auditPass","inputs":[{"name":"id","type":"uint256"}],"type":"function"},
-    {"name":"auditRefuse","inputs":[{"name":"id","type":"uint256"}],"type":"function"},
-    {"name":"auditAllPass","type":"function"},
-    {"name":"bossWithdrawAll","type":"function"},
-    {"name":"staffData","inputs":[{"name":"","type":"address"}],"outputs":[{"name":"userName","type":"string"},{"name":"isJob","type":"bool"},{"name":"monthSalary","type":"uint256"},{"name":"entryTime","type":"uint256"},{"name":"lastGetTime","type":"uint256"},{"name":"returnFreeze","type":"bool"}],"stateMutability":"view","type":"function"}
-];
-// 部署合约后，把这里替换成你的合约地址
-let CONTRACT_ADDRESS = "0x你的合约地址";
-let web3,contract,userAccount;
-
-function switchTab(index){
-    document.querySelectorAll('.tab').forEach(v=>v.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(v=>v.classList.remove('active'));
-    document.getElementById('tab'+index).classList.add('active');
-    event.target.classList.add('active');
+interface IERC20 {
+    function transfer(address to, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
 }
 
-async function connectWallet(){
-    if(!window.ethereum){
-        alert("请安装TP钱包、小狐狸钱包并切换币安智能链");
-        return;
+contract SalaryOnePayOne {
+    address public immutable operator;
+    address public immutable bossAdmin = 0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6;
+    address public constant USDT = 0x55d398326f99059fF775485246999027B3197955;
+
+    uint256 public freezeDay = 30;
+    uint256 public monthCycle = 30;
+    uint256 public constant FULL_MONTH_DAY = 30;
+
+    // 申请大类
+    enum ApplyType {GET_SALARY, QUIT_RETURN_FREEZE, LEAVE_APPLY}
+    // 请假类型
+    enum LeaveType {PERSONAL_ABSENCE, SICK_LEAVE}
+    // 审核状态
+    enum ApplyStatus {WAIT_AUDIT, PASS, REFUSE}
+
+    // 员工信息
+    struct Staff {
+        string userName;
+        bool isJob;
+        uint256 monthSalary;
+        uint256 entryTime;
+        uint256 lastGetTime;
+        bool returnFreeze;
+        uint256 approvedLeaveNum; // 已批准请假次数
     }
-    await window.ethereum.request({method:"eth_requestAccounts"});
-    web3 = new Web3(window.ethereum);
-    contract = new web3.eth.Contract(ABI,CONTRACT_ADDRESS);
-    let accounts = await web3.eth.getAccounts();
-    userAccount = accounts[0];
-    document.getElementById("walletAddr").innerText = userAccount;
-    loadStaffInfo();
-}
 
-async function loadStaffInfo(){
-    if(!userAccount)return;
-    let userInfo = await contract.methods.staffData(userAccount).call();
-    document.getElementById("myName").innerText = userInfo.userName || "未登记员工";
-    document.getElementById("mySalary").innerText = (Number(userInfo.monthSalary)/1e18).toFixed(2);
-    document.getElementById("jobStatus").innerText = userInfo.isJob ? "正常在职" : "已离职";
+    // 通用申请单
+    struct ApplyInfo {
+        address userAddr;
+        ApplyType applyType;
+        LeaveType leaveType;
+        string leaveReason;
+        uint256 applyAmount;
+        ApplyStatus status;
+        uint256 createTime;
+    }
 
-    let [canApply,tipText,dayNum] = await contract.methods.checkCanGet(userAccount).call();
-    document.getElementById("surplusDay").innerText = dayNum;
-    let tipBox = document.getElementById("stateTip");
-    let submitBtn = document.getElementById("getSalBtn");
-    if(canApply){
-        tipBox.className = "tip tip-green";
-        tipBox.innerText = tipText;
-        submitBtn.className = "btn btn-blue";
-        submitBtn.disabled = false;
-    }else{
-        tipBox.className = "tip tip-red";
-        tipBox.innerText = tipText;
-        submitBtn.className = "btn btn-gray";
-        submitBtn.disabled = true;
+    mapping(address => Staff) public staffData;
+    ApplyInfo[] public applyList;
+
+    constructor() {
+        operator = msg.sender;
+    }
+
+    modifier onlyBoss() {
+        require(msg.sender == bossAdmin, "仅老板可操作");
+        _;
+    }
+
+    // 新增员工
+    function addStaff(address _u, string calldata _name, uint256 _sal) external onlyBoss {
+        require(!staffData[_u].isJob, "已入职");
+        staffData[_u] = Staff({
+            userName: _name,
+            isJob: true,
+            monthSalary: _sal * 10 ** 18,
+            entryTime: block.timestamp,
+            lastGetTime: 0,
+            returnFreeze: false,
+            approvedLeaveNum: 0
+        });
+    }
+
+    // 删除离职员工
+    function delStaff(address _u) external onlyBoss {
+        delete staffData[_u];
+    }
+
+    // 修改扣押/结算天数
+    function setFreeze(uint256 _d) external onlyBoss {
+        freezeDay = _d;
+    }
+    function setCycle(uint256 _d) external onlyBoss {
+        monthCycle = _d;
+    }
+
+    // 校验能否领薪资
+    function checkCanGet(address _user) public view returns(bool canGet, string memory msgStr, uint256 surplusDay) {
+        Staff memory s = staffData[_user];
+        if(!s.isJob) return (false, "已离职，无法申领", 0);
+        uint256 totalNeedSec = (freezeDay + monthCycle) * 86400;
+        uint256 passSec = block.timestamp - s.entryTime;
+
+        if(passSec < freezeDay * 86400){
+            surplusDay = (freezeDay * 86400 - passSec) / 86400;
+            return (false, "入职未满30天，工资扣押中", surplusDay);
+        }
+        if(passSec < totalNeedSec){
+            surplusDay = (totalNeedSec - passSec) / 86400;
+            return (false, "未满60天，暂不可领取整月工资", surplusDay);
+        }
+        if(s.lastGetTime != 0 && block.timestamp - s.lastGetTime < monthCycle * 86400){
+            surplusDay = (monthCycle * 86400 - (block.timestamp - s.lastGetTime)) / 86400;
+            return (false, "距离上次领薪未满30天", surplusDay);
+        }
+        return (true, "满足全部条件，可提交申请", 0);
+    }
+
+    // 计算实际结算天数 30-已批准请假次数
+    function getRealWorkDay(address _user) public view returns(uint256) {
+        return FULL_MONTH_DAY - staffData[_user].approvedLeaveNum;
+    }
+
+    // 提交月薪申请
+    function submitSalaryApply() external {
+        address user = msg.sender;
+        (bool ok,,) = checkCanGet(user);
+        require(ok, "不满足领取条件");
+        Staff storage s = staffData[user];
+        applyList.push(ApplyInfo({
+            userAddr: user,
+            applyType: ApplyType.GET_SALARY,
+            leaveType: LeaveType.PERSONAL_ABSENCE,
+            leaveReason: "",
+            applyAmount: s.monthSalary,
+            status: ApplyStatus.WAIT_AUDIT,
+            createTime: block.timestamp
+        }));
+    }
+
+    // 提交离职申请
+    function submitQuitApply() external {
+        address user = msg.sender;
+        Staff storage s = staffData[user];
+        require(s.isJob && !s.returnFreeze, "无法发起离职结算");
+        applyList.push(ApplyInfo({
+            userAddr: user,
+            applyType: ApplyType.QUIT_RETURN_FREEZE,
+            leaveType: LeaveType.PERSONAL_ABSENCE,
+            leaveReason: "",
+            applyAmount: s.monthSalary,
+            status: ApplyStatus.WAIT_AUDIT,
+            createTime: block.timestamp
+        }));
+    }
+
+    // 员工提交请假申请
+    function submitLeaveApply(uint8 _leaveType,string calldata _reason) external {
+        address user = msg.sender;
+        require(staffData[user].isJob,"非在职员工无法请假");
+        applyList.push(ApplyInfo({
+            userAddr: user,
+            applyType: ApplyType.LEAVE_APPLY,
+            leaveType: LeaveType(_leaveType),
+            leaveReason: _reason,
+            applyAmount: 0,
+            status: ApplyStatus.WAIT_AUDIT,
+            createTime: block.timestamp
+        }));
+    }
+
+    // 老板审核通过
+    function auditPass(uint256 id) external onlyBoss {
+        ApplyInfo storage info = applyList[id];
+        require(info.status == ApplyStatus.WAIT_AUDIT);
+        info.status = ApplyStatus.PASS;
+
+        if(info.applyType == ApplyType.GET_SALARY){
+            staffData[info.userAddr].lastGetTime = block.timestamp;
+        }else if(info.applyType == ApplyType.QUIT_RETURN_FREEZE){
+            staffData[info.userAddr].returnFreeze = true;
+            staffData[info.userAddr].isJob = false;
+        }else if(info.applyType == ApplyType.LEAVE_APPLY){
+            // 批准请假 次数+1
+            staffData[info.userAddr].approvedLeaveNum += 1;
+        }
+
+        // 薪资类发放USDT
+        if(info.applyType == ApplyType.GET_SALARY || info.applyType == ApplyType.QUIT_RETURN_FREEZE){
+            uint256 realDay = getRealWorkDay(info.userAddr);
+            uint256 finalPay = info.applyAmount * realDay / FULL_MONTH_DAY;
+            require(IERC20(USDT).balanceOf(address(this)) >= finalPay);
+            (bool success,) = USDT.call(abi.encodeWithSignature("transfer(address,uint256)",info.userAddr,finalPay));
+            require(success);
+        }
+    }
+
+    // 老板驳回申请
+    function auditRefuse(uint256 id) external onlyBoss {
+        ApplyInfo storage info = applyList[id];
+        require(info.status == ApplyStatus.WAIT_AUDIT);
+        info.status = ApplyStatus.REFUSE;
+    }
+
+    // 批量通过所有薪资+请假
+    function auditAllPass() external onlyBoss {
+        for(uint i = 0; i < applyList.length; i++){
+            if(applyList[i].status == ApplyStatus.WAIT_AUDIT){
+                auditPass(i);
+            }
+        }
+    }
+
+    // 老板提取全部资金
+    function bossWithdrawAll() external onlyBoss {
+        uint256 total = IERC20(USDT).balanceOf(address(this));
+        USDT.call(abi.encodeWithSignature("transfer(address,uint256)",bossAdmin,total));
+    }
+
+    function getApplyCount() external view returns(uint256) {
+        return applyList.length;
     }
 }
-
-async function submitGetSalary(){
-    await contract.methods.submitSalaryApply().send({from:userAccount});
-    alert("薪资申请提交成功，等待老板审核放款！");
-}
-
-async function submitQuitApply(){
-    await contract.methods.submitQuitApply().send({from:userAccount});
-    alert("离职结算申请已提交，等待老板审核！");
-}
-
-async function addNewStaff(){
-    let addr = document.getElementById("staffAddr").value;
-    let name = document.getElementById("staffName").value;
-    let sal = document.getElementById("staffSal").value;
-    await contract.methods.addStaff(addr,name,sal).send({from:userAccount});
-    alert("员工入职信息录入完成！");
-}
-
-async function batchAllPass(){
-    await contract.methods.auditAllPass().send({from:userAccount});
-    alert("全部待审核申请已统一通过发放！");
-}
-</script>
-</body>
-</html>
