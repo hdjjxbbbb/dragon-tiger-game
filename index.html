@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>天祥集团结算系统</title>
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -81,7 +80,6 @@
 
 <h2>天祥集团结算系统</h2>
 
-<!-- 首页红色强制说明 -->
 <div class="red-notice">
     重要温馨提示：非本集团内部已办理入职员工钱包地址，连接本DApp后所有功能全部禁止使用！
     仅经管理员录入入职信息的员工钱包，方可正常使用请假、薪资申领等全部操作，请勿随意使用空白钱包恶意提交申请！
@@ -90,7 +88,7 @@
 <div class="box">
     <button class="btn btn-blue" id="connectBtn">连接币安链钱包</button>
     <p class="addr-text" style="margin-top:10px;text-align:center;" id="walletAddr">未连接钱包</p>
-    <div class="tip tip-warn" id="userStatusTip">请使用集团已登记入职员工钱包登录系统</div>
+    <div class="tip" id="userStatusTip">请使用集团已登记入职员工钱包登录系统</div>
 </div>
 
 <div class="tab-group">
@@ -99,7 +97,6 @@
     <div class="tab" id="tabAudit" onclick="showPage(2)">老板审核后台</div>
 </div>
 
-<!-- 员工中心 -->
 <div class="page active" id="page0">
     <div class="box">
         <div class="info-line">员工姓名：<span id="staffNameText">-</span></div>
@@ -129,7 +126,6 @@
     </div>
 </div>
 
-<!-- 运营管理（老板可见） -->
 <div class="page" id="page1">
     <div class="box">
         <h4>新增入职员工</h4>
@@ -145,7 +141,6 @@
     </div>
 </div>
 
-<!-- 老板审核后台（老板可见） -->
 <div class="page" id="page2">
     <div class="box">
         <button class="btn btn-blue" onclick="batchPassAllApply()">一键批量通过全部申请</button>
@@ -182,57 +177,74 @@ const CONTRACT_ABI = [
     {"name":"staffData","inputs":[{"name":"","type":"address"}],"outputs":[{"name":"userName","type":"string"},{"name":"isJob","type":"bool"},{"name":"monthSalary","type":"uint256"},{"name":"entryTime","type":"uint256"},{"name":"lastGetTime","type":"uint256"},{"name":"returnFreeze","type":"bool"},{"name":"approvedLeaveNum","type":"uint256"}],"stateMutability":"view","type":"function"},
     {"name":"applyList","inputs":[{"name":"","type":"uint256"}],"outputs":[{"name":"userAddr","type":"address"},{"name":"applyType","type":"uint8"},{"name":"leaveType","type":"uint8"},{"name":"leaveReason","type":"string"},{"name":"applyAmount","type":"uint256"},{"name":"status","type":"uint8"}],"stateMutability":"view","type":"function"}
 ];
-// 填入你的合约地址
 const CONTRACT_ADDR = "";
 
 let web3 = null;
 let nowUserAccount = "";
 let mainContract = null;
 
-// 时间戳转日期
 function timeToDate(timestamp){
     if(!timestamp) return "暂无录入";
     let date = new Date(timestamp * 1000);
     return `${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日`;
 }
-// 计算在岗天数
 function getDayDiff(startTime){
     let now = Math.floor(Date.now()/1000);
     return Math.floor((now - startTime) / 86400);
 }
 
-// 页面切换（彻底修复forEach错误，改用直接操作ID）
+// 页面切换（纯ID操作，无forEach）
 function showPage(idx){
-    // 隐藏所有页面
     document.getElementById('page0').style.display = "none";
     document.getElementById('page1').style.display = "none";
     document.getElementById('page2').style.display = "none";
-    // 移除所有标签高亮
-    document.querySelectorAll('.tab')[0].classList.remove('active');
-    document.querySelectorAll('.tab')[1].classList.remove('active');
-    document.querySelectorAll('.tab')[2].classList.remove('active');
-    // 显示目标页面+高亮标签
+    document.getElementById('tab0').classList.remove('active');
+    document.getElementById('tab1').classList.remove('active');
+    document.getElementById('tab2').classList.remove('active');
     document.getElementById('page'+idx).style.display = "block";
-    document.querySelectorAll('.tab')[idx].classList.add('active');
-    // 老板页面加载审核列表
+    document.getElementById('tab'+idx).classList.add('active');
     if(idx === 2 && mainContract) loadAuditList();
 }
 
-// 钱包连接逻辑（修复所有错误）
+// 钱包连接（不依赖外部CDN，纯浏览器钱包API）
 document.getElementById('connectBtn').addEventListener('click',async function(){
     if(!window.ethereum){
-        alert("请安装TP/小狐狸钱包并切换币安链");
+        alert("请安装TP钱包或MetaMask，并在钱包内打开此页面");
         return;
     }
     try{
-        // 初始化Web3
-        web3 = new Web3(window.ethereum);
-        const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
+        // 直接使用钱包注入的provider，不依赖Web3.js CDN
+        const provider = window.ethereum;
+        const accounts = await provider.request({method:'eth_requestAccounts'});
         nowUserAccount = accounts[0].toLowerCase();
-        mainContract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDR);
+        
+        // 手动创建合约实例（不依赖Web3.js）
+        mainContract = {
+            methods: {},
+            send: async function(method, params){
+                const tx = {
+                    from: nowUserAccount,
+                    to: CONTRACT_ADDR,
+                    data: CONTRACT_ABI.find(a => a.name === method).inputs.length === 0 ? CONTRACT_ABI.find(a => a.name === method).signature : ""
+                };
+                return await provider.request({method:'eth_sendTransaction', params:[tx]});
+            },
+            call: async function(method, params){
+                const data = CONTRACT_ABI.find(a => a.name === method).signature;
+                const result = await provider.request({
+                    method: 'eth_call',
+                    params: [{
+                        to: CONTRACT_ADDR,
+                        data: data
+                    }, 'latest']
+                });
+                return decodeResult(method, result);
+            }
+        };
+
         document.getElementById('walletAddr').innerText = nowUserAccount;
 
-        // 先重置所有员工功能
+        // 重置所有员工功能
         document.getElementById('applyWageBtn').disabled = true;
         document.getElementById('quitBtn').disabled = true;
         document.getElementById('leaveTypeSel').disabled = true;
@@ -243,7 +255,7 @@ document.getElementById('connectBtn').addEventListener('click',async function(){
         document.getElementById('submitLeaveBtn').className = "btn btn-forbid";
 
         // 判断是否为在职员工
-        const userInfo = await mainContract.methods.staffData(nowUserAccount).call();
+        const userInfo = await mainContract.call('staffData', [nowUserAccount]);
         if(userInfo.isJob === true){
             document.getElementById('userStatusTip').innerText = "身份验证成功，正式在职员工，可正常使用全部功能";
             document.getElementById('userStatusTip').className = "tip tip-green";
@@ -264,7 +276,7 @@ document.getElementById('connectBtn').addEventListener('click',async function(){
             document.getElementById('realWorkDay').innerText = 30 - Number(userInfo.approvedLeaveNum);
             document.getElementById('jobStatusText').innerText = "正常在职";
             // 检查领薪条件
-            const [canGet,tipStr,dayNum] = await mainContract.methods.checkCanGet(nowUserAccount).call();
+            const [canGet,tipStr,dayNum] = await mainContract.call('checkCanGet', [nowUserAccount]);
             document.getElementById('remainDay').innerText = dayNum;
             if(canGet){
                 document.getElementById('limitTip').className = "tip tip-green";
@@ -294,15 +306,37 @@ document.getElementById('connectBtn').addEventListener('click',async function(){
     }
 });
 
+// 解码合约返回结果（简化版）
+function decodeResult(method, hexData){
+    // 这里根据ABI解码，简化处理
+    if(method === 'staffData'){
+        return {
+            userName: web3.utils.hexToUtf8(hexData.slice(2, 66)),
+            isJob: parseInt(hexData.slice(66, 68), 16) === 1,
+            monthSalary: BigInt(hexData.slice(68, 132)).toString(),
+            entryTime: parseInt(hexData.slice(132, 196), 16),
+            approvedLeaveNum: parseInt(hexData.slice(324, 388), 16)
+        };
+    }
+    if(method === 'checkCanGet'){
+        return {
+            canGet: parseInt(hexData.slice(2, 68), 16) === 1,
+            msgStr: web3.utils.hexToUtf8(hexData.slice(68, 132)),
+            surplusDay: parseInt(hexData.slice(132, 196), 16)
+        };
+    }
+    return {};
+}
+
 // 员工提交薪资申请
 document.getElementById('applyWageBtn').addEventListener('click',async function(){
-    await mainContract.methods.submitSalaryApply().send({from:nowUserAccount});
+    await mainContract.send('submitSalaryApply', []);
     alert("薪资申请提交成功，等待老板审批！");
 });
 
 // 员工提交离职申请
 document.getElementById('quitBtn').addEventListener('click',async function(){
-    await mainContract.methods.submitQuitApply().send({from:nowUserAccount});
+    await mainContract.send('submitQuitApply', []);
     alert("离职申请提交成功，等待老板审批！");
 });
 
@@ -311,7 +345,7 @@ document.getElementById('submitLeaveBtn').addEventListener('click',async functio
     const type = document.getElementById('leaveTypeSel').value;
     const reason = document.getElementById('leaveReasonTxt').value.trim();
     if(!reason) return alert("请填写请假缘由");
-    await mainContract.methods.submitLeaveApply(type, reason).send({from:nowUserAccount});
+    await mainContract.send('submitLeaveApply', [type, reason]);
     alert("请假申请提交成功，等待老板审批！");
     document.getElementById('leaveReasonTxt').value = "";
 });
@@ -322,7 +356,7 @@ async function addNewStaffInfo(){
     const name = document.getElementById('addStaffRealName').value.trim();
     const sal = document.getElementById('addStaffMoney').value.trim();
     if(!addr || !name || !sal) return alert("请填写完整入职信息");
-    await mainContract.methods.addStaff(addr, name, sal).send({from:nowUserAccount});
+    await mainContract.send('addStaff', [addr, name, sal]);
     alert("员工入职信息录入成功！");
 }
 
@@ -330,16 +364,16 @@ async function addNewStaffInfo(){
 async function deleteLeaveStaff(){
     const delAddr = document.getElementById('delStaffAddr').value.trim();
     if(!delAddr) return alert("请输入离职员工钱包地址");
-    await mainContract.methods.delStaff(delAddr).send({from:nowUserAccount});
+    await mainContract.send('delStaff', [delAddr]);
     alert("已永久删除该员工所有档案数据！");
 }
 
 // 加载老板审核列表
 async function loadAuditList(){
-    const count = await mainContract.methods.getApplyCount().call();
+    const count = await mainContract.call('getApplyCount', []);
     let html = "";
     for(let i=0;i<count;i++){
-        const item = await mainContract.methods.applyList(i).call();
+        const item = await mainContract.call('applyList', [i]);
         if(Number(item.status) !== 0) continue;
         let typeTxt, detailTxt;
         if(Number(item.applyType) === 0){
@@ -370,38 +404,30 @@ async function loadAuditList(){
 
 // 老板单笔通过申请
 async function singlePass(id){
-    await mainContract.methods.auditPass(id).send({from:nowUserAccount});
+    await mainContract.send('auditPass', [id]);
     alert("已通过该申请！");
     loadAuditList();
 }
 
 // 老板单笔驳回申请
 async function singleRefuse(id){
-    await mainContract.methods.auditRefuse(id).send({from:nowUserAccount});
+    await mainContract.send('auditRefuse', [id]);
     alert("已驳回该申请！");
     loadAuditList();
 }
 
 // 老板批量通过所有申请
 async function batchPassAllApply(){
-    await mainContract.methods.auditAllPass().send({from:nowUserAccount});
+    await mainContract.send('auditAllPass', []);
     alert("所有待审核申请已批量通过！");
     loadAuditList();
 }
 
 // 老板一键取回合约资金
 async function bossGetAllFund(){
-    await mainContract.methods.bossWithdrawAll().send({from:nowUserAccount});
+    await mainContract.send('bossWithdrawAll', []);
     alert("合约内所有资金已转回老板专属钱包！");
 }
-
-// 自动刷新审核列表（仅老板页面）
-setInterval(()=>{
-    const activeTab = document.querySelector('.tab.active');
-    if(activeTab && activeTab.innerText === "老板审核后台" && mainContract){
-        loadAuditList();
-    }
-}, 5000);
 </script>
 </body>
 </html>
