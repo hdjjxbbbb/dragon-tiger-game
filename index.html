@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>天祥集团结算系统</title>
-    <!-- 改用国内可访问的Web3.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
     <style>
         * {
@@ -54,28 +53,10 @@
         .btn-green {background: #10b981;color: #fff;}
         .btn-gray {background: #cccccc;color: #666;cursor: not-allowed;}
         .btn-forbid {background:#999;color:#fff;cursor:not-allowed;}
-        .btn-sm {width: auto;padding: 6px 12px;font-size: 14px;margin: 2px;}
-        input,textarea,select {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            outline: none;
-        }
+        .info-line{margin:6px 0;font-size:15px;}
         .tip {padding: 10px;border-radius: 8px;margin: 10px 0;}
         .tip-green {background: #dcfce7;color: #16a34a;}
         .tip-red {background: #fee2e2;color: #dc2626;}
-        .tab-group {display: flex;gap: 8px;margin-bottom: 15px;}
-        .tab {flex: 1;text-align: center;padding: 10px;background: #eee;border-radius: 8px;cursor: pointer;}
-        .tab.active {background: #2563eb;color: #fff;}
-        .page {display: none;}
-        .page.active {display: block;}
-        table {width: 100%;border-collapse: collapse;margin-top: 10px;}
-        th,td {border: 1px solid #eee;padding: 10px;text-align: center;font-size: 14px;}
-        th {background: #f1f5f9;}
-        .addr-text{font-size:13px;color:#666;word-break: break-all;}
-        .info-line{margin:6px 0;font-size:15px;}
     </style>
 </head>
 <body>
@@ -89,78 +70,28 @@
 
 <div class="box">
     <button class="btn btn-blue" id="connectBtn">连接币安链钱包</button>
-    <p class="addr-text" style="margin-top:10px;text-align:center;" id="walletAddr">未连接钱包</p>
-    <div class="tip tip-warn" id="userStatusTip">请使用集团已登记入职员工钱包登录系统</div>
+    <p style="margin-top:10px;text-align:center;" id="walletAddr">未连接钱包</p>
+    <div class="tip" id="userStatusTip">请使用集团已登记入职员工钱包登录系统</div>
 </div>
 
-<div class="tab-group">
-    <div class="tab active" onclick="switchPage(0)">员工中心</div>
-    <div class="tab" id="tabManage" onclick="switchPage(1)">运营管理</div>
-    <div class="tab" id="tabAudit" onclick="switchPage(2)">老板审核后台</div>
+<div class="box">
+    <h3>员工中心</h3>
+    <div class="info-line">员工姓名：<span id="name">-</span></div>
+    <div class="info-line">绑定钱包：<span id="addr">-</span></div>
+    <div class="info-line">入职时间：<span id="entryTime">-</span></div>
+    <div class="info-line">每月薪资：<span id="salary">0</span> USDT</div>
+    <div class="info-line">已请假次数：<span id="leaveCount">0</span> 次</div>
+    <div class="info-line">实际出勤天数：<span id="realWorkDay">30</span> 天</div>
+    <button class="btn btn-forbid" id="applyBtn" disabled>提交领取当月薪资</button>
+    <button class="btn btn-forbid" id="leaveBtn" disabled>提交请假申请</button>
 </div>
 
-<!-- 员工中心 -->
-<div class="page active" id="page0">
-    <div class="box">
-        <div class="info-line">员工姓名：<span id="staffNameText">-</span></div>
-        <div class="info-line">绑定钱包：<span id="staffWalletText">-</span></div>
-        <div class="info-line">正式入职时间：<span id="entryFullTime">-</span></div>
-        <div class="info-line">累计在岗天数：<span id="workTotalDay">0</span> 天</div>
-        <div class="info-line">每月基础薪资：<span id="staffSalaryText">0</span> USDT</div>
-        <div class="info-line">已批准请假次数：<span id="leaveCount">0</span> 次</div>
-        <div class="info-line">当月实际出勤天数：<span id="realWorkDay">30</span> 天</div>
-        <div class="info-line">当前在岗状态：<span id="jobStatusText">-</span></div>
-
-        <div class="tip" id="limitTip"></div>
-        <div class="info-line">距离可正常领薪剩余：<span id="remainDay">0</span> 天</div>
-
-        <button class="btn btn-forbid" id="applyWageBtn" disabled>提交领取当月薪资</button>
-        <button class="btn btn-forbid" id="quitBtn" disabled>申请离职退还扣押工资</button>
-    </div>
-
-    <div class="box">
-        <h4>员工在线请假申请</h4>
-        <select id="leaveTypeSel" disabled>
-            <option value="0">事假</option>
-            <option value="1">病假</option>
-        </select>
-        <textarea placeholder="填写请假具体缘由" id="leaveReasonTxt" rows="3" disabled></textarea>
-        <button class="btn btn-forbid" id="submitLeaveBtn" disabled>提交请假申请</button>
-    </div>
-</div>
-
-<!-- 运营管理（老板可见） -->
-<div class="page" id="page1">
-    <div class="box">
-        <h4>新增入职员工</h4>
-        <input placeholder="员工钱包地址" id="addStaffAddr">
-        <input placeholder="员工真实姓名" id="addStaffRealName">
-        <input placeholder="每月薪资(USDT)" type="number" id="addStaffMoney">
-        <button class="btn btn-blue" onclick="addNewStaffInfo()">确认录入入职</button>
-    </div>
-    <div class="box">
-        <h4>删除已离职员工</h4>
-        <input placeholder="填写离职员工钱包地址" id="delStaffAddr">
-        <button class="btn btn-red" onclick="deleteLeaveStaff()">永久删除离职员工数据</button>
-    </div>
-</div>
-
-<!-- 老板审核后台（老板可见） -->
-<div class="page" id="page2">
-    <div class="box">
-        <button class="btn btn-blue" onclick="batchPassAllApply()">一键批量通过全部申请</button>
-        <button class="btn btn-red" onclick="bossGetAllFund()">老板一键取回合约全部资金</button>
-        <h4 style="margin:15px 0 8px 0">全部待审核申请列表</h4>
-        <table>
-            <tr>
-                <th>申请人</th>
-                <th>申请类型</th>
-                <th>详情</th>
-                <th>审核操作</th>
-            </tr>
-            <tbody id="auditTableList"></tbody>
-        </table>
-    </div>
+<div class="box">
+    <h3>老板管理后台（仅管理员可见）</h3>
+    <input placeholder="员工钱包地址" id="addAddr">
+    <input placeholder="员工姓名" id="addName">
+    <input placeholder="每月薪资(USDT)" type="number" id="addSal">
+    <button class="btn btn-blue" id="addStaffBtn">新增入职员工</button>
 </div>
 
 <script>
@@ -170,234 +101,85 @@ const CONTRACT_ABI = [
     {"name":"checkCanGet","inputs":[{"name":"_user","type":"address"}],"outputs":[{"type":"bool"},{"type":"string"},{"type":"uint256"}],"stateMutability":"view","type":"function"},
     {"name":"getRealWorkDay","inputs":[{"name":"_user","type":"address"}],"outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
     {"name":"addStaff","inputs":[{"name":"_u","type":"address"},{"name":"_name","type":"string"},{"name":"_sal","type":"uint256"}],"type":"function"},
-    {"name":"delStaff","inputs":[{"name":"_u","type":"address"}],"type":"function"},
     {"name":"submitSalaryApply","type":"function"},
-    {"name":"submitQuitApply","type":"function"},
     {"name":"submitLeaveApply","inputs":[{"name":"_leaveType","type":"uint8"},{"name":"_reason","type":"string"}],"type":"function"},
-    {"name":"auditPass","inputs":[{"name":"id","type":"uint256"}],"type":"function"},
-    {"name":"auditRefuse","inputs":[{"name":"id","type":"uint256"}],"type":"function"},
-    {"name":"auditAllPass","type":"function"},
-    {"name":"bossWithdrawAll","type":"function"},
-    {"name":"getApplyCount","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"name":"staffData","inputs":[{"name":"","type":"address"}],"outputs":[{"name":"userName","type":"string"},{"name":"isJob","type":"bool"},{"name":"monthSalary","type":"uint256"},{"name":"entryTime","type":"uint256"},{"name":"lastGetTime","type":"uint256"},{"name":"returnFreeze","type":"bool"},{"name":"approvedLeaveNum","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"name":"applyList","inputs":[{"name":"","type":"address"}],"outputs":[{"name":"userAddr","type":"address"},{"name":"applyType","type":"uint8"},{"name":"leaveType","type":"uint8"},{"name":"leaveReason","type":"string"},{"name":"applyAmount","type":"uint256"},{"name":"status","type":"uint8"}],"stateMutability":"view","type":"function"}
+    {"name":"staffData","inputs":[{"name":"","type":"address"}],"outputs":[{"name":"userName","type":"string"},{"name":"isJob","type":"bool"},{"name":"monthSalary","type":"uint256"},{"name":"entryTime","type":"uint256"},{"name":"approvedLeaveNum","type":"uint256"}],"stateMutability":"view","type":"function"}
 ];
-// 填入你的合约地址！！！（必须填！）
+// 填入你的合约地址！
 const CONTRACT_ADDR = "";
 
 let web3 = null;
-let nowUserAccount = "";
-let mainContract = null;
+let account = null;
+let contract = null;
 
-// 时间戳转日期
-function timeToDate(timestamp){
-    if(!timestamp) return "暂无录入";
-    let date = new Date(timestamp * 1000);
-    return `${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日`;
-}
-// 计算在岗天数
-function getDayDiff(startTime){
-    let now = Math.floor(Date.now()/1000);
-    return Math.floor((now - startTime) / 86400);
-}
-
-// 页面切换（纯ID操作，无forEach）
-function switchPage(idx){
-    document.getElementById('page0').style.display = "none";
-    document.getElementById('page1').style.display = "none";
-    document.getElementById('page2').style.display = "none";
-    document.querySelectorAll('.tab')[0].classList.remove('active');
-    document.querySelectorAll('.tab')[1].classList.remove('active');
-    document.querySelectorAll('.tab')[2].classList.remove('active');
-    document.getElementById('page'+idx).style.display = "block";
-    document.querySelectorAll('.tab')[idx].classList.add('active');
-    if(idx === 2 && mainContract) loadAuditList();
-}
-
-// 钱包连接（修复所有错误）
-document.getElementById('connectBtn').addEventListener('click',async function(){
+// 连接钱包
+document.getElementById('connectBtn').onclick = async function(){
     if(!window.ethereum){
-        alert("请安装TP钱包或MetaMask，并在钱包内打开此页面");
+        alert("请安装TP钱包或MetaMask");
         return;
     }
     try{
-        // 初始化Web3
         web3 = new Web3(window.ethereum);
         const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
-        nowUserAccount = accounts[0].toLowerCase();
-        mainContract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDR);
-        document.getElementById('walletAddr').innerText = nowUserAccount;
+        account = accounts[0].toLowerCase();
+        contract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDR);
+        document.getElementById('walletAddr').innerText = account;
 
-        // 先重置所有员工功能
-        document.getElementById('applyWageBtn').disabled = true;
-        document.getElementById('quitBtn').disabled = true;
-        document.getElementById('leaveTypeSel').disabled = true;
-        document.getElementById('leaveReasonTxt').disabled = true;
-        document.getElementById('submitLeaveBtn').disabled = true;
-        document.getElementById('applyWageBtn').className = "btn btn-forbid";
-        document.getElementById('quitBtn').className = "btn btn-forbid";
-        document.getElementById('submitLeaveBtn').className = "btn btn-forbid";
-
-        // 判断是否为在职员工
-        const userInfo = await mainContract.methods.staffData(nowUserAccount).call();
-        if(userInfo.isJob === true){
-            document.getElementById('userStatusTip').innerText = "身份验证成功，正式在职员工，可正常使用全部功能";
+        // 读取员工信息
+        const user = await contract.methods.staffData(account).call();
+        if(user.isJob){
+            document.getElementById('userStatusTip').innerText = "身份验证成功，可正常使用功能";
             document.getElementById('userStatusTip').className = "tip tip-green";
-            // 解锁员工功能
-            document.getElementById('quitBtn').disabled = false;
-            document.getElementById('quitBtn').className = "btn btn-red";
-            document.getElementById('leaveTypeSel').disabled = false;
-            document.getElementById('leaveReasonTxt').disabled = false;
-            document.getElementById('submitLeaveBtn').disabled = false;
-            document.getElementById('submitLeaveBtn').className = "btn btn-green";
-            // 加载员工数据
-            document.getElementById('staffNameText').innerText = userInfo.userName;
-            document.getElementById('staffWalletText').innerText = nowUserAccount;
-            document.getElementById('entryFullTime').innerText = timeToDate(Number(userInfo.entryTime));
-            document.getElementById('workTotalDay').innerText = getDayDiff(Number(userInfo.entryTime));
-            document.getElementById('staffSalaryText').innerText = (Number(userInfo.monthSalary)/1e18).toFixed(2);
-            document.getElementById('leaveCount').innerText = userInfo.approvedLeaveNum;
-            document.getElementById('realWorkDay').innerText = 30 - Number(userInfo.approvedLeaveNum);
-            document.getElementById('jobStatusText').innerText = "正常在职";
-            // 检查领薪条件
-            const [canGet,tipStr,dayNum] = await mainContract.methods.checkCanGet(nowUserAccount).call();
-            document.getElementById('remainDay').innerText = dayNum;
-            if(canGet){
-                document.getElementById('limitTip').className = "tip tip-green";
-                document.getElementById('limitTip').innerText = tipStr;
-                document.getElementById('applyWageBtn').disabled = false;
-                document.getElementById('applyWageBtn').className = "btn btn-blue";
-            }else{
-                document.getElementById('limitTip').className = "tip tip-red";
-                document.getElementById('limitTip').innerText = tipStr;
-            }
+            document.getElementById('name').innerText = user.userName;
+            document.getElementById('addr').innerText = account;
+            document.getElementById('entryTime').innerText = new Date(user.entryTime * 1000).toLocaleDateString();
+            document.getElementById('salary').innerText = (Number(user.monthSalary)/1e18).toFixed(2);
+            document.getElementById('leaveCount').innerText = user.approvedLeaveNum;
+            document.getElementById('realWorkDay').innerText = 30 - Number(user.approvedLeaveNum);
+            document.getElementById('applyBtn').disabled = false;
+            document.getElementById('applyBtn').className = "btn btn-blue";
+            document.getElementById('leaveBtn').disabled = false;
+            document.getElementById('leaveBtn').className = "btn btn-green";
         }else{
-            document.getElementById('userStatusTip').innerText = "验证失败：非集团入职员工，所有操作功能已全部封禁";
+            document.getElementById('userStatusTip').innerText = "非集团员工，所有功能已禁用";
             document.getElementById('userStatusTip').className = "tip tip-red";
-            alert("您的钱包未录入集团入职信息，无法使用任何业务功能！");
+            alert("您的钱包未录入入职信息，无法使用任何功能！");
         }
 
-        // 老板专属后台权限
-        if(nowUserAccount === BOSS_ADDR){
-            document.getElementById('tabManage').style.display = "block";
-            document.getElementById('tabAudit').style.display = "block";
+        // 老板功能
+        if(account === BOSS_ADDR){
+            document.getElementById('addStaffBtn').style.display = "block";
         }else{
-            document.getElementById('tabManage').style.display = "none";
-            document.getElementById('tabAudit').style.display = "none";
+            document.getElementById('addStaffBtn').style.display = "none";
         }
     }catch(e){
         alert("连接失败：" + e.message);
     }
-});
-
-// 员工提交薪资申请
-document.getElementById('applyWageBtn').addEventListener('click',async function(){
-    await mainContract.methods.submitSalaryApply().send({from:nowUserAccount});
-    alert("薪资申请提交成功，等待老板审批！");
-});
-
-// 员工提交离职申请
-document.getElementById('quitBtn').addEventListener('click',async function(){
-    await mainContract.methods.submitQuitApply().send({from:nowUserAccount});
-    alert("离职申请提交成功，等待老板审批！");
-});
-
-// 员工提交请假申请
-document.getElementById('submitLeaveBtn').addEventListener('click',async function(){
-    const type = document.getElementById('leaveTypeSel').value;
-    const reason = document.getElementById('leaveReasonTxt').value.trim();
-    if(!reason) return alert("请填写请假缘由");
-    await mainContract.methods.submitLeaveApply(type, reason).send({from:nowUserAccount});
-    alert("请假申请提交成功，等待老板审批！");
-    document.getElementById('leaveReasonTxt').value = "";
-});
-
-// 老板新增员工
-async function addNewStaffInfo(){
-    const addr = document.getElementById('addStaffAddr').value.trim();
-    const name = document.getElementById('addStaffRealName').value.trim();
-    const sal = document.getElementById('addStaffMoney').value.trim();
-    if(!addr || !name || !sal) return alert("请填写完整入职信息");
-    await mainContract.methods.addStaff(addr, name, sal).send({from:nowUserAccount});
-    alert("员工入职信息录入成功！");
 }
 
-// 老板删除离职员工
-async function deleteLeaveStaff(){
-    const delAddr = document.getElementById('delStaffAddr').value.trim();
-    if(!delAddr) return alert("请输入离职员工钱包地址");
-    await mainContract.methods.delStaff(delAddr).send({from:nowUserAccount});
-    alert("已永久删除该员工所有档案数据！");
+// 提交薪资
+document.getElementById('applyBtn').onclick = async function(){
+    await contract.methods.submitSalaryApply().send({from:account});
+    alert("薪资申请已提交");
 }
 
-// 加载老板审核列表
-async function loadAuditList(){
-    const count = await mainContract.methods.getApplyCount().call();
-    let html = "";
-    for(let i=0;i<count;i++){
-        const item = await mainContract.methods.applyList(i).call();
-        if(Number(item.status) !== 0) continue;
-        let typeTxt, detailTxt;
-        if(Number(item.applyType) === 0){
-            typeTxt = "月度薪资申请";
-            detailTxt = "申请发放当月薪资";
-        }else if(Number(item.applyType) === 1){
-            typeTxt = "离职结算申请";
-            detailTxt = "申请退还扣押薪资";
-        }else{
-            typeTxt = "员工请假申请";
-            const ltype = Number(item.leaveType) === 0 ? "事假" : "病假";
-            detailTxt = ltype + "：" + item.leaveReason;
-        }
-        html += `
-        <tr>
-            <td>${item.userAddr.slice(0,12)}...</td>
-            <td>${typeTxt}</td>
-            <td>${detailTxt}</td>
-            <td>
-                <button class="btn btn-green btn-sm" onclick="singlePass(${i})">通过批准</button>
-                <button class="btn btn-red btn-sm" onclick="singleRefuse(${i})">拒绝驳回</button>
-            </td>
-        </tr>
-        `;
-    }
-    document.getElementById('auditTableList').innerHTML = html;
+// 提交请假
+document.getElementById('leaveBtn').onclick = async function(){
+    const reason = prompt("请输入请假原因");
+    if(!reason) return;
+    await contract.methods.submitLeaveApply(0, reason).send({from:account});
+    alert("请假申请已提交");
 }
 
-// 老板单笔通过申请
-async function singlePass(id){
-    await mainContract.methods.auditPass(id).send({from:nowUserAccount});
-    alert("已通过该申请！");
-    loadAuditList();
+// 新增员工
+document.getElementById('addStaffBtn').onclick = async function(){
+    const addr = document.getElementById('addAddr').value.trim();
+    const name = document.getElementById('addName').value.trim();
+    const sal = document.getElementById('addSal').value.trim();
+    if(!addr || !name || !sal) return alert("请填写完整信息");
+    await contract.methods.addStaff(addr, name, sal).send({from:account});
+    alert("员工入职录入成功！");
 }
-
-// 老板单笔驳回申请
-async function singleRefuse(id){
-    await mainContract.methods.auditRefuse(id).send({from:nowUserAccount});
-    alert("已驳回该申请！");
-    loadAuditList();
-}
-
-// 老板批量通过所有申请
-async function batchPassAllApply(){
-    await mainContract.methods.auditAllPass().send({from:nowUserAccount});
-    alert("所有待审核申请已批量通过！");
-    loadAuditList();
-}
-
-// 老板一键取回合约资金
-async function bossGetAllFund(){
-    await mainContract.methods.bossWithdrawAll().send({from:nowUserAccount});
-    alert("合约内所有资金已转回老板专属钱包！");
-}
-
-// 自动刷新审核列表（仅老板页面）
-setInterval(()=>{
-    const activeTab = document.querySelector('.tab.active');
-    if(activeTab && activeTab.innerText === "老板审核后台" && mainContract){
-        loadAuditList();
-    }
-}, 5000);
 </script>
 </body>
 </html>
