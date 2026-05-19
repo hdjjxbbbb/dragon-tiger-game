@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>天祥集团结算系统</title>
-    <!-- 先加载Web3.js，确保脚本执行前库已就绪 -->
     <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
     <style>
         * {
@@ -183,28 +182,35 @@ function getDayDiff(startTime){
 }
 
 function switchPage(idx){
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    document.getElementById('page'+idx).classList.add('active');
-    let tabs = document.querySelectorAll('.tab');
-    if(tabs[idx]) tabs[idx].classList.add('active');
+    // 先判断元素是否存在，再操作
+    const pages = document.querySelectorAll('.page');
+    const tabs = document.querySelectorAll('.tab');
+    if(pages[idx]){
+        pages.forEach(p => p.classList.remove('active'));
+        tabs.forEach(t => t.classList.remove('active'));
+        pages[idx].classList.add('active');
+        if(tabs[idx]) tabs[idx].classList.add('active');
+    }
     if(idx === 2 && mainContract) loadAuditList();
 }
 
+// 连接钱包逻辑，加了最严格的错误处理
 document.getElementById('connectBtn').addEventListener('click',async function(){
     if(!window.ethereum){
-        alert("请安装TP钱包/小狐狸钱包，切换币安智能链");
+        alert("请安装TP钱包/小狐狸钱包，并切换到币安智能链");
         return;
     }
     try{
-        const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
-        // 这里确保Web3已加载完成再初始化
+        // 初始化Web3，确保对象存在
         web3 = new Web3(window.ethereum);
+        const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
         nowUserAccount = accounts[0].toLowerCase();
         mainContract = new web3.eth.Contract(CONTRACT_ABI,CONTRACT_ADDR);
+        
         document.getElementById('walletAddr').innerText = nowUserAccount;
         alert("钱包连接成功！");
 
+        // 老板权限判断
         if(nowUserAccount !== BOSS_ADDR){
             document.getElementById('tabManage').style.display = "none";
             document.getElementById('tabAudit').style.display = "none";
@@ -212,56 +218,64 @@ document.getElementById('connectBtn').addEventListener('click',async function(){
             document.getElementById('tabManage').style.display = "block";
             document.getElementById('tabAudit').style.display = "block";
         }
-        loadSelfStaffData();
+        // 加载员工信息
+        await loadSelfStaffData();
     }catch(e){
-        alert("连接失败："+e.message);
+        alert("连接失败：" + e.message);
     }
 });
 
 async function loadSelfStaffData(){
-    if(!mainContract||!nowUserAccount) return;
-    let info = await mainContract.methods.staffData(nowUserAccount).call();
-    let realDay = await mainContract.methods.getRealWorkDay(nowUserAccount).call();
-    document.getElementById('staffNameText').innerText = info.userName || "未登记员工";
-    document.getElementById('staffWalletText').innerText = nowUserAccount;
-    document.getElementById('entryFullTime').innerText = timeToDate(Number(info.entryTime));
-    document.getElementById('workTotalDay').innerText = getDayDiff(Number(info.entryTime));
-    document.getElementById('staffSalaryText').innerText = (Number(info.monthSalary)/1e18).toFixed(2);
-    document.getElementById('leaveCount').innerText = info.approvedLeaveNum;
-    document.getElementById('realWorkDay').innerText = realDay;
-    document.getElementById('jobStatusText').innerText = info.isJob?"正常在职":"已离职";
+    if(!mainContract || !nowUserAccount) return;
+    try{
+        const info = await mainContract.methods.staffData(nowUserAccount).call();
+        const realDay = await mainContract.methods.getRealWorkDay(nowUserAccount).call();
+        document.getElementById('staffNameText').innerText = info.userName || "未登记员工";
+        document.getElementById('staffWalletText').innerText = nowUserAccount;
+        document.getElementById('entryFullTime').innerText = timeToDate(Number(info.entryTime));
+        document.getElementById('workTotalDay').innerText = getDayDiff(Number(info.entryTime));
+        document.getElementById('staffSalaryText').innerText = (Number(info.monthSalary)/1e18).toFixed(2);
+        document.getElementById('leaveCount').innerText = info.approvedLeaveNum;
+        document.getElementById('realWorkDay').innerText = realDay;
+        document.getElementById('jobStatusText').innerText = info.isJob?"正常在职":"已离职";
 
-    let [canApply,tipStr,dayNum] = await mainContract.methods.checkCanGet(nowUserAccount).call();
-    document.getElementById('remainDay').innerText = dayNum;
-    let tipDom = document.getElementById('limitTip');
-    let btnDom = document.getElementById('applyWageBtn');
-    if(canApply){
-        tipDom.className = "tip tip-green";
-        tipDom.innerText = tipStr;
-        btnDom.className = "btn btn-blue";
-        btnDom.disabled = false;
-    }else{
-        tipDom.className = "tip tip-red";
-        tipDom.innerText = tipStr;
-        btnDom.className = "btn btn-gray";
-        btnDom.disabled = true;
+        const [canApply,tipStr,dayNum] = await mainContract.methods.checkCanGet(nowUserAccount).call();
+        document.getElementById('remainDay').innerText = dayNum;
+        const tipDom = document.getElementById('limitTip');
+        const btnDom = document.getElementById('applyWageBtn');
+        if(canApply){
+            tipDom.className = "tip tip-green";
+            tipDom.innerText = tipStr;
+            btnDom.className = "btn btn-blue";
+            btnDom.disabled = false;
+        }else{
+            tipDom.className = "tip tip-red";
+            tipDom.innerText = tipStr;
+            btnDom.className = "btn btn-gray";
+            btnDom.disabled = true;
+        }
+    }catch(e){
+        console.error(e);
     }
 }
 
 // 提交薪资
 document.getElementById('applyWageBtn').addEventListener('click',async function(){
+    if(!mainContract || !nowUserAccount) return alert("请先连接钱包");
     await mainContract.methods.submitSalaryApply().send({from:nowUserAccount});
     alert("薪资申请提交成功，等待管理员审核放款！");
 });
 // 离职申请
 async function applyQuitCash(){
+    if(!mainContract || !nowUserAccount) return alert("请先连接钱包");
     await mainContract.methods.submitQuitApply().send({from:nowUserAccount});
     alert("离职结算申请已提交，等待审核！");
 }
 // 提交请假
 async function submitLeave(){
-    let type = document.getElementById('leaveTypeSel').value;
-    let reason = document.getElementById('leaveReasonTxt').value.trim();
+    if(!mainContract || !nowUserAccount) return alert("请先连接钱包");
+    const type = document.getElementById('leaveTypeSel').value;
+    const reason = document.getElementById('leaveReasonTxt').value.trim();
     if(!reason) return alert("请填写请假缘由");
     await mainContract.methods.submitLeaveApply(type,reason).send({from:nowUserAccount});
     alert("请假申请提交成功，等待老板审批！");
@@ -270,16 +284,18 @@ async function submitLeave(){
 
 // 老板新增员工
 async function addNewStaffInfo(){
-    let uAddr = document.getElementById('addStaffAddr').value.trim();
-    let uName = document.getElementById('addStaffRealName').value.trim();
-    let uSal = document.getElementById('addStaffMoney').value.trim();
-    if(!uAddr||!uName||!uSal) return alert("请填写完整入职信息");
+    if(!mainContract || !nowUserAccount) return alert("请先连接钱包");
+    const uAddr = document.getElementById('addStaffAddr').value.trim();
+    const uName = document.getElementById('addStaffRealName').value.trim();
+    const uSal = document.getElementById('addStaffMoney').value.trim();
+    if(!uAddr || !uName || !uSal) return alert("请填写完整入职信息");
     await mainContract.methods.addStaff(uAddr,uName,uSal).send({from:nowUserAccount});
     alert("员工入职信息录入完成！");
 }
 // 删除员工
 async function deleteLeaveStaff(){
-    let delAddr = document.getElementById('delStaffAddr').value.trim();
+    if(!mainContract || !nowUserAccount) return alert("请先连接钱包");
+    const delAddr = document.getElementById('delStaffAddr').value.trim();
     if(!delAddr) return alert("请输入员工钱包地址");
     await mainContract.methods.delStaff(delAddr).send({from:nowUserAccount});
     alert("已删除该员工档案！");
@@ -287,62 +303,75 @@ async function deleteLeaveStaff(){
 
 // 加载审核列表
 async function loadAuditList(){
-    let count = await mainContract.methods.getApplyCount().call();
-    let html = "";
-    for(let i=0;i<count;i++){
-        let item = await mainContract.methods.applyList(i).call();
-        if(Number(item.status) !== 0) continue;
-        let typeTxt = "";
-        let detailTxt = "";
-        if(Number(item.applyType)===0){
-            typeTxt="月度薪资申请";
-            detailTxt="申请发放当月薪资";
-        }else if(Number(item.applyType)===1){
-            typeTxt="离职结算申请";
-            detailTxt="申请退还扣押薪资";
-        }else{
-            typeTxt="员工请假申请";
-            let ltype = Number(item.leaveType)===0?"事假":"病假";
-            detailTxt = ltype+"："+item.leaveReason;
+    if(!mainContract) return;
+    try{
+        const count = await mainContract.methods.getApplyCount().call();
+        let html = "";
+        for(let i=0;i<count;i++){
+            const item = await mainContract.methods.applyList(i).call();
+            if(Number(item.status) !== 0) continue;
+            let typeTxt = "";
+            let detailTxt = "";
+            if(Number(item.applyType)===0){
+                typeTxt="月度薪资申请";
+                detailTxt="申请发放当月薪资";
+            }else if(Number(item.applyType)===1){
+                typeTxt="离职结算申请";
+                detailTxt="申请退还扣押薪资";
+            }else{
+                typeTxt="员工请假申请";
+                const ltype = Number(item.leaveType)===0?"事假":"病假";
+                detailTxt = ltype + "：" + item.leaveReason;
+            }
+            html += `
+            <tr>
+                <td>${item.userAddr.slice(0,12)}...</td>
+                <td>${typeTxt}</td>
+                <td>${detailTxt}</td>
+                <td>
+                    <button class="btn btn-green btn-sm" onclick="singlePass(${i})">通过批准</button>
+                    <button class="btn btn-red btn-sm" onclick="singleRefuse(${i})">拒绝驳回</button>
+                </td>
+            </tr>
+            `;
         }
-        html += `
-        <tr>
-            <td>${item.userAddr.slice(0,12)}...</td>
-            <td>${typeTxt}</td>
-            <td>${detailTxt}</td>
-            <td>
-                <button class="btn btn-green btn-sm" onclick="singlePass(${i})">通过批准</button>
-                <button class="btn btn-red btn-sm" onclick="singleRefuse(${i})">拒绝驳回</button>
-            </td>
-        </tr>
-        `;
+        document.getElementById('auditTableList').innerHTML = html;
+    }catch(e){
+        console.error(e);
     }
-    document.getElementById('auditTableList').innerHTML = html;
 }
 
 async function singlePass(id){
+    if(!mainContract || !nowUserAccount) return alert("请先连接钱包");
     await mainContract.methods.auditPass(id).send({from:nowUserAccount});
     alert("已通过该申请！");
     loadAuditList();
 }
 async function singleRefuse(id){
+    if(!mainContract || !nowUserAccount) return alert("请先连接钱包");
     await mainContract.methods.auditRefuse(id).send({from:nowUserAccount});
     alert("已驳回该申请！");
     loadAuditList();
 }
 async function batchPassAllApply(){
+    if(!mainContract || !nowUserAccount) return alert("请先连接钱包");
     await mainContract.methods.auditAllPass().send({from:nowUserAccount});
     alert("全部申请批量通过完成！");
     loadAuditList();
 }
 async function bossGetAllFund(){
+    if(!mainContract || !nowUserAccount) return alert("请先连接钱包");
     await mainContract.methods.bossWithdrawAll().send({from:nowUserAccount});
     alert("全部资金已转回老板钱包！");
 }
 
+// 定时刷新审核列表，加安全判断
 setInterval(()=>{
-    let activeText = document.querySelector('.tab.active')?.innerText||"";
-    if(activeText.indexOf("老板审核")!==-1 && mainContract) loadAuditList();
+    if(!mainContract) return;
+    const activeTab = document.querySelector('.tab.active');
+    if(activeTab && activeTab.innerText.indexOf("老板审核") !== -1){
+        loadAuditList();
+    }
 },5000);
 </script>
 </body>
