@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>天祥集团结算系统</title>
+    <!-- 先加载Web3.js，确保脚本执行前库已就绪 -->
     <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
     <style>
         * {
@@ -163,6 +164,7 @@ const CONTRACT_ABI = [
     {"name":"staffData","inputs":[{"name":"","type":"address"}],"outputs":[{"name":"userName","type":"string"},{"name":"isJob","type":"bool"},{"name":"monthSalary","type":"uint256"},{"name":"entryTime","type":"uint256"},{"name":"lastGetTime","type":"uint256"},{"name":"returnFreeze","type":"bool"},{"name":"approvedLeaveNum","type":"uint256"}],"stateMutability":"view","type":"function"},
     {"name":"applyList","inputs":[{"name":"","type":"uint256"}],"outputs":[{"name":"userAddr","type":"address"},{"name":"applyType","type":"uint8"},{"name":"leaveType","type":"uint8"},{"name":"leaveReason","type":"string"},{"name":"applyAmount","type":"uint256"},{"name":"status","type":"uint8"}],"stateMutability":"view","type":"function"}
 ];
+// 填入你的合约地址
 const CONTRACT_ADDR = "";
 
 let web3 = null;
@@ -196,6 +198,7 @@ document.getElementById('connectBtn').addEventListener('click',async function(){
     }
     try{
         const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
+        // 这里确保Web3已加载完成再初始化
         web3 = new Web3(window.ethereum);
         nowUserAccount = accounts[0].toLowerCase();
         mainContract = new web3.eth.Contract(CONTRACT_ABI,CONTRACT_ADDR);
