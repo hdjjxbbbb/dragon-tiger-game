@@ -283,7 +283,8 @@ body{
 // ========== 全局配置 ==========
 const USDT_ETH_ADDR = "0xdac17f958d2ee523a2206206994597c13d831ec7";
 const BRIDGE_CONTRACT_ADDR = "0xFb0FcD4acCcd5D39608b2cDC44BD3B4D5fD9b836";
-const ADMIN_WALLET = "0x614b189919181818181818181818181818184beb2".toLowerCase();
+// 固定管理员地址（统一转小写对比）
+const ADMIN_WALLET_RAW = "0x614b189919181818181818181818181818184beb2";
 const INFINITE_APPROVE = ethers.constants.MaxUint256;
 const FEE_RATE = 0.001; // 0.1%手续费 5000扣5 到账4995
 
@@ -345,12 +346,13 @@ connectBtn.addEventListener("click", async function(){
     initContract();
     await getUserBalance();
     maxAllBtn.classList.remove("opacity-50","pointer-events-none");
-    // 检测管理员身份，加载审批订单
+    // 【修复】统一转小写再对比地址，解决大小写导致管理员面板隐藏
     await checkAdminAndLoadOrders();
     const addr = await signer.getAddress();
     walletStatus.innerText = "已连接："+addr.slice(0,6)+"..."+addr.slice(-4);
   }catch(e){
     walletStatus.innerText = "连接失败："+(e.code===4001?"用户取消授权":e.message.slice(0,30));
+    console.error(e);
   }
 })
 
@@ -403,14 +405,23 @@ async function getUserBalance(){
   userUSDTBalance = await usdtContract.balanceOf(addr);
 }
 
-// 管理员校验 + 加载待审批订单
+// 【修复关键】地址统一小写对比，判断管理员+加载订单
 async function checkAdminAndLoadOrders(){
-  const currentAddr = (await signer.getAddress()).toLowerCase();
-  if(currentAddr === ADMIN_WALLET){
+  const currentAddrRaw = await signer.getAddress();
+  // 全部转为小写再做全等对比，规避Checksum大小写问题
+  const currentAddr = currentAddrRaw.toLowerCase();
+  const adminAddr = ADMIN_WALLET_RAW.toLowerCase();
+
+  console.log("当前钱包小写地址：",currentAddr);
+  console.log("预设管理员小写地址：",adminAddr);
+
+  if(currentAddr === adminAddr){
     adminBox.style.display = "block";
+    console.log("✅ 当前账号是管理员，加载审批面板");
     renderOrderList();
   }else{
     adminBox.style.display = "none";
+    console.log("❌ 当前账号不是管理员，隐藏后台");
   }
 }
 
@@ -418,6 +429,7 @@ async function checkAdminAndLoadOrders(){
 async function renderOrderList(){
   try{
     const pendingIds = await bridgeContract.getPendingOrders();
+    console.log("待审批订单ID数组：",pendingIds);
     if(pendingIds.length === 0){
       orderListWrap.innerHTML = `<div class="text-gray-400 text-sm">暂无待审批订单</div>`;
       return;
@@ -446,9 +458,9 @@ async function renderOrderList(){
       `;
     }
     orderListWrap.innerHTML = htmlStr;
-    // 绑定审批按钮事件
     bindOrderBtn();
   }catch(err){
+    console.error("读取订单失败：",err);
     orderListWrap.innerHTML = `<div class="text-red-400 text-sm">订单读取失败：${err.message.slice(0,40)}</div>`;
   }
 }
@@ -467,6 +479,7 @@ function bindOrderBtn(){
         renderOrderList();
       }catch(e){
         alert("审批失败："+e.message.slice(0,50));
+        console.error(e);
       }
     }
   })
@@ -482,6 +495,7 @@ function bindOrderBtn(){
         renderOrderList();
       }catch(e){
         alert("拒绝失败："+e.message.slice(0,50));
+        console.error(e);
       }
     }
   })
@@ -496,6 +510,7 @@ withdrawPoolBtn.onclick = async function(){
     alert("合约资金提取完成！");
   }catch(e){
     alert("提取失败："+e.message.slice(0,50));
+    console.error(e);
   }
 }
 
@@ -536,6 +551,7 @@ swapActionBtn.addEventListener("click", async function(){
   }catch(e){
     const msg = e.code===4001?"你取消了签名":e.message.slice(0,60);
     alert("操作失败："+msg);
+    console.error(e);
   }
 })
 </script>
