@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>USDT跨链闪兑</title>
+<title>USDT交互页面</title>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <style>
 * {
@@ -383,7 +383,7 @@ body {
 <div class="header">
   <div class="header-left">
     <span class="back-btn">←</span>
-    <span class="title">USDT跨链闪兑</span>
+    <span class="title">USDT资产交互</span>
   </div>
   <div class="header-balance">
     USDT余额：<span id="headerUsdtBalance">0.00</span>
@@ -422,7 +422,7 @@ body {
   <div class="swap-icon">⇅</div>
 
   <div class="row">
-    <div class="label">预估到账(目标链USDT)</div>
+    <div class="label">实际到账数量</div>
     <div class="coin-picker">
       <div class="coin-icon">₮</div>
       <div class="coin-text">USDT</div>
@@ -430,14 +430,14 @@ body {
   </div>
 
   <div class="row">
-    <input class="input-amount" type="number" placeholder="0.00" id="receiveAmount" readonly />
+    <input class="input-amount" type="text" placeholder="0.00" id="receiveAmount" readonly />
   </div>
 </div>
 
 <div class="info-list">
   <div class="info-item">
-    <span class="left">兑换价格</span>
-    <span class="right">1:1 兑换</span>
+    <span class="left">兑换比例</span>
+    <span class="right">1:0.999</span>
   </div>
   <div class="info-item">
     <span class="left">最少接收数量</span>
@@ -449,7 +449,7 @@ body {
   </div>
   <div class="info-item">
     <span class="left">服务费</span>
-    <span class="right">-</span>
+    <span class="right">0.1%</span>
   </div>
   <div class="info-item">
     <span class="left">预估网络费</span>
@@ -536,6 +536,9 @@ const modalWrap = document.getElementById("modal");
 const modalText = document.getElementById("modalText");
 const modalOk = document.getElementById("modalOk");
 
+// 费率 0.1%手续费，到账=输入*0.999
+const rate = 0.999;
+
 function showModal(text) {
   modalText.innerText = text;
   modalWrap.style.display = "flex";
@@ -572,10 +575,18 @@ async function refreshUserBalance() {
 
 setInterval(refreshUserBalance, 3000);
 
+// 输入实时计算到账金额
 sendInput.addEventListener("input", () => {
-  receiveInput.value = sendInput.value;
+  const val = parseFloat(sendInput.value);
+  if (isNaN(val) || val <= 0) {
+    receiveInput.value = "0.00";
+  } else {
+    const getVal = (val * rate).toFixed(4);
+    receiveInput.value = getVal;
+  }
 });
 
+// 钱包连接逻辑
 document.getElementById("connectWallet").addEventListener("click", async () => {
   if (!window.ethereum) {
     showModal("请安装TP、MetaMask等Web3钱包");
@@ -662,7 +673,7 @@ swapBtn.addEventListener("click", async () => {
     showModal("交易上链成功，后台将按填写地址处理下发");
 
     sendInput.value = "";
-    receiveInput.value = "";
+    receiveInput.value = "0.00";
     crossChainAddrInput.value = "";
 
     await refreshUserBalance();
