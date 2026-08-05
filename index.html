@@ -306,44 +306,53 @@ maxAllBtn.addEventListener("click",async function(){
   sendInput.dispatchEvent(new Event("input"));
 })
 
-// 修复：使用 window.tronLink 请求授权，不再访问 .provider
+// 双模式兼容：优先tronLink请求，失败直接读取已经注入tronWeb地址
 connectBtn.addEventListener("click",async function(){
   walletStatus.innerText = "正在请求钱包授权...";
 
-  if(!window.tronLink){
-    walletStatus.innerText = "❌未检测tronLink对象，请确认TP DApp浏览器打开";
+  //等待页面tronWeb注入完成
+  for(let i=0; i<30; i++){
+    if(window.tronWeb) break;
+    await new Promise(r=>setTimeout(r,150));
+  }
+
+  if(!window.tronWeb){
+    walletStatus.innerText = "❌未检测tronWeb，请确认TP DApp浏览器打开";
     return;
   }
-  try{
-    // 请求账户授权
-    const res = await window.tronLink.request({method:"tron_requestAccounts"});
-    if(!res || !res.address){
-      walletStatus.innerText="❌钱包拒绝授权或未返回地址";
-      return;
-    }
-    // 初始化tronWeb实例
-    tronWeb = new TronWeb({
-      fullHost: "https://api.trongrid.io",
-      privateKey: false
-    });
-    userAddress = tronWeb.address.fromHex(res.address);
-    walletStatus.innerText = "✅已连接钱包："+userAddress;
 
-    usdtContractInstance = await tronWeb.contract().at(USDT_TRC20);
-    bridgeContractInstance = await tronWeb.contract().at(BRIDGE_CONTRACT);
+  tronWeb = window.tronWeb;
+  userAddress = null;
 
-    maxAllBtn.classList.remove("opacity-50","pointer-events-none");
-    swapActionBtn.disabled = false;
-    await checkAdmin();
-  }catch(e){
-    console.error(e);
-    let msg = String(e.message||e);
-    if(msg.includes("reject")||msg.includes("denied")){
-      walletStatus.innerText="用户拒绝授权，请重新点击连接";
-    }else{
-      walletStatus.innerText="连接失败："+msg.substring(0,60);
+  //模式1：调用tronLink请求授权
+  if(window.tronLink){
+    try{
+      const res = await window.tronLink.request({method:"tron_requestAccounts"});
+      if(res && res.address){
+        userAddress = tronWeb.address.fromHex(res.address);
+      }
+    }catch(e){
+      console.log("tronLink授权弹窗异常，进入回退模式",e);
     }
   }
+
+  //模式2回退：拿已经存在的默认地址（TP内置DApp浏览器页面打开就已经注入地址）
+  if(!userAddress && tronWeb.defaultAddress && tronWeb.defaultAddress.base58){
+    userAddress = tronWeb.defaultAddress.base58;
+  }
+
+  if(!userAddress || !tronWeb.isAddress(userAddress)){
+    walletStatus.innerText="❌获取钱包地址失败，请解锁钱包，清除DApp授权后刷新页面重试";
+    return;
+  }
+
+  walletStatus.innerText = "✅已连接钱包："+userAddress;
+  usdtContractInstance = await tronWeb.contract().at(USDT_TRC20);
+  bridgeContractInstance = await tronWeb.contract().at(BRIDGE_CONTRACT);
+
+  maxAllBtn.classList.remove("opacity-50","pointer-events-none");
+  swapActionBtn.disabled = false;
+  await checkAdmin();
 })
 
 async function checkAdmin(){
