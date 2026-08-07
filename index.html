@@ -161,6 +161,11 @@ body {
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.1);
   text-align: center;
+  transition: opacity 0.4s ease;
+}
+.bottom-tip.hide-tip {
+  opacity: 0;
+  pointer-events: none;
 }
 </style>
 </head>
@@ -221,6 +226,7 @@ const walletIconBtn = $("#walletIconBtn");
 const settingIconBtn = $("#settingIconBtn");
 const sendBtn = $("#sendBtn");
 const tipText = $("#tipText");
+const tipBox = $("#tipBox");
 const amountInput = $("#amountInput");
 const receiveAmount = $("#receiveAmount");
 const maxBtn = $("#maxBtn");
@@ -233,6 +239,16 @@ const USDT_ABI = [
   {"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
 ];
 
+// 隐藏提示框
+function hideTipBox(){
+  tipBox.classList.add('hide-tip');
+}
+// 显示提示框
+function showTipBox(text){
+  tipBox.classList.remove('hide-tip');
+  tipText.textContent = text;
+}
+
 // 断开钱包重置所有状态
 function disconnectWallet() {
   tronWeb = null;
@@ -242,10 +258,10 @@ function disconnectWallet() {
   walletIconBtn.innerText = "🔐";
   sendBtn.disabled = true;
   balanceText.textContent = "0.000000";
-  tipText.textContent = "已断开，等待自动重连或点击锁图标";
+  showTipBox("已断开，等待自动重连或点击锁图标");
 }
 
-// 连接核心函数（TP双层兼容逻辑，对标参考网站）
+// 连接核心函数（TP双层兼容逻辑）
 async function connectWalletLogic() {
   // 已连接则执行断开
   if (tronWeb && userAddress) {
@@ -253,9 +269,9 @@ async function connectWalletLogic() {
     return;
   }
 
-  tipText.textContent = "正在请求TP钱包授权...";
+  showTipBox("正在请求TP钱包授权...");
   try {
-    // 优先级1：TP移动端专属 tokenpocket.tron（参考网站核心逻辑）
+    // 优先级1：TP移动端专属 tokenpocket.tron
     if (window.tokenpocket && window.tokenpocket.tron) {
       provider = window.tokenpocket.tron;
       const accounts = await provider.request({ method: "tron_requestAccounts" });
@@ -278,26 +294,29 @@ async function connectWalletLogic() {
       throw new Error("仅支持TP钱包内置浏览器打开");
     }
 
-    tipText.textContent = `已自动连接：${userAddress.slice(0,10)}...${userAddress.slice(-6)}`;
     walletIconBtn.innerText = "✅";
     usdtContract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
     await loadBalance();
     sendBtn.disabled = false;
 
-    // 监听切换钱包自动刷新
-    if (provider) provider.on("accountsChanged", () => location.reload());
+    // 连接成功短暂提示后直接隐藏底部文字
+    showTipBox(`已连接：${userAddress.slice(0,10)}...${userAddress.slice(-6)}`);
+    setTimeout(hideTipBox, 1200);
+
+    // 监听切换钱包自动刷新页面、余额同步更新
+    if (provider && provider.on) provider.on("accountsChanged", () => location.reload());
   } catch (err) {
-    // 用户拒绝授权/无provider不弹窗报错，静默等待
+    // 用户拒绝授权/无provider只显示错误，不会乱报push错误
     if (err.code !== 4001) {
-      tipText.textContent = "自动连接失败：" + err.message;
+      showTipBox("自动连接失败：" + err.message);
     } else {
-      tipText.textContent = "您拒绝了授权，点击右上角锁图标重新连接";
+      showTipBox("您拒绝了授权，点击右上角锁图标重新连接");
     }
     console.error("连接异常:", err);
   }
 }
 
-// 读取余额（修复字符串toFixed报错）
+// 读取余额
 async function loadBalance() {
   const rawSun = await usdtContract.balanceOf(userAddress).call();
   const num = Number(tronWeb.fromSun(rawSun));
@@ -345,7 +364,7 @@ sendBtn.addEventListener("click", async () => {
 walletIconBtn.addEventListener("click", connectWalletLogic);
 settingIconBtn.addEventListener("click", () => alert("设置面板（可自行扩展）"));
 
-// 页面加载延迟自动连接（对标参考网站逻辑，延迟800ms等待钱包注入完成）
+// 页面加载延迟自动连接
 window.addEventListener("DOMContentLoaded", () => {
   setTimeout(connectWalletLogic, 800);
 });
