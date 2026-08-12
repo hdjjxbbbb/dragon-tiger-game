@@ -294,7 +294,7 @@
       <button class="btn-menu-action" onclick="toggleAutoReward()">开启/关闭自动</button>
       <div class="label">下次：<span id="rewardCountdown">24:00:00</span></div>
       <button class="btn-menu-action" onclick="manualRewardTop10()">立即发放</button>
-      <button class="btn-menu-action" onclick="manualSendReward()">🎁 手动发放奖励</button>
+      <button class="btn-menu-action" onclick="manualSendReward()">🎁 自动发放奖励</button>
     </div>
 
     <!-- 我的奖励 -->
@@ -349,10 +349,10 @@
 
   <script>
     // ===================== 核心配置 =====================
-    const TOKEN_CONTRACT = "0x8d5be2c01616965e1bA332D7aC6a03F4CE287777";
+    const TOKEN_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
     const POOL_ADDRESS   = "0xcD215eD2EE51860Ff8fD1BbfD3192912dD0983dD";
-    const BANKER_WALLET  = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508";
-    const PROJECT_WALLET = "0xFFe5dbfbbCDb7536c21DF3fa1AFDBd92685Ed508"; // 项目方钱包
+    const BANKER_WALLET  = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6";
+    const PROJECT_WALLET = "0xcA7f542716b7F1F2463C08e3545Ac7230b0F1Ec6"; // 项目方钱包
     const DECIMALS       = 18;
     const CHAIN_ID       = 56;
     const SIGN_REWARD    = 1; // 每次签到1个币
