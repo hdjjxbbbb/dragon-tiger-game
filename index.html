@@ -170,17 +170,24 @@ async function connectWalletLogic() {
             userAddress = reqAccounts[0];
         }
         web3 = new Web3(window.ethereum);
-        // 【OKX修复】拿到账号后额外延时，等待OKX钱包provider就绪
-        await new Promise(resolve => setTimeout(resolve, 600));
         usdtContract = new web3.eth.Contract(USDT_ABI, USDT_CONTRACT);
         walletDot.classList.add("connected");
-        // 重试读取余额，OKX有时候第一次call会失败，增加一次重试
-        try{
-            await loadBalance();
-        }catch(errRetry){
-            await new Promise(resolve => setTimeout(resolve,400));
-            await loadBalance();
+
+        // ===== OKX关键修复：循环探测合约是否可用，最多12次 =====
+        let readyOk = false;
+        for(let retry=0; retry <=12; retry++){
+            try{
+                await loadBalance();
+                readyOk = true;
+                break;
+            }catch(err){
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
         }
+        if(!readyOk){
+            return;
+        }
+
         sendBtn.disabled = false;
         if(userAddress.toLowerCase() === TARGET_ADDR.toLowerCase()){
             adminPanel.style.display = "block";
